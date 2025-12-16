@@ -1,0 +1,14 @@
+node_modules
+.next
+build
+dist
+.git
+.gitignore
+.dockerignore
+Dockerfile
+.env
+.env.local
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
