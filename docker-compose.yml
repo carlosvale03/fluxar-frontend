@@ -4,9 +4,8 @@ services:
     # Habilita Hot Reload (Polling) para funcionar bem no Docker em Windows
     environment:
       - WATCHPACK_POLLING=true
-      # Placeholder: Se rodar isolado, pode não ter backend.
-      # O dev pode apontar para http://host.docker.internal:8000 se quiser acessar o back rodando fora
-      - NEXT_PUBLIC_API_URL=http://localhost:8000/api
+    env_file:
+      - .env.local
     volumes:
       - ${PWD}:/app        # Mapeia sua pasta local para dentro do container
       - /app/node_modules             # Evita que o node_modules local (Windows) sobrescreva o do container (Linux)
