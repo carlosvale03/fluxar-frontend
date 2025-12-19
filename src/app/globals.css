@@ -1,26 +1,201 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+
+@theme {
+  /* Primitive Palette Colors */
+  --color-brand-100: var(--palette-brand-100);
+  --color-brand-200: var(--palette-brand-200);
+  --color-brand-500: var(--palette-brand-500);
+  --color-brand-600: var(--palette-brand-600);
+  --color-brand-900: var(--palette-brand-900);
+
+  --color-neutral-0: var(--palette-neutral-0);
+  --color-neutral-50: var(--palette-neutral-50);
+  --color-neutral-100: var(--palette-neutral-100);
+  --color-neutral-200: var(--palette-neutral-200);
+  --color-neutral-300: var(--palette-neutral-300);
+  --color-neutral-500: var(--palette-neutral-500);
+  --color-neutral-700: var(--palette-neutral-700);
+  --color-neutral-900: var(--palette-neutral-900);
+
+  /* Semantic Colors mapping to Utilities */
+  --color-background: var(--bg-page);
+  --color-foreground: var(--text-primary);
+  
+  --color-card: var(--bg-card);
+  --color-card-foreground: var(--text-primary);
+  
+  --color-popover: var(--bg-card);
+  --color-popover-foreground: var(--text-primary);
+  
+  --color-primary: var(--btn-primary-bg);
+  --color-primary-foreground: var(--btn-primary-text);
+  
+  --color-secondary: var(--palette-neutral-100);
+  --color-secondary-foreground: var(--palette-neutral-900);
+  
+  --color-muted: var(--palette-neutral-100);
+  --color-muted-foreground: var(--text-secondary);
+  
+  --color-accent: var(--palette-neutral-100);
+  --color-accent-foreground: var(--palette-neutral-900);
+  
+  --color-destructive: var(--palette-salmon-500);
+  --color-destructive-foreground: var(--palette-neutral-0);
+
+  --color-border: var(--border-default);
+  --color-input: var(--bg-input);
+  --color-ring: var(--border-focus);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+}
+
+/* 
+   ========================================================================
+   FLUXAR DESIGN SYSTEM - CONCEITO 2: FLUXO & FLUIDEZ
+   ======================================================================== 
+*/
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ----------------------------------------------------------------------
+     1. PRIMITIVOS (A Paleta Crua)
+     ---------------------------------------------------------------------- */
+  
+  /* Brand Colors (Azul Oceano) */
+  --palette-brand-100: #E0F7FA;
+  --palette-brand-200: #81D4FA;
+  --palette-brand-500: #00A8E8; /* Cor Principal */
+  --palette-brand-600: #008DC2; /* Hover */
+  --palette-brand-900: #004D6B;
+
+  /* Accent Colors */
+  --palette-aqua-500:   #55D8C1; /* Receita/Sucesso */
+  --palette-salmon-500: #FF8F5E; /* Despesa/Erro */
+  --palette-mustard-500:#FFD166; /* Alerta/Foco */
+  
+  /* Neutrals (Slate Blue - Para manter a vibe 'fria' e tech) */
+  --palette-neutral-0:   #FFFFFF;
+  --palette-neutral-50:  #F8FAFC;
+  --palette-neutral-100: #F1F5F9;
+  --palette-neutral-200: #E2E8F0;
+  --palette-neutral-300: #CBD5E1;
+  --palette-neutral-500: #64748B;
+  --palette-neutral-700: #334155;
+  --palette-neutral-900: #0F172A; /* Quase preto */
+
+  /* ----------------------------------------------------------------------
+     2. SEMÂNTICOS - TEMA CLARO (LIGHT MODE)
+     ---------------------------------------------------------------------- */
+
+  /* --- BACKGROUNDS (Fundos) --- */
+  --bg-page:        var(--palette-neutral-50);  /* Fundo da tela inteira */
+  --bg-card:        var(--palette-neutral-0);   /* Fundo de containers/cards */
+  --bg-modal:       var(--palette-neutral-0);   /* Fundo de modais */
+  --bg-input:       var(--palette-neutral-50);  /* Fundo de inputs de texto */
+  --bg-hover:       var(--palette-neutral-100); /* Fundo ao passar o mouse em listas */
+  --bg-active:      var(--palette-brand-100);   /* Item selecionado no menu */
+
+  /* --- TYPOGRAPHY (Textos) --- */
+  --text-primary:   var(--palette-neutral-900); /* Títulos, valores principais */
+  --text-secondary: var(--palette-neutral-500); /* Legendas, descrições */
+  --text-tertiary:  var(--palette-neutral-300); /* Placeholders, textos desabilitados */
+  --text-inverse:   var(--palette-neutral-0);   /* Texto sobre fundos escuros/coloridos */
+  --text-brand:     var(--palette-brand-600);   /* Texto colorido (links, destaques) */
+
+  /* --- BORDERS & DIVIDERS (Bordas) --- */
+  --border-subtle:  var(--palette-neutral-100); /* Divisores muito leves */
+  --border-default: var(--palette-neutral-200); /* Bordas de cards e inputs */
+  --border-strong:  var(--palette-neutral-300); /* Bordas com mais contraste */
+  --border-focus:   var(--palette-brand-500);   /* Foco em inputs (outline) */
+
+  /* --- BUTTONS & ACTIONS (Botões) --- */
+  /* Primary Button (Azul) */
+  --btn-primary-bg:    var(--palette-brand-500);
+  --btn-primary-text:  var(--palette-neutral-0);
+  --btn-primary-hover: var(--palette-brand-600);
+  
+  /* Secondary/Ghost Button (Fundo transparente, borda ou texto azul) */
+  --btn-ghost-bg:      transparent;
+  --btn-ghost-text:    var(--palette-neutral-700);
+  --btn-ghost-hover:   var(--palette-neutral-100);
+
+  /* --- FINANCE SPECIFIC (O coração do Fluxar) --- */
+  --finance-income:         var(--palette-aqua-500);
+  --finance-income-light:   rgba(85, 216, 193, 0.15); /* Fundo sutil para receita */
+  --finance-expense:        var(--palette-salmon-500);
+  --finance-expense-light:  rgba(255, 143, 94, 0.15); /* Fundo sutil para despesa */
+  --finance-chart-1:        var(--palette-brand-500);
+  --finance-chart-2:        var(--palette-aqua-500);
+  --finance-chart-3:        var(--palette-mustard-500);
+  --finance-chart-4:        var(--palette-salmon-500);
+
+  /* --- MISC --- */
+  --radius-sm: 4px;
+  --radius-md: 8px; /* Padrão para cards */
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* ----------------------------------------------------------------------
+   3. SEMÂNTICOS - TEMA ESCURO (DARK MODE)
+   ---------------------------------------------------------------------- */
+[data-theme='dark'], .dark {
+  /* Redefinindo Primitivos para Dark Mode (Ajuste de contraste) */
+  --palette-brand-dark-bg: #0B1120; /* Deep Ocean */
+  --palette-surface-dark:  #1E293B; /* Lighter Ocean */
+
+  /* --- BACKGROUNDS --- */
+  --bg-page:        var(--palette-brand-dark-bg);
+  --bg-card:        var(--palette-surface-dark);
+  --bg-modal:       #253045;
+  --bg-input:       #0F172A;
+  --bg-hover:       #334155;
+  --bg-active:      rgba(0, 168, 232, 0.2); /* Azul com transparência */
+
+  /* --- TYPOGRAPHY --- */
+  --text-primary:   #F8FAFC; /* Branco quase puro */
+  --text-secondary: #94A3B8; /* Cinza azulado claro */
+  --text-tertiary:  #475569;
+  --text-inverse:   #0F172A; /* Texto escuro (para botões claros) */
+  --text-brand:     #38BDF8; /* Azul mais claro e neon para ler no escuro */
+
+  /* --- BORDERS --- */
+  --border-subtle:  #1E293B;
+  --border-default: #334155;
+  --border-strong:  #475569;
+  --border-focus:   #38BDF8;
+
+  /* --- BUTTONS --- */
+  --btn-primary-bg:    #00A8E8;
+  --btn-primary-text:  #FFFFFF;
+  --btn-primary-hover: #38BDF8; /* Fica mais claro no hover em dark mode */
+  
+  --btn-ghost-text:    #E2E8F0;
+  --btn-ghost-hover:   rgba(255,255,255, 0.05);
+
+  /* --- FINANCE SPECIFIC (Ajuste de brilho/neon) --- */
+  --finance-income:         #2DD4BF; /* Teal mais brilhante */
+  --finance-expense:        #FB923C; /* Laranja mais brilhante */
+  --finance-income-light:   rgba(45, 212, 191, 0.1);
+  --finance-expense-light:  rgba(251, 146, 60, 0.1);
+  
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* Sombra mais pesada */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* GLOBAL RESET */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
 }
