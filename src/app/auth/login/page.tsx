@@ -34,7 +34,7 @@ export default function LoginPage() {
       const response = await api.post("/auth/login/", data)
       // If the backend returns the user object, pass it. Otherwise, pass undefined.
       // We explicitly await login now as it might fetch the user.
-      await login(response.data.access, response.data.user)
+      await login(response.data.access, response.data.refresh, response.data.user)
       toast.success("Login realizado com sucesso!")
     } catch (error: any) {
       const msg = error.response?.data?.detail || "Erro ao realizar login. Verifique suas credenciais."
