@@ -40,7 +40,7 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
-  login: (token: string, user?: User) => Promise<void>
+  login: (token: string, refreshToken?: string, user?: User) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
 }
@@ -56,9 +56,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Assuming GET /auth/me returns the user data
       const response = await api.get("/auth/me/")
-      console.log("=== FULL USER DATA FROM BACKEND ===")
-      console.log(JSON.stringify(response.data, null, 2))
-      console.log("===================================")
       setUser(response.data)
     } catch {
       logout()
@@ -76,8 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = async (token: string, newUser?: User) => {
+  const login = async (token: string, refreshToken?: string, newUser?: User) => {
     localStorage.setItem("fluxar.token", token)
+    if (refreshToken) {
+        localStorage.setItem("fluxar.refresh_token", refreshToken)
+    }
     
     if (newUser) {
       setUser(newUser)
@@ -96,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     localStorage.removeItem("fluxar.token")
+    localStorage.removeItem("fluxar.refresh_token")
     setUser(null)
     router.push("/auth/login")
   }

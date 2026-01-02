@@ -18,15 +18,78 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Queue to hold requests while refreshing token
+let isRefreshing = false
+let failedQueue: any[] = []
+
+const processQueue = (error: any, token: string | null = null) => {
+    failedQueue.forEach(prom => {
+        if (error) {
+            prom.reject(error)
+        } else {
+            prom.resolve(token)
+        }
+    })
+    
+    failedQueue = []
+}
+
 // Intercept responses to handle auth errors
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      if (typeof window !== "undefined") {
-        // Only redirect logic here if not managing state via context to avoid circular dependency
-        // Ideally the context catches this via event listener or just checks isAuthenticated
-      }
+  async (error) => {
+    const originalRequest = error.config
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+        if (isRefreshing) {
+            return new Promise(function(resolve, reject) {
+                failedQueue.push({resolve, reject})
+            }).then(token => {
+                originalRequest.headers['Authorization'] = 'Bearer ' + token
+                return api(originalRequest)
+            }).catch(err => {
+                return Promise.reject(err)
+            })
+        }
+
+        originalRequest._retry = true
+        isRefreshing = true
+
+        const refreshToken = localStorage.getItem("fluxar.refresh_token")
+
+        if (refreshToken) {
+            try {
+                 const response = await axios.post(
+                     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/auth/refresh/`, 
+                     { refresh: refreshToken }
+                 )
+
+                 const { access } = response.data
+                 
+                 localStorage.setItem("fluxar.token", access)
+                 api.defaults.headers.common['Authorization'] = 'Bearer ' + access
+                 originalRequest.headers['Authorization'] = 'Bearer ' + access
+                 
+                 processQueue(null, access)
+                 return api(originalRequest)
+            } catch (err) {
+                 processQueue(err, null)
+                 // Logout user if refresh fails
+                 localStorage.removeItem("fluxar.token")
+                 localStorage.removeItem("fluxar.refresh_token")
+                 if (typeof window !== "undefined") {
+                     window.location.href = "/auth/login"
+                 }
+                 return Promise.reject(err)
+            } finally {
+                isRefreshing = false
+            }
+        } else {
+             localStorage.removeItem("fluxar.token")
+             if (typeof window !== "undefined") {
+                 window.location.href = "/auth/login"
+             }
+        }
     }
     return Promise.reject(error)
   }
