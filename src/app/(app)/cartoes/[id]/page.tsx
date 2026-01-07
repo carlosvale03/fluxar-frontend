@@ -19,6 +19,9 @@ import {
 import { api } from "@/services/apiClient"
 import { CreditCard } from "@/types/cards"
 import { Account } from "@/types/accounts"
+import { InvoiceList } from "@/components/cards/invoice-list"
+import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
+import { Invoice } from "@/types/cards"
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 
 export default function CardDetailsPage() {
@@ -30,6 +33,10 @@ export default function CardDetailsPage() {
   const [account, setAccount] = useState<Account | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
+  
+  // Payment Dialog State
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined)
 
   const fetchCard = async () => {
     try {
@@ -65,12 +72,29 @@ export default function CardDetailsPage() {
     }).format(value)
   }
 
-  // Helper for dynamic styles based on card color
   const getGradientStyle = (color: string | undefined | null) => {
       const c = color || "#000000"
       return {
           background: `linear-gradient(135deg, ${c}15 0%, transparent 100%)`,
           borderColor: `${c}30`
+      }
+  }
+  
+  const handlePayInvoice = (invoice: Invoice) => {
+      setSelectedInvoice(invoice)
+      setIsPaymentOpen(true)
+  }
+
+  const handleUnpayInvoice = async (invoice: Invoice) => {
+      try {
+          await api.post(`/invoices/${invoice.id}/unpay/`)
+          toast.success("Pagamento desfeito com sucesso!")
+          // Reload to refresh logic
+           // Ideally update local state, but invoice logic affects many transactions.
+          window.location.reload()
+      } catch (error) {
+          console.error("Failed to unpay invoice", error)
+          toast.error("Erro ao desfazer pagamento.")
       }
   }
 
@@ -149,7 +173,6 @@ export default function CardDetailsPage() {
               <CardHeader className="pb-2">
                   <CardTitle className="text-base font-medium flex justify-between items-center">
                       Fatura Atual
-                      {/* Using plain badge color for readability, or use card color with low opacity */}
                       <Badge variant="outline" className="font-normal" style={{ borderColor: card.color ? `${card.color}60` : undefined, color: card.color || undefined }}>
                           Aberta
                       </Badge>
@@ -182,20 +205,9 @@ export default function CardDetailsPage() {
 
       <Separator className="my-8" />
 
-      {/* Transactions Section Placeholder */}
+      {/* Invoices List */}
       <div className="space-y-4">
-          <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold flex items-center gap-2">
-                  <FileText className="h-5 w-5" /> Transações Recentes
-              </h2>
-              <Button variant="outline" size="sm" disabled>Ver todas</Button>
-          </div>
-          
-          <div className="rounded-md border border-dashed p-8 text-center bg-muted/20">
-              <p className="text-muted-foreground text-sm">
-                  O módulo de transações será implementado em breve.
-              </p>
-          </div>
+          <InvoiceList cardId={id} onPayInvoice={handlePayInvoice} onUnpayInvoice={handleUnpayInvoice} />
       </div>
       
       <CreditCardFormDialog 
@@ -203,6 +215,25 @@ export default function CardDetailsPage() {
         onOpenChange={setIsEditOpen} 
         card={card} 
         onSuccess={fetchCard} 
+      />
+      
+      <InvoicePaymentDialog 
+        open={isPaymentOpen}
+        onOpenChange={setIsPaymentOpen}
+        invoiceId={selectedInvoice?.id}
+        initialAmount={selectedInvoice?.total_amount}
+        onSuccess={() => {
+            fetchCard()
+            // Should also refresh InvoiceList, but InvoiceList fetches on mount/id change.
+            //Ideally trigger a refresh.
+            // For now, simple page refresh or we can lift state. 
+            // Better: Pass a refresh trigger to InvoiceList? 
+            // Or just force re-render by changing cardId key? (No, that's hacky).
+            // Usually InvoiceList would expose a ref or depend on a version prop.
+            // I'll keep it simple for now, user can refresh manually or navigate back/forth.
+            // Actually, I can pass a key to InvoiceList that changes on success.
+            window.location.reload() // Easiest way to ensure everything syncs for now without more refactoring
+        }}
       />
     </div>
   )

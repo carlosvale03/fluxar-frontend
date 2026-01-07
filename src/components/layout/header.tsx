@@ -56,6 +56,9 @@ export function Header() {
             <Link href="/cartoes" className="transition-colors hover:text-primary">
               Cartões
             </Link>
+            <Link href="/transacoes" className="transition-colors hover:text-primary">
+              Transações
+            </Link>
           </nav>
         </div>
 

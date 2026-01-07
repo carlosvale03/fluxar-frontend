@@ -32,10 +32,10 @@ export interface UpdateCreditCardDTO extends Partial<CreateCreditCardDTO> {}
 
 export interface Invoice {
     id: string
-    card_id: string
-    period_start: string
-    period_end: string
-    due_date: string
+    month: number
+    year: number
+    status: "OPEN" | "CLOSED" | "PAID" | "OVERDUE"
     total_amount: number
-    status: "open" | "closed" | "paid" | "overdue"
+    due_date: string
+    closing_date: string
 }
