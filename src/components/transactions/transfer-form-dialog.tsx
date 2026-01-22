@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
 import { Calendar as CalendarIcon, Loader2, ArrowRightCircle } from "lucide-react"
 import { toast } from "sonner"
 
@@ -42,12 +43,15 @@ import { Account } from "@/types/accounts"
 
 import { Transaction } from "@/types/transactions"
 
+import { TagSelector } from "@/components/tags/TagSelector"
+
 const formSchema = z.object({
   description: z.string().optional(),
   amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
   date: z.date(),
   source_account_id: z.string().min(1, "Selecione a conta de origem."),
   target_account_id: z.string().min(1, "Selecione a conta de destino."),
+  tags: z.array(z.string()).default([]),
 }).refine(data => data.source_account_id !== data.target_account_id, {
     message: "A conta de destino deve ser diferente da origem.",
     path: ["target_account_id"],
@@ -94,6 +98,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                 date: new Date(),
                 source_account_id: "",
                 target_account_id: "",
+                tags: [],
             })
         }
     }
@@ -179,6 +184,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               date: new Date(year, month - 1, day),
               source_account_id: sourceId,
               target_account_id: targetId,
+              tags: data.tags?.map((t: any) => typeof t === 'string' ? t : t.id) || [],
           })
       } catch (error) {
           console.error("Failed to fetch transfer details", error)
@@ -233,7 +239,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               date: formattedDate,
               account_id: accountIdParam,
               target_account_id: targetAccountIdParam,
-              type: initialData.type
+              type: initialData.type,
+              tags: data.tags
           }
 
           await api.put(`/transactions/${initialData.id}/`, editPayload)
@@ -246,7 +253,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               date: formattedDate,
               account_from: data.source_account_id,
               account_to: data.target_account_id,
-              type: "TRANSFER"
+              type: "TRANSFER",
+              tags: data.tags
           }
 
           await api.post("/transactions/transfer/", createPayload)
@@ -267,174 +275,241 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
     }
   }
 
+  const [isCalendarOpen, setIsCalendarOpen] = useState(false)
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <ArrowRightCircle className="h-5 w-5 text-blue-500" />
-            {initialData ? "Editar Transferência" : "Nova Transferência"}
-          </DialogTitle>
-          <DialogDescription>
-            {initialData ? "Altere os dados da transferência." : "Mova dinheiro entre suas contas."}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px]">
+        <div className="h-2 w-full bg-blue-500" />
         
-        {isFetchingDetails ? (
-            <div className="flex justify-center py-8">
-                <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        <div className="p-8 pt-6">
+          <DialogHeader className="mb-8">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-500/10 animate-in zoom-in-50 duration-500">
+                <ArrowRightCircle className="h-6 w-6" />
+              </div>
+              <div className="flex flex-col gap-0.5">
+                <DialogTitle className="text-2xl font-bold tracking-tight">
+                  {initialData ? "Editar Transferência" : "Nova Transferência"}
+                </DialogTitle>
+                <DialogDescription className="text-sm font-medium opacity-70">
+                  {initialData ? "Atualize os detalhes da movimentação." : "Mova valores entre suas contas de forma simples."}
+                </DialogDescription>
+              </div>
             </div>
-        ) : (
+          </DialogHeader>
+          
+          {isFetchingDetails ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+                  <p className="text-sm font-medium text-muted-foreground animate-pulse">Carregando detalhes...</p>
+              </div>
+          ) : (
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                 
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="amount"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Valor (R$)</FormLabel>
-                            <FormControl>
-                                <Input 
-                                    type="number" 
-                                    step="0.01" 
-                                    placeholder="0,00" 
-                                    {...field} 
-                                />
-                            </FormControl>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
+                <div className="space-y-4">
+                  <FormField
                     control={form.control}
-                    name="date"
-                    render={({ field }) => {
-                        // eslint-disable-next-line
-                        const [isCalendarOpen, setIsCalendarOpen] = useState(false)
-                        return (
-                        <FormItem className="flex flex-col mt-2.5">
-                        <FormLabel>Data</FormLabel>
-                        <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                            <PopoverTrigger asChild>
-                            <FormControl>
-                                <Button
-                                variant={"outline"}
-                                className={cn(
-                                    "w-full pl-3 text-left font-normal",
-                                    !field.value && "text-muted-foreground"
-                                )}
-                                >
-                                {field.value ? (
-                                    format(field.value, "dd/MM/yyyy")
-                                ) : (
-                                    <span>Selecione uma data</span>
-                                )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                                </Button>
-                            </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar
-                                mode="single"
-                                selected={field.value}
-                                onSelect={field.onChange}
-                                disabled={(date) =>
-                                date > new Date("2100-01-01") ||
-                                date < new Date("1900-01-01")
-                                }
-                                // @ts-ignore
-                                onClose={() => setIsCalendarOpen(false)}
-                                initialFocus
-                            />
-                            </PopoverContent>
-                        </Popover>
-                        <FormMessage />
-                        </FormItem>
-                    )}}
-                    />
+                    name="description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Motivo / Descrição</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Ex: Reserva, Investimento..." 
+                            {...field} 
+                            className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base"
+                          />
+                        </FormControl>
+                        <FormMessage className="ml-1 text-[11px]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="tags"
+                    render={({ field }) => (
+                      <FormItem className="space-y-2 !mb-2">
+                        <FormControl>
+                          <TagSelector 
+                            selectedTagIds={field.value} 
+                            onChange={field.onChange} 
+                          />
+                        </FormControl>
+                        <FormMessage className="ml-1 text-[11px]" />
+                      </FormItem>
+                    )}
+                  />
+
+                  {/* Amount and Date row */}
+                  <div className="grid grid-cols-2 gap-4">
+                      <FormField
+                          control={form.control}
+                          name="amount"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Quanto?</FormLabel>
+                              <FormControl>
+                                  <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
+                                    <Input 
+                                        type="number" 
+                                        step="0.01" 
+                                        placeholder="0,00" 
+                                        {...field} 
+                                        onFocus={(e) => e.target.select()}
+                                        className="h-12 pl-10 pr-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base font-bold"
+                                    />
+                                  </div>
+                              </FormControl>
+                              <FormMessage className="ml-1 text-[11px]" />
+                              </FormItem>
+                          )}
+                      />
+
+                      <FormField
+                      control={form.control}
+                      name="date"
+                      render={({ field }) => (
+                          <FormItem className="flex flex-col">
+                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">Quando?</FormLabel>
+                          <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
+                              <PopoverTrigger asChild>
+                              <FormControl>
+                                  <Button
+                                  variant={"outline"}
+                                  className={cn(
+                                      "h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 hover:bg-muted/30 focus:ring-2 focus:ring-primary/20 transition-all text-left font-normal",
+                                      !field.value && "text-muted-foreground"
+                                  )}
+                                  >
+                                  {field.value ? (
+                                      format(field.value, "dd 'de' MMM", { locale: ptBR })
+                                  ) : (
+                                      <span>Data</span>
+                                  )}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  </Button>
+                              </FormControl>
+                              </PopoverTrigger>
+                              <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-muted/60" align="start">
+                              <Calendar
+                                  mode="single"
+                                  selected={field.value}
+                                  onSelect={(date) => {
+                                    field.onChange(date)
+                                    setIsCalendarOpen(false)
+                                  }}
+                                  disabled={(date) =>
+                                  date > new Date("2100-01-01") ||
+                                  date < new Date("1900-01-01")
+                                  }
+                                  initialFocus
+                              />
+                              </PopoverContent>
+                          </Popover>
+                          <FormMessage className="ml-1 text-[11px]" />
+                          </FormItem>
+                      )}
+                      />
+                  </div>
+
+                  {/* Visual Flow Container */}
+                  <div className="relative flex flex-col gap-4 p-6 rounded-[32px] bg-muted/10 border border-muted/30 overflow-hidden">
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 z-10">
+                      <ArrowRightCircle className="h-4 w-4" />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative">
+                      <FormField
+                          control={form.control}
+                          name="source_account_id"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-rose-500 ml-1">Sai de:</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                  <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-background focus:ring-2 focus:ring-rose-500/20 transition-all">
+                                      <SelectValue placeholder="Origem..." />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="rounded-2xl shadow-xl">
+                                      {accounts.map((acc) => (
+                                          <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
+                                              <div className="flex items-center gap-2">
+                                                  <div 
+                                                      className="w-3 h-3 rounded-full border border-black/5" 
+                                                      style={{ backgroundColor: acc.color || "#ccc" }} 
+                                                  />
+                                                  <span className="font-medium">{acc.name}</span>
+                                              </div>
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage className="ml-1 text-[11px]" />
+                              </FormItem>
+                          )}
+                      />
+
+                      <FormField
+                          control={form.control}
+                          name="target_account_id"
+                          render={({ field }) => (
+                              <FormItem>
+                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-emerald-500 ml-1">Entra em:</FormLabel>
+                              <Select onValueChange={field.onChange} value={field.value}>
+                                  <FormControl>
+                                  <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-background focus:ring-2 focus:ring-emerald-500/20 transition-all">
+                                      <SelectValue placeholder="Destino..." />
+                                  </SelectTrigger>
+                                  </FormControl>
+                                  <SelectContent className="rounded-2xl shadow-xl">
+                                      {accounts.map((acc) => (
+                                          <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
+                                              <div className="flex items-center gap-2">
+                                                  <div 
+                                                      className="w-3 h-3 rounded-full border border-black/5" 
+                                                      style={{ backgroundColor: acc.color || "#ccc" }} 
+                                                  />
+                                                  <span className="font-medium">{acc.name}</span>
+                                              </div>
+                                          </SelectItem>
+                                      ))}
+                                  </SelectContent>
+                              </Select>
+                              <FormMessage className="ml-1 text-[11px]" />
+                              </FormItem>
+                          )}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                        control={form.control}
-                        name="source_account_id"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Origem (Sai)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {accounts.map((acc) => (
-                                        <SelectItem key={acc.id} value={acc.id}>
-                                            {acc.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-
-                    <FormField
-                        control={form.control}
-                        name="target_account_id"
-                        render={({ field }) => (
-                            <FormItem>
-                            <FormLabel>Destino (Entra)</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
-                                <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Selecione..." />
-                                </SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                    {accounts.map((acc) => (
-                                        <SelectItem key={acc.id} value={acc.id}>
-                                            {acc.name}
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <FormMessage />
-                            </FormItem>
-                        )}
-                    />
-                </div>
-
-                <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                    <FormItem>
-                    <FormLabel>Descrição (Opcional)</FormLabel>
-                    <FormControl>
-                        <Input placeholder="Ex: Investimento, Reserva..." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                    </FormItem>
-                )}
-                />
-
-                <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                <DialogFooter className="gap-2 sm:gap-0 pt-2">
+                  <Button 
+                      type="button" 
+                      variant="ghost" 
+                      onClick={() => onOpenChange(false)}
+                      className="h-12 px-6 rounded-2xl font-semibold hover:bg-muted"
+                  >
                     Cancelar
-                </Button>
-                <Button type="submit" disabled={isLoading}>
+                  </Button>
+                  <Button 
+                      type="submit" 
+                      disabled={isLoading}
+                      className="h-12 px-8 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                  >
                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    {initialData ? "Salvar Alterações" : "Transferir"}
-                </Button>
+                    {initialData ? "Salvar Alterações" : "Efetuar Transferência"}
+                  </Button>
                 </DialogFooter>
-            </form>
+              </form>
             </Form>
-        )}
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   )

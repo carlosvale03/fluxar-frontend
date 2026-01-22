@@ -16,10 +16,22 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { getAbsoluteUrl } from "@/lib/utils"
+import { usePathname } from "next/navigation"
+import { getAbsoluteUrl, cn } from "@/lib/utils"
 
 export function Header() {
   const { user, logout, isLoading } = useAuth()
+  const pathname = usePathname()
+
+  const navItems = [
+    { name: "Dashboard", href: "/dashboard" },
+    { name: "Contas", href: "/contas" },
+    { name: "Cartões", href: "/cartoes" },
+    { name: "Transações", href: "/transacoes" },
+    { name: "Categorias", href: "/categorias" },
+    { name: "Tags", href: "/tags" },
+    { name: "Orçamentos", href: "/orcamentos" },
+  ]
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -46,19 +58,27 @@ export function Header() {
             </div>
           </Link>
 
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-muted-foreground">
-            <Link href="/dashboard" className="transition-colors hover:text-primary">
-              Dashboard
-            </Link>
-            <Link href="/contas" className="transition-colors hover:text-primary">
-              Contas
-            </Link>
-            <Link href="/cartoes" className="transition-colors hover:text-primary">
-              Cartões
-            </Link>
-            <Link href="/transacoes" className="transition-colors hover:text-primary">
-              Transações
-            </Link>
+          <nav className="hidden md:flex items-center gap-2 text-sm font-medium">
+            {navItems.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <Link 
+                  key={item.href}
+                  href={item.href} 
+                  className={cn(
+                    "relative px-3 py-2 transition-all duration-300 rounded-lg hover:bg-muted/50",
+                    isActive 
+                      ? "text-primary font-bold" 
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {item.name}
+                  {isActive && (
+                    <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500" />
+                  )}
+                </Link>
+              )
+            })}
           </nav>
         </div>
 

@@ -1,11 +1,11 @@
 "use client"
 
-import { useAuth } from "@/hooks/use-auth"
-import { useRouter } from "next/navigation"
 import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/contexts/auth-context"
 import { Loader2 } from "lucide-react"
 
-export function AuthGuard({ children }: { children: React.ReactNode }) {
+export default function AuthGuard({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
@@ -23,7 +23,9 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!isAuthenticated) return null
+  if (!isAuthenticated) {
+    return null
+  }
 
   return <>{children}</>
 }

@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation"
 import { 
     Plus, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightCircle, ArrowRightLeft,
     CreditCard, AlertCircle, Edit, Trash, MoreHorizontal, Filter,
-    ChevronLeft, ChevronRight, Calendar, CheckCircle
+    ChevronLeft, ChevronRight, Calendar, CheckCircle, Repeat
 } from "lucide-react"
 import { 
     startOfDay, endOfDay, isAfter, isBefore, parseISO,
@@ -163,6 +163,29 @@ export default function TransactionsPage() {
   }
 
   const searchParams = useSearchParams()
+  
+  // Initialize from URL params if present
+  useEffect(() => {
+      const categoryParam = searchParams.get("category")
+      const monthParam = searchParams.get("month")
+      const yearParam = searchParams.get("year")
+
+      if (monthParam && yearParam) {
+          const m = parseInt(monthParam)
+          const y = parseInt(yearParam)
+          if (!isNaN(m) && !isNaN(y)) {
+              setViewMode('MONTH')
+              setCurrentDate(new Date(y, m - 1, 1))
+          }
+      }
+
+      if (categoryParam) {
+          setFilters(prev => ({
+              ...prev,
+              categoryId: categoryParam
+          }))
+      }
+  }, [searchParams])
 
 
   const handleConfirm = async (transaction: Transaction) => {
@@ -561,7 +584,27 @@ export default function TransactionsPage() {
                                                     <div className={cn("p-2 rounded-full bg-muted/50", color.replace('text-', 'bg-').replace('500', '100'), "dark:bg-opacity-10")}>
                                                         <Icon className={cn("h-4 w-4", color)} />
                                                     </div>
-                                                    <span className="font-medium">{transaction.description}</span>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium flex items-center gap-1">
+                                                            {transaction.description}
+                                                            {(transaction.is_recurring || transaction.recurring_source) && (
+                                                                <Repeat className="h-3 w-3 text-muted-foreground" />
+                                                            )}
+                                                        </span>
+                                                        {transaction.tags_detail && transaction.tags_detail.length > 0 && (
+                                                            <div className="flex flex-wrap gap-1 mt-1">
+                                                                {transaction.tags_detail.map(tag => (
+                                                                    <div 
+                                                                        key={tag.id}
+                                                                        className="px-1.5 py-0.5 rounded text-[9px] font-bold text-white shadow-sm"
+                                                                        style={{ backgroundColor: tag.color }}
+                                                                    >
+                                                                        {tag.name}
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">
