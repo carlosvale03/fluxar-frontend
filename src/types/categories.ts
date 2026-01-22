@@ -7,7 +7,19 @@ export interface Category {
     icon: string
     color: string
     is_active: boolean
-    parent_category?: string // ID of parent category if any
+    is_default: boolean
+    parent?: string | null
+    parent_name?: string | null
+    subcategories?: Category[]
+}
+
+export interface CategoryInput {
+    name: string
+    type: CategoryType
+    icon?: string
+    color?: string
+    is_active?: boolean
+    parent?: string | null
 }
 
 export interface Tag {
@@ -15,4 +27,9 @@ export interface Tag {
     name: string
     color: string
     usage_count?: number
+}
+
+export interface TagInput {
+    name: string
+    color: string
 }

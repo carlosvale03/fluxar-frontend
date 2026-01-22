@@ -195,7 +195,12 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-*:focus-visible {
-  outline: 2px solid var(--border-focus);
-  outline-offset: 2px;
+
+@utility animate-spin-slow {
+  animation: spin 3s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
