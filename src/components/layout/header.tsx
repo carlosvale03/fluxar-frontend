@@ -27,10 +27,12 @@ export function Header() {
     { name: "Dashboard", href: "/dashboard" },
     { name: "Contas", href: "/contas" },
     { name: "Cartões", href: "/cartoes" },
+    { name: "Calendário", href: "/calendario" },
     { name: "Transações", href: "/transacoes" },
+    { name: "Orçamentos", href: "/orcamentos" },
+    { name: "Gráficos", href: "/relatorios" },
     { name: "Categorias", href: "/categorias" },
     { name: "Tags", href: "/tags" },
-    { name: "Orçamentos", href: "/orcamentos" },
   ]
 
   return (
@@ -43,6 +45,7 @@ export function Header() {
                 src="/logo/logo-dark-clean-1630x700.png" 
                 alt="Fluxar Logo" 
                 fill
+                sizes="(max-width: 768px) 160px, 160px"
                 className="object-contain object-left"
                 priority
               />
@@ -52,6 +55,7 @@ export function Header() {
                 src="/logo/logo-light-clean-1630x700.png" 
                 alt="Fluxar Logo" 
                 fill
+                sizes="(max-width: 768px) 160px, 160px"
                 className="object-contain object-left"
                 priority
               />

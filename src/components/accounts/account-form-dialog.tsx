@@ -52,6 +52,7 @@ interface AccountFormDialogProps {
   onSuccess?: () => void
   open?: boolean
   onOpenChange?: (open: boolean) => void
+  defaultType?: AccountType
 }
 
 export function AccountFormDialog({ 
@@ -59,7 +60,8 @@ export function AccountFormDialog({
     trigger, 
     onSuccess, 
     open: controlledOpen, 
-    onOpenChange: setControlledOpen 
+    onOpenChange: setControlledOpen,
+    defaultType = AccountType.CHECKING
 }: AccountFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -81,7 +83,7 @@ export function AccountFormDialog({
     resolver: zodResolver(accountSchema),
     defaultValues: {
       name: "",
-      type: AccountType.CHECKING,
+      type: defaultType,
       initial_balance: "0",
       institution: "",
       color: "#000000",
@@ -113,7 +115,7 @@ export function AccountFormDialog({
     } else {
         reset({
             name: "",
-            type: AccountType.CHECKING,
+            type: defaultType,
             initial_balance: "0",
             institution: "",
             color: "#000000",
@@ -142,7 +144,25 @@ export function AccountFormDialog({
       if (setOpen) setOpen(false)
       onSuccess?.()
     } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao salvar conta. Verifique o console."
+      console.error("Erro ao salvar conta:", error.response?.data)
+      let msg = "Erro ao salvar conta. Verifique o console."
+      
+      const data = error.response?.data
+      if (data) {
+          if (typeof data === 'string') {
+              msg = data
+          } else if (data.detail) {
+              msg = data.detail
+          } else if (Array.isArray(data)) {
+              msg = data[0]
+          } else {
+              // Pega a primeira mensagem de erro de qualquer campo
+              const firstKey = Object.keys(data)[0]
+              const firstError = data[firstKey]
+              msg = Array.isArray(firstError) ? `${firstKey}: ${firstError[0]}` : String(firstError)
+          }
+      }
+      
       toast.error(msg)
     } finally {
       setIsLoading(false)

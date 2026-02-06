@@ -25,7 +25,7 @@ export interface User {
   id: string
   name: string
   email: string
-  plan: "common" | "premium" | "premium_plus"
+  plan: "COMMON" | "PREMIUM" | "PREMIUM_PLUS"
   emailVerified: boolean
   cpf: string | null
   phone_number: string | null
