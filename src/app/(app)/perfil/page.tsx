@@ -57,9 +57,9 @@ const formatPhone = (value: string) => {
 
 const formatPlanName = (plan?: string) => {
     switch(plan) {
-        case 'common': return 'Plano Gratuito'
-        case 'premium': return 'Premium'
-        case 'premium_plus': return 'Premium Plus'
+        case 'COMMON': return 'Plano Gratuito'
+        case 'PREMIUM': return 'Premium'
+        case 'PREMIUM_PLUS': return 'Premium Plus'
         default: return 'Plano Gratuito'
     }
 }

@@ -123,14 +123,14 @@
   --btn-ghost-hover:   var(--palette-neutral-100);
 
   /* --- FINANCE SPECIFIC (O coração do Fluxar) --- */
-  --finance-income:         var(--palette-aqua-500);
-  --finance-income-light:   rgba(85, 216, 193, 0.15); /* Fundo sutil para receita */
-  --finance-expense:        var(--palette-salmon-500);
-  --finance-expense-light:  rgba(255, 143, 94, 0.15); /* Fundo sutil para despesa */
+  --finance-income:         #10b981;
+  --finance-income-light:   rgba(16, 185, 129, 0.1); 
+  --finance-expense:        #f43f5e;
+  --finance-expense-light:  rgba(244, 63, 94, 0.1);
   --finance-chart-1:        var(--palette-brand-500);
-  --finance-chart-2:        var(--palette-aqua-500);
+  --finance-chart-2:        #10b981;
   --finance-chart-3:        var(--palette-mustard-500);
-  --finance-chart-4:        var(--palette-salmon-500);
+  --finance-chart-4:        #f43f5e;
 
   /* --- MISC --- */
   --radius-sm: 4px;
@@ -178,10 +178,10 @@
   --btn-ghost-hover:   rgba(255,255,255, 0.05);
 
   /* --- FINANCE SPECIFIC (Ajuste de brilho/neon) --- */
-  --finance-income:         #2DD4BF; /* Teal mais brilhante */
-  --finance-expense:        #FB923C; /* Laranja mais brilhante */
-  --finance-income-light:   rgba(45, 212, 191, 0.1);
-  --finance-expense-light:  rgba(251, 146, 60, 0.1);
+  --finance-income:         #10b981; 
+  --finance-expense:        #f43f5e;
+  --finance-income-light:   rgba(16, 185, 129, 0.1);
+  --finance-expense-light:  rgba(244, 63, 94, 0.1);
   
   --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* Sombra mais pesada */
 }
@@ -203,4 +203,20 @@ body {
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--palette-neutral-300);
+    border-radius: 10px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--palette-neutral-500);
+  }
 }

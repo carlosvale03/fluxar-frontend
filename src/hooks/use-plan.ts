@@ -4,16 +4,16 @@ import { useAuth } from "@/contexts/auth-context"
 export function usePlan() {
   const { user } = useAuth()
   
-  const plan = user?.plan || "common"
-
-  const isCommon = plan === "common"
-  const isPremium = plan === "premium"
-  const isPremiumPlus = plan === "premium_plus"
+  const plan = user?.plan || "COMMON"
+  
+  const isCommon = plan === "COMMON"
+  const isPremium = plan === "PREMIUM"
+  const isPremiumPlus = plan === "PREMIUM_PLUS"
 
   const formatPlanName = () => {
       switch(plan) {
-          case "premium": return "Premium"
-          case "premium_plus": return "Premium Plus"
+          case "PREMIUM": return "Premium"
+          case "PREMIUM_PLUS": return "Premium Plus"
           default: return "Comum"
       }
   }
