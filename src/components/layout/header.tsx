@@ -114,9 +114,20 @@ export function Header() {
                      </div>
                    </DropdownMenuLabel>
                    <DropdownMenuSeparator />
+                   {user.role === "ADMIN" && (
+                     <DropdownMenuItem asChild>
+                       <Link href="/admin/dashboard" className="font-bold text-primary">
+                         Painel Admin
+                       </Link>
+                     </DropdownMenuItem>
+                   )}
                    <DropdownMenuItem asChild>
                      <Link href="/perfil">Perfil</Link>
                    </DropdownMenuItem>
+                   <DropdownMenuItem asChild>
+                     <Link href="/configuracoes">Configurações</Link>
+                   </DropdownMenuItem>
+                   <DropdownMenuSeparator />
                    <DropdownMenuItem onClick={logout} className="text-red-500 focus:text-red-500">
                      <LogOut className="mr-2 h-4 w-4" />
                      <span>Sair</span>

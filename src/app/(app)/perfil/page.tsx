@@ -28,12 +28,6 @@ const profileSchema = z.object({
   phone_number: z.string().optional().or(z.literal('')),
   date_of_birth: z.string().optional().or(z.literal('')),
   avatar_url: z.string().optional().or(z.literal('')),
-  // Preferences
-  currency: z.string().optional(),
-  language: z.string().optional(),
-  theme: z.enum(["light", "dark", "system"]).optional(),
-  notifications_email: z.boolean().optional(),
-  notifications_push: z.boolean().optional(),
 })
 type ProfileForm = z.infer<typeof profileSchema>
 
@@ -64,24 +58,12 @@ const formatPlanName = (plan?: string) => {
     }
 }
 
-// Password Form Schema
-const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Senha atual obrigatória"),
-  newPassword: z.string().min(6, "Nova senha deve ter 6+ chars"),
-  confirmPassword: z.string().min(1, "Confirmação obrigatória"),
-}).refine(data => data.newPassword === data.confirmPassword, {
-  path: ["confirmPassword"],
-  message: "Senhas não conferem",
-})
-type PasswordForm = z.infer<typeof passwordSchema>
 
 import { cn, getAbsoluteUrl } from "@/lib/utils"
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth()
-  const { setTheme, theme: currentTheme } = useTheme()
   const [isProfileLoading, setIsProfileLoading] = useState(false)
-  const [isPasswordLoading, setIsPasswordLoading] = useState(false)
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
   
   // State for avatar preview
@@ -105,11 +87,6 @@ export default function ProfilePage() {
       phone_number: "",
       date_of_birth: "",
       avatar_url: "",
-      currency: "BRL",
-      language: "pt-BR",
-      theme: "system",
-      notifications_email: true,
-      notifications_push: false
     }
   })
 
@@ -146,20 +123,9 @@ export default function ProfilePage() {
           phone_number: user.phone_number || "",
           date_of_birth: user.date_of_birth || "",
           avatar_url: user.avatar_url || "",
-          currency: user.preferences?.currency || "BRL",
-          language: user.preferences?.language || "pt-BR",
-          theme: user.preferences?.theme || "system",
-          notifications_email: user.preferences?.notifications?.email ?? true,
-          notifications_push: user.preferences?.notifications?.push ?? false,
         })
         setAvatarPreview(getAbsoluteUrl(user.avatar_url))
         
-        // Ensure global theme matches user preference on initial load
-        if (user.preferences?.theme) {
-             if (currentTheme !== user.preferences.theme) {
-                 setTheme(user.preferences.theme)
-             }
-        }
         setLastSyncedUserJson(userJson)
     }
     // We explicitly exclude resetProfile and others to avoid re-running on everything. 
@@ -212,16 +178,8 @@ export default function ProfilePage() {
             phone_number: data.phone_number || null,
             date_of_birth: data.date_of_birth || null,
             // Ensure we send valid URL or null
+            // Ensure we send valid URL or null
             avatar_url: data.avatar_url || null,
-            preferences: {
-                currency: data.currency,
-                language: data.language,
-                theme: data.theme,
-                notifications: {
-                    email: data.notifications_email,
-                    push: data.notifications_push
-                }
-            }
          }
 
          await api.put("/users/me/", payload)
@@ -239,29 +197,6 @@ export default function ProfilePage() {
      }
   }
 
-  // Password Form
-  const { register: registerPassword, handleSubmit: handlePasswordSubmit, formState: { errors: passwordErrors }, reset: resetPassword } = useForm<PasswordForm>({
-    resolver: zodResolver(passwordSchema)
-  })
-
-  const onPasswordSubmit = async (data: PasswordForm) => {
-    try {
-        setIsPasswordLoading(true)
-        await api.put("/users/me/password/", {
-            current_password: data.currentPassword,
-            new_password: data.newPassword
-        })
-        resetPassword()
-        toast.success("Senha alterada com sucesso!")
-    } catch (error: any) {
-        const msg = error.response?.data?.current_password 
-             ? "Senha atual incorreta." 
-             : "Erro ao alterar senha."
-        toast.error(msg)
-    } finally {
-        setIsPasswordLoading(false)
-    }
-  }
 
   return (
     <div className="container mx-auto py-10 px-4 max-w-5xl space-y-10 mb-20">
@@ -331,149 +266,59 @@ export default function ProfilePage() {
 
       <Separator />
 
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="max-w-2xl mx-auto">
          
-         {/* Main Column - Personal Info */}
-         <div className="lg:col-span-2 space-y-8">
-            <Card className="border-none shadow-sm bg-card/50">
-                <CardHeader>
-                    <div className="flex items-center justify-between">
-                        <div>
-                             <CardTitle className="text-xl">Informações Pessoais</CardTitle>
-                             <CardDescription>Atualize seus dados cadastrais.</CardDescription>
-                        </div>
-                        <Edit2 className="h-5 w-5 text-muted-foreground opacity-50" />
+         <Card className="border-none shadow-sm bg-card/50">
+             <CardHeader>
+                 <div className="flex items-center justify-between">
+                     <div>
+                          <CardTitle className="text-xl">Informações Pessoais</CardTitle>
+                          <CardDescription>Atualize seus dados cadastrais.</CardDescription>
+                     </div>
+                     <Edit2 className="h-5 w-5 text-muted-foreground opacity-50" />
+                 </div>
+             </CardHeader>
+             <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
+                 <CardContent className="space-y-6">
+                     
+                     <div className="space-y-2">
+                         <label className="text-sm font-medium">Nome Completo</label>
+                         <Input {...registerProfile("name")} />
+                         {profileErrors.name && <span className="text-xs text-red-500">{profileErrors.name.message}</span>}
+                     </div>
+
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-2">
+                             <label className="text-sm font-medium">CPF</label>
+                             <Input 
+                                 {...registerProfile("cpf")} 
+                                 placeholder="000.000.000-00" 
+                                 onChange={(e) => setValue("cpf", formatCPF(e.target.value))}
+                             />
+                         </div>
+                         <div className="space-y-2">
+                             <label className="text-sm font-medium">Telefone</label>
+                             <Input 
+                                 {...registerProfile("phone_number")} 
+                                 placeholder="(00) 00000-0000" 
+                                 onChange={(e) => setValue("phone_number", formatPhone(e.target.value))}
+                             />
+                         </div>
+                     </div>
+
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium">Nascimento</label>
+                        <Input type="date" {...registerProfile("date_of_birth")} />
                     </div>
-                </CardHeader>
-                <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
-                    <CardContent className="space-y-6">
-                        
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Nome Completo</label>
-                            <Input {...registerProfile("name")} />
-                            {profileErrors.name && <span className="text-xs text-red-500">{profileErrors.name.message}</span>}
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                             <div className="space-y-2">
-                                <label className="text-sm font-medium">CPF</label>
-                                <Input 
-                                    {...registerProfile("cpf")} 
-                                    placeholder="000.000.000-00" 
-                                    onChange={(e) => setValue("cpf", formatCPF(e.target.value))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Telefone</label>
-                                <Input 
-                                    {...registerProfile("phone_number")} 
-                                    placeholder="(00) 00000-0000" 
-                                    onChange={(e) => setValue("phone_number", formatPhone(e.target.value))}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium">Nascimento</label>
-                                <Input type="date" {...registerProfile("date_of_birth")} />
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-2 pt-4">
-                            <h3 className="text-sm font-medium mb-4">Preferências do Sistema</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="space-y-2">
-                                    <label className="text-xs text-muted-foreground">Moeda Padrão</label>
-                                    <Select 
-                                        onValueChange={(val) => setValue("currency", val)} 
-                                        value={watch("currency") || "BRL"}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="BRL">Real Brasileiro (BRL)</SelectItem>
-                                            <SelectItem value="USD">Dólar Americano (USD)</SelectItem>
-                                            <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <label className="text-xs text-muted-foreground">Idioma</label>
-                                    <Select 
-                                        disabled
-                                        onValueChange={(val) => setValue("language", val)} 
-                                        value={watch("language") || "pt-BR"}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                                            <SelectItem value="en-US">English (US)</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                    <p className="text-[10px] text-muted-foreground">Indisponível no momento.</p>
-                                </div>
-                                
-                                <div className="space-y-2">
-                                    <label className="text-xs text-muted-foreground">Tema</label>
-                                    <Select 
-                                        onValueChange={(val: any) => {
-                                            setValue("theme", val, { shouldDirty: true })
-                                            setTheme(val)
-                                        }} 
-                                        value={watch("theme")}
-                                    >
-                                        <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="light">Claro</SelectItem>
-                                            <SelectItem value="dark">Escuro</SelectItem>
-                                            <SelectItem value="system">Sistema</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-
-                    </CardContent>
-                    <CardFooter className="flex justify-end pt-4 border-t bg-muted/20">
-                        <Button type="submit" loading={isProfileLoading} disabled={isProfileLoading}>
-                            Salvar Alterações
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Card>
-         </div>
-
-         {/* Side Column - Security */}
-         <div className="space-y-8">
-            <Card className="border-none shadow-sm bg-card/50">
-                <CardHeader>
-                    <CardTitle className="text-xl">Segurança</CardTitle>
-                    <CardDescription>Alterar sua senha.</CardDescription>
-                </CardHeader>
-                <form onSubmit={handlePasswordSubmit(onPasswordSubmit)}>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Senha Atual</label>
-                            <Input type="password" {...registerPassword("currentPassword")} />
-                             {passwordErrors.currentPassword && <span className="text-xs text-red-500">{passwordErrors.currentPassword.message}</span>}
-                        </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Nova Senha</label>
-                            <Input type="password" {...registerPassword("newPassword")} />
-                            {passwordErrors.newPassword && <span className="text-xs text-red-500">{passwordErrors.newPassword.message}</span>}
-                        </div>
-                        <div className="space-y-2">
-                             <label className="text-sm font-medium">Confirmar</label>
-                             <Input type="password" {...registerPassword("confirmPassword")} />
-                             {passwordErrors.confirmPassword && <span className="text-xs text-red-500">{passwordErrors.confirmPassword.message}</span>}
-                        </div>
-                    </CardContent>
-                    <CardFooter>
-                        <Button type="submit" variant="secondary" className="w-full" loading={isPasswordLoading} disabled={isPasswordLoading}>
-                            Atualizar Senha
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Card>
-         </div>
+                 </CardContent>
+                 <CardFooter className="flex justify-end pt-4 border-t bg-muted/20">
+                     <Button type="submit" loading={isProfileLoading} disabled={isProfileLoading}>
+                         Salvar Alterações
+                     </Button>
+                 </CardFooter>
+             </form>
+         </Card>
       </div>
     </div>
   )
