@@ -26,6 +26,7 @@ export interface User {
   name: string
   email: string
   plan: "COMMON" | "PREMIUM" | "PREMIUM_PLUS"
+  role: "USER" | "ADMIN"
   emailVerified: boolean
   cpf: string | null
   phone_number: string | null
@@ -33,6 +34,7 @@ export interface User {
   date_of_birth: string | null
   monthly_income: number | null
   preferences: UserPreferences
+  is_active?: boolean
   created_at: string
 }
 
