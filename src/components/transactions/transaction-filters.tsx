@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CalendarIcon, Filter, X } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, CalendarIcon, Filter, Layers, Tag as TagIcon, Wallet, X } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -17,7 +17,6 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-  SheetClose
 } from "@/components/ui/sheet"
 import {
   Popover,
@@ -37,7 +36,8 @@ import { Separator } from "@/components/ui/separator"
 import { api } from "@/services/apiClient"
 import { Category } from "@/types/categories"
 import { Account } from "@/types/accounts"
-import { TransactionType } from "@/types/transactions"
+import { LucideIcon } from "@/components/ui/icon-picker"
+import { TagSelector } from "@/components/tags/TagSelector"
 
 interface TransactionFiltersProps {
   onApplyFilters: (filters: FilterState) => void
@@ -50,6 +50,7 @@ export interface FilterState {
   type: string
   categoryId: string
   accountId: string
+  tagIds?: string[]
 }
 
 export function TransactionFilters({ onApplyFilters, currentFilters }: TransactionFiltersProps) {
@@ -61,6 +62,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   const [type, setType] = useState<string>(currentFilters.type)
   const [categoryId, setCategoryId] = useState<string>(currentFilters.categoryId)
   const [accountId, setAccountId] = useState<string>(currentFilters.accountId)
+  const [tagIds, setTagIds] = useState<string[]>(currentFilters.tagIds || [])
 
   // Dependencies
   const [categories, setCategories] = useState<Category[]>([])
@@ -74,6 +76,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         setType(currentFilters.type)
         setCategoryId(currentFilters.categoryId)
         setAccountId(currentFilters.accountId)
+        setTagIds(currentFilters.tagIds || [])
 
         fetchDependencies()
     }
@@ -85,7 +88,24 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
             api.get("/categories/"),
             api.get("/accounts/")
         ])
-        setCategories(catRes.data.results || catRes.data || [])
+        
+        let rawCats: Category[] = catRes.data.results || catRes.data || []
+        
+        // Organizar hierarquicamente (Flattened)
+        const organized: Category[] = []
+        rawCats.filter(c => !c.parent).forEach(parent => {
+            organized.push(parent)
+            if (parent.subcategories) {
+                parent.subcategories.forEach(child => {
+                    organized.push({
+                        ...child,
+                        name: `↳ ${child.name}`
+                    })
+                })
+            }
+        })
+
+        setCategories(organized)
         setAccounts(accRes.data.results || accRes.data || [])
     } catch (error) {
         console.error("Failed to fetch filter dependencies", error)
@@ -98,7 +118,8 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
           endDate,
           type,
           categoryId,
-          accountId
+          accountId,
+          tagIds
       })
       setIsOpen(false)
   }
@@ -109,122 +130,181 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       setType("ALL")
       setCategoryId("ALL")
       setAccountId("ALL")
+      setTagIds([])
   }
 
   const activeFilterCount = [
       startDate || endDate,
       type !== "ALL",
       categoryId !== "ALL",
-      accountId !== "ALL"
+      accountId !== "ALL",
+      tagIds.length > 0
   ].filter(Boolean).length
 
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="h-10 relative">
+        <Button variant="outline" size="sm" className="h-10 relative md:rounded-2xl font-black uppercase tracking-widest text-[10px] px-6 border-primary/20 hover:bg-primary/5 text-primary transition-all">
             <Filter className="mr-2 h-4 w-4" /> 
-            Filtros Avançados
+            Refinar Seleção
             {activeFilterCount > 0 && (
-                <Badge variant="secondary" className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px]">
+                <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] animate-in zoom-in duration-300">
                     {activeFilterCount}
                 </Badge>
             )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
-        <SheetHeader>
-          <SheetTitle>Filtrar Transações</SheetTitle>
-          <SheetDescription>
-            Refine sua busca por período, categoria e conta.
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto border-l border-border/40 bg-background/95 backdrop-blur-xl">
+        <SheetHeader className="pb-6 border-b border-border/40">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+             <Filter className="h-6 w-6 text-primary" />
+          </div>
+          <SheetTitle className="text-2xl font-black uppercase tracking-tight">Filtros de Exportação</SheetTitle>
+          <SheetDescription className="font-medium">
+            Personalize exatamente quais dados serão exportados para o arquivo final.
           </SheetDescription>
         </SheetHeader>
         
-        <div className="grid gap-6 py-6">
+        <div className="grid gap-8 py-8">
             
             {/* Period Filter */}
-            <div className="space-y-2">
-                <Label>Período</Label>
-                <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <CalendarIcon className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Período de Competência</Label>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs px-2", !startDate && "text-muted-foreground")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
+                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-2xl border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !startDate && "text-muted-foreground")}>
                                 {startDate ? format(startDate, "dd/MM/yyyy") : "Início"}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus />
+                        <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-border/40" align="start">
+                            <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus locale={ptBR} />
                         </PopoverContent>
                     </Popover>
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("w-full justify-start text-left font-normal text-xs px-2", !endDate && "text-muted-foreground")}>
-                                <CalendarIcon className="mr-2 h-4 w-4" />
+                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-2xl border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !endDate && "text-muted-foreground")}>
                                 {endDate ? format(endDate, "dd/MM/yyyy") : "Fim"}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                            <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus />
+                        <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-border/40" align="start">
+                            <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus locale={ptBR} />
                         </PopoverContent>
                     </Popover>
                 </div>
             </div>
 
-            <Separator />
-
             {/* Type Filter */}
-            <div className="space-y-2">
-                <Label>Tipo de Transação</Label>
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <Layers className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Tipo de Lançamento</Label>
+                </div>
                 <Select value={type} onValueChange={setType}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Todos" />
+                    <SelectTrigger className="h-12 rounded-2xl border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                        <SelectValue placeholder="Todos os tipos" />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">Todas</SelectItem>
-                        <SelectItem value="INCOME">Receitas</SelectItem>
-                        <SelectItem value="EXPENSE">Despesas</SelectItem>
-                        <SelectItem value="TRANSFER">Transferências</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Category Filter */}
-            <div className="space-y-2">
-                <Label>Categoria</Label>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger>
-                        <SelectValue placeholder="Todas as categorias" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">Todas</SelectItem>
-                        {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                        ))}
+                    <SelectContent className="rounded-2xl shadow-xl">
+                        <SelectItem value="ALL" className="rounded-xl font-bold">Todas as movimentações</SelectItem>
+                        <SelectItem value="INCOME" className="rounded-xl font-bold">
+                           <div className="flex items-center gap-2">
+                              <ArrowUpCircle className="h-4 w-4 text-emerald-500" /> Receitas
+                           </div>
+                        </SelectItem>
+                        <SelectItem value="EXPENSE" className="rounded-xl font-bold">
+                           <div className="flex items-center gap-2">
+                              <ArrowDownCircle className="h-4 w-4 text-rose-500" /> Despesas
+                           </div>
+                        </SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
             {/* Account Filter */}
-            <div className="space-y-2">
-                <Label>Conta</Label>
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <Wallet className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Conta / Origem</Label>
+                </div>
                 <Select value={accountId} onValueChange={setAccountId}>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-2xl border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
                         <SelectValue placeholder="Todas as contas" />
                     </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="ALL">Todas</SelectItem>
-                        {accounts.map((acc) => (
-                            <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
+                        <SelectItem value="ALL" className="rounded-xl font-bold">Todas as contas</SelectItem>
+                        {accounts.map((acc: Account) => (
+                            <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
+                                <div className="flex items-center gap-2.5">
+                                    <div 
+                                        className="w-3 h-3 rounded-full border border-black/5 shrink-0" 
+                                        style={{ backgroundColor: acc.color || "#ccc" }} 
+                                    />
+                                    <span className="font-bold">{acc.name}</span>
+                                </div>
+                            </SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </div>
 
+            {/* Category Filter */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <Layers className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Categoria</Label>
+                </div>
+                <Select value={categoryId} onValueChange={setCategoryId}>
+                    <SelectTrigger className="h-12 rounded-2xl border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                        <SelectValue placeholder="Todas as categorias" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
+                        <SelectItem value="ALL" className="rounded-xl font-bold">Todas as categorias</SelectItem>
+                        {categories.map((cat: Category) => (
+                            <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
+                                <div className="flex items-center gap-2">
+                                    <div 
+                                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                        style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                                    >
+                                        <LucideIcon name={cat.icon} className="h-4 w-4" />
+                                    </div>
+                                    <span className={cn(
+                                        "font-bold",
+                                        cat.name.startsWith("↳") ? "text-muted-foreground ml-1 font-medium" : ""
+                                    )}>
+                                        {cat.name}
+                                    </span>
+                                </div>
+                            </SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
+
+            {/* Tags Filter */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <TagIcon className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Etiquetas (Tags)</Label>
+                </div>
+                <TagSelector 
+                   selectedTagIds={tagIds}
+                   onChange={setTagIds}
+                />
+            </div>
+
         </div>
 
-        <SheetFooter className="flex-col sm:flex-col gap-2">
-            <Button className="w-full" onClick={handleApply}>Aplicar Filtros</Button>
-            <Button variant="outline" className="w-full" onClick={handleClear}>Limpar Filtros</Button>
+        <SheetFooter className="flex-col sm:flex-col gap-3 pt-6 border-t border-border/40">
+            <Button className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" onClick={handleApply}>
+                Aplicar Filtros
+            </Button>
+            <Button variant="ghost" className="w-full h-10 rounded-xl font-black uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100" onClick={handleClear}>
+                Limpar Todos os Filtros
+            </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>

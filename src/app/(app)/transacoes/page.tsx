@@ -38,13 +38,14 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Tabs, TabsList, TabsTrigger } from "../../../components/ui/tabs"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { TransactionFormDialog } from "@/components/transactions/transaction-form-dialog"
 import { TransferFormDialog } from "@/components/transactions/transfer-form-dialog"
 import { CardExpenseFormDialog } from "@/components/transactions/card-expense-form-dialog"
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 import { TransactionDeleteDialog } from "@/components/transactions/transaction-delete-dialog"
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
+import Link from "next/link"
 
 import { api } from "@/services/apiClient"
 import { Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
@@ -346,8 +347,10 @@ export default function TransactionsPage() {
         </div>
         
         <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="cursor-pointer">
-                <Download className="mr-2 h-4 w-4" /> Exportar
+            <Button variant="outline" size="sm" className="cursor-pointer" asChild>
+                <Link href="/importar?tab=export">
+                    <Download className="mr-2 h-4 w-4" /> Exportar
+                </Link>
             </Button>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
