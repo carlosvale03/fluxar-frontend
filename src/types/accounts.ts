@@ -3,14 +3,16 @@ export enum AccountType {
     CHECKING = "CHECKING",
     SAVINGS = "SAVINGS",
     WALLET = "WALLET",
-    INVESTMENT = "INVESTMENT"
+    INVESTMENT = "INVESTMENT",
+    PIGGY_BANK = "PIGGY_BANK"
 }
 
 export const AccountTypeLabels: Record<AccountType, string> = {
     [AccountType.CHECKING]: "Conta Corrente",
     [AccountType.SAVINGS]: "Poupança",
     [AccountType.WALLET]: "Carteira",
-    [AccountType.INVESTMENT]: "Investimento"
+    [AccountType.INVESTMENT]: "Investimento",
+    [AccountType.PIGGY_BANK]: "Cofrinho"
 }
 
 export interface Account {

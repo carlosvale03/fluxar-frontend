@@ -23,3 +23,11 @@ export function getAbsoluteUrl(path?: string | null) {
   
   return `${baseUrl}${finalPath.startsWith("/") ? "" : "/"}${finalPath}`
 }
+
+export function formatCurrency(value: number | string) {
+  const amount = typeof value === "string" ? parseFloat(value) : value
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(amount)
+}

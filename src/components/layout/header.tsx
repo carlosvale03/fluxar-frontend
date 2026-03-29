@@ -8,7 +8,7 @@ import {
   User, Menu, LogOut, Loader2, MoreHorizontal, 
   LayoutDashboard, Wallet, CreditCard, ArrowRightLeft, 
   BarChart3, Calendar, Repeat, PieChart, ArrowUpDown, 
-  Layers, Tag 
+  Layers, Tag, Target
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -45,6 +45,7 @@ export function Header() {
   ]
 
   const secondaryNavItems = [
+    { name: "Metas", href: "/metas", icon: Target },
     { name: "Calendário", href: "/calendario", icon: Calendar },
     { name: "Orçamentos", href: "/orcamentos", icon: PieChart },
     { name: "Importar & Exportar", href: "/importar", icon: ArrowUpDown },
