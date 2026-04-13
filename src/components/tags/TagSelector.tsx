@@ -73,107 +73,143 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
     onChange(selectedTagIds.filter(tagId => tagId !== id))
   }
 
+  function TagListContent() {
+    return (
+      <>
+        <div className="p-3 border-b border-border/40 bg-muted/20">
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground/40" />
+            <Input 
+              placeholder="Buscar ou criar..." 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 h-10 text-xs rounded-2xl border-none bg-background shadow-inner focus-visible:ring-primary/20"
+              autoFocus
+            />
+          </div>
+        </div>
+        <div className="max-h-[250px] overflow-y-auto p-2 gap-1 flex flex-col">
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+            </div>
+          ) : filteredTags.length > 0 ? (
+            filteredTags.map(tag => {
+              const isSelected = selectedTagIds.includes(tag.id)
+              return (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => toggleTag(tag.id)}
+                  className={cn(
+                    "group w-full flex items-center justify-between px-3 py-2.5 text-sm rounded-2xl transition-all cursor-pointer",
+                    isSelected 
+                      ? "bg-primary text-primary-foreground font-black shadow-lg shadow-primary/20" 
+                      : "hover:bg-primary/5 hover:text-primary"
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                     <div 
+                        className={cn(
+                          "w-3 h-3 rounded-full ring-2 ring-black/5 transition-transform group-hover:scale-125",
+                          isSelected && "ring-white/20"
+                        )} 
+                        style={{ backgroundColor: tag.color }} 
+                      />
+                     <span className="truncate uppercase tracking-tight font-bold text-[11px]">{tag.name}</span>
+                  </div>
+                  {isSelected && <Check className="h-4 w-4 shrink-0 animate-in zoom-in-50 duration-300" />}
+                </button>
+              )
+            })
+          ) : searchTerm ? (
+             <button
+                type="button"
+                onClick={handleCreateTag}
+                disabled={isCreating}
+                className="w-full flex items-center gap-3 p-3 text-sm rounded-2xl hover:bg-primary/5 hover:text-primary transition-all text-left group cursor-pointer"
+             >
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                  {isCreating ? <Loader2 className="h-5 w-5 animate-spin" /> : <Plus className="h-5 w-5 text-primary" />}
+                </div>
+                <div className="flex flex-col">
+                  <span className="font-black text-[10px] uppercase tracking-widest text-muted-foreground group-hover:text-primary/70 transition-colors">Criar nova tag</span>
+                  <span className="truncate text-sm font-bold tracking-tight">"{searchTerm}"</span>
+                </div>
+             </button>
+          ) : (
+             <div className="px-3 py-10 text-xs text-center text-muted-foreground/40 flex flex-col items-center gap-3">
+               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center opacity-50">
+                <TagIcon className="h-6 w-6" />
+               </div>
+               <p className="font-bold uppercase tracking-widest text-[10px]">Nenhuma tag encontrada</p>
+             </div>
+          )}
+        </div>
+      </>
+    )
+  }
+
   return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-2">
-        {selectedTags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-center gap-2 min-h-[44px] p-2.5 rounded-3xl border border-dashed border-border/40 hover:border-primary/30 transition-all bg-muted/5">
+        {selectedTags.length > 0 ? (
+          <div className="flex flex-wrap gap-3">
             {selectedTags.map(tag => (
               <Badge 
                 key={tag.id}
-                style={{ backgroundColor: `${tag.color}20`, color: tag.color, borderColor: `${tag.color}40` }}
-                className="hover:opacity-80 border-none transition-all gap-1.5 pl-2.5 pr-1 h-8 rounded-xl shadow-sm animate-in zoom-in-95 duration-200"
+                style={{ 
+                  backgroundColor: `${tag.color}15`, 
+                  color: tag.color, 
+                  borderColor: `${tag.color}40`,
+                  clipPath: "polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%)"
+                }}
+                className="hover:scale-105 border-l-0 transition-all gap-2 pl-6 pr-2 py-1.5 rounded-r-xl shadow-sm animate-in zoom-in-95 duration-200 cursor-default h-9"
               >
-                <span className="text-[11px] font-bold uppercase tracking-tight">{tag.name}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">{tag.name}</span>
                 <button 
                   type="button"
                   onClick={(e) => { e.stopPropagation(); removeTag(tag.id); }}
-                  className="hover:bg-black/10 dark:hover:bg-white/10 rounded-lg p-0.5 transition-colors"
+                  className="hover:bg-white/20 dark:hover:bg-black/20 rounded-full p-0.5 transition-colors"
                 >
-                  <X className="h-3 w-3" />
+                  <X className="h-4 w-4" />
                 </button>
               </Badge>
             ))}
+            
+            <Popover open={isOpen} onOpenChange={setIsOpen}>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-9 w-9 rounded-full hover:bg-primary/10 hover:text-primary transition-all bg-muted/10 border border-border/10"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0 rounded-3xl shadow-2xl border-border/40 overflow-hidden" align="start">
+                <TagListContent />
+              </PopoverContent>
+            </Popover>
           </div>
-        )}
-
-        <Popover open={isOpen} onOpenChange={setIsOpen}>
-          <PopoverTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className={cn(
-                "h-8 rounded-xl border-dashed border-muted-foreground/30 hover:border-primary/50 hover:bg-primary/5 transition-all",
-                selectedTags.length === 0 ? "px-4 w-full justify-start text-muted-foreground font-medium italic text-xs" : "px-3"
-              )}
-            >
-              <Plus className={cn("h-3.5 w-3.5", selectedTags.length === 0 ? "mr-2" : "")} />
-              {selectedTags.length === 0 ? "Adicionar etiquetas..." : ""}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[240px] p-0 rounded-2xl shadow-xl border-border/40" align="end">
-            <div className="p-2 border-b border-border/40 bg-muted/20">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input 
-                  placeholder="Buscar ou criar..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-9 h-9 text-xs rounded-xl border-border/60 bg-background"
-                  autoFocus
-                />
-              </div>
-            </div>
-            <div className="max-h-[220px] overflow-y-auto p-1.5 gap-0.5 flex flex-col">
-              {isLoading ? (
-                <div className="flex items-center justify-center py-6">
-                  <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : (
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+              <button 
+                type="button"
+                className="flex items-center gap-3 px-4 py-2 w-full text-left text-muted-foreground/40 hover:text-primary/70 transition-all group cursor-pointer"
+              >
+                <div className="w-8 h-8 rounded-xl bg-muted-foreground/10 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all border border-transparent group-hover:border-primary/20">
+                  <Plus className="h-4 w-4" />
                 </div>
-              ) : filteredTags.length > 0 ? (
-                filteredTags.map(tag => {
-                  const isSelected = selectedTagIds.includes(tag.id)
-                  return (
-                    <button
-                      key={tag.id}
-                      type="button"
-                      onClick={() => toggleTag(tag.id)}
-                      className={cn(
-                        "group w-full flex items-center justify-between px-3 py-2 text-sm rounded-xl transition-all",
-                        isSelected ? "bg-primary/10 text-primary font-bold" : "hover:bg-muted"
-                      )}
-                    >
-                      <div className="flex items-center gap-2.5">
-                         <div className="w-2.5 h-2.5 rounded-full ring-1 ring-black/5" style={{ backgroundColor: tag.color }} />
-                         <span className="truncate group-hover:translate-x-0.5 transition-transform">{tag.name}</span>
-                      </div>
-                      {isSelected && <Check className="h-4 w-4 shrink-0 animate-in zoom-in-50 duration-300" />}
-                    </button>
-                  )
-                })
-              ) : searchTerm ? (
-                 <button
-                    type="button"
-                    onClick={handleCreateTag}
-                    disabled={isCreating}
-                    className="w-full flex items-center gap-2.5 px-3 py-3 text-sm rounded-xl hover:bg-primary/10 hover:text-primary transition-all text-left group"
-                 >
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      {isCreating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4 text-primary" />}
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="font-bold text-xs uppercase tracking-tight">Criar nova tag</span>
-                      <span className="truncate text-[10px] text-muted-foreground group-hover:text-primary/70 transition-colors uppercase">"{searchTerm}"</span>
-                    </div>
-                 </button>
-              ) : (
-                 <div className="px-3 py-8 text-xs text-center text-muted-foreground flex flex-col items-center gap-2">
-                   <TagIcon className="h-4 w-4 opacity-20" />
-                   Nenhuma tag disponível.
-                 </div>
-              )}
-            </div>
-          </PopoverContent>
-        </Popover>
+                <span className="text-[11px] font-black uppercase tracking-[0.2em]">Adicionar etiquetas...</span>
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-[280px] p-0 rounded-3xl shadow-2xl border-border/40 overflow-hidden" align="start">
+               <TagListContent />
+            </PopoverContent>
+          </Popover>
+        )}
       </div>
     </div>
   )

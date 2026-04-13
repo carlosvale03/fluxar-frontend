@@ -89,30 +89,44 @@ export default function CardsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-7xl animate-in fade-in duration-500">
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
-        <div>
-           <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-             <CreditCard className="h-8 w-8 text-primary" /> Meus Cartões
+    <div className="container mx-auto py-12 px-6 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {/* Header Premium */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
+        <div className="space-y-1">
+           <h1 className="text-4xl font-black tracking-tight text-foreground flex items-center gap-3">
+             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10 shrink-0">
+               <CreditCard className="h-6 w-6 text-primary" />
+             </div>
+             Meus Cartões
            </h1>
-           <p className="text-muted-foreground mt-1">
-             Gerencie seus limites e faturas.
+           <p className="text-muted-foreground text-sm font-medium pl-1">
+             Gerencie seus limites, acompanhe faturas e organize seus gastos.
            </p>
         </div>
-        <div className="flex items-center gap-2">
-            {!isLoading && hasReachedLimit && (
-                 <div className="flex items-center text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-md border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900/50">
-                     <AlertCircle className="h-3 w-3 mr-2" />
-                     Limite de {limitByPlan} cartões atingido
-                 </div>
-            )}
-            <Button onClick={handleCreateClick} disabled={isLoading || hasReachedLimit}>
-                <Plus className="mr-2 h-4 w-4" /> Novo Cartão
-            </Button>
-        </div>
+        
+        <Button 
+            onClick={handleCreateClick} 
+            disabled={isLoading || hasReachedLimit}
+            className="rounded-full px-6 h-12 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
+        >
+            <Plus className="mr-2 h-5 w-5" /> Novo Cartão
+        </Button>
       </div>
 
-      <Separator className="my-6" />
+      {/* Banner de Aviso de Limite */}
+      {!isLoading && hasReachedLimit && (
+        <div className="mb-10 p-5 rounded-[32px] bg-amber-500/5 border border-amber-500/10 text-amber-600 dark:text-amber-500/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-4">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                <AlertCircle className="h-5 w-5" />
+            </div>
+            <div>
+                <h4 className="font-bold text-sm">Limite de Cartões Atingido</h4>
+                <p className="text-xs leading-relaxed opacity-80 mt-1 max-w-2xl">
+                    Seu plano atual ({plan}) permite até {limitByPlan} cartões ativos. Para adicionar novos cartões, considere fazer o upgrade do seu plano ou remover um cartão existente.
+                </p>
+            </div>
+        </div>
+      )}
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -123,13 +137,17 @@ export default function CardsPage() {
             ))}
         </div>
       ) : cards.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed rounded-lg bg-muted/50">
-              <CreditCard className="h-12 w-12 text-muted-foreground opacity-50 mb-4" />
-              <h3 className="text-lg font-medium">Nenhum cartão encontrado</h3>
-              <p className="text-sm text-muted-foreground max-w-sm mt-2 mb-6">
-                  Cadastre seus cartões de crédito para acompanhar faturas e limites em um só lugar.
+          <div className="flex flex-col items-center justify-center py-24 text-center rounded-[40px] border-2 border-dashed border-border/60 bg-muted/20 backdrop-blur-sm">
+              <div className="w-20 h-20 rounded-[28px] bg-background shadow-xl border border-border/40 flex items-center justify-center mb-6">
+                <CreditCard className="h-10 w-10 text-primary opacity-40" />
+              </div>
+              <h3 className="text-xl font-black uppercase tracking-widest text-foreground/80">Nenhum cartão encontrado</h3>
+              <p className="text-sm text-muted-foreground max-w-md mt-4 mb-8 leading-relaxed font-medium">
+                  Cadastre seus cartões de crédito para centralizar o acompanhamento de faturas, limites e datas de fechamento em um só lugar.
               </p>
-              <Button onClick={handleCreateClick} variant="outline">Adicionar Cartão</Button>
+              <Button onClick={handleCreateClick} variant="outline" className="rounded-full px-8 h-12 font-bold border-2 hover:bg-primary/5 hover:border-primary/20 transition-all">
+                Começar agora
+              </Button>
           </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

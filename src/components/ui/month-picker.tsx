@@ -47,12 +47,12 @@ export function MonthPicker({ currentMonth, currentYear, onSelect }: MonthPicker
             "group"
           )}
         >
-          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500">
+          <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-500 shadow-sm ring-1 ring-primary/20">
             <CalendarIcon className="h-4 w-4" />
           </div>
-          <div className="flex flex-col items-start">
-            <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest leading-none mb-1">Período</span>
-            <span className="text-sm font-black text-foreground tracking-tight">
+          <div className="flex flex-col items-start gap-1">
+            <span className="text-[9px] font-black uppercase text-muted-foreground/50 tracking-[0.2em] leading-none">Período</span>
+            <span className="text-sm font-black text-foreground/90 tracking-tight">
               {fullMonths[currentMonth - 1]} <span className="text-primary">{currentYear}</span>
             </span>
           </div>

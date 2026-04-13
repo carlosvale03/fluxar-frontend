@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { Wallet, TrendingUp, TrendingDown, CircleDollarSign, CreditCard } from "lucide-react"
@@ -23,18 +24,18 @@ function KPICard({ title, value, icon, colorClass, bgClass, style, helpTopic }: 
     }).format(value)
 
     return (
-        <Card className="overflow-hidden border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl hover:shadow-2xl hover:border-primary/30 transition-all duration-500 group rounded-[32px]">
-            <CardContent className="p-7">
+        <Card className="group relative flex flex-col p-5 rounded-2xl border transition-all cursor-pointer overflow-hidden border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 hover:shadow-md">
+            <CardContent className="p-0">
                 <div className="flex items-center justify-between">
-                    <div className="flex flex-col gap-1.5">
+                    <div className="flex flex-col gap-1.5 min-w-0">
                         <div className="flex items-center gap-1.5">
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 truncate">
                                 {title}
                             </span>
                             {helpTopic && <HelpInfo topic={helpTopic} />}
                         </div>
                         <h3 
-                            className={cn("text-2xl font-black tracking-tight transition-transform group-hover:scale-105 origin-left duration-300", colorClass)}
+                            className={cn("text-2xl font-black tracking-tight transition-transform group-hover:scale-105 origin-left duration-300 truncate", colorClass)}
                             style={{ 
                                 color: colorClass === "" && bgClass.includes('var') ? bgClass.replace('-light', '') : undefined,
                                 ...style 
@@ -43,8 +44,13 @@ function KPICard({ title, value, icon, colorClass, bgClass, style, helpTopic }: 
                             {formattedValue}
                         </h3>
                     </div>
-                    <div className={cn("w-14 h-14 rounded-[20px] flex items-center justify-center shadow-lg transition-all duration-300 group-hover:rotate-6 group-hover:scale-110")} style={{ backgroundColor: bgClass.includes('var') ? bgClass : undefined }}>
-                        {icon}
+                    <div 
+                        className={cn("w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-hover:scale-105 group-hover:rotate-6")} 
+                        style={{ backgroundColor: bgClass.includes('var') ? bgClass : undefined }}
+                    >
+                        {!!icon && React.cloneElement(icon as React.ReactElement, {
+                          className: cn((icon as any)?.props?.className, "h-6 w-6")
+                        } as any)}
                     </div>
                 </div>
             </CardContent>
@@ -79,14 +85,14 @@ export function DashboardKPIs({ data }: DashboardKPIsProps) {
             <KPICard 
                 title="Receitas do Mês" 
                 value={data?.monthly_income ?? 0} 
-                icon={<TrendingUp className="h-7 w-7" style={{ color: 'var(--finance-income)' }} />}
+                icon={<TrendingUp style={{ color: 'var(--finance-income)' }} />}
                 colorClass=""
                 bgClass="var(--finance-income-light)"
             />
             <KPICard 
                 title="Despesas do Mês" 
                 value={data?.monthly_expense ?? 0} 
-                icon={<TrendingDown className="h-7 w-7" style={{ color: 'var(--finance-expense)' }} />}
+                icon={<TrendingDown style={{ color: 'var(--finance-expense)' }} />}
                 colorClass=""
                 bgClass="var(--finance-expense-light)"
             />

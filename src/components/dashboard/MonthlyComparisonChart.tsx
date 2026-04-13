@@ -5,6 +5,9 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { MonthlyComparisonData } from "@/types/reports"
 import { cn } from "@/lib/utils"
 
+import { ChartEmptyState } from "./ChartEmptyState"
+import { BarChart3, TrendingUp } from "lucide-react"
+
 interface MonthlyComparisonChartProps {
     data: MonthlyComparisonData[]
     title?: string
@@ -33,14 +36,22 @@ export function MonthlyComparisonChart({
         }).format(value)
     }
 
-    if (!data || data.length === 0) {
+    const isEmpty = !data || data.length === 0 || data.every(d => Number(d.income) === 0 && Number(d.expense) === 0)
+
+    if (isEmpty) {
         return (
-            <Card className={cn("border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-none sm:rounded-[32px] overflow-hidden", className)}>
+            <Card className={cn("h-full border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-none sm:rounded-[32px] overflow-hidden flex flex-col", className)}>
                 <CardHeader>
                     {title && <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70">{title}</CardTitle>}
                 </CardHeader>
-                <CardContent className="flex items-center justify-center p-10">
-                    <p className="text-sm font-bold text-muted-foreground/50">Sem dados para este período</p>
+                <CardContent className="flex-1 p-6 sm:p-8">
+                    <ChartEmptyState 
+                        type={variant === 'bars' ? 'bar' : 'area'} 
+                        height="100%"
+                        icon={variant === 'bars' ? BarChart3 : TrendingUp}
+                        title={title}
+                        description={description || "Aguardando registros para este período."}
+                    />
                 </CardContent>
             </Card>
         )
@@ -50,8 +61,7 @@ export function MonthlyComparisonChart({
 
     return (
         <Card className={cn(
-            "border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-none sm:rounded-[32px] overflow-hidden transition-all duration-300", 
-            data.length === 1 ? "max-w-lg" : "w-full",
+            "h-full w-full border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 rounded-none sm:rounded-[32px] overflow-hidden transition-all duration-300 flex flex-col", 
             className
         )}>
             <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4 sm:px-6">
@@ -68,8 +78,8 @@ export function MonthlyComparisonChart({
                     )}
                 </div>
             </CardHeader>
-            <CardContent className="p-4 sm:p-5">
-                <div className={cn("flex flex-col gap-4", showNumericalLabels ? "lg:flex-row lg:items-center lg:gap-8" : "")}>
+            <CardContent className="flex-1 p-4 sm:p-5 flex flex-col">
+                <div className={cn("flex flex-col gap-4 flex-1", showNumericalLabels ? "lg:flex-row lg:items-center lg:gap-8" : "")}>
                     
                     {showNumericalLabels && (
                         <div className="flex flex-row lg:flex-col justify-between lg:justify-start gap-4 lg:gap-6 min-w-full lg:min-w-[140px] shrink-0 border-b lg:border-b-0 lg:border-r border-border/10 pb-4 lg:pb-0 lg:pr-6 mb-2 lg:mb-0">
@@ -93,7 +103,7 @@ export function MonthlyComparisonChart({
                         </div>
                     )}
 
-                    <div className={cn("w-full transition-opacity duration-500", data.length === 1 ? "max-w-[260px] mx-auto lg:mx-0" : "")} style={{ height: typeof height === 'number' ? `${height}px` : height, minWidth: 0 }}>
+                    <div className="flex-1 w-full transition-opacity duration-500" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             {variant === "bars" ? (
                                 <BarChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
@@ -150,11 +160,11 @@ export function MonthlyComparisonChart({
                                     <Bar dataKey="expense" name="Gastos" fill="url(#expenseGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} />
                                 </BarChart>
                             ) : (
-                                <AreaChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                <AreaChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
                                     <defs>
-                                        <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--palette-brand-500)" stopOpacity={0.4}/>
-                                            <stop offset="95%" stopColor="var(--palette-brand-500)" stopOpacity={0}/>
+                                        <linearGradient id="balanceGradientPremium" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
@@ -179,7 +189,7 @@ export function MonthlyComparisonChart({
                                                             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                                             <p 
                                                                 className="text-sm font-black"
-                                                                style={{ color: val >= 0 ? 'var(--finance-income)' : 'var(--finance-expense)' }}
+                                                                style={{ color: val >= 0 ? '#10b981' : '#ef4444' }}
                                                             >
                                                                 {formatCurrency(val)}
                                                             </p>
@@ -193,13 +203,13 @@ export function MonthlyComparisonChart({
                                     <Area 
                                         type="monotone" 
                                         dataKey="balance" 
-                                        stroke="var(--palette-brand-500)" 
+                                        stroke="#2563eb" 
                                         strokeWidth={4} 
                                         fillOpacity={1} 
-                                        fill="url(#balanceGradient)"
+                                        fill="url(#balanceGradientPremium)"
                                         connectNulls={true}
-                                        dot={{ fill: 'white', strokeWidth: 3, r: 4, stroke: 'var(--palette-brand-500)' }}
-                                        activeDot={{ r: 6, strokeWidth: 0, fill: 'var(--palette-brand-500)' }}
+                                        dot={{ fill: 'white', strokeWidth: 3, r: 4, stroke: '#2563eb' }}
+                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#2563eb' }}
                                         animationDuration={1500}
                                     />
                                 </AreaChart>

@@ -1,13 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format } from "date-fns"
+import { format, getDaysInMonth, parseISO } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary } from "@/services/reports"
 import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport } from "@/types/reports"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
 import { useAuth } from "@/contexts/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -42,6 +43,7 @@ export default function ReportsPage() {
     const [activeTab, setActiveTab] = useState("simple")
     const [activePieIndex, setActivePieIndex] = useState<number | null>(null)
     const [selectedDailyMonth, setSelectedDailyMonth] = useState<string | null>(null)
+    const [completeDailyData, setCompleteDailyData] = useState<any[]>([])
 
     // New states for modals
     const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
@@ -137,6 +139,39 @@ export default function ReportsPage() {
         !selectedDailyMonth || (d.full_date && d.full_date.startsWith(selectedDailyMonth))
     ) || [];
 
+    // Gerar dados completos para todos os dias do mês
+    useEffect(() => {
+        if (!selectedDailyMonth) {
+            setCompleteDailyData([]);
+            return;
+        }
+
+        try {
+            const [year, month] = selectedDailyMonth.split('-').map(Number);
+            const daysInMonth = getDaysInMonth(new Date(year, month - 1));
+            
+            const fullMonth = Array.from({ length: daysInMonth }, (_, i) => {
+                const day = i + 1;
+                const dateStr = `${selectedDailyMonth}-${day.toString().padStart(2, '0')}`;
+                
+                // Encontrar dado existente para este dia
+                const existingDayData = filteredDailyData.find((d: any) => d.full_date === dateStr);
+                
+                return {
+                    label: day.toString(),
+                    income: existingDayData?.income || 0,
+                    expense: existingDayData?.expense || 0,
+                    full_date: dateStr
+                };
+            });
+
+            setCompleteDailyData(fullMonth);
+        } catch (error) {
+            console.error("Erro ao gerar dados mensais completos:", error);
+            setCompleteDailyData(filteredDailyData);
+        }
+    }, [selectedDailyMonth, simpleData?.income_vs_expense]);
+
     const fetchAdvanced = async () => {
         if (!isPremium) return
         setIsLoadingAdvanced(true)
@@ -163,15 +198,15 @@ export default function ReportsPage() {
                 <div className="px-4 sm:px-0">
                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
                         Relatórios e Gráficos
-                        {isPremium && <Badge className="bg-amber-500 hover:bg-amber-600 text-white border-none text-[10px] font-black uppercase tracking-widest px-2 h-5">Premium</Badge>}
+                        {isPremium && <Badge className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 border border-amber-200 dark:border-amber-900/50 rounded-full text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 h-auto">Premium</Badge>}
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground mt-1 text-balance">Análise detalhada do seu comportamento financeiro.</p>
                 </div>
 
-                <div className="mx-4 sm:mx-0 relative flex items-center p-1 bg-background/30 backdrop-blur-xl border border-border/40 rounded-[28px] shadow-2xl group/filter transition-all duration-500 hover:border-primary/20 overflow-x-auto no-scrollbar scroll-smooth">
+                <div className="mx-4 sm:mx-0 relative flex items-center p-1 bg-card border border-border/60 rounded-full shadow-md group/filter transition-all duration-300 hover:border-primary/20 overflow-x-auto no-scrollbar scroll-smooth">
                     <div className="absolute inset-1 z-0 pointer-events-none">
                         <div 
-                            className="h-full bg-gradient-to-br from-primary/95 to-primary shadow-[0_8px_20px_-6px_rgba(59,130,246,0.6)] rounded-[22px] transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                            className="h-full bg-primary shadow-lg shadow-primary/20 rounded-full transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
                             style={{
                                 width: `${100 / 5}%`,
                                 transform: `translateX(${["this_month", "last_30_days", "last_90_days", "last_6_months", "this_year"].indexOf(period) * 100}%)`,
@@ -218,7 +253,7 @@ export default function ReportsPage() {
                 <TabsContent value="simple" className="mt-8 space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Restore Daily Cash Flow */}
-                        <Card className="border-none shadow-xl rounded-none sm:rounded-[32px] overflow-hidden">
+                        <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
                             <CardHeader>
                                 <div className="flex items-center justify-between w-full pr-4">
                                     <CardTitle className="text-base font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
@@ -264,10 +299,19 @@ export default function ReportsPage() {
                             </CardHeader>
                             <CardContent className="h-[300px] sm:h-[350px] pt-4 px-2 sm:px-6" style={{ minWidth: 0 }}>
                                 {isLoadingSimple ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                    <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                    (!completeDailyData || completeDailyData.length === 0 || completeDailyData.every((d: any) => d.income === 0 && d.expense === 0)) ? (
+                                        <ChartEmptyState 
+                                            type="bar" 
+                                            height="100%" 
+                                            title="Fluxo de Caixa Diário"
+                                            description="As movimentações diárias para este mês aparecerão aqui."
+                                            icon={BarChart3}
+                                        />
+                                    ) : (
+                                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                         <BarChart 
-                                            data={filteredDailyData}
-                                            margin={{ top: 20, right: 10, left: -20, bottom: 0 }}
+                                            data={completeDailyData}
+                                            margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
                                             barGap={4}
                                         >
                                             <defs>
@@ -307,7 +351,8 @@ export default function ReportsPage() {
                                             <Bar dataKey="income" name="Receitas" fill="url(#incomeGradientDaily)" radius={[4, 4, 0, 0]} />
                                             <Bar dataKey="expense" name="Despesas" fill="url(#expenseGradientDaily)" radius={[4, 4, 0, 0]} />
                                         </BarChart>
-                                    </ResponsiveContainer>
+                                        </ResponsiveContainer>
+                                    )
                                 )}
                             </CardContent>
                         </Card>
@@ -333,7 +378,7 @@ export default function ReportsPage() {
                             className="lg:col-span-2"
                         />
 
-                        <Card className="border-none shadow-xl rounded-none sm:rounded-[32px] overflow-hidden">
+                        <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
                             <CardHeader>
                                 <CardTitle className="text-base font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                     <Wallet className="h-4 w-4 text-blue-500" />
@@ -343,8 +388,17 @@ export default function ReportsPage() {
                             </CardHeader>
                             <CardContent className="h-auto min-h-[450px] sm:h-[400px] pt-4 flex flex-col sm:flex-row items-center">
                                 {isLoadingSimple ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                    <>
-                                        <div className="w-full h-[300px] sm:h-full relative" style={{ minWidth: 0 }}>
+                                    (!simpleData?.expense_by_category || simpleData.expense_by_category.length === 0 || simpleData.expense_by_category.every((d: any) => Number(d.amount) === 0)) ? (
+                                        <ChartEmptyState 
+                                            type="pie" 
+                                            height="100%" 
+                                            title="Distribuição de Gastos"
+                                            description="Seus gastos por categoria aparecerão aqui."
+                                            icon={PieIcon}
+                                        />
+                                    ) : (
+                                        <>
+                                            <div className="w-full h-[300px] sm:h-full relative" style={{ minWidth: 0 }}>
                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                 <PieChart>
                                                     <Pie
@@ -408,11 +462,12 @@ export default function ReportsPage() {
                                             ))}
                                         </div>
                                     </>
+                                    )
                                 )}
                             </CardContent>
                         </Card>
 
-                        <Card className="border-none shadow-xl rounded-none sm:rounded-[32px] overflow-hidden">
+                        <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
                             <CardHeader>
                                 <CardTitle className="text-base font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
                                     <Sparkles className="h-4 w-4 text-emerald-500" />
@@ -422,8 +477,17 @@ export default function ReportsPage() {
                             </CardHeader>
                             <CardContent className="h-auto min-h-[450px] sm:h-[400px] pt-4 flex flex-col sm:flex-row items-center">
                                 {isLoadingSimple ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                    <>
-                                        <div className="w-full h-[300px] sm:h-full relative" style={{ minWidth: 0 }}>
+                                    (!simpleData?.income_by_category || simpleData.income_by_category.length === 0 || simpleData.income_by_category.every((d: any) => Number(d.amount) === 0)) ? (
+                                        <ChartEmptyState 
+                                            type="pie" 
+                                            height="100%" 
+                                            title="Distribuição de Ganhos"
+                                            description="Sua origem de receitas aparecerão aqui."
+                                            icon={PieIcon}
+                                        />
+                                    ) : (
+                                        <>
+                                            <div className="w-full h-[300px] sm:h-full relative" style={{ minWidth: 0 }}>
                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                 <PieChart>
                                                     <Pie
@@ -487,6 +551,7 @@ export default function ReportsPage() {
                                             ))}
                                         </div>
                                     </>
+                                    )
                                 )}
                             </CardContent>
                         </Card>
@@ -522,7 +587,7 @@ export default function ReportsPage() {
                         <div className="space-y-8">
                             {/* ELITE KPI ROW */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <div className="bg-card/40 backdrop-blur-xl border border-border/40 p-6 rounded-none sm:rounded-[32px] shadow-lg flex flex-col justify-between group hover:border-primary/40 transition-all duration-300">
+                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
                                     <div>
                                         <div className="flex items-center gap-1.5 mb-2">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Poder de Aporte</p>
@@ -532,7 +597,7 @@ export default function ReportsPage() {
                                             <h3 className="text-2xl font-black">
                                                 {isLoadingSummary ? "..." : `${summaryData?.summary.savings_rate ?? 0}%`}
                                             </h3>
-                                            <Badge className="bg-emerald-500/10 text-emerald-500 border-none text-[10px]">Saudável</Badge>
+                                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-900/50 rounded-full text-[10px] font-black uppercase tracking-widest px-2 h-auto py-0.5">Saudável</Badge>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-border/10 flex items-center justify-between">
@@ -541,7 +606,7 @@ export default function ReportsPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-card/40 backdrop-blur-xl border border-border/40 p-6 rounded-none sm:rounded-[32px] shadow-lg flex flex-col justify-between group hover:border-primary/40 transition-all duration-300">
+                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
                                     <div>
                                         <div className="flex items-center gap-1.5 mb-2">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Liquidez Imediata</p>
@@ -551,7 +616,7 @@ export default function ReportsPage() {
                                             <h3 className="text-2xl font-black">
                                                 {isLoadingSummary ? "..." : formatCurrency(summaryData?.summary.total_liquid_balance ?? 0)}
                                             </h3>
-                                            <span className="text-[10px] text-blue-500 font-bold">Reserva OK</span>
+                                            <span className="text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-900/50 rounded-full px-2 py-0.5 font-black uppercase tracking-widest">Reserva OK</span>
                                         </div>
                                     </div>
                                     <div className="mt-4 pt-4 border-t border-border/10">
@@ -564,7 +629,7 @@ export default function ReportsPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-card/40 backdrop-blur-xl border border-border/40 p-6 rounded-none sm:rounded-[32px] shadow-lg flex flex-col justify-between group hover:border-primary/40 transition-all duration-300">
+                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
                                     <div>
                                         <div className="flex items-center gap-1.5 mb-2">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Score de Saúde</p>
@@ -583,7 +648,7 @@ export default function ReportsPage() {
                                     </div>
                                 </div>
 
-                                <div className="bg-card/40 backdrop-blur-xl border border-border/40 p-6 rounded-none sm:rounded-[32px] shadow-lg flex flex-col justify-between group hover:border-primary/40 transition-all duration-300">
+                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
                                     <div>
                                         <div className="flex items-center gap-1.5 mb-2">
                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Próximo Grande Gasto</p>
@@ -607,12 +672,12 @@ export default function ReportsPage() {
                             </div>
 
                             {/* INVESTMENTS SECTION */}
-                            <div className="grid grid-cols-1 gap-8">
-                                <Card className="border-none shadow-2xl rounded-none sm:rounded-[40px] overflow-hidden bg-gradient-to-br from-card/80 to-background border border-border/20">
+                            <div className="grid grid-cols-1 gap-8 pt-4">
+                                <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
                                     <CardHeader className="p-8 pb-4">
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-500">
+                                                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
                                                     <Target className="h-6 w-6" />
                                                 </div>
                                                 <div>
@@ -677,54 +742,66 @@ export default function ReportsPage() {
                                                 {/* PIE ALLOCATION */}
                                                 <div className="lg:col-span-1 space-y-6">
                                                     <div className="h-[250px] relative" style={{ minWidth: 0 }}>
-                                                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                            <PieChart>
-                                                                    <Pie
-                                                                        data={advancedData.investment_analysis.asset_allocation}
-                                                                        innerRadius={70}
-                                                                        outerRadius={activePieIndex !== null ? 95 : 90}
-                                                                        paddingAngle={8}
-                                                                        dataKey="value"
-                                                                        onMouseEnter={(_, index) => setActivePieIndex(index)}
-                                                                        onMouseLeave={() => setActivePieIndex(null)}
-                                                                        animationBegin={0}
-                                                                        animationDuration={800}
-                                                                    >
-                                                                        {advancedData.investment_analysis.asset_allocation.map((entry, index) => (
-                                                                            <Cell 
-                                                                                key={`cell-${index}`} 
-                                                                                fill={entry.color} 
-                                                                                stroke="none" 
-                                                                                style={{ 
-                                                                                    filter: activePieIndex === index ? `drop-shadow(0 0 12px ${entry.color}44)` : 'none',
-                                                                                    transition: 'all 0.3s ease'
-                                                                                }}
-                                                                            />
-                                                                        ))}
-                                                                    </Pie>
-                                                                    <Tooltip content={() => null} />
-                                                            </PieChart>
-                                                        </ResponsiveContainer>
-                                                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none w-[120px]">
-                                                            <div className="flex flex-col animate-in fade-in zoom-in duration-300">
-                                                                <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all">
-                                                                    {activePieIndex !== null 
-                                                                        ? advancedData.investment_analysis.asset_allocation[activePieIndex].name 
-                                                                        : "Total Investido"
-                                                                    }
-                                                                </span>
-                                                                <span className={cn(
-                                                                    "text-lg font-black transition-all",
-                                                                    activePieIndex !== null ? "text-foreground scale-110" : "text-primary"
-                                                                )}>
-                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', compactDisplay: 'short' }).format(
-                                                                        activePieIndex !== null 
-                                                                            ? advancedData.investment_analysis.asset_allocation[activePieIndex].value 
-                                                                            : (advancedData?.investment_analysis?.total_invested || 0)
-                                                                    )}
-                                                                </span>
-                                                            </div>
-                                                        </div>
+                                                        {(!advancedData.investment_analysis.asset_allocation || advancedData.investment_analysis.asset_allocation.length === 0) ? (
+                                                            <ChartEmptyState 
+                                                                type="pie" 
+                                                                height="100%" 
+                                                                title="Alocação"
+                                                                description="Dados de ativos."
+                                                                icon={PieIcon}
+                                                            />
+                                                        ) : (
+                                                            <>
+                                                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                                                    <PieChart>
+                                                                            <Pie
+                                                                                data={advancedData.investment_analysis.asset_allocation}
+                                                                                innerRadius={70}
+                                                                                outerRadius={activePieIndex !== null ? 95 : 90}
+                                                                                paddingAngle={8}
+                                                                                dataKey="value"
+                                                                                onMouseEnter={(_, index) => setActivePieIndex(index)}
+                                                                                onMouseLeave={() => setActivePieIndex(null)}
+                                                                                animationBegin={0}
+                                                                                animationDuration={800}
+                                                                            >
+                                                                                {advancedData.investment_analysis.asset_allocation.map((entry, index) => (
+                                                                                    <Cell 
+                                                                                        key={`cell-${index}`} 
+                                                                                        fill={entry.color} 
+                                                                                        stroke="none" 
+                                                                                        style={{ 
+                                                                                            filter: activePieIndex === index ? `drop-shadow(0 0 12px ${entry.color}44)` : 'none',
+                                                                                            transition: 'all 0.3s ease'
+                                                                                        }}
+                                                                                    />
+                                                                                ))}
+                                                                            </Pie>
+                                                                            <Tooltip content={() => null} />
+                                                                    </PieChart>
+                                                                </ResponsiveContainer>
+                                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none w-[120px]">
+                                                                    <div className="flex flex-col animate-in fade-in zoom-in duration-300">
+                                                                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all">
+                                                                            {activePieIndex !== null 
+                                                                                ? advancedData.investment_analysis.asset_allocation[activePieIndex].name 
+                                                                                : "Total Investido"
+                                                                            }
+                                                                        </span>
+                                                                        <span className={cn(
+                                                                            "text-lg font-black transition-all",
+                                                                            activePieIndex !== null ? "text-foreground scale-110" : "text-primary"
+                                                                        )}>
+                                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', compactDisplay: 'short' }).format(
+                                                                                activePieIndex !== null 
+                                                                                    ? advancedData.investment_analysis.asset_allocation[activePieIndex].value 
+                                                                                    : (advancedData?.investment_analysis?.total_invested || 0)
+                                                                            )}
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                            </>
+                                                        )}
                                                     </div>
                                                     <div className="space-y-3">
                                                         {advancedData.investment_analysis.asset_allocation.map((item, i) => (
@@ -744,8 +821,17 @@ export default function ReportsPage() {
                                                     <div className="flex items-center justify-between">
                                                         <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground/60">Aportes vs Performance</h4>
                                                     </div>
-                                                    <div className="h-[350px] bg-muted/5 rounded-[32px] border border-border/10 p-6" style={{ minWidth: 0 }}>
-                                                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                                    <div className="h-[350px] bg-card border border-border/60 rounded-[32px] p-6 shadow-sm overflow-hidden" style={{ minWidth: 0 }}>
+                                                        {(!advancedData.investment_analysis.monthly_history || advancedData.investment_analysis.monthly_history.length === 0) ? (
+                                                            <ChartEmptyState 
+                                                                type="bar" 
+                                                                height="100%" 
+                                                                title="Histórico de Patrimônio"
+                                                                description="Seus aportes e resgates aparecerão aqui."
+                                                                icon={TrendingUp}
+                                                            />
+                                                        ) : (
+                                                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                             <BarChart data={advancedData.investment_analysis.monthly_history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
                                                                 <XAxis 
@@ -802,6 +888,7 @@ export default function ReportsPage() {
                                                                 />
                                                             </BarChart>
                                                         </ResponsiveContainer>
+                                                        )}
                                                     </div>
                                                 </div>
                                             </div>
@@ -813,11 +900,11 @@ export default function ReportsPage() {
                             {/* CUSTOM MONITORING GRID */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="space-y-8">
-                                    <Card className="border-none shadow-2xl rounded-none sm:rounded-[40px] overflow-hidden bg-card/40 backdrop-blur-xl border border-border/20">
+                                    <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
                                         <CardHeader className="p-8">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+                                                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
                                                         <Eye className="h-6 w-6" />
                                                     </div>
                                                     <div>
@@ -835,7 +922,7 @@ export default function ReportsPage() {
                                         </CardHeader>
                                         <CardContent className="p-8 pt-0 space-y-6">
                                             {advancedData?.custom_monitoring?.map((monitor, i) => (
-                                                <div key={i} className="p-6 rounded-[32px] bg-muted/20 border border-border/10 space-y-4 group">
+                                                <div key={i} className="p-6 rounded-2xl bg-card border border-border/60 shadow-sm space-y-4 group transition-all hover:shadow-md">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
                                                             <div 
@@ -923,7 +1010,7 @@ export default function ReportsPage() {
                                 </div>
 
                                 <div className="space-y-8">
-                                    <Card className="border-none shadow-2xl rounded-none sm:rounded-[40px] overflow-hidden bg-card/40 backdrop-blur-xl border border-border/20">
+                                    <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
                                         <CardHeader className="p-8 pb-4">
                                             <CardTitle className="text-lg font-black flex items-center gap-3">
                                                 <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
@@ -994,12 +1081,12 @@ export default function ReportsPage() {
                                                 </div>
                                             </div>
 
-                                            <div className="bg-background/20 p-5 rounded-3xl border border-border/5">
+                                            <div className="bg-card border border-border/60 p-5 rounded-2xl shadow-sm">
                                                 <div className="flex items-center gap-3 mb-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-500">
+                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm ring-1 ring-black/5">
                                                         <ShieldCheck className="h-4 w-4" />
                                                     </div>
-                                                    <span className="text-xs font-black uppercase tracking-widest">Reserva de Emergência</span>
+                                                    <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Reserva de Emergência</span>
                                                 </div>
                                                 <div className="flex items-end justify-between">
                                                     <div>
@@ -1027,10 +1114,10 @@ export default function ReportsPage() {
                                     </Card>
 
                                     {/* Gastos por Dia da Semana Migrados para a direita */}
-                                    <Card className="border-none shadow-2xl rounded-none sm:rounded-[40px] overflow-hidden bg-card/40 backdrop-blur-xl border border-border/20">
+                                    <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
                                         <CardHeader className="p-8 pb-4">
                                             <CardTitle className="text-lg font-black flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500">
+                                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
                                                     <Clock className="h-5 w-5" />
                                                 </div>
                                                 Hábitos Semanais
@@ -1039,7 +1126,16 @@ export default function ReportsPage() {
                                         </CardHeader>
                                         <CardContent className="h-[300px] p-8 pt-4">
                                             {isLoadingAdvanced ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                                <ResponsiveContainer width="100%" height="100%">
+                                                (!advancedData?.spend_by_weekday || advancedData.spend_by_weekday.length === 0 || advancedData.spend_by_weekday.every((d: any) => d.amount === 0)) ? (
+                                                    <ChartEmptyState 
+                                                        type="bar" 
+                                                        height="100%" 
+                                                        title="Hábitos Semanais"
+                                                        description="Seu comportamento semanal aparecerá aqui."
+                                                        icon={Clock}
+                                                    />
+                                                ) : (
+                                                    <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart 
                                                         data={advancedData?.spend_by_weekday || []}
                                                         margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
@@ -1086,13 +1182,14 @@ export default function ReportsPage() {
                                                         />
                                                     </BarChart>
                                                 </ResponsiveContainer>
+                                                )
                                             )}
                                         </CardContent>
                                     </Card>
                                 </div>
 
                                 {/* FINANCIAL FREEDOM SIMULATOR - LARGURA TOTAL */}
-                                <Card className="lg:col-span-2 border-none shadow-2xl rounded-none sm:rounded-[40px] overflow-hidden bg-card/40 backdrop-blur-xl border border-border/20">
+                                <Card className="lg:col-span-2 border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
                                     <CardHeader className="p-8 pb-4">
                                         <div className="flex items-center justify-between">
                                             <CardTitle className="text-lg font-black flex items-center gap-3">
@@ -1108,7 +1205,16 @@ export default function ReportsPage() {
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="h-[250px] p-8 pt-0 outline-none" style={{ minWidth: 0 }}>
-                                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                        {(!advancedData?.financial_freedom_projection || advancedData.financial_freedom_projection.length === 0) ? (
+                                            <ChartEmptyState 
+                                                type="area" 
+                                                height="100%" 
+                                                title="Simulador de Liberdade"
+                                                description="Sua projeção de longo prazo aparecerá aqui."
+                                                icon={TrendingUp}
+                                            />
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                             <AreaChart data={advancedData?.financial_freedom_projection || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
                                                 <defs>
                                                     <linearGradient id="projGradient" x1="0" y1="0" x2="0" y2="1">
@@ -1144,6 +1250,7 @@ export default function ReportsPage() {
                                                 />
                                             </AreaChart>
                                         </ResponsiveContainer>
+                                        )}
                                     </CardContent>
                                 </Card>
 

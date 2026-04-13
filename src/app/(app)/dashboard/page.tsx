@@ -22,13 +22,32 @@ import {
     Sparkles, 
     TrendingUp as TrendingUpIcon,
     TrendingDown,
-    Target
+    Target,
+    Plus,
+    ArrowUpCircle,
+    ArrowDownCircle,
+    ArrowRightLeft
 } from "lucide-react"
 import { MonthPicker } from "@/components/ui/month-picker"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { HelpInfo } from "@/components/ui/help-info"
 import { DashboardCustomizer, DashboardModuleConfig, getInitialConfig } from "@/components/dashboard/dashboard-customizer"
+import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
+import { BarChart3, PieChart as PieIcon } from "lucide-react"
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { TransactionFormDialog } from "@/components/transactions/transaction-form-dialog"
+import { TransferFormDialog } from "@/components/transactions/transfer-form-dialog"
+import { CardExpenseFormDialog } from "@/components/transactions/card-expense-form-dialog"
+import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 
 const LARGE_MODULES = ["DAILY_CASH_FLOW", "BALANCE_EVOLUTION", "CREDIT_MANAGEMENT", "GOALS_JOURNEY"]
 const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "INCOME_SOURCE"]
@@ -96,6 +115,22 @@ export default function DashboardPage() {
     const [isCustomizerOpen, setIsCustomizerOpen] = useState(false)
     const [layoutConfig, setLayoutConfig] = useState<DashboardModuleConfig[]>([])
     const { toast } = useToast()
+
+    // Transaction Dialog States
+    const [isFormOpen, setIsFormOpen] = useState(false)
+    const [isTransferOpen, setIsTransferOpen] = useState(false)
+    const [isCardExpenseOpen, setIsCardExpenseOpen] = useState(false)
+    const [isInvoicePaymentOpen, setIsInvoicePaymentOpen] = useState(false)
+    const [formType, setFormType] = useState<"INCOME" | "EXPENSE">("INCOME")
+
+    const handleOpenForm = (type: "INCOME" | "EXPENSE") => {
+        setFormType(type)
+        setIsFormOpen(true)
+    }
+
+    const handleFormSuccess = () => {
+        fetchData()
+    }
 
     useEffect(() => {
         setLayoutConfig(getInitialConfig())
@@ -204,11 +239,11 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-2 sm:gap-4 md:ml-auto w-full md:w-auto justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 bg-card/30 backdrop-blur-md p-1 sm:p-1.5 rounded-2xl sm:rounded-[20px] border border-border/40 shadow-xl shrink-0">
+                    <div className="flex items-center gap-1 sm:gap-2 bg-card p-1 sm:p-1.5 rounded-2xl sm:rounded-2xl border border-border/60 shadow-sm shrink-0">
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl hover:bg-primary/10 transition-all active:scale-90"
+                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl hover:bg-primary/10 transition-all active:scale-90"
                             onClick={handlePrevMonth}
                         >
                             <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
@@ -235,10 +270,48 @@ export default function DashboardPage() {
                         </Button>
                     </div>
 
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button 
+                                className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center p-0 shrink-0"
+                            >
+                                <Plus className="h-6 w-6" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-2xl border-border/40 bg-background/95 backdrop-blur-xl">
+                            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-3 py-2">Nova Transação</DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleOpenForm("INCOME")} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-emerald-500/10 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
+                                </div>
+                                <span className="font-bold text-sm">Receita</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleOpenForm("EXPENSE")} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-rose-500/10 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <ArrowDownCircle className="h-4 w-4 text-rose-500" />
+                                </div>
+                                <span className="font-bold text-sm">Despesa</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsTransferOpen(true)} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-blue-500/10 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <ArrowRightLeft className="h-4 w-4 text-blue-500" />
+                                </div>
+                                <span className="font-bold text-sm">Transferência</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setIsCardExpenseOpen(true)} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-amber-500/10 transition-colors">
+                                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                                    <CreditCardIcon className="h-4 w-4 text-amber-500" />
+                                </div>
+                                <span className="font-bold text-sm">Gasto no Cartão</span>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+
                     <Button 
                         variant="outline" 
                         size="icon"
-                        className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-[20px] border-dashed border-2 bg-background/50 hover:bg-primary/5 hover:border-primary/40 hover:text-primary transition-all duration-300 shadow-xl shrink-0"
+                        className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border-dashed border-2 bg-card border-border/60 hover:bg-muted/30 hover:border-primary/20 hover:text-primary transition-all duration-300 shadow-sm shrink-0"
                         onClick={() => setIsCustomizerOpen(true)}
                     >
                         <Settings2 className="h-5 w-5 sm:h-6 sm:w-6" />
@@ -263,7 +336,7 @@ export default function DashboardPage() {
                     switch (module.id) {
                         case "DAILY_CASH_FLOW":
                             return (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden")}>
+                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}>
                                     <CardHeader className="flex flex-row items-center justify-between pb-2 text-wrap">
                                         <div className="min-w-0">
                                             <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
@@ -285,63 +358,73 @@ export default function DashboardPage() {
                                         </div>
                                     </CardHeader>
                                     <CardContent className="h-[300px] sm:h-[400px] pt-6 px-2 sm:px-6">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <BarChart 
-                                                data={charts?.income_vs_expense || []} 
-                                                margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                                                barGap={8}
-                                            >
-                                                <defs>
-                                                    <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
-                                                        <stop offset="100%" stopColor="var(--finance-income)" stopOpacity={0.1}/>
-                                                    </linearGradient>
-                                                    <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="0%" stopColor="var(--finance-expense)" stopOpacity={0.8}/>
-                                                        <stop offset="100%" stopColor="var(--finance-expense)" stopOpacity={0.1}/>
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
-                                                <XAxis 
-                                                    dataKey="label" 
-                                                    axisLine={false} 
-                                                    tickLine={false} 
-                                                    fontSize={10} 
-                                                    fontWeight={800}
-                                                    tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                                    dy={10}
-                                                />
-                                                <YAxis hide />
-                                                <Tooltip 
-                                                    cursor={{ fill: 'currentColor', opacity: 0.05, radius: 12 }}
-                                                    content={({ active, payload, label }) => {
-                                                        if (active && payload && payload.length) {
-                                                            return (
-                                                                <div className="z-50 bg-background/90 backdrop-blur-xl border border-border/50 p-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 border-b border-border/50 pb-2">Dia {label}</p>
-                                                                    <div className="space-y-3">
-                                                                        {payload.map((entry: any, index: number) => (
-                                                                            <div key={index} className="flex items-center justify-between gap-8">
-                                                                                <div className="flex items-center gap-2">
-                                                                                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                                                                    <span className="text-xs font-bold text-muted-foreground">{entry.name}</span>
+                                        {(!charts?.income_vs_expense || charts.income_vs_expense.length === 0 || charts.income_vs_expense.every(d => d.income === 0 && d.expense === 0)) ? (
+                                            <ChartEmptyState 
+                                                type="bar" 
+                                                height="100%" 
+                                                title="Fluxo de Caixa Diário"
+                                                description="Suas entradas e saídas diárias aparecerão aqui."
+                                                icon={BarChart3}
+                                            />
+                                        ) : (
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <BarChart 
+                                                    data={charts?.income_vs_expense || []} 
+                                                    margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
+                                                    barGap={8}
+                                                >
+                                                    <defs>
+                                                        <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
+                                                            <stop offset="100%" stopColor="var(--finance-income)" stopOpacity={0.1}/>
+                                                        </linearGradient>
+                                                        <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
+                                                            <stop offset="0%" stopColor="var(--finance-expense)" stopOpacity={0.8}/>
+                                                            <stop offset="100%" stopColor="var(--finance-expense)" stopOpacity={0.1}/>
+                                                        </linearGradient>
+                                                    </defs>
+                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
+                                                    <XAxis 
+                                                        dataKey="label" 
+                                                        axisLine={false} 
+                                                        tickLine={false} 
+                                                        fontSize={10} 
+                                                        fontWeight={800}
+                                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                                        dy={10}
+                                                    />
+                                                    <YAxis hide />
+                                                    <Tooltip 
+                                                        cursor={{ fill: 'currentColor', opacity: 0.05, radius: 12 }}
+                                                        content={({ active, payload, label }) => {
+                                                            if (active && payload && payload.length) {
+                                                                return (
+                                                                    <div className="z-50 bg-background/90 backdrop-blur-xl border border-border/50 p-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 border-b border-border/50 pb-2">Dia {label}</p>
+                                                                        <div className="space-y-3">
+                                                                            {payload.map((entry: any, index: number) => (
+                                                                                <div key={index} className="flex items-center justify-between gap-8">
+                                                                                    <div className="flex items-center gap-2">
+                                                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
+                                                                                        <span className="text-xs font-bold text-muted-foreground">{entry.name}</span>
+                                                                                    </div>
+                                                                                    <span className="text-xs font-black">
+                                                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.value)}
+                                                                                    </span>
                                                                                 </div>
-                                                                                <span className="text-xs font-black">
-                                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.value)}
-                                                                                </span>
-                                                                            </div>
-                                                                        ))}
+                                                                            ))}
+                                                                        </div>
                                                                     </div>
-                                                                </div>
-                                                            )
-                                                        }
-                                                        return null
-                                                    }}
-                                                />
-                                                <Bar dataKey="income" name="Receita" fill="url(#incomeGradient)" radius={[6, 6, 0, 0]} barSize={span < 12 ? 8 : 12} />
-                                                <Bar dataKey="expense" name="Despesa" fill="url(#expenseGradient)" radius={[6, 6, 0, 0]} barSize={span < 12 ? 8 : 12} />
-                                            </BarChart>
-                                        </ResponsiveContainer>
+                                                                )
+                                                            }
+                                                            return null
+                                                        }}
+                                                    />
+                                                    <Bar dataKey="income" name="Receita" fill="url(#incomeGradient)" radius={[6, 6, 0, 0]} barSize={span < 12 ? 8 : 12} />
+                                                    <Bar dataKey="expense" name="Despesa" fill="url(#expenseGradient)" radius={[6, 6, 0, 0]} barSize={span < 12 ? 8 : 12} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
+                                        )}
                                     </CardContent>
                                 </Card>
                             )
@@ -353,8 +436,8 @@ export default function DashboardPage() {
                                     title="Balanço Mensal"
                                     description="Resumo Ganhos vs Gastos"
                                     showNumericalLabels={span >= 6}
-                                    height={260}
-                                    className={cn(spanClass, "h-full border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden")}
+                                    height="100%"
+                                    className={cn(spanClass, "h-full border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}
                                 />
                             )
                         case "BALANCE_EVOLUTION":
@@ -365,8 +448,8 @@ export default function DashboardPage() {
                                     title="Evolução de Saldo"
                                     description={`Acompanhamento dos ${monthlyComparison.length} meses`}
                                     variant="line"
-                                    height={300}
-                                    className={cn(spanClass, "border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden")}
+                                    height="100%"
+                                    className={cn(spanClass, "h-full border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}
                                 />
                             )
                         case "BUDGET_SUMMARY":
@@ -377,7 +460,7 @@ export default function DashboardPage() {
                             )
                         case "EXPENSE_DISTRIBUTION":
                             return (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden")}>
+                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}>
                                     <CardHeader className="pb-0 pt-6">
                                         <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
                                             <TrendingDown className="h-4 w-4 text-rose-500" />
@@ -386,42 +469,66 @@ export default function DashboardPage() {
                                     </CardHeader>
                                     <CardContent className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-8 gap-8">
                                         <div className="w-full h-[250px] sm:w-[50%] relative">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={charts?.expense_by_category || []}
-                                                        cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8}
-                                                        dataKey="amount" nameKey="category_name" stroke="none"
-                                                    >
-                                                        {charts?.expense_by_category?.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={entry.color || '#CBD5E1'} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip content={<CustomPieTooltip />} />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                                                <span className="block text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Gasto Total</span>
-                                                <span className="block text-xl font-black text-foreground">{formatCurrencyShort(charts?.expense_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
-                                            </div>
+                                            {(!charts?.expense_by_category || charts.expense_by_category.length === 0 || charts.expense_by_category.every(d => Number(d.amount) === 0)) ? (
+                                                <ChartEmptyState 
+                                                    type="pie" 
+                                                    height="100%" 
+                                                    title="Distribuição de Despesas"
+                                                    description="Seus gastos por categoria aparecerão aqui."
+                                                    icon={PieIcon}
+                                                />
+                                            ) : (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={charts?.expense_by_category || []}
+                                                            cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8}
+                                                            dataKey="amount" nameKey="category_name" stroke="none"
+                                                        >
+                                                            {charts?.expense_by_category?.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.color || '#CBD5E1'} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip content={<CustomPieTooltip />} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            )}
+                                            {charts?.expense_by_category && charts.expense_by_category.length > 0 && charts.expense_by_category.some(d => Number(d.amount) > 0) && (
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none animate-in fade-in duration-500">
+                                                    <span className="block text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Gasto Total</span>
+                                                    <span className="block text-xl font-black text-foreground">{formatCurrencyShort(charts?.expense_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="w-full sm:w-[45%] space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {charts?.expense_by_category?.slice(0, 6).map((item, index) => (
-                                                <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                                                        <span className="text-xs font-bold text-muted-foreground truncate max-w-[100px]">{item.category_name}</span>
+                                            {(!charts?.expense_by_category || charts.expense_by_category.length === 0 || charts.expense_by_category.every(d => Number(d.amount) === 0)) ? (
+                                                Array.from({ length: 5 }).map((_, i) => (
+                                                    <div key={`ghost-exp-${i}`} className="flex items-center justify-between p-2 rounded-xl opacity-20 select-none pointer-events-none">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-muted-foreground/40" />
+                                                            <div className="h-2 w-20 bg-muted-foreground/20 rounded-full" />
+                                                        </div>
+                                                        <div className="h-2 w-12 bg-muted-foreground/20 rounded-full" />
                                                     </div>
-                                                    <span className="text-xs font-black text-foreground">{formatCurrencyShort(Number(item.amount))}</span>
-                                                </div>
-                                            ))}
+                                                ))
+                                            ) : (
+                                                charts?.expense_by_category?.slice(0, 6).map((item, index) => (
+                                                    <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                                                            <span className="text-xs font-bold text-muted-foreground truncate max-w-[100px]">{item.category_name}</span>
+                                                        </div>
+                                                        <span className="text-xs font-black text-foreground">{formatCurrencyShort(Number(item.amount))}</span>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
                             )
                         case "INCOME_SOURCE":
                             return (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden")}>
+                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}>
                                     <CardHeader className="pb-0 pt-6">
                                         <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
                                             <TrendingUpIcon className="h-4 w-4 text-emerald-500" />
@@ -430,35 +537,59 @@ export default function DashboardPage() {
                                     </CardHeader>
                                     <CardContent className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-8 gap-8">
                                         <div className="w-full h-[250px] sm:w-[50%] relative">
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <PieChart>
-                                                    <Pie
-                                                        data={charts?.income_by_category || []}
-                                                        cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8}
-                                                        dataKey="amount" nameKey="category_name" stroke="none"
-                                                    >
-                                                        {charts?.income_by_category?.map((entry, index) => (
-                                                            <Cell key={`cell-${index}`} fill={entry.color || '#CBD5E1'} />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip content={<CustomPieTooltip />} />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                                                <span className="block text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Receita Total</span>
-                                                <span className="block text-xl font-black text-foreground">{formatCurrencyShort(charts?.income_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
-                                            </div>
+                                            {(!charts?.income_by_category || charts.income_by_category.length === 0 || charts.income_by_category.every(d => Number(d.amount) === 0)) ? (
+                                                <ChartEmptyState 
+                                                    type="pie" 
+                                                    height="100%" 
+                                                    title="Origem dos Ganhos"
+                                                    description="Suas fontes de receita aparecerão aqui."
+                                                    icon={PieIcon}
+                                                />
+                                            ) : (
+                                                <ResponsiveContainer width="100%" height="100%">
+                                                    <PieChart>
+                                                        <Pie
+                                                            data={charts?.income_by_category || []}
+                                                            cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8}
+                                                            dataKey="amount" nameKey="category_name" stroke="none"
+                                                        >
+                                                            {charts?.income_by_category?.map((entry, index) => (
+                                                                <Cell key={`cell-${index}`} fill={entry.color || '#CBD5E1'} />
+                                                            ))}
+                                                        </Pie>
+                                                        <Tooltip content={<CustomPieTooltip />} />
+                                                    </PieChart>
+                                                </ResponsiveContainer>
+                                            )}
+                                            {charts?.income_by_category && charts.income_by_category.length > 0 && charts.income_by_category.some(d => Number(d.amount) > 0) && (
+                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none animate-in fade-in duration-500">
+                                                    <span className="block text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Receita Total</span>
+                                                    <span className="block text-xl font-black text-foreground">{formatCurrencyShort(charts?.income_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
+                                                </div>
+                                            )}
                                         </div>
                                         <div className="w-full sm:w-[45%] space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {charts?.income_by_category?.slice(0, 6).map((item, index) => (
-                                                <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                                                        <span className="text-xs font-bold text-muted-foreground truncate max-w-[100px]">{item.category_name}</span>
+                                            {(!charts?.income_by_category || charts.income_by_category.length === 0 || charts.income_by_category.every(d => Number(d.amount) === 0)) ? (
+                                                Array.from({ length: 5 }).map((_, i) => (
+                                                    <div key={`ghost-inc-${i}`} className="flex items-center justify-between p-2 rounded-xl opacity-20 select-none pointer-events-none">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-muted-foreground/40" />
+                                                            <div className="h-2 w-20 bg-muted-foreground/20 rounded-full" />
+                                                        </div>
+                                                        <div className="h-2 w-12 bg-muted-foreground/20 rounded-full" />
                                                     </div>
-                                                    <span className="text-xs font-black text-foreground">{formatCurrencyShort(Number(item.amount))}</span>
-                                                </div>
-                                            ))}
+                                                ))
+                                            ) : (
+                                                charts?.income_by_category?.slice(0, 6).map((item, index) => (
+                                                    <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
+                                                            <span className="text-xs font-bold text-muted-foreground truncate max-w-[100px]">{item.category_name}</span>
+                                                        </div>
+                                                        <span className="text-xs font-black text-foreground">{formatCurrencyShort(Number(item.amount))}</span>
+                                                    </div>
+                                                ))
+                                            )}
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -488,7 +619,7 @@ export default function DashboardPage() {
                                             const isNearLimit = usagePercentage > 80
                                             
                                             return (
-                                                <Card key={card.id} className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden group hover:border-amber-500/30 transition-all duration-500 py-2">
+                                                <Card key={card.id} className="border border-border/60 bg-card shadow-md hover:shadow-lg rounded-2xl overflow-hidden group hover:border-amber-500/30 transition-all duration-500 py-2">
                                                     <CardContent className="p-6 space-y-6">
                                                         <div className="flex items-start justify-between">
                                                             <div className="flex items-center gap-4">
@@ -527,7 +658,7 @@ export default function DashboardPage() {
                             )
                         case "GOALS_JOURNEY":
                             return report.goals ? (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden p-8")}>
+                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden p-8")}>
                                     <div className="flex items-center gap-4 mb-8">
                                         <div className="w-14 h-14 rounded-[20px] bg-primary/10 flex items-center justify-center">
                                             <Target className="h-7 w-7 text-primary" />
@@ -583,6 +714,32 @@ export default function DashboardPage() {
                 onOpenChange={setIsCustomizerOpen}
                 config={layoutConfig}
                 onConfigChange={handleLayoutChange}
+            />
+
+            {/* Diálogos de Transação */}
+            <TransactionFormDialog 
+                open={isFormOpen} 
+                onOpenChange={setIsFormOpen}
+                type={formType}
+                onSuccess={handleFormSuccess}
+            />
+
+            <TransferFormDialog 
+                open={isTransferOpen}
+                onOpenChange={setIsTransferOpen}
+                onSuccess={handleFormSuccess}
+            />
+
+            <CardExpenseFormDialog 
+                open={isCardExpenseOpen}
+                onOpenChange={setIsCardExpenseOpen}
+                onSuccess={handleFormSuccess}
+            />
+
+            <InvoicePaymentDialog 
+                open={isInvoicePaymentOpen}
+                onOpenChange={setIsInvoicePaymentOpen}
+                onSuccess={handleFormSuccess}
             />
         </div>
     )
