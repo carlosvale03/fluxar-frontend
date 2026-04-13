@@ -144,11 +144,18 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="h-10 relative md:rounded-2xl font-black uppercase tracking-widest text-[10px] px-6 border-primary/20 hover:bg-primary/5 text-primary transition-all">
-            <Filter className="mr-2 h-4 w-4" /> 
-            Refinar Seleção
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="h-10 relative md:rounded-2xl font-black uppercase tracking-widest text-[10px] px-3 md:px-6 border-primary/20 hover:bg-primary/5 text-primary transition-all flex items-center justify-center shrink-0"
+        >
+            <Filter className="md:mr-2 h-4 w-4" /> 
+            <span className="hidden md:inline">Refinar Seleção</span>
             {activeFilterCount > 0 && (
-                <Badge className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] animate-in zoom-in duration-300">
+                <Badge className={cn(
+                    "h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] animate-in zoom-in duration-300",
+                    "md:ml-2 absolute -top-1.5 -right-1.5 md:static md:top-0 md:right-0"
+                )}>
                     {activeFilterCount}
                 </Badge>
             )}

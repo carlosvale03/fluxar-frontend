@@ -204,19 +204,10 @@ body {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
-@utility custom-scrollbar {
+@utility no-scrollbar {
   &::-webkit-scrollbar {
-    width: 4px;
-    height: 4px;
+    display: none;
   }
-  &::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  &::-webkit-scrollbar-thumb {
-    background: var(--palette-neutral-300);
-    border-radius: 10px;
-  }
-  &::-webkit-scrollbar-thumb:hover {
-    background: var(--palette-neutral-500);
-  }
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

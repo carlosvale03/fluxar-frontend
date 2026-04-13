@@ -55,51 +55,50 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
     <div 
         onClick={() => router.push(`/cartoes/${card.id}`)}
         className={cn(
-            "group relative w-full aspect-[1.586] rounded-xl overflow-hidden shadow-lg transition-transform hover:scale-[1.02] p-6 flex flex-col justify-between text-white cursor-pointer",
+            "group relative w-full aspect-[1.586] rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 p-6 flex flex-col justify-between text-white cursor-pointer",
             !card.color && "bg-gradient-to-br from-[#1a1a1a] to-[#4a4a4a]"
         )}
         style={card.color ? { backgroundColor: card.color } : undefined}
     >
       {/* Background Texture/Shine */}
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-700" />
 
       {/* Header */}
       <div className="flex justify-between items-start z-10">
         <div className="flex items-center gap-2">
             <CardIcon className="h-8 w-8 text-white/80" />
             {card.institution && (
-                <span className="font-semibold text-lg tracking-wide opacity-90">
+                <span className="font-bold text-lg tracking-wide opacity-90">
                     {BANKS.find(b => b.value === card.institution)?.label || card.institution}
                 </span>
             )}
         </div>
         
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-             <Button 
+        {/* Floating Action Buttons (FAB) - Hover Only */}
+        <div className="opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5 p-1.5 bg-background/20 backdrop-blur-md shadow-lg border border-white/10 rounded-2xl pointer-events-none group-hover:pointer-events-auto">
+            <Button 
                 variant="ghost" 
-                className="h-8 w-8 p-0 text-white hover:bg-white/10 hover:text-white cursor-pointer"
-                onClick={(e) => e.stopPropagation()}
-             >
-              <span className="sr-only">Abrir menu</span>
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem className="cursor-pointer" onClick={() => router.push(`/cartoes/${card.id}`)}>
-               Ver Detalhes
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={() => onEdit(card)}>
-              <Edit className="mr-2 h-4 w-4" /> Editar
-            </DropdownMenuItem>
-            <DropdownMenuItem 
-                onClick={() => onDelete(card)}
-                className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/10 cursor-pointer"
+                size="icon"
+                className="h-8 w-8 rounded-xl text-white hover:bg-white/20 transition-all" 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(card);
+                }}
             >
-              <Trash2 className="mr-2 h-4 w-4" /> Excluir
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+                <Edit className="h-4 w-4" />
+            </Button>
+            <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-8 w-8 rounded-xl text-white hover:bg-red-500/40 transition-all" 
+                onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(card);
+                }}
+            >
+                <Trash2 className="h-4 w-4" />
+            </Button>
+        </div>
       </div>
       
       {/* Content */}
