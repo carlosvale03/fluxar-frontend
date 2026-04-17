@@ -34,36 +34,48 @@ function VerifyEmailContent() {
   }, [token])
 
   return (
-    <Card className="w-full max-w-md text-center">
-      <CardHeader>
-        <CardTitle>Verificação de E-mail</CardTitle>
+    <Card className="w-full max-w-md rounded-[32px] border-border/60 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
+      <CardHeader className="pt-8 px-8 text-center">
+        <CardTitle className="text-3xl font-bold tracking-tight">Verificação de E-mail</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center p-6 space-y-4">
+      <CardContent className="flex flex-col items-center justify-center p-8 space-y-6">
         {status === "loading" && (
-          <>
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            <p className="text-muted-foreground">Verificando seu e-mail...</p>
-          </>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center border border-primary/10 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+            <p className="text-sm font-medium text-muted-foreground animate-pulse">Verificando seu e-mail...</p>
+          </div>
         )}
         {status === "success" && (
-          <>
-            <CheckCircle2 className="h-12 w-12 text-green-500" />
-            <p className="font-medium">E-mail verificado com sucesso!</p>
-            <p className="text-sm text-muted-foreground">Sua conta está ativa e pronta para uso.</p>
-          </>
+          <div className="flex flex-col items-center space-y-4 animate-in slide-in-from-bottom-4 duration-700">
+            <div className="w-16 h-16 rounded-3xl bg-green-500/10 flex items-center justify-center border border-green-200 dark:border-green-900/50 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+              <CheckCircle2 className="h-8 w-8 text-green-600" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-lg font-bold text-foreground">E-mail verificado!</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">Sua conta está ativa e pronta para uso no Fluxar.</p>
+            </div>
+          </div>
         )}
         {status === "error" && (
-          <>
-            <XCircle className="h-12 w-12 text-destructive" />
-            <p className="font-medium">Falha na verificação</p>
-            <p className="text-sm text-muted-foreground">O link pode ser inválido ou ter expirado.</p>
-          </>
+          <div className="flex flex-col items-center space-y-4 animate-in slide-in-from-bottom-4 duration-700">
+            <div className="w-16 h-16 rounded-3xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+              <XCircle className="h-8 w-8 text-destructive" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="text-lg font-bold text-foreground">Falha na verificação</p>
+              <p className="text-sm text-muted-foreground leading-relaxed">O link pode ser inválido ou ter expirado. Tente solicitar um novo link.</p>
+            </div>
+          </div>
         )}
       </CardContent>
-      <CardFooter className="justify-center">
+      <CardFooter className="p-8 pt-0">
         {status !== "loading" && (
            <Link href="/auth/login" className="w-full">
-             <Button className="w-full">Ir para Login</Button>
+             <Button className="w-full h-12 rounded-full text-base font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+               Ir para Login
+             </Button>
            </Link>
         )}
       </CardFooter>

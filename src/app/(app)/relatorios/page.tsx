@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale"
 import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary } from "@/services/reports"
 import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport } from "@/types/reports"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
+import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { useAuth } from "@/contexts/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
@@ -17,8 +18,7 @@ import { AccountType } from "@/types/accounts"
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
     LineChart, Line, AreaChart, Area,
-    PieChart, Pie, Cell,
-    ScatterChart, Scatter, ZAxis
+    PieChart, Pie, Cell
 } from 'recharts'
 import { Lock, Sparkles, TrendingUp, Wallet, Calendar, Filter, Zap, Brain, ShieldCheck, Target, Activity, Clock, ArrowUpRight, ArrowDownRight, BarChart3, PieChart as PieIcon, Eye, Plus, Search, Trash2, Tag as TagIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -43,7 +43,6 @@ export default function ReportsPage() {
     const [activeTab, setActiveTab] = useState("simple")
     const [activePieIndex, setActivePieIndex] = useState<number | null>(null)
     const [selectedDailyMonth, setSelectedDailyMonth] = useState<string | null>(null)
-    const [completeDailyData, setCompleteDailyData] = useState<any[]>([])
 
     // New states for modals
     const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
@@ -135,43 +134,6 @@ export default function ReportsPage() {
         (simpleData?.income_vs_expense as any[])?.filter(d => d.full_date).map(d => d.full_date.substring(0, 7)) || []
     )).sort();
 
-    const filteredDailyData = simpleData?.income_vs_expense?.filter((d: any) => 
-        !selectedDailyMonth || (d.full_date && d.full_date.startsWith(selectedDailyMonth))
-    ) || [];
-
-    // Gerar dados completos para todos os dias do mês
-    useEffect(() => {
-        if (!selectedDailyMonth) {
-            setCompleteDailyData([]);
-            return;
-        }
-
-        try {
-            const [year, month] = selectedDailyMonth.split('-').map(Number);
-            const daysInMonth = getDaysInMonth(new Date(year, month - 1));
-            
-            const fullMonth = Array.from({ length: daysInMonth }, (_, i) => {
-                const day = i + 1;
-                const dateStr = `${selectedDailyMonth}-${day.toString().padStart(2, '0')}`;
-                
-                // Encontrar dado existente para este dia
-                const existingDayData = filteredDailyData.find((d: any) => d.full_date === dateStr);
-                
-                return {
-                    label: day.toString(),
-                    income: existingDayData?.income || 0,
-                    expense: existingDayData?.expense || 0,
-                    full_date: dateStr
-                };
-            });
-
-            setCompleteDailyData(fullMonth);
-        } catch (error) {
-            console.error("Erro ao gerar dados mensais completos:", error);
-            setCompleteDailyData(filteredDailyData);
-        }
-    }, [selectedDailyMonth, simpleData?.income_vs_expense]);
-
     const fetchAdvanced = async () => {
         if (!isPremium) return
         setIsLoadingAdvanced(true)
@@ -253,109 +215,14 @@ export default function ReportsPage() {
                 <TabsContent value="simple" className="mt-8 space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Restore Daily Cash Flow */}
-                        <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
-                            <CardHeader>
-                                <div className="flex items-center justify-between w-full pr-4">
-                                    <CardTitle className="text-base font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                        <TrendingUp className="h-4 w-4" style={{ color: 'var(--finance-income)' }} />
-                                        Fluxo de Caixa Diário
-                                    </CardTitle>
-                                    
-                                    {availableDailyMonths.length > 1 && (
-                                        <div className="flex items-center gap-2 bg-background/50 backdrop-blur-md p-1 rounded-xl border border-border/50">
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-7 w-7 rounded-lg"
-                                                disabled={availableDailyMonths.indexOf(selectedDailyMonth || '') === 0}
-                                                onClick={() => {
-                                                    const idx = availableDailyMonths.indexOf(selectedDailyMonth || '');
-                                                    if (idx > 0) setSelectedDailyMonth(availableDailyMonths[idx - 1]);
-                                                }}
-                                            >
-                                                <ArrowUpRight className="h-4 w-4 rotate-[-135deg]" />
-                                            </Button>
-                                            
-                                            <span className="text-[10px] font-black uppercase tracking-tighter px-2 min-w-[70px] text-center">
-                                                {selectedDailyMonth ? format(new Date(selectedDailyMonth + "-01T00:00:00"), "MMM/yy", { locale: ptBR }) : '-'}
-                                            </span>
-
-                                            <Button 
-                                                variant="ghost" 
-                                                size="icon" 
-                                                className="h-7 w-7 rounded-lg"
-                                                disabled={availableDailyMonths.indexOf(selectedDailyMonth || '') === availableDailyMonths.length - 1}
-                                                onClick={() => {
-                                                    const idx = availableDailyMonths.indexOf(selectedDailyMonth || '');
-                                                    if (idx < availableDailyMonths.length - 1) setSelectedDailyMonth(availableDailyMonths[idx + 1]);
-                                                }}
-                                            >
-                                                <ArrowUpRight className="h-4 w-4 rotate-[45deg]" />
-                                            </Button>
-                                        </div>
-                                    )}
-                                </div>
-                                <CardDescription>Movimentação detalhada dia por dia</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[300px] sm:h-[350px] pt-4 px-2 sm:px-6" style={{ minWidth: 0 }}>
-                                {isLoadingSimple ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                    (!completeDailyData || completeDailyData.length === 0 || completeDailyData.every((d: any) => d.income === 0 && d.expense === 0)) ? (
-                                        <ChartEmptyState 
-                                            type="bar" 
-                                            height="100%" 
-                                            title="Fluxo de Caixa Diário"
-                                            description="As movimentações diárias para este mês aparecerão aqui."
-                                            icon={BarChart3}
-                                        />
-                                    ) : (
-                                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                        <BarChart 
-                                            data={completeDailyData}
-                                            margin={{ top: 20, right: 10, left: 0, bottom: 0 }}
-                                            barGap={4}
-                                        >
-                                            <defs>
-                                                <linearGradient id="incomeGradientDaily" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
-                                                    <stop offset="100%" stopColor="var(--finance-income)" stopOpacity={0.1}/>
-                                                </linearGradient>
-                                                <linearGradient id="expenseGradientDaily" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="0%" stopColor="var(--finance-expense)" stopOpacity={0.8}/>
-                                                    <stop offset="100%" stopColor="var(--finance-expense)" stopOpacity={0.1}/>
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
-                                            <XAxis dataKey="label" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.4 }} dy={10} />
-                                            <YAxis hide />
-                                            <Tooltip 
-                                                cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
-                                                content={({ active, payload, label }) => {
-                                                    if (active && payload && payload.length) {
-                                                        return (
-                                                            <div className="z-50 bg-background/90 backdrop-blur-xl border border-border/50 p-3 rounded-xl shadow-2xl">
-                                                                <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-2">Dia {label}</p>
-                                                                <div className="space-y-1">
-                                                                    {payload.map((entry: any, index: number) => (
-                                                                        <div key={index} className="flex items-center justify-between gap-4">
-                                                                            <span className="text-[10px] font-bold text-muted-foreground">{entry.name}:</span>
-                                                                            <span className="text-[10px] font-black">{formatCurrency(entry.value)}</span>
-                                                                        </div>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                        )
-                                                    }
-                                                    return null
-                                                }}
-                                            />
-                                            <Bar dataKey="income" name="Receitas" fill="url(#incomeGradientDaily)" radius={[4, 4, 0, 0]} />
-                                            <Bar dataKey="expense" name="Despesas" fill="url(#expenseGradientDaily)" radius={[4, 4, 0, 0]} />
-                                        </BarChart>
-                                        </ResponsiveContainer>
-                                    )
-                                )}
-                            </CardContent>
-                        </Card>
+                        <DailyCashFlowChart 
+                            data={simpleData?.income_vs_expense || []}
+                            isLoading={isLoadingSimple}
+                            showMonthSelector={true}
+                            availableMonths={availableDailyMonths}
+                            activeMonthStr={selectedDailyMonth}
+                            onMonthChange={setSelectedDailyMonth}
+                        />
 
 
 

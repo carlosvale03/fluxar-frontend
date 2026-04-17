@@ -196,6 +196,11 @@ body {
 }
 
 
+@utility bg-avatar-premium {
+  background: linear-gradient(135deg, var(--palette-brand-100) 0%, var(--palette-neutral-50) 100%);
+  @apply dark:bg-none dark:bg-zinc-900/50 dark:border dark:border-white/5;
+}
+
 @utility animate-spin-slow {
   animation: spin 3s linear infinite;
 }

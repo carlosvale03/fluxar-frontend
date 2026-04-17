@@ -5,10 +5,11 @@ import { getDashboardSummary, getSimpleCharts, getMonthlyComparison } from "@/se
 import { DashboardReport, SimpleChartsReport, MonthlyComparisonData } from "@/types/reports"
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
+import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { BudgetSummary } from "@/components/dashboard/BudgetSummary"
 import { useToast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, LineChart, Line } from 'recharts'
+import { ResponsiveContainer, Cell, PieChart, Pie, Tooltip } from 'recharts'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { 
     AlertCircle, 
@@ -48,6 +49,7 @@ import { TransactionFormDialog } from "@/components/transactions/transaction-for
 import { TransferFormDialog } from "@/components/transactions/transfer-form-dialog"
 import { CardExpenseFormDialog } from "@/components/transactions/card-expense-form-dialog"
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
+import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 
 const LARGE_MODULES = ["DAILY_CASH_FLOW", "BALANCE_EVOLUTION", "CREDIT_MANAGEMENT", "GOALS_JOURNEY"]
 const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "INCOME_SOURCE"]
@@ -122,6 +124,8 @@ export default function DashboardPage() {
     const [isCardExpenseOpen, setIsCardExpenseOpen] = useState(false)
     const [isInvoicePaymentOpen, setIsInvoicePaymentOpen] = useState(false)
     const [formType, setFormType] = useState<"INCOME" | "EXPENSE">("INCOME")
+
+    const [isCardFormOpen, setIsCardFormOpen] = useState(false)
 
     const handleOpenForm = (type: "INCOME" | "EXPENSE") => {
         setFormType(type)
@@ -336,97 +340,14 @@ export default function DashboardPage() {
                     switch (module.id) {
                         case "DAILY_CASH_FLOW":
                             return (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}>
-                                    <CardHeader className="flex flex-row items-center justify-between pb-2 text-wrap">
-                                        <div className="min-w-0">
-                                            <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
-                                                <TrendingUpIcon className="h-4 w-4 text-emerald-500 shrink-0" />
-                                                <span className="truncate">Fluxo de Caixa Diário</span>
-                                                <HelpInfo topic="DAILY_CASH_FLOW" />
-                                            </CardTitle>
-                                            <p className="text-[10px] font-medium text-muted-foreground mt-0.5 truncate uppercase tracking-widest opacity-50">Entradas e saídas acumuladas</p>
-                                        </div>
-                                        <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                                            <div className="flex items-center gap-1.5 sm:gap-2">
-                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--finance-income)' }} />
-                                                <span className="text-[8px] font-bold uppercase tracking-wider opacity-60 hidden xs:inline">Receita</span>
-                                            </div>
-                                            <div className="flex items-center gap-1.5 sm:gap-2">
-                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--finance-expense)' }} />
-                                                <span className="text-[8px] font-bold uppercase tracking-wider opacity-60 hidden xs:inline">Despesa</span>
-                                            </div>
-                                        </div>
-                                    </CardHeader>
-                                    <CardContent className="h-[300px] sm:h-[400px] pt-6 px-2 sm:px-6">
-                                        {(!charts?.income_vs_expense || charts.income_vs_expense.length === 0 || charts.income_vs_expense.every(d => d.income === 0 && d.expense === 0)) ? (
-                                            <ChartEmptyState 
-                                                type="bar" 
-                                                height="100%" 
-                                                title="Fluxo de Caixa Diário"
-                                                description="Suas entradas e saídas diárias aparecerão aqui."
-                                                icon={BarChart3}
-                                            />
-                                        ) : (
-                                            <ResponsiveContainer width="100%" height="100%">
-                                                <BarChart 
-                                                    data={charts?.income_vs_expense || []} 
-                                                    margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
-                                                    barGap={8}
-                                                >
-                                                    <defs>
-                                                        <linearGradient id="incomeGradient" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
-                                                            <stop offset="100%" stopColor="var(--finance-income)" stopOpacity={0.1}/>
-                                                        </linearGradient>
-                                                        <linearGradient id="expenseGradient" x1="0" y1="0" x2="0" y2="1">
-                                                            <stop offset="0%" stopColor="var(--finance-expense)" stopOpacity={0.8}/>
-                                                            <stop offset="100%" stopColor="var(--finance-expense)" stopOpacity={0.1}/>
-                                                        </linearGradient>
-                                                    </defs>
-                                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
-                                                    <XAxis 
-                                                        dataKey="label" 
-                                                        axisLine={false} 
-                                                        tickLine={false} 
-                                                        fontSize={10} 
-                                                        fontWeight={800}
-                                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                                        dy={10}
-                                                    />
-                                                    <YAxis hide />
-                                                    <Tooltip 
-                                                        cursor={{ fill: 'currentColor', opacity: 0.05, radius: 12 }}
-                                                        content={({ active, payload, label }) => {
-                                                            if (active && payload && payload.length) {
-                                                                return (
-                                                                    <div className="z-50 bg-background/90 backdrop-blur-xl border border-border/50 p-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 border-b border-border/50 pb-2">Dia {label}</p>
-                                                                        <div className="space-y-3">
-                                                                            {payload.map((entry: any, index: number) => (
-                                                                                <div key={index} className="flex items-center justify-between gap-8">
-                                                                                    <div className="flex items-center gap-2">
-                                                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                                                                        <span className="text-xs font-bold text-muted-foreground">{entry.name}</span>
-                                                                                    </div>
-                                                                                    <span className="text-xs font-black">
-                                                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(entry.value)}
-                                                                                    </span>
-                                                                                </div>
-                                                                            ))}
-                                                                        </div>
-                                                                    </div>
-                                                                )
-                                                            }
-                                                            return null
-                                                        }}
-                                                    />
-                                                    <Bar dataKey="income" name="Receita" fill="url(#incomeGradient)" radius={[6, 6, 0, 0]} barSize={span < 12 ? 8 : 12} />
-                                                    <Bar dataKey="expense" name="Despesa" fill="url(#expenseGradient)" radius={[6, 6, 0, 0]} barSize={span < 12 ? 8 : 12} />
-                                                </BarChart>
-                                            </ResponsiveContainer>
-                                        )}
-                                    </CardContent>
-                                </Card>
+                                <DailyCashFlowChart 
+                                    key={module.id}
+                                    data={charts?.income_vs_expense || []}
+                                    selectedMonth={selectedMonth}
+                                    selectedYear={selectedYear}
+                                    isLoading={isLoading}
+                                    className={spanClass}
+                                />
                             )
                         case "MONTHLY_BALANCE":
                             return (
@@ -597,63 +518,107 @@ export default function DashboardPage() {
                         case "CREDIT_MANAGEMENT":
                             return (
                                 <div key={module.id} className={cn(spanClass, "space-y-6")}>
-                                    <div className="flex items-center gap-3 px-2">
-                                        <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                                            <CreditCardIcon className="h-5 w-5 text-amber-500" />
-                                        </div>
-                                        <div>
-                                            <div className="flex items-center gap-2">
-                                                <h2 className="text-xl font-black tracking-tight uppercase">Gestão de Crédito</h2>
-                                                <HelpInfo topic="CREDIT_MANAGEMENT" iconClassName="h-4 w-4" />
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10 shrink-0">
+                                                <CreditCardIcon className="h-6 w-6 text-amber-500" />
                                             </div>
-                                            <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Faturas e limites</p>
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <h2 className="text-2xl font-black tracking-tight uppercase">Gestão de Crédito</h2>
+                                                    <HelpInfo topic="CREDIT_MANAGEMENT" iconClassName="h-4 w-4" />
+                                                </div>
+                                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Controle de limites e faturas</p>
+                                            </div>
                                         </div>
+
+                                        {report.credit_cards && report.credit_cards.length > 0 && (
+                                            <Button 
+                                                onClick={() => setIsCardFormOpen(true)}
+                                                variant="outline"
+                                                className="rounded-full px-5 h-10 font-bold border-border/60 hover:bg-amber-500/5 hover:border-amber-500/20 text-xs transition-all flex items-center gap-2"
+                                            >
+                                                <Plus className="h-4 w-4" /> Novo Cartão
+                                            </Button>
+                                        )}
                                     </div>
 
-                                    <div className={cn(
-                                        "grid grid-cols-1 gap-6",
-                                        span >= 12 ? "md:grid-cols-2 lg:grid-cols-3" : (span >= 8 ? "md:grid-cols-2" : "md:grid-cols-1")
-                                    )}>
-                                        {report.credit_cards?.map((card) => {
-                                            const usagePercentage = Math.min((Number(card.current_invoice) / Number(card.limit)) * 100, 100)
-                                            const isNearLimit = usagePercentage > 80
-                                            
-                                            return (
-                                                <Card key={card.id} className="border border-border/60 bg-card shadow-md hover:shadow-lg rounded-2xl overflow-hidden group hover:border-amber-500/30 transition-all duration-500 py-2">
-                                                    <CardContent className="p-6 space-y-6">
-                                                        <div className="flex items-start justify-between">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg" style={{ backgroundColor: `${card.color}20`, color: card.color }}>
-                                                                    <CreditCardIcon className="h-5 w-5" />
+                                    {!report.credit_cards || report.credit_cards.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center py-20 text-center rounded-[40px] border-2 border-dashed border-border/60 bg-card shadow-sm hover:shadow-md transition-all">
+                                            <div className="w-16 h-16 rounded-[24px] bg-background shadow-lg border border-border/40 flex items-center justify-center mb-6">
+                                                <CreditCardIcon className="h-8 w-8 text-amber-500 opacity-40" />
+                                            </div>
+                                            <h3 className="text-lg font-black uppercase tracking-widest text-foreground/80">Nenhum cartão encontrado</h3>
+                                            <p className="text-[11px] text-muted-foreground max-w-xs mt-3 mb-8 leading-relaxed font-bold uppercase tracking-wider opacity-60">
+                                                Cadastre seus cartões de crédito para centralizar o acompanhamento de faturas e limites.
+                                            </p>
+                                            <Button 
+                                                onClick={() => setIsCardFormOpen(true)} 
+                                                className="rounded-full px-8 h-11 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-amber-500/10 transition-all hover:scale-105 active:scale-95 bg-amber-500 hover:bg-amber-600"
+                                            >
+                                                <Plus className="mr-2 h-4 w-4" /> Começar agora
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <div className={cn(
+                                            "grid grid-cols-1 gap-6",
+                                            span >= 12 ? "md:grid-cols-2 lg:grid-cols-3" : (span >= 8 ? "md:grid-cols-2" : "md:grid-cols-1")
+                                        )}>
+                                            {report.credit_cards?.map((card) => {
+                                                const usagePercentage = Math.min((Number(card.current_invoice) / Number(card.limit)) * 100, 100)
+                                                const isNearLimit = usagePercentage > 80
+                                                
+                                                return (
+                                                    <Card key={card.id} className="border border-border/60 bg-card shadow-md hover:shadow-xl rounded-2xl overflow-hidden group hover:border-amber-500/30 transition-all duration-500">
+                                                        <CardContent className="p-6 space-y-5">
+                                                            <div className="flex items-start justify-between">
+                                                                <div className="flex items-center gap-4">
+                                                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ring-1 ring-black/5 dark:ring-white/10" style={{ backgroundColor: `${card.color}15`, color: card.color }}>
+                                                                        <CreditCardIcon className="h-5 w-5" />
+                                                                    </div>
+                                                                    <div>
+                                                                        <h3 className="text-base font-black tracking-tight truncate max-w-[120px] uppercase">{card.name}</h3>
+                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{card.institution}</p>
+                                                                    </div>
                                                                 </div>
-                                                                <div>
-                                                                    <h3 className="text-base font-black tracking-tight truncate max-w-[120px]">{card.name}</h3>
-                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50">{card.institution}</p>
+                                                                <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-lg shrink-0">
+                                                                    <Calendar className="h-3 w-3 text-muted-foreground/60" />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/80">Vence {card.due_day}</span>
                                                                 </div>
                                                             </div>
-                                                            <div className="flex items-center gap-1 text-muted-foreground/60 shrink-0">
-                                                                <Calendar className="h-3 w-3" />
-                                                                <span className="text-[9px] font-black uppercase tracking-widest">vence {card.due_day}</span>
-                                                            </div>
-                                                        </div>
 
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            <div className="space-y-1">
-                                                                <p className="text-lg font-black text-amber-500">{formatCurrencyShort(card.current_invoice)}</p>
+                                                            <div className="grid grid-cols-2 gap-4 pb-1">
+                                                                <div className="space-y-1">
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Fatura Atual</p>
+                                                                    <p className="text-lg font-black text-amber-600 dark:text-amber-500">{formatCurrencyShort(card.current_invoice)}</p>
+                                                                </div>
+                                                                <div className="space-y-1 text-right">
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Limite Disp.</p>
+                                                                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-500">{formatCurrencyShort(card.available_limit)}</p>
+                                                                </div>
                                                             </div>
-                                                            <div className="space-y-1 text-right">
-                                                                <p className="text-lg font-black text-emerald-500">{formatCurrencyShort(card.available_limit)}</p>
-                                                            </div>
-                                                        </div>
 
-                                                        <div className="h-1.5 w-full bg-muted/20 rounded-full overflow-hidden">
-                                                            <div className={cn("h-full transition-all duration-1000", isNearLimit ? "bg-rose-500" : "bg-amber-500")} style={{ width: `${usagePercentage}%` }} />
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            )
-                                        })}
-                                    </div>
+                                                            <div className="space-y-2">
+                                                                <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest opacity-40">
+                                                                    <span>Uso do Limite</span>
+                                                                    <span>{Math.round(usagePercentage)}%</span>
+                                                                </div>
+                                                                <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
+                                                                    <div 
+                                                                        className={cn(
+                                                                            "h-full transition-all duration-1000 ease-out", 
+                                                                            isNearLimit ? "bg-rose-500" : (usagePercentage > 50 ? "bg-amber-500" : "bg-emerald-500")
+                                                                        )} 
+                                                                        style={{ width: `${usagePercentage}%` }} 
+                                                                    />
+                                                                </div>
+                                                            </div>
+                                                        </CardContent>
+                                                    </Card>
+                                                )
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             )
                         case "GOALS_JOURNEY":
@@ -739,6 +704,12 @@ export default function DashboardPage() {
             <InvoicePaymentDialog 
                 open={isInvoicePaymentOpen}
                 onOpenChange={setIsInvoicePaymentOpen}
+                onSuccess={handleFormSuccess}
+            />
+
+            <CreditCardFormDialog 
+                open={isCardFormOpen}
+                onOpenChange={setIsCardFormOpen}
                 onSuccess={handleFormSuccess}
             />
         </div>

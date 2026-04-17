@@ -70,6 +70,7 @@ export interface SimpleChartsReport {
         label: string
         income: number
         expense: number
+        full_date?: string
     }[]
     expense_by_category: {
         category_name: string

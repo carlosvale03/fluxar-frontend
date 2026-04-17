@@ -106,7 +106,7 @@ export function MonthlyComparisonChart({
                     <div className="flex-1 w-full transition-opacity duration-500" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             {variant === "bars" ? (
-                                <BarChart data={data} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                                <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="incomeGradientBars" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
@@ -126,6 +126,8 @@ export function MonthlyComparisonChart({
                                         fontWeight={800}
                                         tick={{ fill: 'currentColor', opacity: 0.4 }}
                                         dy={10}
+                                        interval={0}
+                                        padding={{ left: 20, right: 20 }}
                                     />
                                     <YAxis hide />
                                     <Tooltip 
@@ -156,11 +158,31 @@ export function MonthlyComparisonChart({
                                             return null
                                         }}
                                     />
-                                    <Bar dataKey="income" name="Ganhos" fill="url(#incomeGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} />
-                                    <Bar dataKey="expense" name="Gastos" fill="url(#expenseGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} />
+                                    {/* <Bar dataKey="income" name="Ganhos" fill="url(#incomeGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} />
+                                    <Bar dataKey="expense" name="Gastos" fill="url(#expenseGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} /> */}
+                                    <Bar 
+                                        dataKey="expense" 
+                                        name="Despesas" 
+                                        fill="var(--finance-expense)" 
+                                        fillOpacity={0.8}
+                                        stroke="var(--finance-expense)"
+                                        strokeWidth={2}
+                                        radius={[4, 4, 0, 0]} 
+                                        barSize={showNumericalLabels ? 40 : 30}
+                                    />
+                                    <Bar 
+                                        dataKey="income" 
+                                        name="Receitas" 
+                                        fill="var(--finance-income)" 
+                                        fillOpacity={0.8}
+                                        stroke="var(--finance-income)"
+                                        strokeWidth={2}
+                                        radius={[4, 4, 0, 0]} 
+                                        barSize={showNumericalLabels ? 40 : 30}
+                                    />
                                 </BarChart>
                             ) : (
-                                <AreaChart data={data} margin={{ top: 20, right: 10, left: -20, bottom: 0 }}>
+                                <AreaChart data={data} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="balanceGradientPremium" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
@@ -176,6 +198,8 @@ export function MonthlyComparisonChart({
                                         fontWeight={800}
                                         tick={{ fill: 'currentColor', opacity: 0.4 }}
                                         dy={10}
+                                        interval={0}
+                                        padding={{ left: 30, right: 30 }}
                                     />
                                     <YAxis hide />
                                     <Tooltip 
