@@ -169,6 +169,9 @@
   --border-strong:  #475569;
   --border-focus:   #38BDF8;
 
+  --color-muted:    var(--palette-neutral-700);
+  --color-muted-foreground: var(--text-secondary);
+
   /* --- BUTTONS --- */
   --btn-primary-bg:    #00A8E8;
   --btn-primary-text:  #FFFFFF;
@@ -215,4 +218,26 @@ body {
   }
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+@utility custom-scrollbar {
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--palette-neutral-500);
+    border-radius: 20px;
+    border: 1px solid transparent;
+    background-clip: content-box;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background: var(--palette-brand-500);
+  }
+  
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: var(--palette-neutral-500) transparent;
 }
