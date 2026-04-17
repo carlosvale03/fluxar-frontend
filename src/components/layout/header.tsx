@@ -8,7 +8,7 @@ import {
   User, Menu, LogOut, Loader2, MoreHorizontal, 
   LayoutDashboard, Wallet, CreditCard, ArrowRightLeft, 
   BarChart3, Calendar, Repeat, PieChart, ArrowUpDown, 
-  Layers, Tag, Target
+  Layers, Tag, Target, Settings
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -150,39 +150,77 @@ export function Header() {
                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                       <Avatar className="h-8 w-8">
                         <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} alt={user.name} />
-                        <AvatarFallback>
+                        <AvatarFallback className="bg-avatar-premium text-primary font-bold text-xs">
                            {user.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
                    </Button>
                  </DropdownMenuTrigger>
-                 <DropdownMenuContent className="w-56" align="end" forceMount>
-                   <DropdownMenuLabel className="font-normal">
-                     <div className="flex flex-col space-y-1">
-                       <p className="text-sm font-medium leading-none">{user.name}</p>
-                       <p className="text-xs leading-none text-muted-foreground">
-                         {user.email}
-                       </p>
+                 <DropdownMenuContent className="w-72 rounded-[24px] p-2 shadow-xl border-border/40 animate-in zoom-in-95 duration-200" align="end" forceMount>
+                   <DropdownMenuLabel className="p-3 font-normal">
+                     <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10 border-2 border-primary/10">
+                          <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} alt={user.name} />
+                          <AvatarFallback className="bg-avatar-premium text-primary font-black text-xs">
+                             {user.name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col space-y-0.5 overflow-hidden">
+                          <p className="text-sm font-black tracking-tight leading-none truncate">{user.name}</p>
+                          <p className="text-[10px] leading-none text-muted-foreground truncate opacity-70">
+                            {user.email}
+                          </p>
+                          <div className="mt-1">
+                            <span className={cn(
+                              "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
+                              user.plan === 'COMMON' 
+                                ? "bg-zinc-500/10 text-zinc-500 border-zinc-200 dark:border-zinc-800" 
+                                : "bg-primary/10 text-primary border-primary/20"
+                            )}>
+                              {user.plan}
+                            </span>
+                          </div>
+                        </div>
                      </div>
                    </DropdownMenuLabel>
-                   <DropdownMenuSeparator />
+                   <DropdownMenuSeparator className="mx-2 opacity-50" />
+                   
                    {user.role === "ADMIN" && (
                      <DropdownMenuItem asChild>
-                       <Link href="/admin/dashboard" className="font-bold text-primary">
-                         Painel Admin
+                       <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-primary/5 group">
+                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                            <LayoutDashboard className="h-4 w-4 text-primary" />
+                         </div>
+                         <span className="text-sm font-bold text-primary">Painel Admin</span>
                        </Link>
                      </DropdownMenuItem>
                    )}
+                   
                    <DropdownMenuItem asChild>
-                     <Link href="/perfil">Perfil</Link>
+                     <Link href="/perfil" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-muted group">
+                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted-foreground/10 transition-colors">
+                          <User className="h-4 w-4 text-muted-foreground" />
+                       </div>
+                       <span className="text-sm font-medium">Meu Perfil</span>
+                     </Link>
                    </DropdownMenuItem>
+                   
                    <DropdownMenuItem asChild>
-                     <Link href="/configuracoes">Configurações</Link>
+                     <Link href="/configuracoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-muted group">
+                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted-foreground/10 transition-colors">
+                          <Settings className="h-4 w-4 text-muted-foreground" />
+                       </div>
+                       <span className="text-sm font-medium">Configurações</span>
+                     </Link>
                    </DropdownMenuItem>
-                   <DropdownMenuSeparator />
-                   <DropdownMenuItem onClick={logout} className="text-red-500 focus:text-red-500">
-                     <LogOut className="mr-2 h-4 w-4" />
-                     <span>Sair</span>
+                   
+                   <DropdownMenuSeparator className="mx-2 opacity-50" />
+                   
+                   <DropdownMenuItem onClick={logout} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-destructive/5 group text-destructive focus:text-destructive focus:bg-destructive/5">
+                     <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
+                        <LogOut className="h-4 w-4" />
+                     </div>
+                     <span className="text-sm font-bold">Sair da Conta</span>
                    </DropdownMenuItem>
                  </DropdownMenuContent>
                </DropdownMenu>

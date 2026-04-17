@@ -28,14 +28,22 @@ type SettingsForm = z.infer<typeof settingsSchema>
 
 // --- Password Form Schema ---
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Senha atual obrigatória"),
-  newPassword: z.string().min(6, "Nova senha deve ter 6+ chars"),
-  confirmPassword: z.string().min(1, "Confirmação obrigatória"),
+  currentPassword: z.string().min(1, "Sua senha atual é obrigatória"),
+  newPassword: z.string()
+    .min(1, "A nova senha é obrigatória")
+    .min(8, "A nova senha deve ter pelo menos 8 caracteres")
+    .refine((val) => !/^\d+$/.test(val), {
+      message: "A senha não pode ser puramente numérica",
+    }),
+  confirmPassword: z.string().min(1, "A confirmação de senha é obrigatória"),
 }).refine(data => data.newPassword === data.confirmPassword, {
   path: ["confirmPassword"],
-  message: "Senhas não conferem",
+  message: "As senhas não conferem",
 })
 type PasswordForm = z.infer<typeof passwordSchema>
+
+import { cn } from "@/lib/utils"
+import { PasswordInput } from "@/components/ui/password-input"
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
@@ -49,7 +57,8 @@ export default function SettingsPage() {
     handleSubmit: handleSettingsSubmit, 
     reset: resetSettings, 
     watch, 
-    setValue
+    setValue,
+    getValues
   } = useForm<SettingsForm>({
     resolver: zodResolver(settingsSchema),
     defaultValues: { 
@@ -61,9 +70,12 @@ export default function SettingsPage() {
     }
   })
 
+  const [lastSyncedUserJson, setLastSyncedUserJson] = useState("")
+
   // Sync with user data
   useEffect(() => {
-    if (user) {
+    const userJson = JSON.stringify(user)
+    if (user && userJson !== lastSyncedUserJson) {
         resetSettings({ 
           currency: user.preferences?.currency || "BRL",
           language: user.preferences?.language || "pt-BR",
@@ -72,12 +84,12 @@ export default function SettingsPage() {
           notifications_push: user.preferences?.notifications?.push ?? false,
         })
         
-        // Ensure global theme matches user preference on initial load
         if (user.preferences?.theme && currentTheme !== user.preferences.theme) {
              setTheme(user.preferences.theme)
         }
+        setLastSyncedUserJson(userJson)
     }
-  }, [user, resetSettings, setTheme, currentTheme]) // Fixed dependency array
+  }, [user, lastSyncedUserJson, resetSettings, setTheme, currentTheme])
 
   const onSettingsSubmit = async (data: SettingsForm) => {
      try {
@@ -129,7 +141,7 @@ export default function SettingsPage() {
     } catch (error: any) {
         const msg = error.response?.data?.current_password 
              ? "Senha atual incorreta." 
-             : "Erro ao alterar senha."
+             : "Erro ao alterar senha. Verifique os requisitos."
         toast.error(msg)
     } finally {
         setIsPasswordLoading(false)
@@ -137,137 +149,188 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-4xl space-y-8 mb-20">
-      
-      <div>
-        <h1 className="text-3xl font-black tracking-tighter">Configurações</h1>
-        <p className="text-muted-foreground mt-2">
-            Gerencie suas preferências de uso e segurança da conta.
-        </p>
-      </div>
-
-      <Separator />
-
+    <div className="container mx-auto py-10 px-4 max-w-5xl space-y-8 mb-20 animate-in fade-in duration-500">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px]">
-          <TabsTrigger value="general" className="font-bold">Geral</TabsTrigger>
-          <TabsTrigger value="security" className="font-bold">Segurança</TabsTrigger>
-        </TabsList>
-        
-        {/* --- GENERAL SETTINGS TAB --- */}
-        <TabsContent value="general" className="mt-6 space-y-6">
-            <Card className="border-none shadow-sm bg-card/50">
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Settings className="h-5 w-5 text-primary" />
-                        <CardTitle>Preferências do Sistema</CardTitle>
-                    </div>
-                    <CardDescription>Personalize sua experiência no Fluxar.</CardDescription>
-                </CardHeader>
-                <form onSubmit={handleSettingsSubmit(onSettingsSubmit)}>
-                    <CardContent className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <Globe className="h-4 w-4 opacity-50" /> Moeda Padrão
-                                </label>
-                                <Select 
-                                    onValueChange={(val) => setValue("currency", val)} 
-                                    value={watch("currency") || "BRL"}
-                                >
-                                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="BRL">Real Brasileiro (BRL)</SelectItem>
-                                        <SelectItem value="USD">Dólar Americano (USD)</SelectItem>
-                                        <SelectItem value="EUR">Euro (EUR)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    Idioma
-                                </label>
-                                <Select 
-                                    disabled
-                                    onValueChange={(val) => setValue("language", val)} 
-                                    value={watch("language") || "pt-BR"}
-                                >
-                                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
-                                        <SelectItem value="en-US">English (US)</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                                <p className="text-[10px] text-muted-foreground">Indisponível no momento.</p>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    Tema
-                                </label>
-                                <Select 
-                                    onValueChange={(val: any) => {
-                                        setValue("theme", val, { shouldDirty: true })
-                                        setTheme(val)
-                                    }} 
-                                    value={watch("theme")}
-                                >
-                                    <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="light">Claro</SelectItem>
-                                        <SelectItem value="dark">Escuro</SelectItem>
-                                        <SelectItem value="system">Sistema</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end pt-4 border-t bg-muted/20">
-                        <Button type="submit" loading={isSettingsLoading} disabled={isSettingsLoading} className="font-bold">
-                            Salvar Preferências
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Card>
-        </TabsContent>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-black tracking-tighter">Configurações</h1>
+            <p className="text-muted-foreground mt-1">
+                Gerencie suas preferências de uso e segurança da conta.
+            </p>
+          </div>
+          
+          <TabsList className="bg-muted/50 p-1 rounded-2xl border border-border/40">
+            <TabsTrigger value="general" className="rounded-xl font-bold px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm">Geral</TabsTrigger>
+            <TabsTrigger value="security" className="rounded-xl font-bold px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm">Segurança</TabsTrigger>
+          </TabsList>
+        </div>
 
-        {/* --- SECURITY SETTINGS TAB --- */}
-        <TabsContent value="security" className="mt-6 space-y-6">
-            <Card className="border-none shadow-sm bg-card/50">
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Lock className="h-5 w-5 text-primary" />
-                        <CardTitle>Alterar Senha</CardTitle>
-                    </div>
-                    <CardDescription>Mantenha sua conta segura alterando sua senha periodicamente.</CardDescription>
-                </CardHeader>
-                <form onSubmit={handlePasswordSubmit(onPasswordSubmit)}>
-                    <CardContent className="space-y-4 max-w-md">
+      <Separator className="bg-border/40" />
+
+      {/* --- GENERAL SETTINGS TAB --- */}
+      <TabsContent value="general" className="mt-8 animate-in slide-in-from-bottom-2 duration-500">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <Card className="rounded-[32px] border-border/60 shadow-sm bg-card overflow-hidden">
+                  <CardHeader className="p-8 pb-4">
+                      <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                              <Globe className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                              <CardTitle className="text-xl font-bold tracking-tight">Preferências Locais</CardTitle>
+                              <CardDescription>Moeda e Idioma do sistema.</CardDescription>
+                          </div>
+                      </div>
+                  </CardHeader>
+                  <form onSubmit={handleSettingsSubmit(onSettingsSubmit)}>
+                      <CardContent className="px-8 py-6 space-y-6">
+                          <div className="space-y-2">
+                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1">Moeda Padrão</label>
+                              <Select 
+                                  onValueChange={(val) => setValue("currency", val)} 
+                                  value={watch("currency") || "BRL"}
+                              >
+                                  <SelectTrigger className="rounded-2xl h-11 focus:ring-primary/20 transition-all"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                  <SelectContent className="rounded-2xl">
+                                      <SelectItem value="BRL">Real Brasileiro (BRL)</SelectItem>
+                                      <SelectItem value="USD">Dólar Americano (USD)</SelectItem>
+                                      <SelectItem value="EUR">Euro (EUR)</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                          </div>
+                          
+                          <div className="space-y-2 opacity-60">
+                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1">Idioma</label>
+                              <Select disabled value="pt-BR">
+                                  <SelectTrigger className="rounded-2xl h-11"><SelectValue placeholder="Português (Brasil)" /></SelectTrigger>
+                                  <SelectContent className="rounded-2xl">
+                                      <SelectItem value="pt-BR">Português (Brasil)</SelectItem>
+                                  </SelectContent>
+                              </Select>
+                              <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Multi-idioma disponível em breve</p>
+                          </div>
+                      </CardContent>
+                      <CardFooter className="px-8 pb-8 pt-0">
+                          <Button type="submit" loading={isSettingsLoading} disabled={isSettingsLoading} className="w-full rounded-full h-11 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                              Salvar Alterações
+                          </Button>
+                      </CardFooter>
+                  </form>
+              </Card>
+
+              <Card className="rounded-[32px] border-border/60 shadow-sm bg-card overflow-hidden">
+                  <CardHeader className="p-8 pb-4">
+                      <div className="flex items-center gap-4">
+                          <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                              <Settings className="h-5 w-5 text-primary" />
+                          </div>
+                          <div>
+                              <CardTitle className="text-xl font-bold tracking-tight">Experiência Visual</CardTitle>
+                              <CardDescription>Tema e Aparência.</CardDescription>
+                          </div>
+                      </div>
+                  </CardHeader>
+                  <CardContent className="px-8 py-6 space-y-6">
+                      <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1">Tema do Sistema</label>
+                          <div className="grid grid-cols-3 gap-3">
+                            {['light', 'dark', 'system'].map((t) => (
+                              <button
+                                key={t}
+                                type="button"
+                                onClick={() => {
+                                  setValue("theme", t as any, { shouldDirty: true })
+                                  setTheme(t)
+                                  // Forçamos o salvamento imediato com o valor correto
+                                  onSettingsSubmit({ ...getValues(), theme: t as any })
+                                }}
+                                className={cn(
+                                  "flex flex-col items-center justify-center gap-2 p-2.5 rounded-[22px] border-2 transition-all duration-300",
+                                  watch("theme") === t 
+                                    ? "bg-primary/5 border-primary shadow-sm" 
+                                    : "bg-muted/30 border-transparent hover:bg-muted/50"
+                                )}
+                              >
+                                <div className={cn(
+                                  "w-full aspect-video rounded-[14px] border border-black/5 dark:border-white/10 shadow-inner",
+                                  t === 'light' ? "bg-white" : t === 'dark' ? "bg-zinc-900" : "bg-gradient-to-r from-white to-zinc-900"
+                                )} />
+                                <span className="text-[10px] font-black uppercase tracking-wider mt-1">
+                                  {t === 'light' ? 'Claro' : t === 'dark' ? 'Escuro' : 'Sistema'}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                      </div>
+                  </CardContent>
+              </Card>
+          </div>
+      </TabsContent>
+
+      {/* --- SECURITY SETTINGS TAB --- */}
+      <TabsContent value="security" className="mt-8 animate-in slide-in-from-bottom-2 duration-500">
+          <Card className="rounded-[32px] border-border/60 shadow-sm bg-card overflow-hidden max-w-2xl">
+              <CardHeader className="p-8 pb-4">
+                  <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-destructive/5 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
+                          <Lock className="h-5 w-5 text-destructive" />
+                      </div>
+                      <div>
+                          <CardTitle className="text-xl font-bold tracking-tight">Segurança da Conta</CardTitle>
+                          <CardDescription>Alteração de senha e autenticação.</CardDescription>
+                      </div>
+                  </div>
+              </CardHeader>
+              <Separator className="bg-border/40" />
+              <form onSubmit={handlePasswordSubmit(onPasswordSubmit)}>
+                  <CardContent className="p-8 space-y-6">
+                      <div className="space-y-2">
+                          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1">Senha Atual</label>
+                          <PasswordInput 
+                            {...registerPassword("currentPassword")} 
+                            placeholder="Sua senha anterior"
+                            className={cn(
+                              "rounded-2xl h-11 transition-all duration-300",
+                              passwordErrors.currentPassword ? "border-destructive focus-visible:ring-destructive/20" : "focus-visible:ring-primary/20"
+                            )}
+                          />
+                          {passwordErrors.currentPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1">{passwordErrors.currentPassword.message}</p>}
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Senha Atual</label>
-                            <Input type="password" {...registerPassword("currentPassword")} />
-                                {passwordErrors.currentPassword && <span className="text-xs text-red-500">{passwordErrors.currentPassword.message}</span>}
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1">Nova Senha</label>
+                            <PasswordInput 
+                              {...registerPassword("newPassword")} 
+                              placeholder="Mínimo 8 caracteres"
+                              className={cn(
+                                "rounded-2xl h-11 transition-all duration-300",
+                                passwordErrors.newPassword ? "border-destructive focus-visible:ring-destructive/20" : "focus-visible:ring-primary/20"
+                              )}
+                            />
+                            {passwordErrors.newPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 leading-tight">{passwordErrors.newPassword.message}</p>}
                         </div>
                         <div className="space-y-2">
-                            <label className="text-sm font-medium">Nova Senha</label>
-                            <Input type="password" {...registerPassword("newPassword")} />
-                            {passwordErrors.newPassword && <span className="text-xs text-red-500">{passwordErrors.newPassword.message}</span>}
+                            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1">Confirmar Nova Senha</label>
+                            <PasswordInput 
+                              {...registerPassword("confirmPassword")} 
+                              placeholder="Repita a nova senha"
+                              className={cn(
+                                "rounded-2xl h-11 transition-all duration-300",
+                                passwordErrors.confirmPassword ? "border-destructive focus-visible:ring-destructive/20" : "focus-visible:ring-primary/20"
+                              )}
+                            />
+                            {passwordErrors.confirmPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1">{passwordErrors.confirmPassword.message}</p>}
                         </div>
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium">Confirmar Nova Senha</label>
-                                <Input type="password" {...registerPassword("confirmPassword")} />
-                                {passwordErrors.confirmPassword && <span className="text-xs text-red-500">{passwordErrors.confirmPassword.message}</span>}
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-end pt-4 border-t bg-muted/20">
-                        <Button type="submit" variant="destructive" loading={isPasswordLoading} disabled={isPasswordLoading} className="font-bold">
-                            Atualizar Senha
-                        </Button>
-                    </CardFooter>
-                </form>
-            </Card>
-        </TabsContent>
+                      </div>
+                  </CardContent>
+                  <CardFooter className="p-8 pt-0 flex justify-end">
+                      <Button type="submit" variant="destructive" loading={isPasswordLoading} disabled={isPasswordLoading} className="rounded-full px-8 h-11 font-bold shadow-lg shadow-destructive/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
+                          Atualizar Senha
+                      </Button>
+                  </CardFooter>
+              </form>
+          </Card>
+      </TabsContent>
       </Tabs>
     </div>
   )

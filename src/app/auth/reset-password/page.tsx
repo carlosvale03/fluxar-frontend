@@ -12,12 +12,19 @@ import { toast } from "sonner"
 import { api } from "@/services/apiClient"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2 } from "lucide-react"
+import { PasswordInput } from "@/components/ui/password-input"
+import { cn } from "@/lib/utils"
 
 const resetSchema = z.object({
-  newPassword: z.string().min(6, "A nova senha deve ter pelo menos 6 caracteres"),
-  confirmPassword: z.string().min(1, "Confirmação é obrigatória"),
+  newPassword: z.string()
+    .min(1, "A nova senha é obrigatória")
+    .min(8, "A nova senha deve ter pelo menos 8 caracteres")
+    .refine((val) => !/^\d+$/.test(val), {
+      message: "A senha não pode ser puramente numérica",
+    }),
+  confirmPassword: z.string().min(1, "A confirmação de senha é obrigatória"),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "Senhas não conferem",
+  message: "As senhas não conferem",
   path: ["confirmPassword"],
 })
 
@@ -54,49 +61,53 @@ function ResetPasswordContent() {
 
   if (!token) {
       return (
-        <Card className="w-full max-w-md bg-destructive/10 border-destructive/20">
-            <CardHeader><CardTitle className="text-destructive">Link Inválido</CardTitle></CardHeader>
-            <CardContent>O link de recuperação parece estar incompleto.</CardContent>
-            <CardFooter><Link href="/auth/login"><Button variant="outline">Voltar</Button></Link></CardFooter>
+        <Card className="w-full max-w-md rounded-[32px] border-destructive/20 bg-destructive/5 shadow-xl animate-in fade-in zoom-in duration-500">
+            <CardHeader className="pt-8 px-8"><CardTitle className="text-2xl font-bold text-destructive">Link Inválido</CardTitle></CardHeader>
+            <CardContent className="px-8 pb-4 text-muted-foreground font-medium">O link de recuperação parece estar incompleto ou expirado.</CardContent>
+            <CardFooter className="p-8 pt-0 pl-8"><Link href="/auth/login"><Button variant="outline" className="rounded-full">Voltar para Login</Button></Link></CardFooter>
         </Card>
       )
   }
 
   return (
-    <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle className="text-2xl font-bold">Nova Senha</CardTitle>
-          <CardDescription>
-            Defina sua nova senha de acesso.
+    <Card className="w-full max-w-md rounded-[32px] border-border/60 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
+        <CardHeader className="pt-8 px-8">
+          <CardTitle className="text-3xl font-bold tracking-tight">Nova Senha</CardTitle>
+          <CardDescription className="text-base">
+            Defina sua nova senha de acesso ao Fluxar.
           </CardDescription>
         </CardHeader>
         <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-8">
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none" htmlFor="newPassword">Nova Senha</label>
-              <Input 
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1" htmlFor="newPassword">Nova Senha</label>
+              <PasswordInput 
                  id="newPassword" 
-                 type="password" 
                  placeholder="******" 
                  {...register("newPassword")}
-                 className={errors.newPassword ? "border-red-500" : ""}
+                 className={cn(
+                   "rounded-2xl transition-all duration-300",
+                   errors.newPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "focus-visible:ring-primary/20"
+                 )}
               />
-              {errors.newPassword && <span className="text-xs text-red-500">{errors.newPassword.message}</span>}
+              {errors.newPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 animate-in slide-in-from-left-1">{errors.newPassword.message}</p>}
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium leading-none" htmlFor="confirmPassword">Confirmar Nova Senha</label>
-              <Input 
+              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1" htmlFor="confirmPassword">Confirmar Nova Senha</label>
+              <PasswordInput 
                 id="confirmPassword" 
-                type="password" 
                 placeholder="******" 
                 {...register("confirmPassword")}
-                className={errors.confirmPassword ? "border-red-500" : ""}
+                className={cn(
+                  "rounded-2xl transition-all duration-300",
+                  errors.confirmPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "focus-visible:ring-primary/20"
+                )}
               />
-              {errors.confirmPassword && <span className="text-xs text-red-500">{errors.confirmPassword.message}</span>}
+              {errors.confirmPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 animate-in slide-in-from-left-1">{errors.confirmPassword.message}</p>}
             </div>
           </CardContent>
-          <CardFooter className="flex flex-col gap-4">
-            <Button type="submit" className="w-full" loading={isLoading} disabled={isLoading}>
+          <CardFooter className="flex flex-col gap-6 p-8">
+            <Button type="submit" className="w-full h-12 rounded-full text-base font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" loading={isLoading} disabled={isLoading}>
               Redefinir Senha
             </Button>
           </CardFooter>
