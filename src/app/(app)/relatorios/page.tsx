@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { format, getDaysInMonth, parseISO } from "date-fns"
+import { format, getDaysInMonth, parseISO, differenceInDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary } from "@/services/reports"
 import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport } from "@/types/reports"
@@ -48,8 +48,21 @@ export default function ReportsPage() {
     const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false)
 
-    // TODO: Reverter para checks reais (user?.plan === "premium"...) após os testes
-    const isPremium = user?.plan === "PREMIUM" || user?.plan === "PREMIUM_PLUS"
+    // Fase de Testes: Todos têm acesso total aos relatórios
+    const isPremium = true
+
+    const fetchAdvanced = async () => {
+        if (!isPremium) return
+        setIsLoadingAdvanced(true)
+        try {
+            const data = await getAdvancedCharts(period)
+            setAdvancedData(data)
+        } catch (error) {
+            console.error("Failed to fetch advanced charts", error)
+        } finally {
+            setIsLoadingAdvanced(false)
+        }
+    }
 
     // Fetch simple data on mount
 
@@ -58,7 +71,6 @@ export default function ReportsPage() {
             setIsLoadingSimple(true)
             try {
                 const data = await getSimpleCharts(period)
-                console.log("DEBUG: simpleCharts data:", data)
                 setSimpleData(data)
             } catch (error) {
                 console.error("Failed to fetch simple charts", error)
@@ -113,6 +125,12 @@ export default function ReportsPage() {
         fetchSummary()
     }, [period])
 
+    useEffect(() => {
+        if (activeTab === 'advanced') {
+            fetchAdvanced()
+        }
+    }, [period, activeTab])
+
     // Reset seletor diário quando os dados mudarem
     useEffect(() => {
         if (simpleData?.income_vs_expense && simpleData.income_vs_expense.length > 0) {
@@ -134,19 +152,6 @@ export default function ReportsPage() {
         (simpleData?.income_vs_expense as any[])?.filter(d => d.full_date).map(d => d.full_date.substring(0, 7)) || []
     )).sort();
 
-    const fetchAdvanced = async () => {
-        if (!isPremium) return
-        setIsLoadingAdvanced(true)
-        try {
-            const data = await getAdvancedCharts(period)
-            console.log("Relatórios Avançados - Resposta:", data)
-            setAdvancedData(data)
-        } catch (error) {
-            console.error("Failed to fetch advanced charts", error)
-        } finally {
-            setIsLoadingAdvanced(false)
-        }
-    }
 
     const formatCurrency = (value: number) => {
         return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
@@ -160,7 +165,6 @@ export default function ReportsPage() {
                 <div className="px-4 sm:px-0">
                     <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
                         Relatórios e Gráficos
-                        {isPremium && <Badge className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 border border-amber-200 dark:border-amber-900/50 rounded-full text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 h-auto">Premium</Badge>}
                     </h1>
                     <p className="text-sm sm:text-base text-muted-foreground mt-1 text-balance">Análise detalhada do seu comportamento financeiro.</p>
                 </div>
@@ -201,7 +205,6 @@ export default function ReportsPage() {
 
             <Tabs value={activeTab} className="w-full" onValueChange={(val) => {
                 setActiveTab(val)
-                if (val === 'advanced') fetchAdvanced()
             }}>
                 <TabsList className="grid w-full max-w-[400px] grid-cols-2 bg-muted/30 p-1 rounded-2xl h-12">
                     <TabsTrigger value="simple" className="rounded-xl font-bold text-sm data-[state=active]:bg-background data-[state=active]:shadow-md transition-all">
@@ -988,8 +991,22 @@ export default function ReportsPage() {
                                                     <Clock className="h-5 w-5" />
                                                 </div>
                                                 Hábitos Semanais
+                                                <HelpInfo topic="WEEKDAY_HABITS" iconClassName="h-4 w-4" />
                                             </CardTitle>
-                                            <CardDescription className="text-xs font-bold leading-relaxed px-1">Distribuição de gastos por dia da semana</CardDescription>
+                                            <CardDescription className="text-[10px] font-bold leading-relaxed px-1 uppercase tracking-wider text-muted-foreground/60">
+                                                {advancedData?.period ? (
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-foreground/80">Média de gastos por dia da semana</span>
+                                                        <span className="flex items-center gap-1.5 mt-0.5">
+                                                            <Calendar className="h-3 w-3 opacity-50" />
+                                                            Análise de {differenceInDays(parseISO(advancedData.period.end_date), parseISO(advancedData.period.start_date)) + 1} dias 
+                                                            <span className="opacity-50 font-medium normal-case">
+                                                                ({format(parseISO(advancedData.period.start_date), 'dd/MM/yy', { locale: ptBR })} — hoje)
+                                                            </span>
+                                                        </span>
+                                                    </div>
+                                                ) : "Média de gastos por dia da semana"}
+                                            </CardDescription>
                                         </CardHeader>
                                         <CardContent className="h-[300px] p-8 pt-4">
                                             {isLoadingAdvanced ? <Skeleton className="w-full h-full rounded-2xl" /> : (
@@ -1005,7 +1022,7 @@ export default function ReportsPage() {
                                                     <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart 
                                                         data={advancedData?.spend_by_weekday || []}
-                                                        margin={{ top: 0, right: 0, left: 0, bottom: 0 }}
+                                                        margin={{ top: 0, right: 10, left: 10, bottom: 0 }}
                                                     >
                                                         <defs>
                                                             <linearGradient id="habitGradientPremium" x1="0" y1="0" x2="0" y2="1">
@@ -1022,7 +1039,14 @@ export default function ReportsPage() {
                                                             tick={{ fill: 'currentColor', opacity: 0.4 }}
                                                             dy={10}
                                                         />
-                                                        <YAxis hide />
+                                                        <YAxis 
+                                                            axisLine={false} 
+                                                            tickLine={false} 
+                                                            fontSize={10}
+                                                            tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                                            tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                                            width={45}
+                                                        />
                                                         <Tooltip 
                                                             cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
                                                             content={({ active, payload }) => {
@@ -1032,6 +1056,7 @@ export default function ReportsPage() {
                                                                             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
                                                                                 {payload[0].payload.label}
                                                                             </p>
+                                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Média Diária</p>
                                                                             <p className="text-sm font-black text-purple-500">
                                                                                 {formatCurrency(payload[0].value as number)}
                                                                             </p>

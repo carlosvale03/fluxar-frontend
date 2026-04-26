@@ -62,6 +62,10 @@ export const HELP_CONTENTS = {
     FIXED_VS_VARIABLE: {
         title: "Fixos vs Variáveis",
         description: "Separa seus gastos em 'Comprometidos' (contas fixas, assinaturas, aluguel) e 'Discricionários' (estilo de vida, lazer). Ajuda a entender qual fatia do seu orçamento está engessada."
+    },
+    WEEKDAY_HABITS: {
+        title: "Hábitos Semanais",
+        description: "Analisa a média de gastos por dia da semana no período selecionado. Isso permite identificar em quais dias você tende a gastar mais (como em lazer nos fins de semana) e ajustar seu comportamento para manter o equilíbrio financeiro."
     }
 } as const;
 

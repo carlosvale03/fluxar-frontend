@@ -45,6 +45,8 @@ import { Transaction } from "@/types/transactions"
 
 import { TagSelector } from "@/components/tags/TagSelector"
 
+import { MoneyInput } from "@/components/ui/money-input"
+
 const formSchema = z.object({
   description: z.string().optional(),
   amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
@@ -156,19 +158,19 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
 
           if (isOutgoing) {
               // OUTGOING: Main transaction is SOURCE
-              sourceId = data.account || data.account_from || ""
+              sourceId = (typeof data.account === 'object' ? data.account.id : data.account) || data.account_from || ""
               if (partnerTransaction) {
                   // Partner is Target
-                  targetId = partnerTransaction.account || partnerTransaction.account_to || ""
+                  targetId = (typeof partnerTransaction.account === 'object' ? partnerTransaction.account.id : partnerTransaction.account) || partnerTransaction.account_to || ""
               }
               // Fallback for Target if still missing
               if (!targetId) targetId = data.account_to || data.target_account || ""
           } else {
               // INCOMING: Main transaction is TARGET
-              targetId = data.account || data.account_to || ""
+              targetId = (typeof data.account === 'object' ? data.account.id : data.account) || data.account_to || ""
               if (partnerTransaction) {
                    // Partner is Source
-                  sourceId = partnerTransaction.account || partnerTransaction.account_from || ""
+                  sourceId = (typeof partnerTransaction.account === 'object' ? partnerTransaction.account.id : partnerTransaction.account) || partnerTransaction.account_from || ""
               }
               // Fallback for Source if still missing
               if (!sourceId) sourceId = data.account_from || data.source_account || ""
@@ -298,7 +300,6 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               </div>
             </div>
           </DialogHeader>
-          
           {isFetchingDetails ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
@@ -306,7 +307,10 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               </div>
           ) : (
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form 
+                onSubmit={form.handleSubmit(onSubmit, (err) => console.error("Transfer Validation Errors:", err))} 
+                className="space-y-6"
+              >
                 
                 <div className="space-y-4">
                   <FormField
@@ -354,13 +358,10 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                               <FormControl>
                                   <div className="relative">
                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
-                                    <Input 
-                                        type="number" 
-                                        step="0.01" 
-                                        placeholder="0,00" 
-                                        {...field} 
-                                        onFocus={(e) => e.target.select()}
-                                        className="h-12 pl-10 pr-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base font-bold"
+                                    <MoneyInput 
+                                        value={field.value}
+                                        onValueChange={field.onChange}
+                                        className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                     />
                                   </div>
                               </FormControl>

@@ -49,6 +49,7 @@ import { Category } from "@/types/categories"
 import { Account } from "@/types/accounts"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
+import { MoneyInput } from "@/components/ui/money-input"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -176,6 +177,14 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
 
       onSuccess()
       onOpenChange(false)
+    } catch (error: any) {
+      console.error("Error submitting transaction:", error)
+      const errorMessage = error.response?.data?.detail || error.response?.data?.message || "Erro ao salvar transação. Verifique os dados."
+      toast.error(errorMessage)
+      
+      if (error.response?.data) {
+        console.error("Server validation errors:", error.response.data)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -239,18 +248,19 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
   useEffect(() => {
     if (open) {
         setRecentTransactions([]) // Reset suggestions when form opens
-        if (initialData) {
+        if (initialData && initialData.date) {
             const [year, month, day] = initialData.date.split('-').map(Number);
             form.reset({
                 description: initialData.description,
                 amount: Number(initialData.amount),
                 date: new Date(year, month - 1, day),
                 type: initialData.type,
-                category_id: initialData.category || "",
-                account_id: initialData.account || "",
+                // Mapeamento robusto para IDs, aceitando string ou objeto (nested)
+                category_id: (typeof initialData.category === 'object' ? (initialData.category as any).id : initialData.category) || initialData.category_detail?.id || "",
+                account_id: (typeof initialData.account === 'object' ? (initialData.account as any).id : initialData.account) || initialData.account_detail?.id || "",
                 tags: initialData.tags?.map((t: any) => typeof t === 'string' ? t : t.id) || [],
-                is_recurring: !!initialData.recurring_source,
-                frequency: initialData.frequency,
+                is_recurring: false, // Sempre falso no edit para evitar conflito com recorrências já existentes
+                frequency: undefined,
             })
         } else {
             form.reset({
@@ -297,7 +307,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                 </DialogHeader>
                 
                 <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                    <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form Validation Errors:", errors))} className="space-y-8">
                         
                         {/* Seção 1: Geral */}
                         <div className="space-y-5">
@@ -394,12 +404,9 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                     )}>
                                                         R$
                                                     </div>
-                                                    <Input 
-                                                        type="number" 
-                                                        step="0.01" 
-                                                        placeholder="0,00" 
-                                                        {...field} 
-                                                        onFocus={(e) => e.target.select()}
+                                                    <MoneyInput 
+                                                        value={field.value}
+                                                        onValueChange={field.onChange}
                                                         className="h-12 pl-12 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-black tracking-tight text-lg"
                                                     />
                                                 </div>

@@ -3,16 +3,20 @@
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { api } from "@/services/apiClient"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { AuthShell } from "@/components/auth/auth-shell"
 import { Button } from "@/components/ui/button"
-import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { Loader2, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
+import { motion, AnimatePresence } from "framer-motion"
+
+import { useAuth } from "@/contexts/auth-context"
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
+  const { login } = useAuth()
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
-  const router = useRouter()
+  const [tokens, setTokens] = useState<{access: string, refresh: string} | null>(null)
 
   useEffect(() => {
     if (!token) {
@@ -22,7 +26,11 @@ function VerifyEmailContent() {
 
     const verify = async () => {
       try {
-        await api.get(`/auth/verify-email/?token=${token}`)
+        const response = await api.get(`/auth/verify-email/?token=${token}`)
+        setTokens({
+          access: response.data.access,
+          refresh: response.data.refresh
+        })
         setStatus("success")
       } catch (error) {
         console.error(error)
@@ -33,62 +41,107 @@ function VerifyEmailContent() {
     verify()
   }, [token])
 
+  const handleAccessAccount = async () => {
+    if (tokens) {
+      await login(tokens.access, tokens.refresh)
+    }
+  }
+
   return (
-    <Card className="w-full max-w-md rounded-[32px] border-border/60 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
-      <CardHeader className="pt-8 px-8 text-center">
-        <CardTitle className="text-3xl font-bold tracking-tight">Verificação de E-mail</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center justify-center p-8 space-y-6">
-        {status === "loading" && (
-          <div className="flex flex-col items-center space-y-4">
-            <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center border border-primary/10 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-            <p className="text-sm font-medium text-muted-foreground animate-pulse">Verificando seu e-mail...</p>
-          </div>
-        )}
-        {status === "success" && (
-          <div className="flex flex-col items-center space-y-4 animate-in slide-in-from-bottom-4 duration-700">
-            <div className="w-16 h-16 rounded-3xl bg-green-500/10 flex items-center justify-center border border-green-200 dark:border-green-900/50 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-              <CheckCircle2 className="h-8 w-8 text-green-600" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-lg font-bold text-foreground">E-mail verificado!</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">Sua conta está ativa e pronta para uso no Fluxar.</p>
-            </div>
-          </div>
-        )}
-        {status === "error" && (
-          <div className="flex flex-col items-center space-y-4 animate-in slide-in-from-bottom-4 duration-700">
-            <div className="w-16 h-16 rounded-3xl bg-destructive/10 flex items-center justify-center border border-destructive/20 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-              <XCircle className="h-8 w-8 text-destructive" />
-            </div>
-            <div className="text-center space-y-1">
-              <p className="text-lg font-bold text-foreground">Falha na verificação</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">O link pode ser inválido ou ter expirado. Tente solicitar um novo link.</p>
-            </div>
-          </div>
-        )}
-      </CardContent>
-      <CardFooter className="p-8 pt-0">
-        {status !== "loading" && (
-           <Link href="/auth/login" className="w-full">
-             <Button className="w-full h-12 rounded-full text-base font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]">
-               Ir para Login
-             </Button>
-           </Link>
-        )}
-      </CardFooter>
-    </Card>
+    <AuthShell 
+      title="Verificação de Conta" 
+      description={status === "loading" ? "Validando suas credenciais..." : "Processamento finalizado."}
+    >
+      <div className="flex flex-col items-center justify-center space-y-8 py-4">
+        <AnimatePresence mode="wait">
+          {status === "loading" && (
+            <motion.div 
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex flex-col items-center space-y-6"
+            >
+              <div className="relative">
+                <div className="w-20 h-20 rounded-[28px] bg-primary/5 flex items-center justify-center border border-primary/10">
+                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                </div>
+                <motion.div 
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
+                  className="absolute -inset-2 border-2 border-dashed border-primary/20 rounded-[32px]"
+                />
+              </div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Autenticando...</p>
+            </motion.div>
+          )}
+
+          {status === "success" && (
+            <motion.div 
+              key="success"
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="flex flex-col items-center space-y-6 w-full"
+            >
+              <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner relative overflow-hidden">
+                <CheckCircle2 className="h-10 w-10 relative z-10" />
+                <motion.div 
+                  initial={{ scale: 0, opacity: 0.5 }}
+                  animate={{ scale: 2, opacity: 0 }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="absolute inset-0 bg-emerald-500/20 rounded-full"
+                />
+              </div>
+              <div className="text-center space-y-2 px-4">
+                <h3 className="text-xl font-black tracking-tight">Tudo pronto!</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Seu e-mail foi validado e sua conta está **totalmente ativa** no Fluxar.</p>
+              </div>
+              <Button 
+                onClick={handleAccessAccount} 
+                className="w-full h-14 rounded-full text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 group transition-all hover:scale-[1.02]"
+              >
+                <span className="flex items-center gap-2">
+                  Acessar Minha Conta
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                </span>
+              </Button>
+            </motion.div>
+          )}
+
+          {status === "error" && (
+            <motion.div 
+              key="error"
+              initial={{ opacity: 0, scale: 0.9, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              className="flex flex-col items-center space-y-6 w-full"
+            >
+              <div className="w-20 h-20 rounded-[28px] bg-destructive/10 flex items-center justify-center text-destructive">
+                <XCircle className="h-10 w-10" />
+              </div>
+              <div className="text-center space-y-2 px-4">
+                <h3 className="text-xl font-black tracking-tight text-destructive">Falha na Verificação</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">Este link de verificação é inválido ou expirou. Tente solicitar um novo acesso.</p>
+              </div>
+              <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-border/60 font-bold transition-all hover:bg-muted">
+                <Link href="/auth/login">Voltar para o Login</Link>
+              </Button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </AuthShell>
   )
 }
 
 export default function VerifyEmailPage() {
   return (
-    <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
-       <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin" />}>
-         <VerifyEmailContent />
-       </Suspense>
-    </div>
+     <Suspense fallback={
+       <div className="flex min-h-screen items-center justify-center bg-background">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+       </div>
+     }>
+        <VerifyEmailContent />
+     </Suspense>
   )
 }
+

@@ -43,8 +43,8 @@ const PLAN_LIMITS = {
 const quickFilterOptions = [
     { label: "Todas", value: "ALL" },
     { label: "Conta Corrente", value: AccountType.CHECKING },
-    { label: "Poupança", value: AccountType.SAVINGS },
     { label: "Carteira", value: AccountType.WALLET },
+    { label: "Poupança", value: AccountType.SAVINGS },
     { label: "Investimentos", value: AccountType.INVESTMENT },
     { label: "Cofrinhos", value: AccountType.PIGGY_BANK },
 ]
@@ -57,7 +57,7 @@ export default function AccountsPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null)
   
   // Filter States
-  const [filterType, setFilterType] = useState<AccountType | "ALL">(AccountType.CHECKING)
+  const [filterTypes, setFilterTypes] = useState<AccountType[]>([AccountType.CHECKING, AccountType.WALLET])
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [statusFilter, setStatusFilter] = useState<"ACTIVE" | "INACTIVE" | "ALL">("ACTIVE")
   const [selectedBanks, setSelectedBanks] = useState<string[]>([])
@@ -91,7 +91,7 @@ export default function AccountsPage() {
   }, [])
 
   const filteredAccounts = accounts.filter(acc => {
-      const matchesType = filterType === "ALL" || acc.type === filterType
+      const matchesType = filterTypes.length === 0 || filterTypes.includes(acc.type as AccountType)
       const matchesStatus = statusFilter === "ALL" || (statusFilter === "ACTIVE" ? acc.is_active : !acc.is_active)
       const matchesBank = selectedBanks.length === 0 || (acc.institution && selectedBanks.includes(acc.institution))
       
@@ -103,12 +103,18 @@ export default function AccountsPage() {
   })
 
   const resetFilters = () => {
-      setFilterType(AccountType.CHECKING)
+      setFilterTypes([AccountType.CHECKING, AccountType.WALLET])
       setStatusFilter("ACTIVE")
       setSelectedBanks([])
       setMinBalance("")
       setMaxBalance("")
       toast.info("Filtros resetados para o padrão.")
+  }
+
+  const toggleFilterType = (type: AccountType) => {
+      setFilterTypes(prev => 
+          prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+      )
   }
 
   const toggleBank = (bank: string) => {
@@ -149,7 +155,7 @@ export default function AccountsPage() {
       setIsFormOpen(true)
   }
 
-  const activeFiltersCount = (filterType !== "ALL" && filterType !== AccountType.CHECKING ? 1 : 0) + 
+  const activeFiltersCount = (filterTypes.length > 0 && (filterTypes.length !== 2 || !filterTypes.includes(AccountType.CHECKING) || !filterTypes.includes(AccountType.WALLET)) ? 1 : 0) + 
                              (statusFilter !== "ACTIVE" ? 1 : 0) + 
                              (selectedBanks.length) +
                              (minBalance !== "" ? 1 : 0) +
@@ -200,20 +206,40 @@ export default function AccountsPage() {
       {/* Filter System */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">
           <div className="hidden md:flex items-center gap-2 overflow-x-auto overflow-y-hidden py-2 w-fit max-w-full no-scrollbar">
-              {quickFilterOptions.map((opt) => (
-                  <Button
-                    key={opt.value}
-                    variant={filterType === opt.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFilterType(opt.value as any)}
-                    className={cn(
-                        "rounded-full px-5 h-9 font-bold text-[10px] uppercase tracking-wider transition-all whitespace-nowrap",
-                        filterType === opt.value ? "shadow-md scale-105" : "text-muted-foreground hover:text-foreground border-border/40"
-                    )}
-                  >
-                      {opt.label}
-                  </Button>
-              ))}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setFilterTypes([])}
+                className={cn(
+                    "rounded-full px-5 h-9 font-bold text-[10px] uppercase tracking-wider transition-all whitespace-nowrap border-border/40",
+                    filterTypes.length === 0 
+                      ? "bg-primary/10 text-primary border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
+                      : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                  {filterTypes.length === 0 && <Check className="h-3 w-3 mr-2" />}
+                  Todas
+              </Button>
+              {quickFilterOptions.filter(o => o.value !== "ALL").map((opt) => {
+                  const isActive = filterTypes.includes(opt.value as AccountType)
+                  return (
+                    <Button
+                        key={opt.value}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => toggleFilterType(opt.value as AccountType)}
+                        className={cn(
+                            "rounded-full px-5 h-9 font-bold text-[10px] uppercase tracking-wider transition-all whitespace-nowrap",
+                            isActive 
+                              ? "bg-primary/10 text-primary border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
+                              : "text-muted-foreground hover:text-foreground border-border/40"
+                        )}
+                    >
+                        {isActive && <Check className="h-3 w-3 mr-2 animate-in zoom-in duration-300" />}
+                        {opt.label}
+                    </Button>
+                  )
+              })}
           </div>
 
           <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
@@ -246,26 +272,34 @@ export default function AccountsPage() {
                           {/* Account Type Filter (Mobile mostly, but useful for all) */}
                           <div className="space-y-3">
                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground pl-1">
-                                  Tipo de Conta
+                                  Tipos de Conta
                               </Label>
                               <div className="grid grid-cols-2 gap-2">
-                                  {quickFilterOptions.map((opt) => (
-                                      <Button
-                                        key={opt.value}
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => setFilterType(opt.value as any)}
-                                        className={cn(
-                                            "rounded-xl h-12 font-bold text-[10px] uppercase tracking-tight transition-all justify-start px-4 border",
-                                            filterType === opt.value 
-                                                ? "bg-primary/10 text-primary border-primary/30 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
-                                                : "text-muted-foreground/60 hover:bg-muted/50 border-transparent"
-                                        )}
-                                      >
-                                          <div className={cn("w-2 h-2 rounded-full mr-3", filterType === opt.value ? "bg-primary animate-pulse" : "bg-muted-foreground/20")} />
-                                          {opt.label}
-                                      </Button>
-                                  ))}
+                                  {quickFilterOptions.filter(o => o.value !== "ALL").map((opt) => {
+                                      const isActive = filterTypes.includes(opt.value as AccountType)
+                                      return (
+                                          <Button
+                                            key={opt.value}
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => toggleFilterType(opt.value as AccountType)}
+                                            className={cn(
+                                                "rounded-xl h-12 font-bold text-[10px] uppercase tracking-tight transition-all justify-start px-4 border",
+                                                isActive 
+                                                    ? "bg-primary/10 text-primary border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
+                                                    : "text-muted-foreground/60 hover:bg-muted/50 border-border/10"
+                                            )}
+                                          >
+                                              <div className={cn(
+                                                  "w-4 h-4 rounded-md mr-3 border flex items-center justify-center transition-all", 
+                                                  isActive ? "bg-primary border-primary text-primary-foreground" : "bg-muted/20 border-border/40"
+                                              )}>
+                                                  {isActive && <Check className="h-2.5 w-2.5" />}
+                                              </div>
+                                              {opt.label}
+                                          </Button>
+                                      )
+                                  })}
                               </div>
                           </div>
 

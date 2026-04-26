@@ -1,5 +1,6 @@
 import { Category } from "./categories"
 import { Account } from "./accounts"
+import { CreditCard, Invoice } from "./cards"
 
 export type TransactionType = "INCOME" | "EXPENSE" | "TRANSFER" | "CREDIT_CARD_EXPENSE" | "RECURRING" | "TRANSFER_OUT" | "TRANSFER_IN" | "CREDIT_CARD" | "INVOICE_PAYMENT"
 
@@ -26,6 +27,8 @@ export interface Transaction {
     // Expanded Details (from Serializer)
     category_detail?: Category
     account_detail?: Account
+    credit_card_detail?: CreditCard
+    invoice_detail?: Invoice
     
     tags: string[] // List of IDs
     tags_detail?: Tag[] // List of objects
@@ -45,6 +48,10 @@ export interface Transaction {
     transfer_id?: string
     signed_amount?: number // Added for V2 Backend
     related_transaction?: string | { id: string, account_name?: string, type?: TransactionType } | Transaction // ID or object
+    account_from?: string
+    account_to?: string
+    target_account?: string
+    source_account?: string
 
     created_at: string
     updated_at: string

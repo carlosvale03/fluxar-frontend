@@ -24,7 +24,7 @@ function KPICard({ title, value, icon, colorClass, bgClass, style, helpTopic }: 
     }).format(value)
 
     return (
-        <Card className="group relative flex flex-col p-5 rounded-2xl border transition-all cursor-pointer overflow-hidden border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 hover:shadow-md">
+        <Card className="group relative flex flex-col p-5 rounded-[32px] border transition-all cursor-pointer overflow-hidden border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 hover:shadow-md">
             <CardContent className="p-0">
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1.5 min-w-0">

@@ -191,7 +191,14 @@ export function DailyCashFlowChart({
                                             interval={0}
                                             padding={{ left: 15, right: 15 }}
                                         />
-                                        <YAxis hide />
+                                        <YAxis 
+                                            axisLine={false} 
+                                            tickLine={false} 
+                                            fontSize={10}
+                                            tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                            tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                            width={45}
+                                        />
                                         <Tooltip 
                                             cursor={{ fill: 'currentColor', opacity: 0.05, radius: 12 }}
                                             content={({ active, payload, label }) => {
