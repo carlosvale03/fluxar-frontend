@@ -21,6 +21,7 @@ import {
 
 import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
+import { InvoiceDetailsDialog } from "./invoice-details-dialog"
 import { cn } from "@/lib/utils"
 
 interface InvoiceListProps {
@@ -32,6 +33,8 @@ interface InvoiceListProps {
 export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceListProps) {
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null)
 
   useEffect(() => {
     fetchInvoices()
@@ -175,7 +178,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                                     <Button 
                                         size="sm" 
                                         onClick={() => onPayInvoice(invoice)} 
-                                        className="rounded-full font-black text-[11px] uppercase tracking-wider px-5 h-9 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/10"
+                                        className="rounded-full font-black text-[11px] uppercase tracking-wider px-5 h-9 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/10 mr-2"
                                     >
                                         Pagar Fatura
                                     </Button>
@@ -184,12 +187,23 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                                      <Button 
                                         size="sm" 
                                         variant="outline" 
-                                        className="rounded-full h-9 px-5 font-black text-[11px] uppercase tracking-wider border-red-200 text-red-500 hover:text-red-600 hover:bg-red-500/10 hover:border-red-300 transition-all"
+                                        className="rounded-full h-9 px-5 font-black text-[11px] uppercase tracking-wider border-red-200 text-red-500 hover:text-red-600 hover:bg-red-500/10 hover:border-red-300 transition-all mr-2"
                                         onClick={() => onUnpayInvoice?.(invoice)}
                                     >
                                         Estornar
                                     </Button>
                                 )}
+                                <Button 
+                                    size="sm" 
+                                    variant="ghost" 
+                                    className="rounded-full h-9 px-4 font-black text-[11px] uppercase tracking-wider text-muted-foreground hover:text-foreground transition-all"
+                                    onClick={() => {
+                                        setSelectedInvoice(invoice)
+                                        setIsDetailsOpen(true)
+                                    }}
+                                >
+                                    Ver Detalhes
+                                </Button>
                             </TableCell>
                         </TableRow>
                     )
@@ -198,6 +212,12 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
           </TableBody>
         </Table>
       </CardContent>
+
+      <InvoiceDetailsDialog 
+        open={isDetailsOpen}
+        onOpenChange={setIsDetailsOpen}
+        invoice={selectedInvoice}
+      />
     </Card>
   )
 }

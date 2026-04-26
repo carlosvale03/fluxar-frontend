@@ -47,6 +47,7 @@ import { Transaction } from "@/types/transactions"
 
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
+import { MoneyInput } from "@/components/ui/money-input"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -99,8 +100,8 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                 description: initialData.description,
                 amount: Number(initialData.amount),
                 date: new Date(year, month - 1, day),
-                category_id: initialData.category_detail?.id || initialData.category || "",
-                card_id: initialData.credit_card || "",
+                category_id: (typeof initialData.category === 'object' ? (initialData.category as any).id : initialData.category) || initialData.category_detail?.id || "",
+                card_id: (typeof initialData.credit_card === 'object' ? (initialData.credit_card as any).id : initialData.credit_card) || initialData.credit_card_detail?.id || "",
                 installments: initialData.installment_total || 1,
                 update_scope: "SINGLE",
                 tags: initialData.tags?.map((t: any) => typeof t === 'string' ? t : t.id) || [],
@@ -228,7 +229,10 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           </DialogHeader>
           
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <form 
+                onSubmit={form.handleSubmit(onSubmit, (err) => console.error("Card Expense Validation Errors:", err))} 
+                className="space-y-6"
+            >
               
               <div className="space-y-4">
                 <FormField
@@ -275,13 +279,10 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             <FormControl>
                                 <div className="relative">
                                   <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
-                                  <Input 
-                                      type="number" 
-                                      step="0.01" 
-                                      placeholder="0,00" 
-                                      {...field} 
-                                      onFocus={(e) => e.target.select()}
-                                      className="h-12 pl-10 pr-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base font-bold"
+                                  <MoneyInput 
+                                      value={field.value}
+                                      onValueChange={field.onChange}
+                                      className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                   />
                                 </div>
                             </FormControl>

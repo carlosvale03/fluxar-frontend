@@ -4,11 +4,12 @@ import { useAuth } from "@/contexts/auth-context"
 export function usePlan() {
   const { user } = useAuth()
   
-  const plan = user?.plan || "COMMON"
+  // Fase de Testes: Todos os usuários têm acesso total
+  const plan = "PREMIUM_PLUS" as any
   
-  const isCommon = plan === "COMMON"
-  const isPremium = plan === "PREMIUM"
-  const isPremiumPlus = plan === "PREMIUM_PLUS"
+  const isCommon = false
+  const isPremium = true
+  const isPremiumPlus = true
 
   const formatPlanName = () => {
       switch(plan) {

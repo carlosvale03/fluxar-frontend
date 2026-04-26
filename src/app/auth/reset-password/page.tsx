@@ -4,16 +4,16 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { AuthShell } from "@/components/auth/auth-shell"
 import Link from "next/link"
 import { useState, Suspense } from "react"
 import { toast } from "sonner"
 import { api } from "@/services/apiClient"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Loader2 } from "lucide-react"
+import { Loader2, KeyRound, AlertTriangle } from "lucide-react"
 import { PasswordInput } from "@/components/ui/password-input"
 import { cn } from "@/lib/utils"
+import { motion } from "framer-motion"
 
 const resetSchema = z.object({
   newPassword: z.string()
@@ -29,6 +29,11 @@ const resetSchema = z.object({
 })
 
 type ResetForm = z.infer<typeof resetSchema>
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 10 },
+  show: { opacity: 1, y: 0 }
+}
 
 function ResetPasswordContent() {
   const [isLoading, setIsLoading] = useState(false)
@@ -61,67 +66,104 @@ function ResetPasswordContent() {
 
   if (!token) {
       return (
-        <Card className="w-full max-w-md rounded-[32px] border-destructive/20 bg-destructive/5 shadow-xl animate-in fade-in zoom-in duration-500">
-            <CardHeader className="pt-8 px-8"><CardTitle className="text-2xl font-bold text-destructive">Link Inválido</CardTitle></CardHeader>
-            <CardContent className="px-8 pb-4 text-muted-foreground font-medium">O link de recuperação parece estar incompleto ou expirado.</CardContent>
-            <CardFooter className="p-8 pt-0 pl-8"><Link href="/auth/login"><Button variant="outline" className="rounded-full">Voltar para Login</Button></Link></CardFooter>
-        </Card>
+        <AuthShell title="Link Inválido" description="O link de recuperação parece estar incompleto ou expirado.">
+           <div className="flex flex-col items-center space-y-6 py-4">
+              <div className="w-16 h-16 rounded-[24px] bg-destructive/10 flex items-center justify-center text-destructive">
+                <AlertTriangle className="h-8 w-8" />
+              </div>
+              <p className="text-sm text-center text-muted-foreground leading-relaxed font-medium">
+                Por questões de segurança, links de recuperação expiram em 1 hora. Solicite um novo link para continuar.
+              </p>
+              <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-border/60 hover:bg-muted font-bold transition-all">
+                <Link href="/auth/forgot-password">Solicitar Novo Link</Link>
+              </Button>
+           </div>
+        </AuthShell>
       )
   }
 
   return (
-    <Card className="w-full max-w-md rounded-[32px] border-border/60 shadow-xl overflow-hidden animate-in fade-in zoom-in duration-500">
-        <CardHeader className="pt-8 px-8">
-          <CardTitle className="text-3xl font-bold tracking-tight">Nova Senha</CardTitle>
-          <CardDescription className="text-base">
-            Defina sua nova senha de acesso ao Fluxar.
-          </CardDescription>
-        </CardHeader>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <CardContent className="space-y-4 px-8">
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1" htmlFor="newPassword">Nova Senha</label>
-              <PasswordInput 
-                 id="newPassword" 
-                 placeholder="******" 
-                 {...register("newPassword")}
-                 className={cn(
-                   "rounded-2xl transition-all duration-300",
-                   errors.newPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "focus-visible:ring-primary/20"
-                 )}
-              />
-              {errors.newPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 animate-in slide-in-from-left-1">{errors.newPassword.message}</p>}
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs font-black uppercase tracking-widest text-muted-foreground ml-1" htmlFor="confirmPassword">Confirmar Nova Senha</label>
-              <PasswordInput 
-                id="confirmPassword" 
-                placeholder="******" 
-                {...register("confirmPassword")}
-                className={cn(
-                  "rounded-2xl transition-all duration-300",
-                  errors.confirmPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "focus-visible:ring-primary/20"
-                )}
-              />
-              {errors.confirmPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 animate-in slide-in-from-left-1">{errors.confirmPassword.message}</p>}
-            </div>
-          </CardContent>
-          <CardFooter className="flex flex-col gap-6 p-8">
-            <Button type="submit" className="w-full h-12 rounded-full text-base font-bold shadow-lg shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98]" loading={isLoading} disabled={isLoading}>
-              Redefinir Senha
+    <AuthShell 
+      title="Nova Senha" 
+      description="Escolha uma senha forte para proteger sua conta no Fluxar."
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <motion.div 
+          variants={{
+            show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
+          }}
+          initial="hidden"
+          animate="show"
+          className="space-y-5"
+        >
+          <motion.div variants={itemVariants} className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="newPassword">
+              Nova Senha de Acesso
+            </label>
+            <PasswordInput 
+               id="newPassword" 
+               placeholder="Digite sua nova senha" 
+               {...register("newPassword")}
+               className={cn(
+                 "h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10",
+                 errors.newPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
+               )}
+            />
+            {errors.newPassword && (
+              <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">
+                {errors.newPassword.message}
+              </p>
+            )}
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="space-y-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="confirmPassword">
+              Confirmar Nova Senha
+            </label>
+            <PasswordInput 
+              id="confirmPassword" 
+              placeholder="Repita a nova senha" 
+              {...register("confirmPassword")}
+              className={cn(
+                "h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10",
+                errors.confirmPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
+              )}
+            />
+            {errors.confirmPassword && (
+              <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">
+                {errors.confirmPassword.message}
+              </p>
+            )}
+          </motion.div>
+
+          <motion.div variants={itemVariants} className="pt-2">
+            <Button 
+              type="submit" 
+              className="w-full h-14 rounded-full text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group" 
+              loading={isLoading} 
+              disabled={isLoading}
+            >
+              <span className="flex items-center gap-2">
+                Atualizar Senha
+                <KeyRound className="h-4 w-4 transition-transform group-hover:rotate-12" />
+              </span>
             </Button>
-          </CardFooter>
-        </form>
-      </Card>
+          </motion.div>
+        </motion.div>
+      </form>
+    </AuthShell>
   )
 }
 
 export default function ResetPasswordPage() {
     return (
-        <div className="flex min-h-[calc(100vh-8rem)] items-center justify-center p-4">
-             <Suspense fallback={<Loader2 className="h-8 w-8 animate-spin" />}>
-                 <ResetPasswordContent />
-             </Suspense>
-        </div>
+       <Suspense fallback={
+         <div className="flex min-h-screen items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+         </div>
+       }>
+           <ResetPasswordContent />
+       </Suspense>
     )
 }
+

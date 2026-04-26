@@ -128,7 +128,10 @@ export default function CardDetailsPage() {
     return "bg-red-500"
   }
 
-  const usagePercentage = Math.min(((card.current_invoice_total || 0) / card.limit) * 100, 100)
+  const limit = Number(card.limit) || 0
+  const available = card.available_limit !== undefined ? Number(card.available_limit) : (limit - Number(card.current_invoice_total || 0))
+  const usedAmount = limit - available
+  const usagePercentage = limit > 0 ? Math.min((usedAmount / limit) * 100, 100) : 0
   const progressColor = getProgressColor(usagePercentage)
 
   return (
@@ -262,7 +265,7 @@ export default function CardDetailsPage() {
                           <div className="space-y-1.5">
                               <div className="flex justify-between items-end">
                                   <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Limite Disponível</span>
-                                  <span className="text-sm font-black tabular-nums">{formatCurrency((card.limit || 0) - (card.current_invoice_total || 0))}</span>
+                                  <span className="text-sm font-black tabular-nums">{formatCurrency(available)}</span>
                               </div>
                               <div className="h-3 w-full bg-muted/50 rounded-full overflow-hidden border border-border/20 p-0.5">
                                    <div 

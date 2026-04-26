@@ -13,8 +13,11 @@ import {
   Calendar as CalendarIcon, 
   Palette, 
   Info,
-  Check
+  Check,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
+import { MoneyInput } from "@/components/ui/money-input"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -39,7 +42,7 @@ import { Separator } from "@/components/ui/separator"
 import { api } from "@/services/apiClient"
 import { CreditCard } from "@/types/cards"
 import { BANKS } from "@/data/banks"
-import { Account } from "@/types/accounts"
+import { Account, AccountType } from "@/types/accounts"
 
 // ...
 
@@ -81,6 +84,7 @@ export function CreditCardFormDialog({
   const [internalOpen, setInternalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [isVisualOpen, setIsVisualOpen] = useState(true)
   
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
@@ -254,58 +258,71 @@ export function CreditCardFormDialog({
             <div className="p-8 space-y-8 max-h-[50vh] overflow-y-auto custom-scrollbar">
                 
                 {/* Seção 1: Identidade */}
-                <div className="space-y-5">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-md bg-primary/10 flex items-center justify-center">
-                            <Info className="h-3 w-3 text-primary" />
+                <div className="space-y-8">
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20 shadow-sm shrink-0">
+                            <Info className="h-6 w-6 text-primary" />
                         </div>
-                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Identidade do Cartão</span>
+                        <div className="space-y-1">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Passo 01</h3>
+                            <p className="text-base font-black tracking-tight leading-none">Identidade do Cartão</p>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-1 gap-5">
+                    <div className="grid grid-cols-1 gap-6 px-1">
                         <div className="space-y-2">
-                            <Label htmlFor="name">Apelido do Cartão</Label>
+                            <Label htmlFor="name" className="text-xs font-bold pl-1">Apelido do Cartão</Label>
                             <Input 
                                 id="name" 
                                 placeholder="Ex: Nubank Principal" 
                                 {...register("name")} 
-                                className={`rounded-xl border-border/60 ${errors.name ? "ring-2 ring-red-500/20 border-red-500" : ""}`}
+                                className="h-12 rounded-xl border-border/60 font-bold bg-muted/5 hover:bg-muted/10 focus-visible:ring-primary/20 transition-all"
                             />
                             {errors.name && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.name.message}</span>}
                         </div>
 
                         <div className="space-y-2">
-                            <Label>Conta de Pagamento (Fatura)</Label>
+                            <Label className="text-xs font-bold pl-1">Conta de Pagamento (Fatura)</Label>
                             <Select 
                                 onValueChange={(val) => setValue("account_id", val, { shouldValidate: true })}
                                 value={watch("account_id")}
                             >
-                                <SelectTrigger className={`rounded-xl border-border/60 ${errors.account_id ? "ring-2 ring-red-500/20 border-red-500" : ""}`}>
+                                <SelectTrigger className={`h-12 rounded-xl border-border/60 cursor-pointer bg-muted/5 hover:bg-muted/10 transition-colors ${errors.account_id ? "ring-2 ring-red-500/20 border-red-500" : ""}`}>
                                     <SelectValue placeholder="Selecione a conta para débito" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-border/40">
-                                    {accounts.map(acc => (
-                                        <SelectItem key={acc.id} value={acc.id} className="rounded-lg">
-                                            {acc.name}
-                                        </SelectItem>
-                                    ))}
+                                <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
+                                    {accounts
+                                        .filter(acc => acc.is_active && (acc.type === AccountType.CHECKING || acc.type === AccountType.WALLET))
+                                        .map(acc => (
+                                            <SelectItem key={acc.id} value={acc.id} className="rounded-xl font-bold">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: acc.color || "#6366f1" }} />
+                                                    {acc.name}
+                                                </div>
+                                            </SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                             {errors.account_id && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.account_id.message}</span>}
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
                             <div className="space-y-2">
-                                <Label>Instituição</Label>
-                                <Select 
-                                    onValueChange={(val) => {
-                                        setValue("institution", val)
-                                        const bankColor = BANKS.find(b => b.value === val)?.color
-                                        if (bankColor) setValue("color", bankColor)
-                                    }} 
-                                    value={watch("institution")}
-                                >
-                                    <SelectTrigger className="rounded-xl border-border/60">
+                                <Label className="text-xs font-bold pl-1">Instituição</Label>
+                                    <Select 
+                                        onValueChange={(val) => {
+                                            setValue("institution", val)
+                                            const bankColor = BANKS.find(b => b.value === val)?.color
+                                            if (bankColor) {
+                                                setValue("color", bankColor)
+                                                setIsVisualOpen(false) 
+                                            } else {
+                                                setIsVisualOpen(true)
+                                            }
+                                        }} 
+                                        value={watch("institution")}
+                                    >
+                                    <SelectTrigger className="h-12 rounded-xl border-border/60 cursor-pointer bg-muted/5 hover:bg-muted/10 transition-colors">
                                         <SelectValue placeholder="Opcional" />
                                     </SelectTrigger>
                                     <SelectContent className="rounded-2xl border-border/40">
@@ -322,18 +339,29 @@ export function CreditCardFormDialog({
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Cor do Cartão</Label>
-                                <div className="flex gap-2">
-                                    <div className="relative w-full h-10 rounded-xl border border-border/60 overflow-hidden flex items-center px-3 group bg-card">
+                                <div className="flex items-center justify-between pl-1">
+                                    <Label className="text-xs font-bold">Aparência do Cartão</Label>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setIsVisualOpen(!isVisualOpen)}
+                                        className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-tighter text-primary/60 hover:text-primary transition-colors cursor-pointer"
+                                    >
+                                        {isVisualOpen ? "Recolher" : "Personalizar"}
+                                        {isVisualOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                                    </button>
+                                </div>
+                                
+                                <div className={`p-1.5 rounded-xl border border-border/60 bg-muted/5 flex items-center h-12 transition-all ${isVisualOpen ? 'ring-2 ring-primary/10 bg-card' : ''}`}>
+                                    <div className="relative flex-1 flex items-center px-3 h-full">
                                         <input 
                                             type="color" 
                                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                                             value={watch("color") || "#6366f1"}
                                             onChange={(e) => setValue("color", e.target.value)}
                                         />
-                                        <div className="h-4 w-4 rounded-full mr-2 shadow-sm" style={{ background: watchedColor }} />
-                                        <span className="text-xs font-mono font-bold uppercase">{watchedColor}</span>
-                                        <Palette className="h-3 w-3 ml-auto text-muted-foreground opacity-40" />
+                                        <div className="h-4 w-4 rounded-full mr-3 shadow-sm shrink-0" style={{ background: watchedColor }} />
+                                        <span className="text-xs font-mono font-bold uppercase tracking-tight">{watchedColor}</span>
+                                        <Palette className="h-3.5 w-3.5 ml-auto text-muted-foreground/30" />
                                     </div>
                                 </div>
                             </div>
@@ -344,32 +372,33 @@ export function CreditCardFormDialog({
                 <Separator className="bg-border/40" />
 
                 {/* Seção 2: Ciclo e Limites */}
-                <div className="space-y-5 px-1 pb-4">
-                    <div className="flex items-center gap-2 mb-2">
-                        <div className="w-6 h-6 rounded-md bg-emerald-500/10 flex items-center justify-center">
-                            <Banknote className="h-3 w-3 text-emerald-500" />
+                <div className="space-y-8 px-1 pb-4">
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20 shadow-sm shrink-0">
+                            <Banknote className="h-6 w-6 text-emerald-500" />
                         </div>
-                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Ciclo e Limites</span>
+                        <div className="space-y-1">
+                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600">Passo 02</h3>
+                            <p className="text-base font-black tracking-tight leading-none">Ciclo e Limites</p>
+                        </div>
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="limit">Limite Total de Crédito</Label>
+                        <Label htmlFor="limit" className="text-xs font-bold pl-1">Limite Total de Crédito</Label>
                         <div className="relative">
-                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-muted-foreground">R$</span>
-                            <Input 
-                                id="limit" 
-                                type="number" 
-                                step="0.01" 
-                                {...register("limit")} 
-                                className="pl-10 rounded-xl border-border/60 font-bold"
+                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground/60 tracking-tight">R$</span>
+                            <MoneyInput 
+                                value={Number(watch("limit"))}
+                                onValueChange={(val) => setValue("limit", val.toString())}
+                                className="h-12 pl-12 rounded-xl border-border/60 font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
                             />
                         </div>
                         {errors.limit && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.limit.message}</span>}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                         <div className="space-y-2">
-                            <Label htmlFor="closing_day" className="flex items-center gap-1.5">
+                            <Label htmlFor="closing_day" className="flex items-center gap-1.5 text-xs font-bold pl-1">
                                 Fechamento <Info className="h-3 w-3 text-muted-foreground/40" />
                             </Label>
                             <Input 
@@ -378,12 +407,12 @@ export function CreditCardFormDialog({
                                 min="1" 
                                 max="31"
                                 {...register("closing_day")} 
-                                className="rounded-xl border-border/60 text-center font-black"
+                                className="h-12 rounded-xl border-border/60 text-center font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
                             />
                             {errors.closing_day && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.closing_day.message}</span>}
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="due_day" className="flex items-center gap-1.5">
+                            <Label htmlFor="due_day" className="flex items-center gap-1.5 text-xs font-bold pl-1">
                                 Vencimento <CalendarIcon className="h-3 w-3 text-muted-foreground/40" />
                             </Label>
                             <Input 
@@ -392,7 +421,7 @@ export function CreditCardFormDialog({
                                 min="1" 
                                 max="31"
                                 {...register("due_day")} 
-                                className="rounded-xl border-border/60 text-center font-black"
+                                className="h-12 rounded-xl border-border/60 text-center font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
                             />
                             {errors.due_day && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.due_day.message}</span>}
                         </div>
@@ -405,7 +434,7 @@ export function CreditCardFormDialog({
                 <Button 
                     type="submit" 
                     disabled={isLoading} 
-                    className="w-full sm:w-auto min-w-[180px] h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full sm:w-auto min-w-[200px] h-12 rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25 transition-all hover:scale-[1.05] active:scale-[0.95]"
                 >
                     {isLoading ? (
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />

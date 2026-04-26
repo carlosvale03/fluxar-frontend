@@ -25,10 +25,13 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
   }
 
   // Calculate generic usage (mock if invoice data is missing)
-  const currentTotal = card.current_invoice_total || 0
-  const limit = card.limit || 0
-  const available = card.available_limit !== undefined ? card.available_limit : (limit - currentTotal)
-  const usagePercentage = limit > 0 ? ((limit - available) / limit) * 100 : 0
+  const limit = Number(card.limit) || 0
+  const currentTotal = Number(card.current_invoice_total) || 0
+  const available = card.available_limit !== undefined ? Number(card.available_limit) : (limit - currentTotal)
+  
+  // O limite utilizado é a diferença entre o limite total e o disponível
+  const usedAmount = limit - available
+  const usagePercentage = limit > 0 ? (usedAmount / limit) * 100 : 0
 
   // Helper to darken color for gradient
   function adjustBrightness(col: string, amt: number) {
@@ -51,77 +54,106 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
       return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
   }
 
+  const bankColor = BANKS.find(b => b.value === card.institution)?.color
+  const displayColor = card.color || bankColor || "#1a1a1a"
+
   return (
     <div 
         onClick={() => router.push(`/cartoes/${card.id}`)}
         className={cn(
-            "group relative w-full aspect-[1.586] rounded-2xl overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-1 p-6 flex flex-col justify-between text-white cursor-pointer",
-            !card.color && "bg-gradient-to-br from-[#1a1a1a] to-[#4a4a4a]"
+            "group relative w-full aspect-[1.586] rounded-[32px] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 p-7 flex flex-col justify-between text-white cursor-pointer select-none",
+            !displayColor && "bg-gradient-to-br from-[#1a1a1a] to-[#4a4a4a]"
         )}
-        style={card.color ? { backgroundColor: card.color } : undefined}
+        style={{ 
+            background: `linear-gradient(135deg, ${displayColor} 0%, ${displayColor}CC 100%)` 
+        }}
     >
-      {/* Background Texture/Shine */}
-      <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.05)_50%,transparent_75%)] opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none duration-700" />
+      {/* Glass & Shine Effects */}
+      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+      <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/10 to-transparent rotate-45 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
 
-      {/* Header */}
+      {/* Header: Chip & Bank */}
       <div className="flex justify-between items-start z-10">
-        <div className="flex items-center gap-2">
-            <CardIcon className="h-8 w-8 text-white/80" />
-            {card.institution && (
-                <span className="font-bold text-lg tracking-wide opacity-90">
-                    {BANKS.find(b => b.value === card.institution)?.label || card.institution}
-                </span>
-            )}
+        <div className="w-11 h-8 bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 rounded-md shadow-inner flex flex-col gap-1 p-1 opacity-90 group-hover:scale-110 transition-transform duration-500">
+            <div className="h-full border-r border-black/10" />
+            <div className="w-full h-px bg-black/5" />
         </div>
         
-        {/* Floating Action Buttons (FAB) - Hover Only */}
-        <div className="opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 flex items-center gap-1.5 p-1.5 bg-background/20 backdrop-blur-md shadow-lg border border-white/10 rounded-2xl pointer-events-none group-hover:pointer-events-auto">
-            <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8 rounded-xl text-white hover:bg-white/20 transition-all" 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onEdit(card);
-                }}
-            >
-                <Edit className="h-4 w-4" />
-            </Button>
-            <Button 
-                variant="ghost" 
-                size="icon"
-                className="h-8 w-8 rounded-xl text-white hover:bg-red-500/40 transition-all" 
-                onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(card);
-                }}
-            >
-                <Trash2 className="h-4 w-4" />
-            </Button>
+        <div className="flex flex-col items-end">
+            <div className="flex items-center gap-2">
+                <span className="text-[9px] font-black tracking-[0.2em] text-white/60 uppercase italic">
+                    {BANKS.find(b => b.value === card.institution)?.label || "Fluxar Pay"}
+                </span>
+                <CardIcon className="h-4 w-4 text-white/60" />
+            </div>
+
+            {/* Floating Action Buttons (FAB) - Hover Only */}
+            <div className="mt-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 flex items-center gap-1 p-1 bg-white/10 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl pointer-events-none group-hover:pointer-events-auto">
+                <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-7 w-7 rounded-xl text-white hover:bg-white/20 transition-all" 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(card);
+                    }}
+                >
+                    <Edit className="h-3.5 w-3.5" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon"
+                    className="h-7 w-7 rounded-xl text-white hover:bg-red-500/40 transition-all" 
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete(card);
+                    }}
+                >
+                    <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+            </div>
         </div>
       </div>
       
-      {/* Content */}
-      <div className="z-10 space-y-4">
-          <div className="flex justify-between items-end">
-              <div>
-                <p className="font-medium tracking-wide truncate text-lg shadow-black/10 drop-shadow-md">{card.name}</p>
-                <div className="flex items-center gap-1 mt-1 opacity-60">
-                    <span className="font-mono text-[10px] tracking-widest">•••• •••• •••• ••••</span>
+      {/* Middle: Card Identity */}
+      <div className="z-10 mt-auto mb-4">
+          <div className="flex justify-between items-end gap-4">
+              <div className="space-y-1 overflow-hidden">
+                <h4 className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase">Nome no Cartão</h4>
+                <p className="text-sm font-black text-white tracking-[0.15em] uppercase truncate drop-shadow-md">
+                    {card.name}
+                </p>
+                <div className="flex items-center gap-1 opacity-30 group-hover:opacity-50 transition-opacity">
+                    <span className="text-[8px] tracking-[0.3em]">•••• •••• •••• ••••</span>
                 </div>
               </div>
-              <div className="text-right">
-                  <p className="text-xs opacity-75 font-medium">Fatura Atual</p>
-                  <p className="text-lg font-bold tracking-tight">{formatCurrency(currentTotal)}</p>
+              <div className="text-right shrink-0">
+                  <h4 className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase mb-1">Fatura Atual</h4>
+                  <p className="text-xl font-black text-white drop-shadow-lg leading-none">
+                    {formatCurrency(currentTotal)}
+                  </p>
               </div>
           </div>
-          
-          <div className="space-y-1">
-             <div className="flex justify-between text-xs opacity-80 font-medium">
-                 <span>Utilizado: {formatCurrency(limit - available)}</span>
-                 <span>Lim: {formatCurrency(limit)}</span>
+      </div>
+
+      {/* Footer: Limit & Progress */}
+      <div className="z-10 space-y-3">
+          <div className="space-y-1.5">
+             <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/50">
+                 <span>Utilizado: {formatCurrency(usedAmount)}</span>
+                 <div className="flex items-center gap-3">
+                    <span>Limite: {formatCurrency(limit)}</span>
+                    {/* Mastercard Circles Effect */}
+                    <div className="flex -space-x-2.5 opacity-40 group-hover:opacity-70 transition-opacity">
+                        <div className="h-6 w-6 rounded-full bg-white/40 border border-white/20" />
+                        <div className="h-6 w-6 rounded-full bg-white/20 border border-white/10" />
+                    </div>
+                 </div>
              </div>
-             <Progress value={usagePercentage} className="h-1.5 bg-black/20 [&>div]:bg-white/90" />
+             <Progress 
+                value={usagePercentage} 
+                className="h-1.5 bg-black/20 border border-white/5 overflow-hidden rounded-full [&>div]:bg-gradient-to-r [&>div]:from-white/90 [&>div]:to-white/60" 
+             />
           </div>
       </div>
     </div>

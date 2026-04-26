@@ -30,6 +30,8 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { MoneyInput } from "@/components/ui/money-input"
+import { ChevronDown, ChevronUp } from "lucide-react"
 import { api } from "@/services/apiClient"
 import { Account, AccountType, AccountTypeLabels } from "@/types/accounts"
 import { BANKS } from "@/data/banks"
@@ -86,6 +88,7 @@ export function AccountFormDialog({
 }: AccountFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isVisualOpen, setIsVisualOpen] = useState(true)
   
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : internalOpen
@@ -121,7 +124,10 @@ export function AccountFormDialog({
       const bank = BANKS.find(b => b.value === watchInstitution)
       if (bank) {
         setValue("color", bank.color)
+        setIsVisualOpen(false) // Minimize when a specific bank is chosen
       }
+    } else {
+      setIsVisualOpen(true) // Expand when "Other" or no institution
     }
   }, [watchInstitution, setValue])
 
@@ -245,12 +251,7 @@ export function AccountFormDialog({
                                     >
                                         <SelectTrigger className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold focus:ring-primary/20">
                                             <div className="flex items-center gap-3">
-                                                {watchInstitution && watchInstitution !== "other" ? (
-                                                    <div 
-                                                        className="w-3 h-3 rounded-full ring-2 ring-black/5 dark:ring-white/10 shrink-0" 
-                                                        style={{ backgroundColor: BANKS.find(b => b.value === watchInstitution)?.color }} 
-                                                    />
-                                                ) : (
+                                                {(!watchInstitution || watchInstitution === "other") && (
                                                     <Building className="h-4 w-4 text-muted-foreground/40 shrink-0" />
                                                 )}
                                                 <SelectValue placeholder="Banco ou Carteira" />
@@ -307,12 +308,9 @@ export function AccountFormDialog({
                             <Label htmlFor="initial_balance" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Saldo inicial disponível</Label>
                             <div className="relative group">
                                 <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                                <Input 
-                                    id="initial_balance" 
-                                    type="number" 
-                                    step="0.01" 
-                                    placeholder="0.00" 
-                                    {...register("initial_balance")} 
+                                <MoneyInput 
+                                    value={Number(watch("initial_balance"))}
+                                    onValueChange={(val) => setValue("initial_balance", val.toString())}
                                     className="h-12 pl-10 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-tight"
                                 />
                             </div>
@@ -321,63 +319,75 @@ export function AccountFormDialog({
                     </div>
 
                     {/* Seção 3: Visual */}
-                    <div className="space-y-5">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-4 bg-primary rounded-full" />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identidade Visual</h3>
-                        </div>
-
-                        <div className="space-y-6 p-6 border border-border/40 rounded-[28px] bg-muted/5 backdrop-blur-sm">
-                            <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
-                                {PRESET_COLORS.map((color) => {
-                                    const isSelected = watchColor === color
-                                    return (
-                                        <button
-                                            key={color}
-                                            type="button"
-                                            className={cn(
-                                                "w-10 h-10 rounded-xl transition-all duration-300 cursor-pointer relative group flex items-center justify-center",
-                                                isSelected ? "scale-110 shadow-lg" : "hover:scale-110 hover:shadow-md opacity-80 hover:opacity-100"
-                                            )}
-                                            style={{ 
-                                                backgroundColor: color,
-                                                boxShadow: isSelected ? `0 12px 24px -10px ${color}cc, 0 4px 10px -4px ${color}80` : undefined,
-                                                outline: isSelected ? `2px solid ${color}40` : 'none',
-                                                outlineOffset: '3px'
-                                            }}
-                                            onClick={() => setValue("color", color)}
-                                        >
-                                            {isSelected && (
-                                                <CheckCircle2 className="h-4 w-4 text-white/80 drop-shadow-sm" />
-                                            )}
-                                        </button>
-                                    )
-                                })}
+                    <div className="space-y-4">
+                        <button 
+                            type="button"
+                            onClick={() => setIsVisualOpen(!isVisualOpen)}
+                            className="flex items-center justify-between w-full group"
+                        >
+                            <div className="flex items-center gap-2">
+                                <div className="w-1.5 h-4 bg-primary rounded-full" />
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identidade Visual</h3>
                             </div>
-                            
-                            <div className="flex flex-col sm:flex-row items-center gap-5 pt-6 border-t border-border/10">
-                                <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
-                                    <Palette className="h-4 w-4 text-muted-foreground/30" />
-                                    <span className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-[0.2em]">Cor Customizada</span>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-primary/60 group-hover:text-primary transition-colors">
+                                {isVisualOpen ? "Recolher" : "Personalizar"}
+                                {isVisualOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+                            </div>
+                        </button>
+                        
+                        {isVisualOpen && (
+                            <div className="space-y-6 p-6 border border-border/40 rounded-[28px] bg-muted/5 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
+                                    {PRESET_COLORS.map((color) => {
+                                        const isSelected = watchColor === color
+                                        return (
+                                            <button
+                                                key={color}
+                                                type="button"
+                                                className={cn(
+                                                    "w-10 h-10 rounded-xl transition-all duration-300 cursor-pointer relative group flex items-center justify-center",
+                                                    isSelected ? "scale-110 shadow-lg" : "hover:scale-110 hover:shadow-md opacity-80 hover:opacity-100"
+                                                )}
+                                                style={{ 
+                                                    backgroundColor: color,
+                                                    boxShadow: isSelected ? `0 12px 24px -10px ${color}cc, 0 4px 10px -4px ${color}80` : undefined,
+                                                    outline: isSelected ? `2px solid ${color}40` : 'none',
+                                                    outlineOffset: '3px'
+                                                }}
+                                                onClick={() => setValue("color", color)}
+                                            >
+                                                {isSelected && (
+                                                    <CheckCircle2 className="h-4 w-4 text-white/80 drop-shadow-sm" />
+                                                )}
+                                            </button>
+                                        )
+                                    })}
                                 </div>
                                 
-                                <div className="flex items-center gap-4 w-full flex-1">
-                                    <Input 
-                                        type="color" 
-                                        className="w-12 h-12 p-0 border-0 rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-3 bg-transparent" 
-                                        value={watchColor || "#000000"} 
-                                        onChange={(e) => setValue("color", e.target.value)} 
-                                    />
-                                    <Input 
-                                        placeholder="#HEXADECIMAL" 
-                                        value={watchColor}
-                                        onChange={(e) => setValue("color", e.target.value)}
-                                        className="flex-1 h-12 font-mono text-sm uppercase bg-card border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-wider" 
-                                        maxLength={7}
-                                    />
+                                <div className="flex flex-col sm:flex-row items-center gap-5 pt-6 border-t border-border/10">
+                                    <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
+                                        <Palette className="h-4 w-4 text-muted-foreground/30" />
+                                        <span className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-[0.2em]">Cor Customizada</span>
+                                    </div>
+                                    
+                                    <div className="flex items-center gap-4 w-full flex-1">
+                                        <Input 
+                                            type="color" 
+                                            className="w-12 h-12 p-0 border-0 rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-3 bg-transparent" 
+                                            value={watchColor || "#000000"} 
+                                            onChange={(e) => setValue("color", e.target.value)} 
+                                        />
+                                        <Input 
+                                            placeholder="#HEXADECIMAL" 
+                                            value={watchColor}
+                                            onChange={(e) => setValue("color", e.target.value)}
+                                            className="flex-1 h-12 font-mono text-sm uppercase bg-card border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-wider" 
+                                            maxLength={7}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Status Toggle Area */}

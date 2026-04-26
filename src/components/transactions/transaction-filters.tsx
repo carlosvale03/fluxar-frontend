@@ -147,7 +147,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         <Button 
           variant="outline" 
           size="sm" 
-          className="h-10 relative md:rounded-2xl font-black uppercase tracking-widest text-[10px] px-3 md:px-6 border-primary/20 hover:bg-primary/5 text-primary transition-all flex items-center justify-center shrink-0"
+          className="h-10 relative md:rounded-[32px] font-black uppercase tracking-widest text-[10px] px-3 md:px-6 border-primary/20 hover:bg-primary/5 text-primary transition-all flex items-center justify-center shrink-0"
         >
             <Filter className="md:mr-2 h-4 w-4" /> 
             <span className="hidden md:inline">Refinar Seleção</span>
@@ -163,7 +163,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       </SheetTrigger>
       <SheetContent className="w-full sm:max-w-md overflow-y-auto border-l border-border/40 bg-background/95 backdrop-blur-xl">
         <SheetHeader className="pb-6 border-b border-border/40">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
+          <div className="w-12 h-12 rounded-[20px] bg-primary/10 flex items-center justify-center mb-4">
              <Filter className="h-6 w-6 text-primary" />
           </div>
           <SheetTitle className="text-2xl font-black uppercase tracking-tight">Filtros de Exportação</SheetTitle>
@@ -183,7 +183,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                 <div className="grid grid-cols-2 gap-3">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-2xl border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !startDate && "text-muted-foreground")}>
+                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-[24px] border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !startDate && "text-muted-foreground")}>
                                 {startDate ? format(startDate, "dd/MM/yyyy") : "Início"}
                             </Button>
                         </PopoverTrigger>
@@ -193,7 +193,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                     </Popover>
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-2xl border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !endDate && "text-muted-foreground")}>
+                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-[24px] border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !endDate && "text-muted-foreground")}>
                                 {endDate ? format(endDate, "dd/MM/yyyy") : "Fim"}
                             </Button>
                         </PopoverTrigger>
@@ -211,7 +211,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Tipo de Lançamento</Label>
                 </div>
                 <Select value={type} onValueChange={setType}>
-                    <SelectTrigger className="h-12 rounded-2xl border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                    <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
                         <SelectValue placeholder="Todos os tipos" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl shadow-xl">
@@ -237,7 +237,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Conta / Origem</Label>
                 </div>
                 <Select value={accountId} onValueChange={setAccountId}>
-                    <SelectTrigger className="h-12 rounded-2xl border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                    <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
                         <SelectValue placeholder="Todas as contas" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
@@ -264,7 +264,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Categoria</Label>
                 </div>
                 <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger className="h-12 rounded-2xl border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                    <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
                         <SelectValue placeholder="Todas as categorias" />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
@@ -306,7 +306,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         </div>
 
         <SheetFooter className="flex-col sm:flex-col gap-3 pt-6 border-t border-border/40">
-            <Button className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" onClick={handleApply}>
+            <Button className="w-full h-12 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" onClick={handleApply}>
                 Aplicar Filtros
             </Button>
             <Button variant="ghost" className="w-full h-10 rounded-xl font-black uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100" onClick={handleClear}>
