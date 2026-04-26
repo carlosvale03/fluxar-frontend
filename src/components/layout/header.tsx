@@ -197,16 +197,6 @@ export function Header() {
                           <p className="text-[10px] leading-none text-muted-foreground truncate opacity-70">
                             {user.email}
                           </p>
-                          <div className="mt-1">
-                            <span className={cn(
-                              "text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border",
-                              user.plan === 'COMMON' 
-                                ? "bg-zinc-500/10 text-zinc-500 border-zinc-200 dark:border-zinc-800" 
-                                : "bg-primary/10 text-primary border-primary/20"
-                            )}>
-                              {user.plan}
-                            </span>
-                          </div>
                         </div>
                      </div>
                    </DropdownMenuLabel>
@@ -349,14 +339,6 @@ export function Header() {
                       </div>
                       <div className="flex flex-col min-w-0">
                         <p className="text-sm font-black tracking-tight leading-none truncate mb-1.5">{user.name}</p>
-                        <span className={cn(
-                          "text-[8px] w-fit font-black uppercase tracking-[0.2em] px-2 py-0.5 rounded-full border transition-colors",
-                          user.plan === 'COMMON' 
-                            ? "bg-zinc-500/10 text-zinc-500 border-zinc-200 dark:border-zinc-800" 
-                            : "bg-primary/10 text-primary border-primary/30 shadow-sm group-hover:bg-primary/20"
-                        )}>
-                          {user.plan}
-                        </span>
                       </div>
                     </div>
 

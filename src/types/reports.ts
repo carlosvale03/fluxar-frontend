@@ -151,6 +151,11 @@ export interface AdvancedChartsReport {
         label: string
         amount: number
     }[]
+    period?: {
+        start_date: string
+        end_date: string
+        requested_start_date?: string
+    }
 }
 
 export interface MonthlyComparisonData {

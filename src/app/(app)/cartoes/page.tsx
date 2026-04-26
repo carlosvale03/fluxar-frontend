@@ -130,9 +130,9 @@ export default function CardsPage() {
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2].map((i) => (
+            {[1, 2, 3].map((i) => (
                 <div key={i} className="aspect-[1.586] w-full">
-                    <Skeleton className="h-full w-full rounded-xl" />
+                    <Skeleton className="h-full w-full rounded-[32px]" />
                 </div>
             ))}
         </div>

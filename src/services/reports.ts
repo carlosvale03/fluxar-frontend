@@ -92,7 +92,8 @@ export const getAdvancedCharts = async (period?: string): Promise<AdvancedCharts
         fixed_vs_variable: data.fixed_vs_variable,
         daily_spending_report: data.daily_spending_report,
         risk_analysis: data.risk_analysis,
-        spend_by_weekday: data.spend_by_weekday || []
+        spend_by_weekday: data.spend_by_weekday || [],
+        period: data.period
     }
 }
 

@@ -185,20 +185,6 @@ export default function ProfilePage() {
   return (
     <div className="container mx-auto py-10 px-4 max-w-5xl space-y-8 mb-20 animate-in fade-in duration-500">
       
-      {/* Banner de Plano Premium */}
-      <div className="mb-8 p-4 rounded-[32px] bg-primary/5 border border-primary/10 text-primary/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-          <Badge className="bg-primary/20 text-primary border-none text-[10px] uppercase font-black">
-            {user?.plan === 'COMMON' ? 'FREE' : 'PRO'}
-          </Badge>
-        </div>
-        <div className="flex-1 space-y-1">
-          <p className="font-bold text-sm">Você está no {formatPlanName(user?.plan)}</p>
-          <p className="text-xs leading-relaxed max-w-2xl opacity-80">
-            Aproveite todos os recursos {user?.plan === 'COMMON' ? 'assinando o Premium' : 'disponíveis na sua conta'} para um controle financeiro completo e inteligente.
-          </p>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Sidebar Info */}
@@ -358,9 +344,6 @@ export default function ProfilePage() {
                   Verificado
                 </Badge>
               )}
-              <Badge className="rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20">
-                {user?.plan}
-              </Badge>
             </div>
           </CardContent>
         </Card>

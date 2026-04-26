@@ -129,7 +129,14 @@ export function MonthlyComparisonChart({
                                         interval={0}
                                         padding={{ left: 20, right: 20 }}
                                     />
-                                    <YAxis hide />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        fontSize={10}
+                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                        tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                        width={45}
+                                    />
                                     <Tooltip 
                                         cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
                                         content={({ active, payload, label }) => {
@@ -201,7 +208,14 @@ export function MonthlyComparisonChart({
                                         interval={0}
                                         padding={{ left: 30, right: 30 }}
                                     />
-                                    <YAxis hide />
+                                    <YAxis 
+                                        axisLine={false} 
+                                        tickLine={false} 
+                                        fontSize={10}
+                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                        tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                        width={45}
+                                    />
                                     <Tooltip 
                                         content={({ active, payload, label }) => {
                                             if (active && payload && payload.length) {
