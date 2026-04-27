@@ -25,7 +25,8 @@ import {
   AlertCircle, 
   XCircle,
   FileText,
-  Table as TableIcon
+  Table as TableIcon,
+  Info
 } from "lucide-react"
 import { api } from "@/services/apiClient"
 import { Account } from "@/types/accounts"
@@ -137,141 +138,185 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl">
-        <DialogHeader>
-          <DialogTitle className="font-black uppercase tracking-tight flex items-center gap-2">
-            {type === "OFX" ? <FileText className="h-5 w-5" /> : <TableIcon className="h-5 w-5" />}
-            Importar {type}
-          </DialogTitle>
-          <DialogDescription className="text-xs font-medium">
-            {summary ? "Resumo do processamento" : "Selecione o arquivo e as configurações de destino."}
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="sm:max-w-[500px] rounded-[32px] border-border/60 bg-card shadow-2xl overflow-hidden p-0">
+        <div className="p-6">
+          <DialogHeader className="mb-6">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-primary/10 text-primary">
+                {type === "OFX" ? <FileText className="h-6 w-6" /> : <TableIcon className="h-6 w-6" />}
+              </div>
+              <div>
+                <DialogTitle className="text-2xl font-black tracking-tight">
+                  Importar {type}
+                </DialogTitle>
+                <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">
+                  {summary ? "Resumo do processamento" : "Selecione o arquivo e as configurações de destino."}
+                </DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
 
         <div className="max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar space-y-6 py-2">
         {!summary ? (
           <div className="space-y-6">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Conta de Destino</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Conta de Destino</Label>
               <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                <SelectTrigger className="rounded-2xl border-border/40 bg-muted/20">
+                <SelectTrigger className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold focus:ring-primary/20">
                   <SelectValue placeholder="Selecione a conta" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
                   {accounts.map(acc => (
-                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
+                    <SelectItem key={acc.id} value={acc.id} className="rounded-xl font-bold">{acc.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Arquivo ({type === "OFX" ? ".ofx" : ".csv, .xls, .xlsx"})</Label>
+              <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Arquivo ({type === "OFX" ? ".ofx" : ".csv, .xls, .xlsx"})</Label>
               <div className="relative group">
                 <Input 
                   type="file" 
                   accept={type === "OFX" ? ".ofx" : ".csv, .xls, .xlsx"}
-                  className="rounded-2xl border-border/40 bg-muted/20 file:bg-primary file:text-primary-foreground file:font-black file:uppercase file:text-[10px] file:tracking-widest file:rounded-lg file:border-0 file:mr-4 file:px-4 cursor-pointer"
+                  className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold focus:ring-primary/20 file:bg-primary file:text-primary-foreground file:font-black file:uppercase file:text-[10px] file:tracking-widest file:rounded-xl file:border-0 file:mr-4 file:px-4 file:h-full cursor-pointer p-0"
                   onChange={handleFileChange}
                 />
               </div>
             </div>
 
             {type === "SPREADSHEET" && (
-              <div className="p-4 rounded-[24px] bg-muted/30 border border-border/40 space-y-4 animate-in fade-in zoom-in duration-300">
-                <h4 className="text-[10px] font-black uppercase tracking-widest opacity-50">Mapeamento de Colunas (Nome exato)</h4>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase">Data *</Label>
-                    <Input 
-                      placeholder="Ex: Data" 
-                      className="h-8 rounded-xl text-xs" 
-                      value={mapping.date_column}
-                      onChange={(e) => setMapping({...mapping, date_column: e.target.value})}
-                    />
+              <div className="p-5 rounded-[24px] bg-muted/5 border border-border/40 space-y-6 animate-in fade-in zoom-in duration-300">
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1.5 h-4 bg-primary rounded-full" />
+                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Mapeamento de Colunas</h4>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase">Valor * (inclui +/-)</Label>
-                    <Input 
-                      placeholder="Ex: Valor" 
-                      className="h-8 rounded-xl text-xs"
-                      value={mapping.amount_column}
-                      onChange={(e) => setMapping({...mapping, amount_column: e.target.value})}
-                    />
+                  <p className="text-[10px] text-muted-foreground/60 leading-tight pl-3.5">
+                    Digite o nome da coluna **exatamente** como aparece no cabeçalho do seu arquivo.
+                  </p>
+                </div>
+
+                {/* Seção: Obrigatórios */}
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 opacity-40">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap">Campos Obrigatórios</span>
+                    <span className="h-px flex-1 bg-border" />
                   </div>
-                  <div className="col-span-2 space-y-1">
-                    <Label className="text-[9px] font-bold uppercase">Descrição *</Label>
-                    <Input 
-                      placeholder="Ex: Descrição / Histórico" 
-                      className="h-8 rounded-xl text-xs"
-                      value={mapping.description_column}
-                      onChange={(e) => setMapping({...mapping, description_column: e.target.value})}
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground pl-1">Data do Lançamento *</Label>
+                      <Input 
+                        placeholder="Ex: Data, Vencimento" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs" 
+                        value={mapping.date_column}
+                        onChange={(e) => setMapping({...mapping, date_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground pl-1">Valor Financeiro *</Label>
+                      <Input 
+                        placeholder="Ex: Valor, Total, Quantia" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.amount_column}
+                        onChange={(e) => setMapping({...mapping, amount_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="col-span-1 md:col-span-2 space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground pl-1">Descrição / Histórico *</Label>
+                      <Input 
+                        placeholder="Ex: Descrição, Nome da Transação, Detalhes" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.description_column}
+                        onChange={(e) => setMapping({...mapping, description_column: e.target.value})}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase opacity-60">Tipo</Label>
-                    <Input 
-                      placeholder="Receita/Despesa" 
-                      className="h-8 rounded-xl text-xs opacity-80"
-                      value={mapping.type_column}
-                      onChange={(e) => setMapping({...mapping, type_column: e.target.value})}
-                    />
+                </div>
+
+                {/* Seção: Opcionais */}
+                <div className="space-y-4 pt-2">
+                  <div className="flex items-center gap-2 opacity-40">
+                    <span className="h-px flex-1 bg-border" />
+                    <span className="text-[8px] font-black uppercase tracking-widest whitespace-nowrap">Informações Adicionais</span>
+                    <span className="h-px flex-1 bg-border" />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase opacity-60">Situação</Label>
-                    <Input 
-                      placeholder="Pendente/Liquidado" 
-                      className="h-8 rounded-xl text-xs opacity-80"
-                      value={mapping.status_column}
-                      onChange={(e) => setMapping({...mapping, status_column: e.target.value})}
-                    />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Tipo (E/S)</Label>
+                      <Input 
+                        placeholder="Ex: Tipo, Natureza" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.type_column}
+                        onChange={(e) => setMapping({...mapping, type_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Situação</Label>
+                      <Input 
+                        placeholder="Ex: Status, Situação" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.status_column}
+                        onChange={(e) => setMapping({...mapping, status_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Categoria</Label>
+                      <Input 
+                        placeholder="Ex: Categoria" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.category_column}
+                        onChange={(e) => setMapping({...mapping, category_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Subcategoria</Label>
+                      <Input 
+                        placeholder="Ex: Subcategoria" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.subcategory_column}
+                        onChange={(e) => setMapping({...mapping, subcategory_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Tags (Etiquetas)</Label>
+                      <Input 
+                        placeholder="Ex: Tags, Marcadores" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.tags_column}
+                        onChange={(e) => setMapping({...mapping, tags_column: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta Bancária</Label>
+                      <Input 
+                        placeholder="Ex: Conta, Origem" 
+                        className="h-10 rounded-xl bg-background border-border/40 font-bold focus-visible:ring-primary/20 text-xs"
+                        value={mapping.account_column}
+                        onChange={(e) => setMapping({...mapping, account_column: e.target.value})}
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase opacity-60">Categoria</Label>
-                    <Input 
-                      placeholder="Ex: Categoria" 
-                      className="h-8 rounded-xl text-xs opacity-80"
-                      value={mapping.category_column}
-                      onChange={(e) => setMapping({...mapping, category_column: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase opacity-60">Subcategoria</Label>
-                    <Input 
-                      placeholder="Ex: Subcategoria" 
-                      className="h-8 rounded-xl text-xs opacity-80"
-                      value={mapping.subcategory_column}
-                      onChange={(e) => setMapping({...mapping, subcategory_column: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase opacity-60">Tags</Label>
-                    <Input 
-                      placeholder="Tags separadas por vírgula" 
-                      className="h-8 rounded-xl text-xs opacity-80"
-                      value={mapping.tags_column}
-                      onChange={(e) => setMapping({...mapping, tags_column: e.target.value})}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-[9px] font-bold uppercase opacity-60">Conta</Label>
-                    <Input 
-                      placeholder="Ex: Banco / Carteira" 
-                      className="h-8 rounded-xl text-xs opacity-80"
-                      value={mapping.account_column}
-                      onChange={(e) => setMapping({...mapping, account_column: e.target.value})}
-                    />
-                  </div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3 items-start">
+                  <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
+                  <p className="text-[10px] text-primary/70 leading-relaxed font-medium">
+                    Se você não mapear uma coluna de <strong>Conta</strong>, usaremos a <strong>{accounts.find(a => a.id === selectedAccountId)?.name || "selecionada acima"}</strong> para todos os registros.
+                  </p>
                 </div>
               </div>
             )}
 
             <Button 
-                className="w-full rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 shadow-lg shadow-primary/20"
+                className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-14 shadow-xl shadow-primary/20 hover:scale-[1.02] hover:shadow-2xl active:scale-[0.98] transition-all"
                 onClick={handleImport}
                 disabled={isLoading || !file || !selectedAccountId}
             >
-              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4 mr-2" />}
+              {isLoading ? <Loader2 className="h-5 w-5 animate-spin mr-2" /> : <Upload className="h-5 w-5 mr-2" />}
               {isLoading ? "Processando..." : "Confirmar Importação"}
             </Button>
           </div>
@@ -302,13 +347,14 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
              <Button 
                variant="outline" 
-               className="w-full rounded-2xl font-black uppercase tracking-widest text-[10px] h-12"
+               className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-14 border-border/40 hover:bg-muted/50 transition-all"
                onClick={() => onOpenChange(false)}
              >
                Fechar e Atualizar
              </Button>
           </div>
         )}
+        </div>
         </div>
       </DialogContent>
     </Dialog>

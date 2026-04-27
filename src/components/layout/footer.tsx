@@ -1,3 +1,5 @@
+import Link from "next/link"
+
 export function Footer() {
   const currentYear = new Date().getFullYear();
 
@@ -8,9 +10,8 @@ export function Footer() {
           © {currentYear} <span className="font-bold text-muted-foreground/80">Fluxar</span>. Todos os direitos reservados.
         </p>
         <nav className="flex items-center gap-6">
-          <a href="#" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer">Termos</a>
-          <a href="#" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer">Privacidade</a>
-          <a href="#" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary transition-colors cursor-pointer">Ajuda</a>
+          <Link href="/sobre" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary transition-colors">Sobre Nós</Link>
+          <Link href="/termos" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 hover:text-primary transition-colors">Termos & Privacidade</Link>
         </nav>
       </div>
     </footer>
