@@ -216,14 +216,13 @@ export default function ImportExportPage() {
 
         <TabsContent value="import" className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* OFX Card */}
-            <Card className="border-border/40 bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all">
+            <Card className="border-border/60 bg-card rounded-3xl shadow-sm hover:bg-muted/30 hover:border-primary/20 hover:shadow-md transition-all group">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-primary/10 text-primary group-hover:scale-110 transition-transform">
                     <FileText className="h-6 w-6" />
                   </div>
-                  <Badge variant="secondary" className="font-black text-[10px] uppercase tracking-widest">Recomendado</Badge>
+                  <Badge variant="secondary" className="font-black text-[9px] uppercase tracking-widest px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">Recomendado</Badge>
                 </div>
                 <CardTitle className="mt-4 font-black uppercase tracking-tight">Arquivos OFX</CardTitle>
                 <CardDescription className="text-xs font-medium">
@@ -232,7 +231,7 @@ export default function ImportExportPage() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <Button 
-                    className="w-full font-black uppercase tracking-widest text-[10px] rounded-xl h-10"
+                    className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 shadow-md shadow-primary/20"
                     onClick={() => handleOpenImport("OFX")}
                 >
                   Configurar Importação OFX
@@ -241,10 +240,10 @@ export default function ImportExportPage() {
             </Card>
 
             {/* CSV/XLS Card */}
-            <Card className="border-border/40 bg-card/50 backdrop-blur-sm shadow-sm hover:shadow-md transition-all">
+            <Card className="border-border/60 bg-card rounded-3xl shadow-sm hover:bg-muted/30 hover:border-blue-500/20 hover:shadow-md transition-all group">
               <CardHeader>
                 <div className="flex items-center gap-4">
-                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-500">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
                     <TableIcon className="h-6 w-6" />
                   </div>
                 </div>
@@ -256,7 +255,7 @@ export default function ImportExportPage() {
               <CardContent className="space-y-4">
                 <Button 
                     variant="outline" 
-                    className="w-full font-black uppercase tracking-widest text-[10px] rounded-xl h-10 border-blue-500/20 hover:bg-blue-500/5 text-blue-500"
+                    className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 border-blue-500/20 hover:bg-blue-500/10 text-blue-500"
                     onClick={() => handleOpenImport("SPREADSHEET")}
                 >
                   Mapear Colunas e Importar
@@ -265,12 +264,16 @@ export default function ImportExportPage() {
             </Card>
           </div>
 
-          <Alert className="bg-primary/5 border-primary/20 rounded-2xl">
-            <Info className="h-4 w-4 text-primary" />
-            <AlertTitle className="font-black uppercase tracking-widest text-[10px] text-primary">Dica de Importação</AlertTitle>
-            <AlertDescription className="text-xs font-medium text-primary/80">
-              Arquivos OFX são processados automaticamente sem necessidade de mapeamento manual. Para planilhas, você poderá escolher quais colunas representam data, valor e descrição.
-            </AlertDescription>
+          <Alert className="bg-primary/5 border-primary/10 rounded-3xl flex items-start gap-4 p-4 mt-8">
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Info className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <AlertTitle className="font-bold text-sm text-primary mb-1">Dica de Importação</AlertTitle>
+              <AlertDescription className="text-xs leading-relaxed text-primary/80">
+                Arquivos OFX são processados automaticamente sem necessidade de mapeamento manual. Para planilhas, você poderá escolher quais colunas representam data, valor e descrição.
+              </AlertDescription>
+            </div>
           </Alert>
         </TabsContent>
 
@@ -286,13 +289,13 @@ export default function ImportExportPage() {
                   A exportação detalhada de dados em PDF e XLS está disponível apenas para assinantes **Premium** e **Premium Plus**.
                 </p>
               </div>
-              <Button asChild className="rounded-2xl font-black uppercase tracking-widest text-xs px-8 h-12 bg-amber-500 hover:bg-amber-600 border-0 shadow-lg shadow-amber-500/20 text-white">
+              <Button asChild className="rounded-full font-black uppercase tracking-widest text-[10px] px-8 h-12 bg-amber-500 hover:bg-amber-600 border-0 shadow-lg shadow-amber-500/20 text-white">
                 <Link href="/perfil">Seja Premium Agora</Link>
               </Button>
             </div>
           ) : (
             <div className="space-y-6">
-              <Card className="border-border/40 bg-card/50 backdrop-blur-sm shadow-sm md:rounded-[40px]">
+              <Card className="border-border/60 bg-card shadow-sm md:rounded-[40px]">
                 <CardHeader className="flex flex-row items-center justify-between pb-8">
                   <div className="space-y-1">
                     <CardTitle className="font-black uppercase tracking-tight">Exportar Dados</CardTitle>
@@ -304,55 +307,59 @@ export default function ImportExportPage() {
                   />
                 </CardHeader>
                 <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                  <div className="p-6 rounded-[32px] bg-muted/20 border border-border/40 space-y-4 hover:border-primary/20 transition-all group">
+                  <div className="p-6 rounded-[32px] bg-muted/20 border border-border/40 space-y-6 hover:border-primary/20 hover:bg-muted/30 transition-all group">
                      <div className="flex items-center justify-between">
-                        <div className="p-3 rounded-2xl bg-primary/10 text-primary group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-primary/10 text-primary group-hover:scale-110 transition-transform">
                            <FileText className="h-6 w-6" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Documento</span>
                      </div>
                      <div>
                         <h4 className="font-black uppercase tracking-tight">Relatório em PDF</h4>
-                        <p className="text-xs text-muted-foreground">Ideal para impressão e conferência visual.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Ideal para impressão e conferência visual.</p>
                      </div>
                      <Button 
-                        className="w-full rounded-2xl font-black uppercase tracking-widest text-[10px] h-10"
+                        className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12"
                         onClick={() => handleExport('PDF')}
                         disabled={isExporting}
                      >
-                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar PDF"}
+                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Gerar PDF"}
                      </Button>
                   </div>
 
-                  <div className="p-6 rounded-[32px] bg-muted/20 border border-border/40 space-y-4 hover:border-blue-500/20 transition-all group">
+                  <div className="p-6 rounded-[32px] bg-muted/20 border border-border/40 space-y-6 hover:border-blue-500/20 hover:bg-muted/30 transition-all group">
                      <div className="flex items-center justify-between">
-                        <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-blue-500/10 text-blue-500 group-hover:scale-110 transition-transform">
                            <TableIcon className="h-6 w-6" />
                         </div>
                         <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Planilha</span>
                      </div>
                      <div>
                         <h4 className="font-black uppercase tracking-tight">Dados em Excel (XLS)</h4>
-                        <p className="text-xs text-muted-foreground">Ideal para análise profunda e manipulação.</p>
+                        <p className="text-xs text-muted-foreground mt-1">Ideal para análise profunda e manipulação.</p>
                      </div>
                      <Button 
                         variant="outline" 
-                        className="w-full rounded-2xl font-black uppercase tracking-widest text-[10px] h-10 border-blue-500/20 hover:bg-blue-500/5 text-blue-500"
+                        className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 border-blue-500/20 hover:bg-blue-500/10 text-blue-500"
                         onClick={() => handleExport('XLS')}
                         disabled={isExporting}
                      >
-                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Gerar XLS"}
+                        {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Gerar XLS"}
                      </Button>
                   </div>
                 </CardContent>
               </Card>
 
-              <Alert className="bg-blue-500/5 border-blue-500/20 rounded-2xl">
-                <Info className="h-4 w-4 text-blue-500" />
-                <AlertTitle className="font-black uppercase tracking-widest text-[10px] text-blue-500">Dica de Filtros</AlertTitle>
-                <AlertDescription className="text-xs font-medium text-blue-500/80">
-                  A exportação respeita exatamente os filtros aplicados. Você pode exportar apenas receitas de uma categoria específica ou gastos de um único cartão, por exemplo.
-                </AlertDescription>
+              <Alert className="bg-blue-500/5 border-blue-500/10 rounded-3xl flex items-start gap-4 p-4 mt-8">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <Info className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <AlertTitle className="font-bold text-sm text-blue-500 mb-1">Dica de Filtros</AlertTitle>
+                  <AlertDescription className="text-xs leading-relaxed text-blue-500/80">
+                    A exportação respeita exatamente os filtros aplicados. Você pode exportar apenas receitas de uma categoria específica ou gastos de um único cartão, por exemplo.
+                  </AlertDescription>
+                </div>
               </Alert>
             </div>
           )}
