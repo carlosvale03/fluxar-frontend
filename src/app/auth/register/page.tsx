@@ -14,7 +14,9 @@ import { api } from "@/services/apiClient"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
-import { AlertCircle, UserPlus } from "lucide-react"
+import { AlertCircle, UserPlus, ShieldCheck } from "lucide-react"
+import { Controller } from "react-hook-form"
+import { Checkbox } from "@/components/ui/checkbox"
 
 const registerSchema = z.object({
   name: z.string()
@@ -30,6 +32,9 @@ const registerSchema = z.object({
       message: "A senha não pode ser puramente numérica",
     }),
   confirmPassword: z.string().min(1, "A confirmação de senha é obrigatória"),
+  termsAccepted: z.boolean().refine(val => val === true, {
+    message: "Você deve aceitar os termos para continuar",
+  }),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não conferem",
   path: ["confirmPassword"],
@@ -49,8 +54,11 @@ export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   
-  const { register, handleSubmit, setError, formState: { errors } } = useForm<RegisterForm>({
+  const { register, handleSubmit, setError, control, formState: { errors } } = useForm<RegisterForm>({
     resolver: zodResolver(registerSchema),
+    defaultValues: {
+      termsAccepted: false,
+    }
   })
 
   const onSubmit = async (data: RegisterForm) => {
@@ -61,7 +69,8 @@ export default function RegisterPage() {
         name: data.name,
         email: data.email,
         password: data.password,
-        password_confirm: data.confirmPassword
+        password_confirm: data.confirmPassword,
+        terms_accepted: data.termsAccepted
       }
       
       await api.post("/auth/register/", payload)
@@ -174,6 +183,39 @@ export default function RegisterPage() {
               {errors.confirmPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider leading-tight">{errors.confirmPassword.message}</p>}
             </motion.div>
           </div>
+
+          <motion.div variants={itemVariants} className="flex flex-col gap-2 pt-2">
+            <div className="flex items-start gap-3 p-4 rounded-[24px] bg-muted/5 border border-border/40 hover:bg-muted/10 transition-colors cursor-pointer group relative">
+              <Controller
+                control={control}
+                name="termsAccepted"
+                render={({ field }) => (
+                  <Checkbox 
+                    id="termsAccepted"
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                    className="mt-1 h-5 w-5 rounded-lg border-2 border-primary/40 data-[state=checked]:border-primary"
+                  />
+                )}
+              />
+              <div className="space-y-1 select-none flex-1">
+                <label 
+                  htmlFor="termsAccepted" 
+                  className="text-xs font-bold text-foreground/80 leading-tight cursor-pointer block"
+                >
+                  Eu li e concordo com os <Link href="/termos" target="_blank" className="text-primary hover:underline underline-offset-4 decoration-2">Termos de Uso e Política de Privacidade</Link>.
+                </label>
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  Seus dados financeiros são criptografados e protegidos.
+                </p>
+              </div>
+            </div>
+            {errors.termsAccepted && (
+              <p className="text-[10px] font-bold text-destructive uppercase ml-1 tracking-wider leading-tight">
+                {errors.termsAccepted.message}
+              </p>
+            )}
+          </motion.div>
 
           <motion.div variants={itemVariants} className="pt-4">
             <Button 
