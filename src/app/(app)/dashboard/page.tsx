@@ -37,6 +37,7 @@ import { DashboardCustomizer, DashboardModuleConfig, getInitialConfig } from "@/
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { BarChart3, PieChart as PieIcon } from "lucide-react"
 
+import { CreditCardItem } from "@/components/cards/credit-card-item"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -565,56 +566,23 @@ export default function DashboardPage() {
                                             span >= 12 ? "md:grid-cols-2 lg:grid-cols-3" : (span >= 8 ? "md:grid-cols-2" : "md:grid-cols-1")
                                         )}>
                                             {report.credit_cards?.map((card) => {
-                                                const usagePercentage = Math.min((Number(card.current_invoice) / Number(card.limit)) * 100, 100)
-                                                const isNearLimit = usagePercentage > 80
+                                                const mappedCard = {
+                                                    ...card,
+                                                    current_invoice_total: card.current_invoice,
+                                                    account_id: "",
+                                                    closing_day: 0,
+                                                    created_at: "",
+                                                    updated_at: ""
+                                                } as any
                                                 
                                                 return (
-                                                    <Card key={card.id} className="border border-border/60 bg-card shadow-md hover:shadow-xl rounded-2xl overflow-hidden group hover:border-amber-500/30 transition-all duration-500">
-                                                        <CardContent className="p-6 space-y-5">
-                                                            <div className="flex items-start justify-between">
-                                                                <div className="flex items-center gap-4">
-                                                                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ring-1 ring-black/5 dark:ring-white/10" style={{ backgroundColor: `${card.color}15`, color: card.color }}>
-                                                                        <CreditCardIcon className="h-5 w-5" />
-                                                                    </div>
-                                                                    <div>
-                                                                        <h3 className="text-base font-black tracking-tight truncate max-w-[120px] uppercase">{card.name}</h3>
-                                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-40">{card.institution}</p>
-                                                                    </div>
-                                                                </div>
-                                                                <div className="flex items-center gap-1.5 bg-muted/30 px-2 py-1 rounded-lg shrink-0">
-                                                                    <Calendar className="h-3 w-3 text-muted-foreground/60" />
-                                                                    <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/80">Vence {card.due_day}</span>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="grid grid-cols-2 gap-4 pb-1">
-                                                                <div className="space-y-1">
-                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Fatura Atual</p>
-                                                                    <p className="text-lg font-black text-amber-600 dark:text-amber-500">{formatCurrencyShort(card.current_invoice)}</p>
-                                                                </div>
-                                                                <div className="space-y-1 text-right">
-                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Limite Disp.</p>
-                                                                    <p className="text-lg font-black text-emerald-600 dark:text-emerald-500">{formatCurrencyShort(card.available_limit)}</p>
-                                                                </div>
-                                                            </div>
-
-                                                            <div className="space-y-2">
-                                                                <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest opacity-40">
-                                                                    <span>Uso do Limite</span>
-                                                                    <span>{Math.round(usagePercentage)}%</span>
-                                                                </div>
-                                                                <div className="h-1.5 w-full bg-muted/40 rounded-full overflow-hidden">
-                                                                    <div 
-                                                                        className={cn(
-                                                                            "h-full transition-all duration-1000 ease-out", 
-                                                                            isNearLimit ? "bg-rose-500" : (usagePercentage > 50 ? "bg-amber-500" : "bg-emerald-500")
-                                                                        )} 
-                                                                        style={{ width: `${usagePercentage}%` }} 
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        </CardContent>
-                                                    </Card>
+                                                    <div key={card.id} className="w-full">
+                                                        <CreditCardItem 
+                                                            card={mappedCard} 
+                                                            onEdit={() => {}} 
+                                                            onDelete={() => {}} 
+                                                        />
+                                                    </div>
                                                 )
                                             })}
                                         </div>
