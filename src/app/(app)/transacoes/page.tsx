@@ -56,11 +56,12 @@ import { cn } from "@/lib/utils"
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
 
 export default function TransactionsPage() {
-  const [allData, setAllData] = useState<Transaction[]>([])
-  const [data, setData] = useState<Transaction[]>([]) // Displayed data (page)
+  const [data, setData] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(0)
   const [accounts, setAccounts] = useState<Account[]>([])
 
   // Period View State
@@ -206,19 +207,29 @@ export default function TransactionsPage() {
   const fetchTransactions = async () => {
     try {
       setIsLoading(true)
-      // Backend removed pagination (returning all items).
-      const response = await api.get(`/transactions/`)
       
-      let transactions: Transaction[] = []
+      const params = new URLSearchParams()
+      params.append('page', page.toString())
+      params.append('page_size', pageSize.toString())
       
-      // Handle both array (no pagination) and object (if they kept a wrapper like { results: ... })
-      if (Array.isArray(response.data)) {
-         transactions = response.data
-      } else if (response.data.results) {
-        transactions = response.data.results
-      }
+      if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
+      if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
+      if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
+      if (filters.categoryId && filters.categoryId !== 'ALL') params.append('categoryId', filters.categoryId)
+      if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
+      if (search) params.append('search', search)
 
-      setAllData(transactions)
+      const response = await api.get(`/transactions/?${params.toString()}`)
+      
+      if (response.data.results) {
+        setData(response.data.results)
+        setTotal(response.data.count)
+        setTotalPages(response.data.total_pages)
+      } else if (Array.isArray(response.data)) {
+        setData(response.data)
+        setTotal(response.data.length)
+        setTotalPages(1)
+      }
     } catch (error: any) {
       console.error("Failed to fetch transactions", error)
       toast.error("Erro ao carregar transações.")
@@ -241,82 +252,13 @@ export default function TransactionsPage() {
     fetchAccounts()
   }, [])
 
-  // Apply filters and pagination client-side
   useEffect(() => {
-    let filtered = [...allData]
+    fetchTransactions()
+  }, [page, pageSize, filters, search])
 
-    // Type filter
-    if (filters.type !== "ALL") {
-        if (filters.type === 'EXPENSE') {
-             // Include Credit Card expenses and Invoice Payments in "Despesas" view if desired, 
-             // but user specifically asked for Card Expenses.
-             filtered = filtered.filter(t => ['EXPENSE', 'CREDIT_CARD', 'CREDIT_CARD_EXPENSE', 'INVOICE_PAYMENT'].includes(t.type))
-        } else if (filters.type === 'TRANSFER') {
-             filtered = filtered.filter(t => ['TRANSFER', 'TRANSFER_OUT', 'TRANSFER_IN'].includes(t.type))
-        } else {
-             filtered = filtered.filter(t => t.type === filters.type)
-        }
-    }
-
-    // Category Filter
-    if (filters.categoryId !== "ALL") {
-        filtered = filtered.filter(t => {
-            // Check both category ID (if flat) or category_detail.id
-            return t.category === filters.categoryId || t.category_detail?.id === filters.categoryId
-        })
-    }
-
-    // Account Filter
-    if (filters.accountId !== "ALL") {
-        filtered = filtered.filter(t => {
-            return t.account === filters.accountId
-        })
-    }
-
-    // Date Range Filter
-    if (filters.startDate) {
-        const start = startOfDay(filters.startDate)
-        filtered = filtered.filter(t => {
-            const date = parseISO(t.date)
-            return isAfter(date, start) || date.getTime() === start.getTime()
-        })
-    }
-
-    if (filters.endDate) {
-        const end = endOfDay(filters.endDate)
-        filtered = filtered.filter(t => {
-             const date = parseISO(t.date)
-             return isBefore(date, end) || date.getTime() === end.getTime()
-        })
-    }
-
-    // Search filter
-    if (search) {
-        const lowerSearch = search.toLowerCase()
-        filtered = filtered.filter(t => 
-            t.description.toLowerCase().includes(lowerSearch) ||
-            t.amount.toString().includes(search)
-        )
-    }
-
-    setTotal(filtered.length)
-
-    // Pagination (Client-side)
-    const pageSize = 20
-    const start = (page - 1) * pageSize
-    const end = start + pageSize
-    setData(filtered.slice(start, end))
-    
-    // Reset to page 1 if search/filter changes
-    // But we need to distinguish between page change and filter change.
-    // For simplicity, we won't auto-reset page here to avoid infinite loops unless we track deps carefully.
-    // Actually, if filter changes, usually we want to go to page 1.
-    // We can handle that in the setters of filters.
-  }, [allData, page, filters, search])
-  
   // Reset page when filters change
   useEffect(() => {
-      setPage(1)
+    if (page !== 1) setPage(1)
   }, [filters, search])
 
   // Helper to format currency
@@ -920,26 +862,48 @@ export default function TransactionsPage() {
           </Table>
       </Card>
       
-      <div className="flex items-center justify-end space-x-2 py-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage(p => Math.max(1, p - 1))}
-          disabled={page === 1 || isLoading}
-        >
-          Anterior
-        </Button>
-        <span className="text-sm text-muted-foreground font-medium">
-             Página {page} de {Math.max(1, Math.ceil(total / 20))}
-        </span>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setPage(p => Math.min(Math.ceil(total / 20), p + 1))}
-          disabled={page >= Math.ceil(total / 20) || isLoading}
-        >
-          Próximo
-        </Button>
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8">
+        <div className="flex items-center gap-3">
+            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Exibir</span>
+            <select 
+                value={pageSize} 
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="bg-card border border-border/40 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+            >
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+            </select>
+            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">de {total} transações</span>
+        </div>
+
+        <div className="flex items-center gap-2">
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1 || isLoading}
+                className="rounded-xl h-9 font-bold text-xs px-4"
+            >
+                Anterior
+            </Button>
+            <div className="flex items-center gap-1 px-4 h-9 bg-muted/30 rounded-xl border border-border/20">
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Página</span>
+                <span className="text-xs font-black tabular-nums">{page}</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mx-1">de</span>
+                <span className="text-xs font-black tabular-nums">{Math.max(1, totalPages)}</span>
+            </div>
+            <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page >= totalPages || isLoading}
+                className="rounded-xl h-9 font-bold text-xs px-4"
+            >
+                Próximo
+            </Button>
+        </div>
       </div>
     </div>
   )
