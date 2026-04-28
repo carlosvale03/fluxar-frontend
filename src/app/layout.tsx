@@ -22,6 +22,8 @@ export const metadata: Metadata = {
   description: "Gerencie suas finanças com fluxo e fluidez.",
 };
 
+import { ServerWakeupOverlay } from "@/components/ui/server-wakeup-overlay";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -44,6 +46,7 @@ export default function RootLayout({
               {children}
             </main>
             <Footer />
+            <ServerWakeupOverlay />
             <Toaster richColors closeButton position="top-right" />
           </AuthProvider>
         </ThemeProvider>

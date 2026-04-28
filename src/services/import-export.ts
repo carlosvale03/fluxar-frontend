@@ -17,6 +17,8 @@ export interface SpreadsheetMapping {
   subcategory_column?: string;
   tags_column?: string;
   account_column?: string;
+  source_account_column?: string;
+  dest_account_column?: string;
 }
 
 export const importExportService = {
@@ -38,17 +40,43 @@ export const importExportService = {
   },
 
   /**
+   * Realiza o pré-processamento da planilha para extrair contas únicas
+   */
+  preflightSpreadsheet: async (
+    file: File,
+    mapping: SpreadsheetMapping,
+    importType: "INCOME_EXPENSE" | "TRANSFER"
+  ): Promise<{ accounts: string[] }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("mapping", JSON.stringify(mapping));
+    formData.append("import_type", importType);
+
+    const response = await api.post("/import/spreadsheet/preflight/", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data;
+  },
+
+  /**
    * Importa transações via planilha (CSV/XLS/XLSX)
    */
   importSpreadsheet: async (
     file: File,
     accountId: string,
-    mapping: SpreadsheetMapping
+    mapping: SpreadsheetMapping,
+    importType: "INCOME_EXPENSE" | "TRANSFER" = "INCOME_EXPENSE",
+    accountMapping?: Record<string, string>
   ): Promise<ImportSummary> => {
     const formData = new FormData();
     formData.append("file", file);
-    formData.append("account_id", accountId);
+    if (accountId) formData.append("account_id", accountId);
     formData.append("mapping", JSON.stringify(mapping));
+    formData.append("import_type", importType);
+    if (accountMapping) formData.append("account_mapping", JSON.stringify(accountMapping));
 
     const response = await api.post("/import/spreadsheet/", formData, {
       headers: {

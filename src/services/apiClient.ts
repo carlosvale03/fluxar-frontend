@@ -1,5 +1,9 @@
 import axios from "axios"
 
+import { serverStatusManager } from "./serverStatus"
+
+const SHOULD_SHOW_WAKEUP = process.env.NEXT_PUBLIC_SHOW_WAKEUP_MESSAGE === "true"
+
 export const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
   headers: {
@@ -7,12 +11,20 @@ export const api = axios.create({
   },
 })
 
-// Intercept requests to add types
+// Intercept requests to add tokens and monitor status
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("fluxar.token")
   
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+  }
+
+  // Monitoramento de Wake-up
+  if (SHOULD_SHOW_WAKEUP) {
+      const requestId = Math.random().toString(36).substring(7)
+      // @ts-ignore
+      config._requestId = requestId
+      serverStatusManager.startRequest(requestId)
   }
   
   return config
@@ -34,10 +46,19 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = []
 }
 
-// Intercept responses to handle auth errors
+// Intercept responses to handle auth errors and monitor status
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // @ts-ignore
+    const requestId = response.config?._requestId
+    if (requestId) serverStatusManager.endRequest(requestId)
+    return response
+  },
   async (error) => {
+    // @ts-ignore
+    const requestId = error.config?._requestId
+    if (requestId) serverStatusManager.endRequest(requestId)
+
     const originalRequest = error.config
 
     if (error.response?.status === 401 && !originalRequest._retry) {
