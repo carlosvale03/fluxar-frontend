@@ -37,6 +37,8 @@ export type DashboardModuleId =
     | "INCOME_SOURCE"
     | "CREDIT_MANAGEMENT"
     | "GOALS_JOURNEY"
+    | "TAG_EXPENSE_DISTRIBUTION"
+    | "TAG_INCOME_SOURCE"
 
 export interface DashboardModuleConfig {
     id: DashboardModuleId
@@ -62,6 +64,8 @@ const DEFAULT_CONFIG: DashboardModuleConfig[] = [
     { id: "BUDGET_SUMMARY", label: "Orçamentos Ativos", visible: true, icon: Wallet, color: COLORS.purple },
     { id: "EXPENSE_DISTRIBUTION", label: "Distribuição de Despesas", visible: true, icon: PieChart, color: COLORS.rose },
     { id: "INCOME_SOURCE", label: "Origem dos Ganhos", visible: true, icon: PieChart, color: COLORS.green },
+    { id: "TAG_EXPENSE_DISTRIBUTION", label: "Despesas por Tag", visible: false, icon: PieChart, color: COLORS.rose },
+    { id: "TAG_INCOME_SOURCE", label: "Ganhos por Tag", visible: false, icon: PieChart, color: COLORS.green },
     { id: "CREDIT_MANAGEMENT", label: "Gestão de Créditos", visible: true, icon: CreditCard, color: COLORS.amber },
     { id: "GOALS_JOURNEY", label: "Jornada de Metas", visible: true, icon: Target, color: COLORS.purple },
 ]

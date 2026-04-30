@@ -6,11 +6,12 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Loader2, Plus, Repeat, ArrowUpCircle, ArrowDownCircle, AlertCircle, Sparkles, DollarSign, Tag, CalendarDays, Wallet, AlignLeft, CornerDownRight, Search } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, Plus, PlusCircle, Repeat, ArrowUpCircle, ArrowDownCircle, AlertCircle, Sparkles, DollarSign, Tag, CalendarDays, Wallet, AlignLeft, CornerDownRight, Search } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
+import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
   DialogContent,
@@ -46,10 +47,12 @@ import { cn } from "@/lib/utils"
 import { api } from "@/services/apiClient"
 import { TransactionType } from "@/types/transactions"
 import { Category } from "@/types/categories"
-import { Account } from "@/types/accounts"
+import { Account, AccountTypeLabels } from "@/types/accounts"
+import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
+import { CategoryForm } from "@/components/categories/CategoryForm"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -89,6 +92,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
   const [updateScope, setUpdateScope] = useState<"SINGLE" | "ALL">("SINGLE")
   const [recentTransactions, setRecentTransactions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -482,64 +486,87 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                     <SelectValue placeholder="Selecione..." />
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent className="rounded-3xl border-border/40 shadow-2xl max-h-[400px] overflow-hidden p-2">
-                                                {categories.map((cat: any, index: number) => {
-                                                    const isFirst = index === 0;
-                                                    const isMaster = !cat.isSubcategory;
-                                                    const showSeparator = isMaster && !isFirst;
+                                            <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                                <div className="flex flex-col">
+                                                    <Button 
+                                                        type="button"
+                                                        variant="ghost" 
+                                                        className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                        onClick={(e) => {
+                                                            e.preventDefault()
+                                                            e.stopPropagation()
+                                                            setIsCategoryDialogOpen(true)
+                                                        }}
+                                                    >
+                                                        <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
+                                                            <PlusCircle className="h-5 w-5" />
+                                                        </div>
+                                                        Nova Categoria
+                                                    </Button>
                                                     
-                                                    return (
-                                                        <div key={cat.id}>
-                                                            {showSeparator && (
-                                                                <div className="h-px bg-muted/10 mx-2 my-4" />
-                                                            )}
-                                                            <SelectItem 
-                                                                value={cat.id} 
-                                                                className={cn(
-                                                                    "group rounded-xl transition-all duration-300 cursor-pointer mb-0.5",
-                                                                    cat.isSubcategory ? "pl-2 py-2" : "py-3"
-                                                                )}
-                                                            >
-                                                            <div className={cn(
-                                                                "flex items-center gap-3",
-                                                                cat.isSubcategory && "pl-8"
-                                                            )}>
-                                                                {cat.isSubcategory && (
-                                                                    <div className="flex items-center shrink-0 trigger-hidden">
-                                                                        <CornerDownRight className="h-3 w-3 text-muted-foreground/30 mr-2" />
-                                                                    </div>
-                                                                )}
-                                                                
-                                                                <div 
-                                                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm transition-all duration-300 group-data-[highlighted]:scale-110"
-                                                                    style={{ 
-                                                                        backgroundColor: `${cat.color}15`, 
-                                                                        color: cat.color 
-                                                                    }}
-                                                                >
-                                                                    {/* Contraste Switch: No focado, fundo fica mais forte ou ícone mais escuro */}
-                                                                    <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
-                                                                    <LucideIcon name={cat.icon || "Tag"} className="h-5 w-5 relative z-10" />
-                                                                </div>
-
-                                                                <div className="flex flex-col">
-                                                                    <span className={cn(
-                                                                        "tracking-tight transition-colors",
-                                                                        cat.isSubcategory 
-                                                                            ? "font-black text-[10px] uppercase text-muted-foreground/50 group-data-[highlighted]:text-slate-900" 
-                                                                            : "font-black text-sm uppercase group-data-[highlighted]:text-slate-950"
-                                                                    )}>
-                                                                        {cat.name}
-                                                                    </span>
-                                                                    {!cat.isSubcategory && (
-                                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5 trigger-hidden">Categoria Master</span>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </SelectItem>
+                                                    <div className="px-2 mb-2">
+                                                        <Separator className="bg-muted/20" />
                                                     </div>
-                                                );
-                                            })}
+
+                                                    {categories.map((cat: any, index: number) => {
+                                                        const isMaster = !cat.isSubcategory;
+                                                        const isFirstMaster = isMaster && !categories.slice(0, index).some((c: any) => !c.isSubcategory);
+                                                        const showSeparator = isMaster && !isFirstMaster;
+                                                            
+                                                            return (
+                                                                <div key={cat.id}>
+                                                                    {showSeparator && (
+                                                                        <div className="px-2 my-2">
+                                                                            <Separator className="bg-muted/20" />
+                                                                        </div>
+                                                                    )}
+                                                                    <SelectItem 
+                                                                        value={cat.id} 
+                                                                        className={cn(
+                                                                            "group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30",
+                                                                            cat.isSubcategory ? "pl-2 py-2" : "py-3"
+                                                                        )}
+                                                                    >
+                                                                    <div className={cn(
+                                                                        "flex items-center gap-3",
+                                                                        cat.isSubcategory && "pl-8"
+                                                                    )}>
+                                                                        {cat.isSubcategory && (
+                                                                            <div className="flex items-center shrink-0 trigger-hidden">
+                                                                                <CornerDownRight className="h-3 w-3 text-muted-foreground/30 mr-2" />
+                                                                            </div>
+                                                                        )}
+                                                                        
+                                                                        <div 
+                                                                            className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                            style={{ 
+                                                                                backgroundColor: `${cat.color}15`, 
+                                                                                color: cat.color 
+                                                                            }}
+                                                                        >
+                                                                            <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
+                                                                            <LucideIcon name={cat.icon || "Tag"} className="h-5 w-5 relative z-10" />
+                                                                        </div>
+
+                                                                        <div className="flex flex-col">
+                                                                            <span className={cn(
+                                                                                "tracking-tight transition-colors",
+                                                                                cat.isSubcategory 
+                                                                                    ? "font-black text-[10px] uppercase text-muted-foreground/50 group-data-[highlighted]:text-slate-900" 
+                                                                                    : "font-black text-sm uppercase group-data-[highlighted]:text-slate-950"
+                                                                            )}>
+                                                                                {cat.name}
+                                                                            </span>
+                                                                            {!cat.isSubcategory && (
+                                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5 trigger-hidden">Categoria Master</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                </SelectItem>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage className="text-[10px] font-bold" />
@@ -562,18 +589,77 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                     </div>
                                                 </SelectTrigger>
                                             </FormControl>
-                                            <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                {accounts.map((acc) => (
-                                                    <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
-                                                        <div className="flex items-center gap-2">
-                                                            <div 
-                                                                className="w-2.5 h-2.5 rounded-full ring-2 ring-black/5" 
-                                                                style={{ backgroundColor: acc.color || "#ccc" }} 
-                                                            />
-                                                            <span className="font-black tracking-tight">{acc.name}</span>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
+                                            <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                                <div className="flex flex-col">
+                                                    <AccountFormDialog 
+                                                        onSuccess={() => fetchDependencies()}
+                                                        trigger={
+                                                            <Button 
+                                                                type="button"
+                                                                variant="ghost" 
+                                                                className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                            >
+                                                                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
+                                                                    <PlusCircle className="h-5 w-5" />
+                                                                </div>
+                                                                Nova Conta
+                                                            </Button>
+                                                        }
+                                                    />
+
+                                                    <div className="px-2 mb-2">
+                                                        <Separator className="bg-muted/20" />
+                                                    </div>
+
+                                                    {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
+                                                        const groupAccounts = accounts.filter(acc => acc.is_active && acc.type === type);
+                                                        if (groupAccounts.length === 0) return null;
+
+                                                        return (
+                                                            <div key={type}>
+                                                                {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
+                                                                    <div className="px-2 my-2">
+                                                                        <Separator className="bg-muted/20" />
+                                                                    </div>
+                                                                )}
+                                                                <div className="px-3 py-1 mb-1">
+                                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                                        {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
+                                                                    </span>
+                                                                </div>
+                                                                {groupAccounts.map((acc) => (
+                                                                    <SelectItem 
+                                                                        key={acc.id} 
+                                                                        value={acc.id} 
+                                                                        className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                                    >
+                                                                        <div className="flex items-center gap-3">
+                                                                            <div 
+                                                                                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                                style={{ 
+                                                                                    backgroundColor: `${acc.color}15`, 
+                                                                                    color: acc.color 
+                                                                                }}
+                                                                            >
+                                                                                <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
+                                                                                <Wallet className="h-5 w-5 relative z-10" />
+                                                                            </div>
+
+                                                                            <div className="flex flex-col text-left">
+                                                                                <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                                    {acc.name}
+                                                                                </span>
+                                                                                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                                    {AccountTypeLabels[acc.type] || "Conta"}
+                                                                                </span>
+                                                                            </div>
+                                                                        </div>
+                                                                    </SelectItem>
+                                                                ))}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
                                             </SelectContent>
                                         </Select>
                                         <FormMessage className="text-[10px] font-bold" />
@@ -726,6 +812,36 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
             </div>
         </ScrollArea>
       </DialogContent>
+
+      {/* Modal Secundário: Nova Categoria */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
+          <ScrollArea className="max-h-[85vh]">
+            <div className="p-8">
+                <DialogHeader className="mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
+                            <PlusCircle className="h-6 w-6" />
+                        </div>
+                        <div className="flex flex-col">
+                            <DialogTitle className="text-2xl font-black tracking-tight">Nova Categoria</DialogTitle>
+                            <DialogDescription className="text-xs font-bold opacity-50 tracking-tight">Crie uma categoria personalizada agora mesmo.</DialogDescription>
+                        </div>
+                    </div>
+                </DialogHeader>
+
+                <CategoryForm 
+                    defaultType={type}
+                    onSuccess={() => {
+                        setIsCategoryDialogOpen(false)
+                        fetchDependencies()
+                    }}
+                    onCancel={() => setIsCategoryDialogOpen(false)}
+                />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

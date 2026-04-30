@@ -21,9 +21,10 @@ interface AccountCardProps {
   account: Account
   onEdit: (account: Account) => void
   onDelete: (account: Account) => void
+  onAdjustment?: (account: Account) => void
 }
 
-export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
+export function AccountCard({ account, onEdit, onDelete, onAdjustment }: AccountCardProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -34,9 +35,9 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
   const color = account.color || "#000000"
   
   return (
-    <div className={cn("group relative h-full", !account.is_active && "opacity-60")}>
+    <div className={cn("group relative h-full w-full min-w-0", !account.is_active && "opacity-60")}>
         <div className={cn(
-            "rounded-2xl border border-border/60 bg-card transition-all cursor-default overflow-hidden h-full flex flex-col relative",
+            "rounded-2xl border border-border/60 bg-card transition-all cursor-default overflow-hidden h-full flex flex-col relative w-full",
             "hover:bg-muted/30 hover:border-primary/20 hover:shadow-xl hover:shadow-black/5 hover:scale-[1.02] hover:z-20"
         )}>
             {/* Account Color Indicator Bar - Integrated directly at the top */}
@@ -45,7 +46,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 style={{ backgroundColor: color }}
             />
 
-            <div className="p-4 sm:p-6 flex flex-col h-full space-y-3 sm:space-y-5">
+            <div className="p-3.5 sm:p-6 flex flex-col h-full space-y-3 sm:space-y-5 w-full min-w-0">
                 <div className="flex justify-between items-start">
                     <div className="flex items-center gap-3 sm:gap-4">
                         {/* Soft Squircle Icon */}
@@ -100,7 +101,17 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                 <Button 
                     variant="ghost" 
                     size="icon" 
+                    className="h-8 w-8 hover:bg-amber-500/10 hover:text-amber-600 transition-all rounded-lg" 
+                    title="Reajustar Saldo"
+                    onClick={(e) => { e.stopPropagation(); onAdjustment && onAdjustment(account) }}
+                >
+                    <RefreshCcw className="h-4 w-4" />
+                </Button>
+                <Button 
+                    variant="ghost" 
+                    size="icon" 
                     className="h-8 w-8 hover:bg-primary/10 hover:text-primary transition-all rounded-lg" 
+                    title="Editar Conta"
                     onClick={(e) => { e.stopPropagation(); onEdit(account) }}
                 >
                     <Edit className="h-4 w-4" />
@@ -109,6 +120,7 @@ export function AccountCard({ account, onEdit, onDelete }: AccountCardProps) {
                     variant="ghost" 
                     size="icon" 
                     className="h-8 w-8 hover:bg-destructive/10 hover:text-destructive transition-all rounded-lg" 
+                    title="Excluir Conta"
                     onClick={(e) => { e.stopPropagation(); onDelete(account) }}
                 >
                     <Trash2 className="h-4 w-4" />

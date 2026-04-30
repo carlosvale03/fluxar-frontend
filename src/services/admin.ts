@@ -38,6 +38,15 @@ export async function deleteAdminUser(userId: string, admin_password: string) {
   })
 }
 
+export async function hardDeleteAdminUser(userId: string, admin_password: string) {
+  await api.delete(`/admin/users/${userId}/`, {
+    data: { 
+        admin_password,
+        permanent: true 
+    }
+  })
+}
+
 export async function bulkDeleteAdminUsers(userIds: string[], admin_password: string) {
   await api.delete("/admin/users/", {
     data: { user_ids: userIds, admin_password }
@@ -54,6 +63,9 @@ export interface AdminStats {
     created_at: string
   }>
   status: string
+  db_status: string
+  db_latency: string
+  api_version: string
 }
 
 export async function getAdminStats() {
@@ -72,21 +84,18 @@ export interface SystemLog {
 }
 
 export async function getSystemLogs(): Promise<SystemLog[]> {
-  // Mock implementation until backend endpoint exists
-  // In a real scenario: await api.get<SystemLog[]>("/admin/logs/")
-  return [
-      { id: '1', action: 'UPDATE_USER', description: 'Alteração de permissão', admin_name: 'Admin Carlos', timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString() },
-      { id: '2', action: 'SYSTEM_MAINTENANCE', description: 'Modo de manutenção ativado', admin_name: 'Admin System', timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString() },
-      { id: '3', action: 'DELETE_USER', description: 'Remoção de usuário inativo', admin_name: 'Admin Carlos', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-      { id: '4', action: 'UPDATE_SETTINGS', description: 'Atualização de cache global', admin_name: 'Admin System', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() },
-      { id: '5', action: 'API_KEY_ROTATE', description: 'Rotação de chaves de API', admin_name: 'Super Admin', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString() }
-  ]
+  const response = await api.get<SystemLog[]>("/admin/logs/")
+  return response.data
 }
 
-export async function updateSystemSettings(settings: { maintenance_mode: boolean }) {
-    // Mock implementation
-    // await api.post("/admin/settings/", settings)
-    return new Promise(resolve => setTimeout(resolve, 800))
+export async function updateSystemSettings(settings: Record<string, any>) {
+    const response = await api.post("/admin/settings/", settings)
+    return response.data
+}
+
+export async function getSystemSettings(): Promise<Record<string, any>> {
+    const response = await api.get<Record<string, any>>("/admin/settings/")
+    return response.data
 }
 // User Details
 export async function getAdminUser(userId: string) {
@@ -127,11 +136,16 @@ export async function getUserFinancialStats(userId: string): Promise<UserFinanci
 }
 
 export async function getUserLogs(userId: string): Promise<SystemLog[]> {
-    // Mock logs specific to user
-    return [
-        { id: '101', action: 'LOGIN', description: 'Login realizado com sucesso', admin_name: 'System', timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() },
-        { id: '102', action: 'UPDATE_PROFILE', description: 'Atualizou foto de perfil', admin_name: 'Usuário', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString() },
-        { id: '103', action: 'FAILED_LOGIN', description: 'Tentativa de login falhou (senha incorreta)', admin_name: 'System', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString() },
-        { id: '104', action: 'PLAN_UPGRADE', description: 'Upgrade para plano Premium', admin_name: 'System', timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString() }
-    ]
+    const response = await api.get<SystemLog[]>(`/admin/users/${userId}/logs/`)
+    return response.data
+}
+
+export async function resetAdminUserPassword(userId: string, data: { admin_password: string, new_password: string }) {
+    const response = await api.post<{ message: string }>(`/admin/users/${userId}/reset-password/`, data)
+    return response.data
+}
+
+export async function clearAdminUserData(userId: string, adminPassword: string) {
+    const response = await api.post<{ message: string }>(`/admin/users/${userId}/clear-data/`, { admin_password: adminPassword })
+    return response.data
 }

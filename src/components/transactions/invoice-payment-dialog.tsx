@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Loader2, Receipt, AlertCircle, Sparkles, CreditCard as CardIcon, ArrowRight, Wallet, CheckCircle2 } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, Receipt, AlertCircle, Sparkles, CreditCard as CardIcon, ArrowRight, Wallet, CheckCircle2, PlusCircle } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MoneyInput } from "@/components/ui/money-input"
@@ -43,7 +44,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 
 import { api } from "@/services/apiClient"
-import { Account } from "@/types/accounts"
+import { Account, AccountTypeLabels } from "@/types/accounts"
+import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { CreditCard, Invoice } from "@/types/cards"
 
 const formSchema = z.object({
@@ -86,6 +88,16 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
     },
   })
   
+  const fetchAccounts = async () => {
+    try {
+        const response = await api.get("/accounts/")
+        const data = response.data.results || response.data || []
+        setAccounts(data)
+    } catch (err) {
+        console.error("Erro ao buscar contas", err)
+    }
+  }
+
   // Refactored initialization to avoid race conditions
   useEffect(() => {
     if (open) {
@@ -93,9 +105,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
             setIsLoading(true)
             try {
                 // 1. Fetch accounts first
-                const accountsResponse = await api.get("/accounts/")
-                const accountsData = accountsResponse.data.results || accountsResponse.data || []
-                setAccounts(accountsData)
+                await fetchAccounts()
                 
                 // 2. Reset form to defaults
                 form.reset({
@@ -253,18 +263,77 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                         <SelectValue placeholder="Selecione a conta..." />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                                    {accounts.map((acc) => (
-                                                        <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
-                                                            <div className="flex items-center gap-2">
-                                                                <div 
-                                                                    className="w-2.5 h-2.5 rounded-full ring-2 ring-black/5" 
-                                                                    style={{ backgroundColor: acc.color || "#ccc" }} 
-                                                                />
-                                                                <span className="font-black tracking-tight">{acc.name}</span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
+                                                <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                                    <div className="flex flex-col">
+                                                        <AccountFormDialog 
+                                                            onSuccess={() => fetchAccounts()}
+                                                            trigger={
+                                                                <Button 
+                                                                    type="button"
+                                                                    variant="ghost" 
+                                                                    className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                                >
+                                                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
+                                                                        <PlusCircle className="h-5 w-5" />
+                                                                    </div>
+                                                                    Nova Conta
+                                                                </Button>
+                                                            }
+                                                        />
+
+                                                        <div className="px-2 mb-2">
+                                                            <Separator className="bg-muted/20" />
+                                                        </div>
+
+                                                        {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
+                                                            const groupAccounts = accounts.filter(acc => acc.is_active && acc.type === type);
+                                                            if (groupAccounts.length === 0) return null;
+
+                                                            return (
+                                                                <div key={type}>
+                                                                    {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
+                                                                        <div className="px-2 my-2">
+                                                                            <Separator className="bg-muted/20" />
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="px-3 py-1 mb-1">
+                                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                                            {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
+                                                                        </span>
+                                                                    </div>
+                                                                    {groupAccounts.map((acc) => (
+                                                                        <SelectItem 
+                                                                            key={acc.id} 
+                                                                            value={acc.id} 
+                                                                            className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                                        >
+                                                                            <div className="flex items-center gap-3">
+                                                                                <div 
+                                                                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                                    style={{ 
+                                                                                        backgroundColor: `${acc.color}15`, 
+                                                                                        color: acc.color 
+                                                                                    }}
+                                                                                >
+                                                                                    <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
+                                                                                    <Wallet className="h-5 w-5 relative z-10" />
+                                                                                </div>
+
+                                                                                <div className="flex flex-col text-left">
+                                                                                    <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                                        {acc.name}
+                                                                                    </span>
+                                                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                                        {AccountTypeLabels[acc.type] || "Conta"}
+                                                                                    </span>
+                                                                                </div>
+                                                                            </div>
+                                                                        </SelectItem>
+                                                                    ))}
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
                                                 </SelectContent>
                                             </Select>
                                             <FormMessage className="text-[10px] font-bold" />
