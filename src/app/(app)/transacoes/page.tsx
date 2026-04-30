@@ -51,6 +51,7 @@ import Link from "next/link"
 import { api } from "@/services/apiClient"
 import { Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
 import { Account } from "@/types/accounts"
+import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
 
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
@@ -63,11 +64,7 @@ export default function TransactionsPage() {
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
   const [accounts, setAccounts] = useState<Account[]>([])
-
-  // Period View State
-  const [viewMode, setViewMode] = useState<ViewMode>('MONTH')
-  const [currentDate, setCurrentDate] = useState(new Date())
-
+  const [categories, setCategories] = useState<Category[]>([])
 
   // Dialog state
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -108,19 +105,65 @@ export default function TransactionsPage() {
       setTransactionToDelete(transaction)
   }
 
+  const fetchCategories = async () => {
+      try {
+          const response = await api.get("/categories/")
+          // O backend pode retornar { results: [...] } ou direto o array
+          const catData = response.data.results || response.data || []
+          setCategories(catData)
+      } catch (error) {
+          console.error("Failed to fetch categories", error)
+      }
+  }
+
+  useEffect(() => {
+      fetchCategories()
+  }, [])
+
+  const searchParams = useSearchParams()
+  const searchParam = searchParams.get("search")
+  const categoryParam = searchParams.get("category")
+  const monthParam = searchParams.get("month")
+  const yearParam = searchParams.get("year")
+  const startDateParam = searchParams.get("startDate")
+  const endDateParam = searchParams.get("endDate")
+
+  // Determine initial date from URL or default to current month
+  const getInitialDate = () => {
+      if (monthParam && yearParam) {
+          const m = parseInt(monthParam)
+          const y = parseInt(yearParam)
+          if (!isNaN(m) && !isNaN(y)) {
+              return new Date(y, m - 1, 1)
+          }
+      }
+      return new Date()
+  }
+
+  const initialDate = getInitialDate()
+
   // Filters state
-  const [search, setSearch] = useState("")
-  // Initialize filters based on default Period (Month)
+  const [search, setSearch] = useState(searchParam || "")
+  // Initialize filters based on default Period (Month) or URL params
   const [filters, setFilters] = useState<FilterState>({
-      startDate: startOfMonth(new Date()),
-      endDate: endOfMonth(new Date()),
+      startDate: startDateParam ? parseISO(startDateParam) : startOfMonth(initialDate),
+      endDate: endDateParam ? parseISO(endDateParam) : endOfMonth(initialDate),
       type: "ALL",
-      categoryId: "ALL",
+      categoryId: categoryParam || "ALL",
       accountId: "ALL"
   })
+
+  // Period View State
+  const [viewMode, setViewMode] = useState<ViewMode>(monthParam && yearParam ? 'MONTH' : 'MONTH')
+  const [currentDate, setCurrentDate] = useState(initialDate)
   
   // Update dates when viewMode or currentDate changes
   useEffect(() => {
+      // If we have custom start/end dates from URL, don't overwrite them on first load
+      if (startDateParam && endDateParam && filters.startDate?.getTime() === parseISO(startDateParam).getTime()) {
+          return
+      }
+
       const newFilters = { ...filters }
       const now = currentDate
 
@@ -167,31 +210,53 @@ export default function TransactionsPage() {
       }
   }
 
-  const searchParams = useSearchParams()
-  
-  // Initialize from URL params if present
+
+
+  // Handle URL parameter changes after initial mount
   useEffect(() => {
-      const categoryParam = searchParams.get("category")
-      const monthParam = searchParams.get("month")
-      const yearParam = searchParams.get("year")
-
-      if (monthParam && yearParam) {
-          const m = parseInt(monthParam)
-          const y = parseInt(yearParam)
-          if (!isNaN(m) && !isNaN(y)) {
-              setViewMode('MONTH')
-              setCurrentDate(new Date(y, m - 1, 1))
-          }
-      }
-
-      if (categoryParam) {
+      const category = searchParams.get("category")
+      const searchVal = searchParams.get("search")
+      
+      if (category && categories.length > 0) {
           setFilters(prev => ({
               ...prev,
-              categoryId: categoryParam
+              categoryId: category
           }))
-      }
-  }, [searchParams])
+          if (!searchVal) {
+              setSearch("")
+          }
+      } else if (searchVal && categories.length > 0) {
+          // Fallback: Se não temos ID mas temos busca, tentamos ver se a busca é o nome de uma categoria
+          let categoryByName: Category | undefined = undefined
+          
+          // Procurar em categorias principais e subcategorias
+          for (const cat of categories) {
+              if (cat.name.toLowerCase() === searchVal.toLowerCase()) {
+                  categoryByName = cat
+                  break
+              }
+              if (cat.subcategories) {
+                  const sub = cat.subcategories.find(s => s.name.toLowerCase() === searchVal.toLowerCase())
+                  if (sub) {
+                      categoryByName = sub
+                      break
+                  }
+              }
+          }
 
+          if (categoryByName) {
+              setFilters(prev => ({
+                  ...prev,
+                  categoryId: String(categoryByName.id)
+              }))
+              setSearch("")
+          } else {
+              setSearch(searchVal)
+          }
+      } else if (searchVal) {
+          setSearch(searchVal)
+      }
+  }, [searchParams, categories]) // Adicionado categories como dependência para o fallback funcionar
 
   const handleConfirm = async (transaction: Transaction) => {
       try {
@@ -215,8 +280,48 @@ export default function TransactionsPage() {
       if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
       if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
       if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
-      if (filters.categoryId && filters.categoryId !== 'ALL') params.append('categoryId', filters.categoryId)
+      if (filters.categoryId && filters.categoryId !== 'ALL') {
+          const allIds: string[] = [filters.categoryId]
+          
+          // Função recursiva para encontrar todos os descendentes
+          const collectIds = (parentId: string) => {
+              // Procura a categoria pai na árvore
+              const findInTree = (cats: Category[]): Category | undefined => {
+                  for (const c of cats) {
+                      if (String(c.id) === String(parentId)) return c
+                      if (c.subcategories) {
+                          const found = findInTree(c.subcategories)
+                          if (found) return found
+                      }
+                  }
+                  return undefined
+              }
+
+              const parent = findInTree(categories)
+              if (parent && parent.subcategories) {
+                  parent.subcategories.forEach(sub => {
+                      allIds.push(String(sub.id))
+                      collectIds(sub.id) // Chamada recursiva para níveis mais profundos
+                  })
+              }
+          }
+          
+          collectIds(filters.categoryId)
+          
+          // Remove duplicatas por segurança
+          const uniqueIds = Array.from(new Set(allIds))
+          
+          // Adicionar cada ID individualmente (padrão DRF para filtros múltiplos)
+          uniqueIds.forEach(id => params.append('categoryId', id))
+      }
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
+      
+      if (filters.tagIds && filters.tagIds.length > 0) {
+        filters.tagIds.forEach(tagId => {
+          params.append('tagIds', tagId)
+        })
+      }
+
       if (search) params.append('search', search)
 
       const response = await api.get(`/transactions/?${params.toString()}`)

@@ -35,7 +35,7 @@ import { Separator } from "@/components/ui/separator"
 
 import { api } from "@/services/apiClient"
 import { Category } from "@/types/categories"
-import { Account } from "@/types/accounts"
+import { Account, AccountTypeLabels } from "@/types/accounts"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { TagSelector } from "@/components/tags/TagSelector"
 
@@ -240,19 +240,50 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                     <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
                         <SelectValue placeholder="Todas as contas" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
-                        <SelectItem value="ALL" className="rounded-xl font-bold">Todas as contas</SelectItem>
-                        {accounts.map((acc: Account) => (
-                            <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
-                                <div className="flex items-center gap-2.5">
-                                    <div 
-                                        className="w-3 h-3 rounded-full border border-black/5 shrink-0" 
-                                        style={{ backgroundColor: acc.color || "#ccc" }} 
-                                    />
-                                    <span className="font-bold">{acc.name}</span>
+                    <SelectContent className="rounded-[32px] shadow-2xl border-border/40 p-2 bg-background/95 backdrop-blur-xl max-h-[400px]">
+                        <SelectItem value="ALL" className="rounded-2xl font-black uppercase tracking-widest text-[10px] mb-2 py-3">
+                            Todas as contas
+                        </SelectItem>
+                        
+                        {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
+                            const groupAccounts = accounts.filter(acc => acc.is_active && acc.type === type);
+                            if (groupAccounts.length === 0) return null;
+
+                            return (
+                                <div key={type}>
+                                    {typeIndex > 0 && (
+                                        <div className="px-2 my-2">
+                                            <Separator className="bg-muted/20" />
+                                        </div>
+                                    )}
+                                    <div className="px-3 py-1 mb-1">
+                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                            {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
+                                        </span>
+                                    </div>
+                                    {groupAccounts.map((acc: Account) => (
+                                        <SelectItem 
+                                            key={acc.id} 
+                                            value={acc.id} 
+                                            className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <div 
+                                                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 transition-all"
+                                                    style={{ 
+                                                        backgroundColor: `${acc.color}15`, 
+                                                        color: acc.color 
+                                                    }}
+                                                >
+                                                    <Wallet className="h-4 w-4" />
+                                                </div>
+                                                <span className="font-bold text-sm tracking-tight">{acc.name}</span>
+                                            </div>
+                                        </SelectItem>
+                                    ))}
                                 </div>
-                            </SelectItem>
-                        ))}
+                            );
+                        })}
                     </SelectContent>
                 </Select>
             </div>

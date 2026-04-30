@@ -61,6 +61,21 @@ api.interceptors.response.use(
 
     const originalRequest = error.config
 
+    if (error.response?.status === 503) {
+        // Se for 503, assumimos que é manutenção ou sobrecarga.
+        // Se tiver o código 'maintenance_mode' ou o texto sugerir manutenção, redirecionamos.
+        const isMaintenance = error.response?.data?.code === 'maintenance_mode' || 
+                             (error.response?.data?.detail && error.response?.data?.detail.toLowerCase().includes('manutenção')) ||
+                             (!error.response?.data && error.response?.status === 503); // Caso de erro genérico 503 sem corpo JSON
+
+        if (isMaintenance) {
+            if (typeof window !== "undefined" && window.location.pathname !== "/manutencao") {
+                window.location.href = "/manutencao"
+            }
+        }
+        return Promise.reject(error)
+    }
+
     if (error.response?.status === 401 && !originalRequest._retry) {
         if (isRefreshing) {
             return new Promise(function(resolve, reject) {

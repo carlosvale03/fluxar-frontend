@@ -1,16 +1,16 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { getDashboardSummary, getSimpleCharts, getMonthlyComparison } from "@/services/reports"
-import { DashboardReport, SimpleChartsReport, MonthlyComparisonData } from "@/types/reports"
+import { getDashboardSummary, getSimpleCharts, getMonthlyComparison, getTagDistribution } from "@/services/reports"
+import { DashboardReport, SimpleChartsReport, MonthlyComparisonData, TagDistributionReport } from "@/types/reports"
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
 import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { BudgetSummary } from "@/components/dashboard/BudgetSummary"
 import { useToast } from "@/components/ui/use-toast"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ResponsiveContainer, Cell, PieChart, Pie, Tooltip } from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
+import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
 import { 
     AlertCircle, 
     ChevronLeft, 
@@ -27,7 +27,9 @@ import {
     Plus,
     ArrowUpCircle,
     ArrowDownCircle,
-    ArrowRightLeft
+    ArrowRightLeft,
+    Wallet,
+    Tag
 } from "lucide-react"
 import { MonthPicker } from "@/components/ui/month-picker"
 import { Button } from "@/components/ui/button"
@@ -35,8 +37,7 @@ import { cn } from "@/lib/utils"
 import { HelpInfo } from "@/components/ui/help-info"
 import { DashboardCustomizer, DashboardModuleConfig, getInitialConfig } from "@/components/dashboard/dashboard-customizer"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
-import { BarChart3, PieChart as PieIcon } from "lucide-react"
-
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CreditCardItem } from "@/components/cards/credit-card-item"
 import {
   DropdownMenu,
@@ -53,7 +54,7 @@ import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 
 const LARGE_MODULES = ["DAILY_CASH_FLOW", "BALANCE_EVOLUTION", "CREDIT_MANAGEMENT", "GOALS_JOURNEY"]
-const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "INCOME_SOURCE"]
+const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "INCOME_SOURCE", "TAG_EXPENSE_DISTRIBUTION", "TAG_INCOME_SOURCE"]
 const SMALL_MODULES = ["MONTHLY_BALANCE", "BUDGET_SUMMARY"]
 
 function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
@@ -113,6 +114,7 @@ export default function DashboardPage() {
     
     const [report, setReport] = useState<DashboardReport | null>(null)
     const [charts, setCharts] = useState<SimpleChartsReport | null>(null)
+    const [tagCharts, setTagCharts] = useState<TagDistributionReport | null>(null)
     const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparisonData[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [isCustomizerOpen, setIsCustomizerOpen] = useState(false)
@@ -144,10 +146,11 @@ export default function DashboardPage() {
     const fetchData = async () => {
         try {
             setIsLoading(true)
-            const [reportData, chartsData, comparisonData] = await Promise.all([
+            const [reportData, chartsData, comparisonData, tagDistributionData] = await Promise.all([
                 getDashboardSummary(selectedMonth, selectedYear),
                 getSimpleCharts(undefined, selectedMonth, selectedYear),
-                getMonthlyComparison(6, selectedMonth, selectedYear)
+                getMonthlyComparison(6, selectedMonth, selectedYear),
+                getTagDistribution(selectedMonth, selectedYear)
             ])
             
             const normalizedCharts = {
@@ -159,6 +162,7 @@ export default function DashboardPage() {
             setReport(reportData)
             setCharts(normalizedCharts)
             setMonthlyComparison(comparisonData)
+            setTagCharts(tagDistributionData)
         } catch (error) {
             console.error("Failed to fetch dashboard data", error)
             toast({
@@ -382,140 +386,65 @@ export default function DashboardPage() {
                             )
                         case "EXPENSE_DISTRIBUTION":
                             return (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}>
-                                    <CardHeader className="pb-0 pt-6">
-                                        <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
-                                            <TrendingDown className="h-4 w-4 text-rose-500" />
-                                            Distribuição de Despesas
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-8 gap-8">
-                                        <div className="w-full h-[250px] sm:w-[50%] relative">
-                                            {(!charts?.expense_by_category || charts.expense_by_category.length === 0 || charts.expense_by_category.every(d => Number(d.amount) === 0)) ? (
-                                                <ChartEmptyState 
-                                                    type="pie" 
-                                                    height="100%" 
-                                                    title="Distribuição de Despesas"
-                                                    description="Seus gastos por categoria aparecerão aqui."
-                                                    icon={PieIcon}
-                                                />
-                                            ) : (
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <PieChart>
-                                                        <Pie
-                                                            data={charts?.expense_by_category || []}
-                                                            cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8}
-                                                            dataKey="amount" nameKey="category_name" stroke="none"
-                                                        >
-                                                            {charts?.expense_by_category?.map((entry, index) => (
-                                                                <Cell key={`cell-${index}`} fill={entry.color || '#CBD5E1'} />
-                                                            ))}
-                                                        </Pie>
-                                                        <Tooltip content={<CustomPieTooltip />} />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
-                                            )}
-                                            {charts?.expense_by_category && charts.expense_by_category.length > 0 && charts.expense_by_category.some(d => Number(d.amount) > 0) && (
-                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none animate-in fade-in duration-500">
-                                                    <span className="block text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Gasto Total</span>
-                                                    <span className="block text-xl font-black text-foreground">{formatCurrencyShort(charts?.expense_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="w-full sm:w-[45%] space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {(!charts?.expense_by_category || charts.expense_by_category.length === 0 || charts.expense_by_category.every(d => Number(d.amount) === 0)) ? (
-                                                Array.from({ length: 5 }).map((_, i) => (
-                                                    <div key={`ghost-exp-${i}`} className="flex items-center justify-between p-2 rounded-xl opacity-20 select-none pointer-events-none">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-muted-foreground/40" />
-                                                            <div className="h-2 w-20 bg-muted-foreground/20 rounded-full" />
-                                                        </div>
-                                                        <div className="h-2 w-12 bg-muted-foreground/20 rounded-full" />
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                charts?.expense_by_category?.slice(0, 6).map((item, index) => (
-                                                    <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                                                            <span className="text-xs font-bold text-muted-foreground truncate max-w-[100px]">{item.category_name}</span>
-                                                        </div>
-                                                        <span className="text-xs font-black text-foreground">{formatCurrencyShort(Number(item.amount))}</span>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <CategoryDistributionChart 
+                                    key={module.id}
+                                    title="Distribuição de Gastos"
+                                    description="Percentual por categoria"
+                                    data={charts?.expense_by_category || []}
+                                    isLoading={isLoading}
+                                    icon={Wallet}
+                                    iconColor="text-blue-500"
+                                    className={spanClass}
+                                    month={selectedMonth}
+                                    year={selectedYear}
+                                />
                             )
                         case "INCOME_SOURCE":
                             return (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}>
-                                    <CardHeader className="pb-0 pt-6">
-                                        <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
-                                            <TrendingUpIcon className="h-4 w-4 text-emerald-500" />
-                                            Origem dos Ganhos
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="flex flex-col sm:flex-row items-center justify-between p-4 sm:p-8 gap-8">
-                                        <div className="w-full h-[250px] sm:w-[50%] relative">
-                                            {(!charts?.income_by_category || charts.income_by_category.length === 0 || charts.income_by_category.every(d => Number(d.amount) === 0)) ? (
-                                                <ChartEmptyState 
-                                                    type="pie" 
-                                                    height="100%" 
-                                                    title="Origem dos Ganhos"
-                                                    description="Suas fontes de receita aparecerão aqui."
-                                                    icon={PieIcon}
-                                                />
-                                            ) : (
-                                                <ResponsiveContainer width="100%" height="100%">
-                                                    <PieChart>
-                                                        <Pie
-                                                            data={charts?.income_by_category || []}
-                                                            cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={8}
-                                                            dataKey="amount" nameKey="category_name" stroke="none"
-                                                        >
-                                                            {charts?.income_by_category?.map((entry, index) => (
-                                                                <Cell key={`cell-${index}`} fill={entry.color || '#CBD5E1'} />
-                                                            ))}
-                                                        </Pie>
-                                                        <Tooltip content={<CustomPieTooltip />} />
-                                                    </PieChart>
-                                                </ResponsiveContainer>
-                                            )}
-                                            {charts?.income_by_category && charts.income_by_category.length > 0 && charts.income_by_category.some(d => Number(d.amount) > 0) && (
-                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none animate-in fade-in duration-500">
-                                                    <span className="block text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Receita Total</span>
-                                                    <span className="block text-xl font-black text-foreground">{formatCurrencyShort(charts?.income_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="w-full sm:w-[45%] space-y-3 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
-                                            {(!charts?.income_by_category || charts.income_by_category.length === 0 || charts.income_by_category.every(d => Number(d.amount) === 0)) ? (
-                                                Array.from({ length: 5 }).map((_, i) => (
-                                                    <div key={`ghost-inc-${i}`} className="flex items-center justify-between p-2 rounded-xl opacity-20 select-none pointer-events-none">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-2.5 h-2.5 rounded-full shrink-0 bg-muted-foreground/40" />
-                                                            <div className="h-2 w-20 bg-muted-foreground/20 rounded-full" />
-                                                        </div>
-                                                        <div className="h-2 w-12 bg-muted-foreground/20 rounded-full" />
-                                                    </div>
-                                                ))
-                                            ) : (
-                                                charts?.income_by_category?.slice(0, 6).map((item, index) => (
-                                                    <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                                                            <span className="text-xs font-bold text-muted-foreground truncate max-w-[100px]">{item.category_name}</span>
-                                                        </div>
-                                                        <span className="text-xs font-black text-foreground">{formatCurrencyShort(Number(item.amount))}</span>
-                                                    </div>
-                                                ))
-                                            )}
-                                        </div>
-                                    </CardContent>
-                                </Card>
+                                <CategoryDistributionChart 
+                                    key={module.id}
+                                    title="Distribuição de Ganhos"
+                                    description="Origem das receitas por categoria"
+                                    data={charts?.income_by_category || []}
+                                    isLoading={isLoading}
+                                    icon={Sparkles}
+                                    iconColor="text-emerald-500"
+                                    className={spanClass}
+                                    month={selectedMonth}
+                                    year={selectedYear}
+                                />
                             )
+                        case "TAG_EXPENSE_DISTRIBUTION":
+                            return (
+                                <TagDistributionChart 
+                                    key={module.id}
+                                    title="Despesas por Tag"
+                                    description="Distribuição de gastos por etiqueta"
+                                    data={tagCharts?.expense_by_tag || []}
+                                    isLoading={isLoading}
+                                    icon={Tag}
+                                    iconColor="text-rose-500"
+                                    className={spanClass}
+                                    month={selectedMonth}
+                                    year={selectedYear}
+                                />
+                            )
+                        case "TAG_INCOME_SOURCE":
+                            return (
+                                <TagDistributionChart 
+                                    key={module.id}
+                                    title="Ganhos por Tag"
+                                    description="Origem das receitas por etiqueta"
+                                    data={tagCharts?.income_by_tag || []}
+                                    isLoading={isLoading}
+                                    icon={Tag}
+                                    iconColor="text-emerald-500"
+                                    className={spanClass}
+                                    month={selectedMonth}
+                                    year={selectedYear}
+                                />
+                            )
+
                         case "CREDIT_MANAGEMENT":
                             return (
                                 <div key={module.id} className={cn(spanClass, "space-y-6")}>
@@ -684,25 +613,3 @@ export default function DashboardPage() {
     )
 }
 
-// Helpers Compactos
-function formatCurrencyShort(value: number) {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }).format(value)
-}
-
-function CustomPieTooltip({ active, payload }: any) {
-    if (active && payload && payload.length) {
-        const data = payload[0].payload
-        return (
-            <div className="z-50 bg-background/95 backdrop-blur-2xl border border-border/50 p-3 rounded-2xl shadow-2xl ring-1 ring-black/5">
-                <div className="flex items-center gap-2 mb-1">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color }} />
-                    <span className="text-sm font-black uppercase tracking-tight">{data.category_name}</span>
-                </div>
-                <p className="text-xs font-bold text-muted-foreground">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(data.amount)}
-                </p>
-            </div>
-        )
-    }
-    return null
-}

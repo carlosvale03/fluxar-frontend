@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/sheet"
 import { AccountCard } from "@/components/accounts/account-card"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
+import { BalanceAdjustmentDialog } from "@/components/accounts/balance-adjustment-dialog"
 import { api } from "@/services/apiClient"
 import { Account, AccountType } from "@/types/accounts"
 import { usePlan } from "@/hooks/use-plan"
@@ -54,6 +55,7 @@ export default function AccountsPage() {
   const [isLoading, setIsLoading] = useState(true)
   const [selectedAccount, setSelectedAccount] = useState<Account | undefined>(undefined)
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [isAdjustmentOpen, setIsAdjustmentOpen] = useState(false)
   const [deleteId, setDeleteId] = useState<string | null>(null)
   
   // Filter States
@@ -128,6 +130,11 @@ export default function AccountsPage() {
     setIsFormOpen(true)
   }
 
+  const handleAdjustment = (account: Account) => {
+    setSelectedAccount(account)
+    setIsAdjustmentOpen(true)
+  }
+
   const handleDeleteClick = (account: Account) => {
     setDeleteId(account.id)
   }
@@ -162,7 +169,7 @@ export default function AccountsPage() {
                              (maxBalance !== "" ? 1 : 0)
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-7xl animate-in fade-in duration-700">
+    <div className="container mx-auto py-10 px-2 sm:px-4 max-w-7xl animate-in fade-in duration-700">
       {/* Premium Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
         <div className="flex items-center gap-5">
@@ -448,6 +455,7 @@ export default function AccountsPage() {
                     account={acc} 
                     onEdit={handleEdit} 
                     onDelete={handleDeleteClick} 
+                    onAdjustment={handleAdjustment}
                 />
             ))}
         </div>
@@ -462,6 +470,17 @@ export default function AccountsPage() {
         }}
         account={selectedAccount}
         onSuccess={handleFormSuccess}
+      />
+
+      {/* Balance Adjustment Dialog */}
+      <BalanceAdjustmentDialog 
+        open={isAdjustmentOpen}
+        onOpenChange={(val) => {
+            setIsAdjustmentOpen(val)
+            if (!val) setSelectedAccount(undefined)
+        }}
+        account={selectedAccount}
+        onSuccess={fetchAccounts}
       />
 
       {/* Delete Confirmation Dialog */}

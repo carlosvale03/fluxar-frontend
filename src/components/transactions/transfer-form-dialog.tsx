@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Loader2, ArrowRightCircle } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, ArrowRightCircle, PlusCircle, Wallet } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -39,7 +40,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 
 import { api } from "@/services/apiClient"
-import { Account } from "@/types/accounts"
+import { Account, AccountTypeLabels } from "@/types/accounts"
+import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 
 import { Transaction } from "@/types/transactions"
 
@@ -436,19 +438,78 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                       <SelectValue placeholder="Origem..." />
                                   </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent className="rounded-2xl shadow-xl">
-                                      {accounts.map((acc) => (
-                                          <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
-                                              <div className="flex items-center gap-2">
-                                                  <div 
-                                                      className="w-3 h-3 rounded-full border border-black/5" 
-                                                      style={{ backgroundColor: acc.color || "#ccc" }} 
-                                                  />
-                                                  <span className="font-medium">{acc.name}</span>
-                                              </div>
-                                          </SelectItem>
-                                      ))}
-                                  </SelectContent>
+                                  <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                       <div className="flex flex-col">
+                                           <AccountFormDialog 
+                                               onSuccess={() => fetchAccounts()}
+                                               trigger={
+                                                   <Button 
+                                                       type="button"
+                                                       variant="ghost" 
+                                                       className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                   >
+                                                       <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
+                                                           <PlusCircle className="h-5 w-5" />
+                                                       </div>
+                                                       Nova Conta
+                                                   </Button>
+                                               }
+                                           />
+
+                                           <div className="px-2 mb-2">
+                                               <Separator className="bg-muted/20" />
+                                           </div>
+
+                                           {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
+                                               const groupAccounts = accounts.filter(acc => acc.is_active && acc.type === type);
+                                               if (groupAccounts.length === 0) return null;
+
+                                               return (
+                                                   <div key={type}>
+                                                       {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
+                                                           <div className="px-2 my-2">
+                                                               <Separator className="bg-muted/20" />
+                                                           </div>
+                                                       )}
+                                                       <div className="px-3 py-1 mb-1">
+                                                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                               {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
+                                                           </span>
+                                                       </div>
+                                                       {groupAccounts.map((acc) => (
+                                                           <SelectItem 
+                                                               key={acc.id} 
+                                                               value={acc.id} 
+                                                               className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                           >
+                                                               <div className="flex items-center gap-3">
+                                                                   <div 
+                                                                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                       style={{ 
+                                                                           backgroundColor: `${acc.color}15`, 
+                                                                           color: acc.color 
+                                                                       }}
+                                                                   >
+                                                                       <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
+                                                                       <Wallet className="h-5 w-5 relative z-10" />
+                                                                   </div>
+
+                                                                   <div className="flex flex-col text-left">
+                                                                       <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                           {acc.name}
+                                                                       </span>
+                                                                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                           {AccountTypeLabels[acc.type] || "Conta"}
+                                                                       </span>
+                                                                   </div>
+                                                               </div>
+                                                           </SelectItem>
+                                                       ))}
+                                                   </div>
+                                               );
+                                           })}
+                                       </div>
+                                   </SelectContent>
                               </Select>
                               <FormMessage className="ml-1 text-[11px]" />
                               </FormItem>
@@ -467,19 +528,78 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                       <SelectValue placeholder="Destino..." />
                                   </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent className="rounded-2xl shadow-xl">
-                                      {accounts.map((acc) => (
-                                          <SelectItem key={acc.id} value={acc.id} className="rounded-xl">
-                                              <div className="flex items-center gap-2">
-                                                  <div 
-                                                      className="w-3 h-3 rounded-full border border-black/5" 
-                                                      style={{ backgroundColor: acc.color || "#ccc" }} 
-                                                  />
-                                                  <span className="font-medium">{acc.name}</span>
-                                              </div>
-                                          </SelectItem>
-                                      ))}
-                                  </SelectContent>
+                                  <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                       <div className="flex flex-col">
+                                           <AccountFormDialog 
+                                               onSuccess={() => fetchAccounts()}
+                                               trigger={
+                                                   <Button 
+                                                       type="button"
+                                                       variant="ghost" 
+                                                       className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                   >
+                                                       <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
+                                                           <PlusCircle className="h-5 w-5" />
+                                                       </div>
+                                                       Nova Conta
+                                                   </Button>
+                                               }
+                                           />
+
+                                           <div className="px-2 mb-2">
+                                               <Separator className="bg-muted/20" />
+                                           </div>
+
+                                           {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
+                                               const groupAccounts = accounts.filter(acc => acc.is_active && acc.type === type);
+                                               if (groupAccounts.length === 0) return null;
+
+                                               return (
+                                                   <div key={type}>
+                                                       {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
+                                                           <div className="px-2 my-2">
+                                                               <Separator className="bg-muted/20" />
+                                                           </div>
+                                                       )}
+                                                       <div className="px-3 py-1 mb-1">
+                                                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                               {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
+                                                           </span>
+                                                       </div>
+                                                       {groupAccounts.map((acc) => (
+                                                           <SelectItem 
+                                                               key={acc.id} 
+                                                               value={acc.id} 
+                                                               className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                           >
+                                                               <div className="flex items-center gap-3">
+                                                                   <div 
+                                                                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                       style={{ 
+                                                                           backgroundColor: `${acc.color}15`, 
+                                                                           color: acc.color 
+                                                                       }}
+                                                                   >
+                                                                       <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
+                                                                       <Wallet className="h-5 w-5 relative z-10" />
+                                                                   </div>
+
+                                                                   <div className="flex flex-col text-left">
+                                                                       <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                           {acc.name}
+                                                                       </span>
+                                                                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                           {AccountTypeLabels[acc.type] || "Conta"}
+                                                                       </span>
+                                                                   </div>
+                                                               </div>
+                                                           </SelectItem>
+                                                       ))}
+                                                   </div>
+                                               );
+                                           })}
+                                       </div>
+                                   </SelectContent>
                               </Select>
                               <FormMessage className="ml-1 text-[11px]" />
                               </FormItem>

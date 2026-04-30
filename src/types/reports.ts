@@ -73,12 +73,14 @@ export interface SimpleChartsReport {
         full_date?: string
     }[]
     expense_by_category: {
+        id?: string
         category_name: string
         amount: number
         color: string
         percentage: number
     }[]
     income_by_category: {
+        id?: string
         category_name: string
         amount: number
         color: string
@@ -164,3 +166,23 @@ export interface MonthlyComparisonData {
     expense: number
     balance: number
 }
+
+export interface TagDistributionReport {
+    expense_by_tag: {
+        id: string
+        name: string
+        amount: number
+        color: string
+    }[]
+    income_by_tag: {
+        id: string
+        name: string
+        amount: number
+        color: string
+    }[]
+    period: {
+        start_date: string
+        end_date: string
+    }
+}
+

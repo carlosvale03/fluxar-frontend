@@ -5,7 +5,8 @@ import {
     TransactionReportFilters, 
     SimpleChartsReport, 
     AdvancedChartsReport,
-    MonthlyComparisonData
+    MonthlyComparisonData,
+    TagDistributionReport
 } from "@/types/reports"
 
 export const getDashboardSummary = async (month?: number, year?: number, days?: number | string): Promise<DashboardReport> => {
@@ -14,6 +15,7 @@ export const getDashboardSummary = async (month?: number, year?: number, days?: 
     })
     return response.data
 }
+
 
 export const getCalendarReport = async (month: number, year: number): Promise<CalendarReport> => {
     const response = await api.get<any>("/reports/calendar/", {
@@ -71,8 +73,14 @@ export const getSimpleCharts = async (period?: string, month?: number, year?: nu
 
     return {
         income_vs_expense: data.income_vs_expense || [],
-        expense_by_category: data.expense_by_category || [],
-        income_by_category: data.income_by_category || []
+        expense_by_category: (data.expense_by_category || []).map((item: any) => ({
+            ...item,
+            id: item.category_id || item.id || item.categoryId || item.category || (item.category && item.category.id)
+        })),
+        income_by_category: (data.income_by_category || []).map((item: any) => ({
+            ...item,
+            id: item.category_id || item.id || item.categoryId || item.category || (item.category && item.category.id)
+        }))
     }
 }
 
@@ -100,6 +108,13 @@ export const getAdvancedCharts = async (period?: string): Promise<AdvancedCharts
 export const getMonthlyComparison = async (months: number = 6, month?: number, year?: number): Promise<MonthlyComparisonData[]> => {
     const response = await api.get<any>("/reports/charts/monthly-comparison/", {
         params: { months, month, year }
+    })
+    return response.data
+}
+
+export const getTagDistribution = async (month?: number, year?: number, period?: string): Promise<TagDistributionReport> => {
+    const response = await api.get<TagDistributionReport>("/reports/charts/tag-distribution/", {
+        params: { month, year, period }
     })
     return response.data
 }
