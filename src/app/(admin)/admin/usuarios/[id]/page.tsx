@@ -12,7 +12,7 @@ import {
     Users, CreditCard, ShieldCheck, Activity, Loader2, 
     ArrowLeft, Mail, Phone, Calendar, MapPin, 
     TrendingUp, TrendingDown, Wallet, Clock, AlertCircle, CheckCircle2,
-    Edit2, Eye, EyeOff
+    Edit2, Eye, EyeOff, AlertTriangle, Trash2, ShieldAlert, Archive, Eraser
 } from "lucide-react"
 import { 
     Dialog, 
@@ -31,9 +31,19 @@ import {
 } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
-import { updateAdminUser } from "@/services/admin"
+import { 
+    getAdminUser, 
+    getUserFinancialStats, 
+    getUserLogs, 
+    UserFinancialStats, 
+    SystemLog, 
+    updateAdminUser,
+    hardDeleteAdminUser,
+    deleteAdminUser,
+    resetAdminUserPassword,
+    clearAdminUserData
+} from "@/services/admin"
 import { toast } from "sonner"
-import { getAdminUser, getUserFinancialStats, getUserLogs, UserFinancialStats, SystemLog } from "@/services/admin"
 import { User } from "@/contexts/auth-context"
 import { getAbsoluteUrl } from "@/lib/utils"
 
@@ -54,6 +64,25 @@ export default function UserDetailsPage() {
   const [adminPassword, setAdminPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Modais de Exclusão/Arquivamento
+  const [isHardDeleteModalOpen, setIsHardDeleteModalOpen] = useState(false)
+  const [isArchiveModalOpen, setIsArchiveModalOpen] = useState(false)
+  const [isClearDataModalOpen, setIsClearDataModalOpen] = useState(false)
+
+  // Modal Reset Senha
+  const [isResetModalOpen, setIsResetModalOpen] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+
+  const loadLogs = async () => {
+    if (!userId) return
+    try {
+        const logsData = await getUserLogs(userId)
+        setLogs(logsData)
+    } catch (error) {
+        console.error("Erro ao carregar logs:", error)
+    }
+  }
 
   useEffect(() => {
     async function loadData() {
@@ -79,7 +108,7 @@ export default function UserDetailsPage() {
         }
     }
     loadData()
-  }, [userId, router]) // Removed unnecessary dependencies
+  }, [userId, router])
 
   if (isLoading) {
       return (
@@ -108,8 +137,107 @@ export default function UserDetailsPage() {
       toast.success(`Plano de ${user.name} alterado para ${newPlan}.`)
       setIsChangePlanModalOpen(false)
       setAdminPassword("")
+      loadLogs()
     } catch (error: any) {
       const msg = error.response?.data?.detail || "Erro ao alterar plano"
+      toast.error(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const confirmArchive = async () => {
+    if (!adminPassword) {
+        toast.error("Senha de administrador requerida.")
+        return
+    }
+
+    try {
+      setIsSubmitting(true)
+      await deleteAdminUser(user.id, adminPassword)
+      toast.success(`Usuário ${user.name} arquivado com sucesso.`)
+      setIsArchiveModalOpen(false)
+      // Atualizar o estado local ou recarregar
+      setUser({ ...user, is_active: false })
+      loadLogs()
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || "Erro ao arquivar usuário"
+      toast.error(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const confirmHardDelete = async () => {
+    if (!adminPassword) {
+        toast.error("Senha de administrador requerida.")
+        return
+    }
+
+    try {
+      setIsSubmitting(true)
+      await hardDeleteAdminUser(user.id, adminPassword)
+      toast.success(`Usuário ${user.name} excluído permanentemente.`)
+      setIsHardDeleteModalOpen(false)
+      router.push("/admin/usuarios")
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || "Erro ao excluir usuário permanentemente"
+      toast.error(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const confirmClearData = async () => {
+    if (!adminPassword) {
+        toast.error("Senha de administrador requerida.")
+        return
+    }
+
+    try {
+      setIsSubmitting(true)
+      await clearAdminUserData(user.id, adminPassword)
+      toast.success(`Todos os dados de ${user.name} foram excluídos. O login foi mantido.`)
+      setIsClearDataModalOpen(false)
+      setAdminPassword("")
+      loadLogs()
+      
+      // Limpa os status financeiros locais para refletir na interface
+      setFinancialStats({
+          total_balance: 0,
+          avg_income_value: 0,
+          avg_expense_value: 0,
+          income_count_per_day: 0,
+          expense_count_per_day: 0,
+          last_transaction_date: "Sem dados"
+      })
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || "Erro ao limpar dados do usuário"
+      toast.error(msg)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const confirmResetPassword = async () => {
+    if (!newPassword || !adminPassword) {
+        toast.error("Nova senha e senha de administrador são requeridas.")
+        return
+    }
+
+    try {
+      setIsSubmitting(true)
+      await resetAdminUserPassword(user.id, { 
+        new_password: newPassword,
+        admin_password: adminPassword 
+      })
+      toast.success(`Senha de ${user.name} redefinida com sucesso.`)
+      setIsResetModalOpen(false)
+      setNewPassword("")
+      setAdminPassword("")
+      loadLogs()
+    } catch (error: any) {
+      const msg = error.response?.data?.detail || "Erro ao resetar senha"
       toast.error(msg)
     } finally {
       setIsSubmitting(false)
@@ -156,11 +284,33 @@ export default function UserDetailsPage() {
               </div>
               
               <div className="flex gap-3">
-                  <Button variant="outline" className="font-bold border-primary/20 hover:bg-primary/10">
+                  <Button 
+                    variant="outline" 
+                    className="font-bold border-primary/20 hover:bg-primary/10"
+                    onClick={() => setIsResetModalOpen(true)}
+                  >
                       Resetar Senha
                   </Button>
-                  <Button variant="destructive" className="font-bold shadow-lg shadow-red-500/20">
-                      Bloquear Acesso
+                  <Button 
+                    variant="outline" 
+                    className="font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
+                    onClick={() => setIsClearDataModalOpen(true)}
+                  >
+                      <Eraser className="mr-2 h-4 w-4" /> Limpar Dados
+                  </Button>
+                  <Button 
+                    variant="secondary" 
+                    className="font-bold bg-muted/50 hover:bg-muted text-foreground"
+                    onClick={() => setIsArchiveModalOpen(true)}
+                  >
+                      <Archive className="mr-2 h-4 w-4" /> Arquivar Conta
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    className="font-bold shadow-lg shadow-red-500/20"
+                    onClick={() => setIsHardDeleteModalOpen(true)}
+                  >
+                      <Trash2 className="mr-2 h-4 w-4" /> Excluir Permanente
                   </Button>
               </div>
           </div>
@@ -252,7 +402,7 @@ export default function UserDetailsPage() {
                 </CardHeader>
                 <CardContent>
                     <div className="relative border-l border-border/50 ml-3 space-y-8 py-2">
-                        {logs.map((log) => (
+                        {Array.isArray(logs) && logs.map((log) => (
                             <div key={log.id} className="relative pl-8 group">
                                 <span className={`absolute left-[-5px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-background ${log.action.includes('FAILED') || log.action.includes('DELETE') ? 'bg-red-500' : 'bg-primary'}`} />
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
@@ -430,6 +580,286 @@ export default function UserDetailsPage() {
                 {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
                 Confirmar Alteração
                 </Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Modal de Arquivamento (SOFT DELETE) */}
+        <Dialog open={isArchiveModalOpen} onOpenChange={setIsArchiveModalOpen}>
+            <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <Archive className="h-6 w-6 text-primary" />
+                    </div>
+                    <DialogTitle className="font-black text-xl uppercase tracking-tight">Arquivar Usuário</DialogTitle>
+                </div>
+                <DialogDescription className="text-sm font-medium text-foreground">
+                    Ao arquivar <strong>{user.name}</strong>, o acesso ao sistema será bloqueado, mas os dados serão preservados.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-4">
+                <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
+                    <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        Os dados financeiros permanecem no banco de dados.
+                    </p>
+                    <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        A conta pode ser restaurada a qualquer momento pelo admin.
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
+                    <div className="relative">
+                        <Input 
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Sua senha de acesso admin"
+                            className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10"
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                            autoComplete="new-password"
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                            onClick={() => setShowPassword(!showPassword)}
+                            type="button"
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
+                <Button 
+                    onClick={confirmArchive} 
+                    className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground"
+                    disabled={isSubmitting || !adminPassword}
+                >
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Archive className="h-3 w-3 mr-2" />}
+                    CONFIRMAR ARQUIVAMENTO
+                </Button>
+                <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)} className="rounded-xl font-bold h-11">Cancelar</Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Modal de Exclusão Permanente (IRREVERSÍVEL) */}
+        <Dialog open={isHardDeleteModalOpen} onOpenChange={setIsHardDeleteModalOpen}>
+            <DialogContent className="rounded-[32px] border-red-500/20 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
+                        <ShieldAlert className="h-6 w-6 text-red-600" />
+                    </div>
+                    <DialogTitle className="font-black text-xl uppercase tracking-tight text-red-600">Ação Irreversível</DialogTitle>
+                </div>
+                <DialogDescription className="text-sm font-medium text-foreground">
+                    Você está prestes a excluir permanentemente a conta de <strong>{user.name}</strong> e todos os dados associados.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-6">
+                <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-red-600">O que será removido:</h4>
+                    <ul className="space-y-2">
+                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                            <span>TODAS as transações, contas bancárias e cartões.</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                            <span>Metas, categorias personalizadas e tags.</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                            <span>Dados de perfil, avatar e configurações de acesso.</span>
+                        </li>
+                    </ul>
+                    <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter mt-4 text-center">
+                        ESTA AÇÃO NÃO PODE SER DESFEITA EM NENHUMA HIPÓTESE.
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
+                    <div className="relative">
+                        <Input 
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Sua senha de acesso admin"
+                            className="rounded-xl border-red-500/20 bg-red-500/5 focus:ring-red-500/20 pr-10"
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                            autoComplete="new-password"
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                            onClick={() => setShowPassword(!showPassword)}
+                            type="button"
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
+                <Button 
+                    onClick={confirmHardDelete} 
+                    variant="destructive"
+                    className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-red-500/20"
+                    disabled={isSubmitting || !adminPassword}
+                >
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Trash2 className="h-3 w-3 mr-2" />}
+                    EXCLUIR PERMANENTEMENTE
+                </Button>
+                <Button variant="ghost" onClick={() => setIsHardDeleteModalOpen(false)} className="rounded-xl font-bold h-11">Cancelar</Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Modal de Reset de Senha */}
+        <Dialog open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
+            <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+            <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                        <ShieldCheck className="h-6 w-6 text-primary" />
+                    </div>
+                    <DialogTitle className="font-black text-xl uppercase tracking-tight">Resetar Senha</DialogTitle>
+                </div>
+                <DialogDescription className="text-xs font-medium">
+                Defina uma nova senha de acesso para <strong>{user.name}</strong>.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-4">
+                <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Nova Senha do Usuário</Label>
+                <div className="relative">
+                    <Input 
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Mínimo 8 caracteres"
+                        className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10"
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        autoComplete="new-password"
+                    />
+                </div>
+                </div>
+
+                <div className="space-y-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
+                <div className="relative">
+                    <Input 
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Confirme sua identidade"
+                        className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
+                        value={adminPassword}
+                        onChange={(e) => setAdminPassword(e.target.value)}
+                        autoComplete="new-password"
+                    />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                        onClick={() => setShowPassword(!showPassword)}
+                        type="button"
+                    >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                </div>
+                </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="ghost" onClick={() => setIsResetModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+                <Button 
+                    onClick={confirmResetPassword} 
+                    className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
+                    disabled={isSubmitting || !newPassword || !adminPassword}
+                >
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                CONFIRMAR RESET
+                </Button>
+            </DialogFooter>
+            </DialogContent>
+        </Dialog>
+
+        {/* Modal de Limpar Dados (Clear Data) */}
+        <Dialog open={isClearDataModalOpen} onOpenChange={setIsClearDataModalOpen}>
+            <DialogContent className="rounded-[32px] border-amber-500/30 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogHeader>
+                <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
+                        <Eraser className="h-6 w-6 text-amber-600" />
+                    </div>
+                    <DialogTitle className="font-black text-xl uppercase tracking-tight text-amber-600">Limpar Dados do Usuário</DialogTitle>
+                </div>
+                <DialogDescription className="text-sm font-medium text-foreground">
+                    Você está prestes a excluir todos os registros de <strong>{user.name}</strong>, mas manterá o acesso dele ao sistema.
+                </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4 space-y-6">
+                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
+                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">O que vai acontecer:</h4>
+                    <ul className="space-y-2">
+                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                            <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                            <span>Transações, contas bancárias, cartões, metas e orçamentos serão <strong>excluídos permanentemente</strong>.</span>
+                        </li>
+                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                            <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
+                            <span>O login, a senha, os dados do perfil e a assinatura <strong>serão mantidos</strong>.</span>
+                        </li>
+                    </ul>
+                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-tighter mt-4 text-center">
+                        ESSA EXCLUSÃO DE DADOS É IRREVERSÍVEL.
+                    </p>
+                </div>
+
+                <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
+                    <div className="relative">
+                        <Input 
+                            type={showPassword ? "text" : "password"}
+                            placeholder="Sua senha de acesso admin"
+                            className="rounded-xl border-amber-500/20 bg-amber-500/5 focus:ring-amber-500/20 pr-10"
+                            value={adminPassword}
+                            onChange={(e) => setAdminPassword(e.target.value)}
+                            autoComplete="new-password"
+                        />
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
+                            onClick={() => setShowPassword(!showPassword)}
+                            type="button"
+                        >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
+                <Button 
+                    onClick={confirmClearData} 
+                    className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-amber-500/20 bg-amber-500 hover:bg-amber-600 text-white"
+                    disabled={isSubmitting || !adminPassword}
+                >
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Eraser className="h-3 w-3 mr-2" />}
+                    LIMPAR DADOS
+                </Button>
+                <Button variant="ghost" onClick={() => setIsClearDataModalOpen(false)} className="rounded-xl font-bold h-11">Cancelar</Button>
             </DialogFooter>
             </DialogContent>
         </Dialog>

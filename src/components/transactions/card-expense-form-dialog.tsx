@@ -6,10 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Loader2, CreditCard, AlertCircle } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, CreditCard, AlertCircle, PlusCircle, CornerDownRight } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { Label } from "@/components/ui/label"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 import { api } from "@/services/apiClient"
@@ -48,6 +50,7 @@ import { Transaction } from "@/types/transactions"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
+import { CategoryForm } from "@/components/categories/CategoryForm"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -73,6 +76,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
   const [categories, setCategories] = useState<Category[]>([])
   const [cards, setCards] = useState<CreditCardType[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false)
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -132,14 +136,16 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           let rawCats: Category[] = catRes.data.results || catRes.data || []
           
           // Organizar hierarquicamente (Flattened)
-          const organized: Category[] = []
+          const organized: any[] = []
           rawCats.forEach(parent => {
-              organized.push(parent)
+              organized.push({ ...parent, isSubcategory: false })
               if (parent.subcategories) {
                   parent.subcategories.forEach(child => {
                       organized.push({
                           ...child,
-                          name: `↳ ${child.name}`
+                          isSubcategory: true,
+                          parentIcon: parent.icon,
+                          parentColor: parent.color
                       })
                   })
               }
@@ -382,24 +388,88 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
-                                    {categories.map((cat) => (
-                                        <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
-                                            <div className="flex items-center gap-2">
-                                                <div 
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                                                    style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                                                >
-                                                    <LucideIcon name={cat.icon} className="h-4 w-4" />
-                                                </div>
-                                                <span className={cn(
-                                                    cat.name.startsWith("↳") ? "text-muted-foreground ml-1" : "font-medium"
-                                                )}>
-                                                    {cat.name}
-                                                </span>
+                                <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                    <div className="flex flex-col">
+                                        <Button 
+                                            type="button"
+                                            variant="ghost" 
+                                            className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                            onClick={(e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                setIsCategoryDialogOpen(true)
+                                            }}
+                                        >
+                                            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
+                                                <PlusCircle className="h-5 w-5" />
                                             </div>
-                                        </SelectItem>
-                                    ))}
+                                            Nova Categoria
+                                        </Button>
+
+                                        <div className="px-2 mb-2">
+                                            <Separator className="bg-muted/20" />
+                                        </div>
+
+                                        {categories.map((cat: any, index: number) => {
+                                            const isMaster = !cat.isSubcategory;
+                                            const isFirstMaster = isMaster && !categories.slice(0, index).some((c: any) => !c.isSubcategory);
+                                            const showSeparator = isMaster && !isFirstMaster;
+                                                
+                                                return (
+                                                    <div key={cat.id}>
+                                                        {showSeparator && (
+                                                            <div className="px-2 my-2">
+                                                                <Separator className="bg-muted/20" />
+                                                            </div>
+                                                        )}
+                                                        <SelectItem 
+                                                            key={cat.id} 
+                                                            value={cat.id} 
+                                                            className={cn(
+                                                                "group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30",
+                                                                cat.isSubcategory ? "pl-2 py-2" : "py-3"
+                                                            )}
+                                                        >
+                                                            <div className={cn(
+                                                                "flex items-center gap-3",
+                                                                cat.isSubcategory && "pl-8"
+                                                            )}>
+                                                                {cat.isSubcategory && (
+                                                                    <div className="flex items-center shrink-0">
+                                                                        <CornerDownRight className="h-3 w-3 text-muted-foreground/30 mr-2" />
+                                                                    </div>
+                                                                )}
+                                                                
+                                                                <div 
+                                                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                    style={{ 
+                                                                        backgroundColor: `${cat.color}15`, 
+                                                                        color: cat.color 
+                                                                    }}
+                                                                >
+                                                                    <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
+                                                                    <LucideIcon name={cat.icon || "Tag"} className="h-5 w-5 relative z-10" />
+                                                                </div>
+
+                                                                <div className="flex flex-col">
+                                                                    <span className={cn(
+                                                                        "tracking-tight transition-colors",
+                                                                        cat.isSubcategory 
+                                                                            ? "font-black text-[10px] uppercase text-muted-foreground/50 group-data-[highlighted]:text-slate-900" 
+                                                                            : "font-black text-sm uppercase group-data-[highlighted]:text-slate-950"
+                                                                    )}>
+                                                                        {cat.name}
+                                                                    </span>
+                                                                    {!cat.isSubcategory && (
+                                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">Categoria Master</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </SelectItem>
+                                                    </div>
+                                                )
+                                            })}
+                                    </div>
                                 </SelectContent>
                             </Select>
                             <FormMessage className="ml-1 text-[11px]" />
@@ -485,6 +555,36 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           </Form>
         </div>
       </DialogContent>
+
+      {/* Modal Secundário: Nova Categoria */}
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent className="sm:max-w-[480px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
+          <ScrollArea className="max-h-[85vh]">
+            <div className="p-8">
+                <DialogHeader className="mb-8">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
+                            <PlusCircle className="h-6 w-6" />
+                        </div>
+                        <div className="flex flex-col">
+                            <DialogTitle className="text-2xl font-black tracking-tight">Nova Categoria</DialogTitle>
+                            <DialogDescription className="text-xs font-bold opacity-50 tracking-tight">Crie uma categoria personalizada agora mesmo.</DialogDescription>
+                        </div>
+                    </div>
+                </DialogHeader>
+
+                <CategoryForm 
+                    defaultType="EXPENSE"
+                    onSuccess={() => {
+                        setIsCategoryDialogOpen(false)
+                        fetchResources()
+                    }}
+                    onCancel={() => setIsCategoryDialogOpen(false)}
+                />
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   )
 }

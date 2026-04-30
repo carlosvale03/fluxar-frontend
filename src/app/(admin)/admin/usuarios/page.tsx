@@ -387,8 +387,8 @@ export default function UserManagementPage() {
 
       <div className="sm:border border-border/40 bg-card/30 backdrop-blur-md sm:rounded-[40px] rounded-none border-x-0 overflow-hidden shadow-2xl">
         <Table>
-          <TableHeader className="bg-muted/30">
-            <TableRow className="hover:bg-transparent border-border/40">
+          <TableHeader className="bg-muted/60 dark:bg-zinc-800/50 backdrop-blur-sm">
+            <TableRow className="hover:bg-transparent border-b border-border/40">
               {isSelectionMode && (
                 <TableHead className="w-12 py-5 pl-4">
                   <Checkbox 
@@ -398,11 +398,11 @@ export default function UserManagementPage() {
                   />
                 </TableHead>
               )}
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-widest text-[10px] opacity-40">Usuário</TableHead>
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-widest text-[10px]">Plano</TableHead>
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-widest text-[10px]">Cargo</TableHead>
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-widest text-[10px] hidden sm:table-cell">Cadastro</TableHead>
-              <TableHead className="w-[80px] sm:w-[100px] text-right py-3 sm:py-5 font-black uppercase tracking-widest text-[10px]">Ações</TableHead>
+              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Usuário</TableHead>
+              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Plano</TableHead>
+              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Cargo</TableHead>
+              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80 hidden sm:table-cell">Cadastro</TableHead>
+              <TableHead className="w-[80px] sm:w-[100px] text-right py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

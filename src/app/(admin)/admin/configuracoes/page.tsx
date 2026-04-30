@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Activity, Server, FileText, AlertTriangle, RefreshCw, Loader2, Database, Globe } from "lucide-react"
 import { toast } from "sonner"
-import { getAdminStats, getSystemLogs, updateSystemSettings, AdminStats, SystemLog } from "@/services/admin"
+import { getAdminStats, getSystemLogs, updateSystemSettings, getSystemSettings, AdminStats, SystemLog } from "@/services/admin"
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("system")
@@ -23,12 +23,16 @@ export default function AdminSettingsPage() {
   const loadData = async () => {
       try {
           setIsRefreshing(true)
-          const [statsData, logsData] = await Promise.all([
+          const [statsData, logsData, settingsData] = await Promise.all([
               getAdminStats(),
-              getSystemLogs()
+              getSystemLogs(),
+              getSystemSettings()
           ])
           setStats(statsData)
           setLogs(logsData)
+          if (settingsData && settingsData.maintenance_mode) {
+              setMaintenanceMode(settingsData.maintenance_mode === 'true')
+          }
       } catch (error) {
           console.error("Failed to load admin settings data", error)
           toast.error("Erro ao carregar dados do sistema.")
@@ -137,12 +141,12 @@ export default function AdminSettingsPage() {
                 <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
                     <CardHeader className="pb-2">
                         <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Versão da API</CardDescription>
-                        <CardTitle className="text-3xl font-black text-foreground">v1.2.5</CardTitle>
+                        <CardTitle className="text-3xl font-black text-foreground">v{stats?.api_version || "1.2.5"}</CardTitle>
                     </CardHeader>
                     <CardContent>
                          <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
                             <Globe className="h-4 w-4 text-primary" />
-                            Build: 2026.02.05-rc3
+                            Build: 2026.04.29-stable
                         </div>
                     </CardContent>
                 </Card>
@@ -151,12 +155,14 @@ export default function AdminSettingsPage() {
                 <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-blue-500/30 transition-all duration-300">
                      <CardHeader className="pb-2">
                         <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Banco de Dados</CardDescription>
-                        <CardTitle className="text-3xl font-black text-blue-500">Conectado</CardTitle>
+                        <CardTitle className={`text-3xl font-black ${stats?.db_status === 'Erro' ? 'text-red-500' : 'text-blue-500'}`}>
+                            {stats?.db_status || "Conectado"}
+                        </CardTitle>
                      </CardHeader>
                      <CardContent>
                          <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
                             <Database className="h-4 w-4 text-blue-500" />
-                            PostgreSQL 15.4 (Lat: 45ms)
+                            PostgreSQL 15.4 (Lat: {stats?.db_latency || "0ms"})
                         </div>
                      </CardContent>
                 </Card>

@@ -26,3 +26,11 @@ export const updateTag = async (id: string, data: Partial<TagInput>): Promise<Ta
 export const deleteTag = async (id: string): Promise<void> => {
     await api.delete(`/tags/${id}/`)
 }
+
+export const getTagInsights = async (tagId: string, months: number = 6): Promise<any> => {
+    const response = await api.get(`/reports/charts/tag-insights/`, {
+        params: { tag_id: tagId, months }
+    })
+    return response.data
+}
+

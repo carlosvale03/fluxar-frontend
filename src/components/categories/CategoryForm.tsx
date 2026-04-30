@@ -61,11 +61,12 @@ interface CategoryFormProps {
   category?: Category
   parentCategory?: Category 
   currentSubcategoryCount?: number
+  defaultType?: "INCOME" | "EXPENSE"
   onSuccess: () => void
   onCancel?: () => void
 }
 
-export function CategoryForm({ category, parentCategory, currentSubcategoryCount = 0, onSuccess, onCancel }: CategoryFormProps) {
+export function CategoryForm({ category, parentCategory, currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
 
@@ -73,7 +74,7 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: category?.name || "",
-      type: (category?.type as "INCOME" | "EXPENSE") || (parentCategory?.type as "INCOME" | "EXPENSE") || "EXPENSE",
+      type: (category?.type as "INCOME" | "EXPENSE") || (parentCategory?.type as "INCOME" | "EXPENSE") || defaultType || "EXPENSE",
       icon: category?.icon || parentCategory?.icon || "",
       color: category?.color || parentCategory?.color || "",
       parent: category?.parent || parentCategory?.id || null,

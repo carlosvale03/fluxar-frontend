@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react"
 import { format, getDaysInMonth, parseISO, differenceInDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary } from "@/services/reports"
-import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport } from "@/types/reports"
+import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary, getTagDistribution } from "@/services/reports"
+import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport, TagDistributionReport } from "@/types/reports"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
 import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { useAuth } from "@/contexts/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
+import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
@@ -20,7 +22,7 @@ import {
     LineChart, Line, AreaChart, Area,
     PieChart, Pie, Cell
 } from 'recharts'
-import { Lock, Sparkles, TrendingUp, Wallet, Calendar, Filter, Zap, Brain, ShieldCheck, Target, Activity, Clock, ArrowUpRight, ArrowDownRight, BarChart3, PieChart as PieIcon, Eye, Plus, Search, Trash2, Tag as TagIcon } from "lucide-react"
+import { Lock, Sparkles, TrendingUp, Wallet, Calendar, Filter, Zap, Brain, ShieldCheck, Target, Activity, Clock, ArrowUpRight, ArrowDownRight, BarChart3, PieChart as PieIcon, Eye, Plus, Search, Trash2, Tag as TagIcon, TrendingDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FocusSelectionModal } from "@/components/reports/focus-selection-modal"
 import { deleteFocusedMonitor } from "@/services/focused-monitors"
@@ -34,6 +36,7 @@ export default function ReportsPage() {
     const [simpleData, setSimpleData] = useState<SimpleChartsReport | null>(null)
     const [advancedData, setAdvancedData] = useState<AdvancedChartsReport | null>(null)
     const [summaryData, setSummaryData] = useState<DashboardReport | null>(null)
+    const [tagData, setTagData] = useState<TagDistributionReport | null>(null)
     const [monthlyComparison, setMonthlyComparison] = useState<MonthlyComparisonData[]>([])
     const [isLoadingSimple, setIsLoadingSimple] = useState(true)
     const [isLoadingAdvanced, setIsLoadingAdvanced] = useState(false)
@@ -120,9 +123,20 @@ export default function ReportsPage() {
             }
         }
 
+        const fetchTagDistribution = async () => {
+            try {
+                // Para relatórios, usamos o mapeamento de períodos para o backend
+                const data = await getTagDistribution(undefined, undefined, period)
+                setTagData(data)
+            } catch (error) {
+                console.error("Failed to fetch tag distribution", error)
+            }
+        }
+
         fetchSimple()
         fetchComparison()
         fetchSummary()
+        fetchTagDistribution()
     }, [period])
 
     useEffect(() => {
@@ -248,183 +262,49 @@ export default function ReportsPage() {
                             className="lg:col-span-2"
                         />
 
-                        <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
-                            <CardHeader>
-                                <CardTitle className="text-base font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                    <Wallet className="h-4 w-4 text-blue-500" />
-                                    Distribuição de Gastos
-                                </CardTitle>
-                                <CardDescription>Percentual por categoria</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-auto min-h-[450px] sm:h-[400px] pt-4 flex flex-col sm:flex-row items-center">
-                                {isLoadingSimple ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                    (!simpleData?.expense_by_category || simpleData.expense_by_category.length === 0 || simpleData.expense_by_category.every((d: any) => Number(d.amount) === 0)) ? (
-                                        <ChartEmptyState 
-                                            type="pie" 
-                                            height="100%" 
-                                            title="Distribuição de Gastos"
-                                            description="Seus gastos por categoria aparecerão aqui."
-                                            icon={PieIcon}
-                                        />
-                                    ) : (
-                                        <>
-                                            <div className="w-full h-[300px] sm:h-full relative" style={{ minWidth: 0 }}>
-                                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                <PieChart>
-                                                    <Pie
-                                                        data={simpleData?.expense_by_category || []}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={70}
-                                                        outerRadius={100}
-                                                        paddingAngle={8}
-                                                        dataKey="amount"
-                                                        nameKey="category_name"
-                                                        stroke="none"
-                                                    >
-                                                        {simpleData?.expense_by_category?.map((entry: any, index: number) => (
-                                                            <Cell 
-                                                                key={`cell-${index}`} 
-                                                                fill={entry.color || COLORS[index % COLORS.length]} 
-                                                                className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
-                                                                style={{ filter: `drop-shadow(0 4px 6px ${entry.color || COLORS[index % COLORS.length]}22)` }}
-                                                            />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip 
-                                                        wrapperStyle={{ zIndex: 100 }}
-                                                        content={({ active, payload }) => {
-                                                            if (active && payload && payload.length) {
-                                                                const data = payload[0].payload
-                                                                return (
-                                                                    <div className="z-50 bg-background/95 backdrop-blur-2xl border border-border/50 p-3 rounded-2xl shadow-2xl ring-1 ring-black/5">
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color || COLORS[payload[0].index % COLORS.length] }} />
-                                                                            <span className="text-sm font-black">{data.category_name}</span>
-                                                                        </div>
-                                                                        <p className="text-xs font-bold text-muted-foreground">
-                                                                            {formatCurrency(data.amount)}
-                                                                        </p>
-                                                                    </div>
-                                                                )
-                                                            }
-                                                            return null
-                                                        }}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none z-0">
-                                                <span className="block text-[10px] font-black uppercase tracking-tighter text-muted-foreground opacity-50">Total</span>
-                                                <span className="block text-xl font-black">{formatCurrency(simpleData?.expense_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="w-full sm:w-[300px] space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar mt-4 sm:mt-0">
-                                            {simpleData?.expense_by_category?.map((item: any, index: number) => (
-                                                <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors group cursor-default">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }} />
-                                                        <span className="text-xs font-bold text-muted-foreground group-hover:text-foreground transition-colors truncate max-w-[120px]">
-                                                            {item.category_name}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-xs font-black">{formatCurrency(item.amount)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                    )
-                                )}
-                            </CardContent>
-                        </Card>
+                        <CategoryDistributionChart 
+                            title="Distribuição de Gastos"
+                            description="Percentual por categoria"
+                            data={simpleData?.expense_by_category || []}
+                            isLoading={isLoadingSimple}
+                            icon={Wallet}
+                            iconColor="text-blue-500"
+                            startDate={advancedData?.period?.start_date}
+                            endDate={advancedData?.period?.end_date}
+                        />
 
-                        <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
-                            <CardHeader>
-                                <CardTitle className="text-base font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-emerald-500" />
-                                    Distribuição de Ganhos
-                                </CardTitle>
-                                <CardDescription>Origem das receitas por categoria</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-auto min-h-[450px] sm:h-[400px] pt-4 flex flex-col sm:flex-row items-center">
-                                {isLoadingSimple ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                    (!simpleData?.income_by_category || simpleData.income_by_category.length === 0 || simpleData.income_by_category.every((d: any) => Number(d.amount) === 0)) ? (
-                                        <ChartEmptyState 
-                                            type="pie" 
-                                            height="100%" 
-                                            title="Distribuição de Ganhos"
-                                            description="Sua origem de receitas aparecerão aqui."
-                                            icon={PieIcon}
-                                        />
-                                    ) : (
-                                        <>
-                                            <div className="w-full h-[300px] sm:h-full relative" style={{ minWidth: 0 }}>
-                                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                <PieChart>
-                                                    <Pie
-                                                        data={simpleData?.income_by_category || []}
-                                                        cx="50%"
-                                                        cy="50%"
-                                                        innerRadius={70}
-                                                        outerRadius={100}
-                                                        paddingAngle={8}
-                                                        dataKey="amount"
-                                                        nameKey="category_name"
-                                                        stroke="none"
-                                                    >
-                                                        {simpleData?.income_by_category?.map((entry: any, index: number) => (
-                                                            <Cell 
-                                                                key={`cell-${index}`} 
-                                                                fill={entry.color || COLORS[index % COLORS.length]} 
-                                                                className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
-                                                                style={{ filter: `drop-shadow(0 4px 6px ${entry.color || COLORS[index % COLORS.length]}22)` }}
-                                                            />
-                                                        ))}
-                                                    </Pie>
-                                                    <Tooltip 
-                                                        wrapperStyle={{ zIndex: 100 }}
-                                                        content={({ active, payload }) => {
-                                                            if (active && payload && payload.length) {
-                                                                const data = payload[0].payload
-                                                                return (
-                                                                    <div className="z-50 bg-background/95 backdrop-blur-2xl border border-border/50 p-3 rounded-2xl shadow-2xl ring-1 ring-black/5">
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: data.color || COLORS[payload[0].index % COLORS.length] }} />
-                                                                            <span className="text-sm font-black">{data.category_name}</span>
-                                                                        </div>
-                                                                        <p className="text-xs font-bold text-muted-foreground">
-                                                                            {formatCurrency(data.amount)}
-                                                                        </p>
-                                                                    </div>
-                                                                )
-                                                            }
-                                                            return null
-                                                        }}
-                                                    />
-                                                </PieChart>
-                                            </ResponsiveContainer>
-                                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none z-0">
-                                                <span className="block text-[10px] font-black uppercase tracking-tighter text-muted-foreground opacity-50">Total</span>
-                                                <span className="block text-xl font-black">{formatCurrency(simpleData?.income_by_category?.reduce((acc, curr) => acc + Number(curr.amount), 0) || 0)}</span>
-                                            </div>
-                                        </div>
-                                        <div className="w-full sm:w-[300px] space-y-2 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar mt-4 sm:mt-0">
-                                            {simpleData?.income_by_category?.map((item: any, index: number) => (
-                                                <div key={index} className="flex items-center justify-between p-2 rounded-xl hover:bg-muted/30 transition-colors group cursor-default">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-2.5 h-2.5 rounded-full shrink-0 shadow-sm" style={{ backgroundColor: item.color || COLORS[index % COLORS.length] }} />
-                                                        <span className="text-xs font-bold text-muted-foreground group-hover:text-foreground transition-colors truncate max-w-[120px]">
-                                                            {item.category_name}
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-xs font-black">{formatCurrency(item.amount)}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </>
-                                    )
-                                )}
-                            </CardContent>
-                        </Card>
+                        <CategoryDistributionChart 
+                            title="Distribuição de Ganhos"
+                            description="Origem das receitas por categoria"
+                            data={simpleData?.income_by_category || []}
+                            isLoading={isLoadingSimple}
+                            icon={Sparkles}
+                            iconColor="text-emerald-500"
+                            startDate={advancedData?.period?.start_date}
+                            endDate={advancedData?.period?.end_date}
+                        />
+
+                        <TagDistributionChart 
+                            title="Despesas por Tag"
+                            description="Distribuição de gastos por etiqueta"
+                            data={tagData?.expense_by_tag || []}
+                            isLoading={isLoadingSimple}
+                            icon={TagIcon}
+                            iconColor="text-rose-500"
+                            startDate={advancedData?.period?.start_date}
+                            endDate={advancedData?.period?.end_date}
+                        />
+
+                        <TagDistributionChart 
+                            title="Ganhos por Tag"
+                            description="Origem das receitas por etiqueta"
+                            data={tagData?.income_by_tag || []}
+                            isLoading={isLoadingSimple}
+                            icon={TagIcon}
+                            iconColor="text-emerald-500"
+                            startDate={advancedData?.period?.start_date}
+                            endDate={advancedData?.period?.end_date}
+                        />
                     </div>
                 </TabsContent>
 
@@ -630,7 +510,7 @@ export default function ReportsPage() {
                                                                                 outerRadius={activePieIndex !== null ? 95 : 90}
                                                                                 paddingAngle={8}
                                                                                 dataKey="value"
-                                                                                onMouseEnter={(_, index) => setActivePieIndex(index)}
+                                                                                onMouseEnter={(_: any, index: number) => setActivePieIndex(index)}
                                                                                 onMouseLeave={() => setActivePieIndex(null)}
                                                                                 animationBegin={0}
                                                                                 animationDuration={800}
@@ -715,7 +595,7 @@ export default function ReportsPage() {
                                                                 <YAxis hide />
                                                                 <Tooltip 
                                                                     cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                                                                    content={({ active, payload, label }) => {
+                                                                    content={({ active, payload, label }: any) => {
                                                                         if (active && payload && payload.length) {
                                                                             return (
                                                                                 <div className="z-50 bg-background/95 backdrop-blur-xl border border-border/50 p-2 sm:p-3 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
@@ -1049,7 +929,7 @@ export default function ReportsPage() {
                                                         />
                                                         <Tooltip 
                                                             cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
-                                                            content={({ active, payload }) => {
+                                                            content={({ active, payload }: any) => {
                                                                 if (active && payload && payload.length) {
                                                                     return (
                                                                         <div className="bg-background/95 backdrop-blur-xl border border-border/50 p-3 rounded-2xl shadow-2xl">
@@ -1118,7 +998,7 @@ export default function ReportsPage() {
                                                 <XAxis dataKey="label" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
                                                 <YAxis hide />
                                                 <Tooltip 
-                                                    content={({ active, payload }) => {
+                                                    content={({ active, payload }: any) => {
                                                         if (active && payload && payload.length) {
                                                             return (
                                                                 <div className="z-50 bg-background/95 backdrop-blur-xl border border-border/50 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">

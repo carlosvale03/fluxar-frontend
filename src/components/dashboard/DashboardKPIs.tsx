@@ -61,6 +61,7 @@ function KPICard({ title, value, icon, colorClass, bgClass, style, helpTopic }: 
 interface DashboardKPIsProps {
     data: {
         total_balance: number
+        total_liquid_balance?: number
         monthly_income: number
         monthly_expense: number
         net_result: number
@@ -76,7 +77,7 @@ export function DashboardKPIs({ data }: DashboardKPIsProps) {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
             <KPICard 
                 title="Saldo em Contas" 
-                value={data?.total_balance ?? 0} 
+                value={data?.total_liquid_balance ?? data?.total_balance ?? 0} 
                 icon={<Wallet className="h-7 w-7 text-primary" />}
                 colorClass="text-foreground"
                 bgClass="bg-primary/10"

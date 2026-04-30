@@ -342,37 +342,43 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                     )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Tipo</Label>
-                        <Input value={mapping.type_column} onChange={e => setMapping({...mapping, type_column: e.target.value})} placeholder="Tipo (Receita/Despesa)" className="h-10 rounded-xl font-bold text-xs" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Situação</Label>
-                        <Input value={mapping.status_column} onChange={e => setMapping({...mapping, status_column: e.target.value})} placeholder="Situação" className="h-10 rounded-xl font-bold text-xs" />
-                    </div>
-                </div>
+                {importSubType === "INCOME_EXPENSE" && (
+                    <>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Tipo</Label>
+                                <Input value={mapping.type_column} onChange={e => setMapping({...mapping, type_column: e.target.value})} placeholder="Tipo (Receita/Despesa)" className="h-10 rounded-xl font-bold text-xs" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Situação</Label>
+                                <Input value={mapping.status_column} onChange={e => setMapping({...mapping, status_column: e.target.value})} placeholder="Situação" className="h-10 rounded-xl font-bold text-xs" />
+                            </div>
+                        </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Categoria</Label>
-                        <Input value={mapping.category_column} onChange={e => setMapping({...mapping, category_column: e.target.value})} placeholder="Categoria" className="h-10 rounded-xl font-bold text-xs" />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Subcategoria</Label>
-                        <Input value={mapping.subcategory_column} onChange={e => setMapping({...mapping, subcategory_column: e.target.value})} placeholder="Subcategoria" className="h-10 rounded-xl font-bold text-xs" />
-                    </div>
-                </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Categoria</Label>
+                                <Input value={mapping.category_column} onChange={e => setMapping({...mapping, category_column: e.target.value})} placeholder="Categoria" className="h-10 rounded-xl font-bold text-xs" />
+                            </div>
+                            <div className="space-y-1.5">
+                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Subcategoria</Label>
+                                <Input value={mapping.subcategory_column} onChange={e => setMapping({...mapping, subcategory_column: e.target.value})} placeholder="Subcategoria" className="h-10 rounded-xl font-bold text-xs" />
+                            </div>
+                        </div>
+                    </>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                         <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Tags</Label>
                         <Input value={mapping.tags_column} onChange={e => setMapping({...mapping, tags_column: e.target.value})} placeholder="Tags" className="h-10 rounded-xl font-bold text-xs" />
                     </div>
-                    <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Conta</Label>
-                        <Input value={mapping.account_column} onChange={e => setMapping({...mapping, account_column: e.target.value})} placeholder="Nome da Conta" className="h-10 rounded-xl font-bold text-xs" />
-                    </div>
+                    {importSubType === "INCOME_EXPENSE" && (
+                        <div className="space-y-1.5">
+                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Conta</Label>
+                            <Input value={mapping.account_column} onChange={e => setMapping({...mapping, account_column: e.target.value})} placeholder="Nome da Conta" className="h-10 rounded-xl font-bold text-xs" />
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex gap-3">
