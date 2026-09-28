@@ -29,6 +29,9 @@ jobs:
     - name: Type Check
       run: npx tsc --noEmit -p . --incremental false
 
+    - name: Run Tests
+      run: npm test
+
     - name: Run Lint
       # O lint ainda tem 168 erros antigos (MAN-04 da auditoria); roda sem bloquear até a limpeza
       continue-on-error: true
