@@ -8,7 +8,7 @@ import { AuthShell } from "@/components/auth/auth-shell"
 import Link from "next/link"
 import { useState, Suspense } from "react"
 import { toast } from "sonner"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Loader2, KeyRound, AlertTriangle } from "lucide-react"
 import { PasswordInput } from "@/components/ui/password-input"
@@ -30,6 +30,12 @@ const resetSchema = z.object({
 
 type ResetForm = z.infer<typeof resetSchema>
 
+// Campo do backend -> campo do formulário (AUTH-22)
+const CAMPOS_DO_BACKEND: Record<string, keyof ResetForm> = {
+  new_password: "newPassword",
+  new_password_confirm: "confirmPassword",
+}
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0 }
@@ -37,11 +43,12 @@ const itemVariants = {
 
 function ResetPasswordContent() {
   const [isLoading, setIsLoading] = useState(false)
+  const [linkInvalido, setLinkInvalido] = useState<string | null>(null)
   const router = useRouter()
   const searchParams = useSearchParams()
   const token = searchParams.get("token")
   
-  const { register, handleSubmit, formState: { errors } } = useForm<ResetForm>({
+  const { register, handleSubmit, setError, formState: { errors } } = useForm<ResetForm>({
     resolver: zodResolver(resetSchema),
   })
 
@@ -53,18 +60,42 @@ function ResetPasswordContent() {
 
     try {
       setIsLoading(true)
-      await api.post("/auth/reset-password/", { token, password: data.newPassword })
-      toast.success("Senha redefinida com sucesso! Faça login com a nova senha.")
+      // Os campos que o backend espera (AUTH-23)
+      const response = await api.post("/auth/reset-password/", {
+        token,
+        new_password: data.newPassword,
+        new_password_confirm: data.confirmPassword,
+      })
+      toast.success(response.data.message)
       router.push("/auth/login")
     } catch (error) {
       console.error(error)
-      toast.error("Erro ao redefinir senha. O link pode ter expirado.")
+      const backendErrors = (error as { response?: { data?: Record<string, unknown> } }).response?.data
+
+      // Link vencido ou já usado: mostra a mensagem e oferece pedir outro (AUTH-21)
+      if (backendErrors?.code === "invalid_link") {
+        setLinkInvalido(mensagemDeErro(error))
+        return
+      }
+
+      let temErroDeCampo = false
+      for (const [chave, campo] of Object.entries(CAMPOS_DO_BACKEND)) {
+        const mensagens = backendErrors?.[chave]
+        if (mensagens) {
+          setError(campo, { message: Array.isArray(mensagens) ? mensagens.join(" ") : String(mensagens) })
+          temErroDeCampo = true
+        }
+      }
+
+      if (!temErroDeCampo) {
+        toast.error(mensagemDeErro(error, "Erro ao redefinir senha. O link pode ter expirado."))
+      }
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (!token) {
+  if (!token || linkInvalido) {
       return (
         <AuthShell title="Link Inválido" description="O link de recuperação parece estar incompleto ou expirado.">
            <div className="flex flex-col items-center space-y-6 py-4">
@@ -72,7 +103,7 @@ function ResetPasswordContent() {
                 <AlertTriangle className="h-8 w-8" />
               </div>
               <p className="text-sm text-center text-muted-foreground leading-relaxed font-medium">
-                Por questões de segurança, links de recuperação expiram em 1 hora. Solicite um novo link para continuar.
+                {linkInvalido ?? "Por questões de segurança, links de recuperação expiram em 1 hora. Solicite um novo link para continuar."}
               </p>
               <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-border/60 hover:bg-muted font-bold transition-all">
                 <Link href="/auth/forgot-password">Solicitar Novo Link</Link>
