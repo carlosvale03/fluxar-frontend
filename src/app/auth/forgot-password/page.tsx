@@ -9,7 +9,7 @@ import { AuthShell } from "@/components/auth/auth-shell"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { cn } from "@/lib/utils"
 import { ChevronLeft, Mail, CheckCircle2, ArrowRight } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
@@ -28,6 +28,7 @@ const itemVariants = {
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [mensagem, setMensagem] = useState("")
   
   const { register, handleSubmit, formState: { errors } } = useForm<ForgotForm>({
     resolver: zodResolver(forgotSchema),
@@ -36,12 +37,14 @@ export default function ForgotPasswordPage() {
   const onSubmit = async (data: ForgotForm) => {
     try {
       setIsLoading(true)
-      await api.post("/auth/forgot-password/", data)
+      // A resposta é neutra: não diz se o e-mail está cadastrado (AUTH-18)
+      const response = await api.post("/auth/forgot-password/", data)
+      setMensagem(response.data.message)
       setSuccess(true)
-      toast.success("E-mail de recuperação enviado!")
+      toast.success(response.data.message)
     } catch (error) {
       console.error(error)
-      toast.error("Ocorreu um erro. Tente novamente mais tarde.")
+      toast.error(mensagemDeErro(error, "Ocorreu um erro. Tente novamente mais tarde."))
     } finally {
       setIsLoading(false)
     }
@@ -77,8 +80,9 @@ export default function ForgotPasswordPage() {
             
             <div className="space-y-3 px-4">
               <h3 className="text-lg font-black tracking-tight">Verifique sua Caixa de Entrada</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">{mensagem}</p>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Enviamos um link de recuperação com validade de 1 hora. Se não encontrar, verifique sua pasta de **Spam**.
+                O link vale por 1 hora. Se não encontrar, verifique sua pasta de **Spam**.
               </p>
             </div>
 
