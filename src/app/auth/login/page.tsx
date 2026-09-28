@@ -11,7 +11,8 @@ import { AuthShell } from "@/components/auth/auth-shell"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
+import { ResendVerification } from "@/components/auth/resend-verification"
 import { AlertCircle, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
@@ -34,6 +35,7 @@ const itemVariants = {
 export default function LoginPage() {
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
+  const [emailNaoVerificado, setEmailNaoVerificado] = useState<string | null>(null)
   
   const { register, handleSubmit, setError, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
@@ -42,12 +44,18 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginForm) => {
     try {
       setIsLoading(true)
+      setEmailNaoVerificado(null)
       const response = await api.post("/auth/login/", data)
       await login(response.data.access, response.data.refresh, response.data.user)
       toast.success("Bem-vindo de volta ao Fluxar!")
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "E-mail ou senha incorretos. Tente novamente."
+    } catch (error) {
+      const msg = mensagemDeErro(error, "E-mail ou senha incorretos. Tente novamente.")
       setError("root", { message: msg })
+      // Conta pendente com a senha certa: oferece o reenvio do link (AUTH-13)
+      const code = (error as { response?: { data?: { code?: unknown } } }).response?.data?.code
+      if (code === "email_not_verified") {
+        setEmailNaoVerificado(data.email)
+      }
     } finally {
       setIsLoading(false)
     }
@@ -76,6 +84,12 @@ export default function LoginPage() {
                 <AlertCircle className="h-4 w-4" />
               </div>
               <p>{errors.root.message}</p>
+            </motion.div>
+          )}
+
+          {emailNaoVerificado && (
+            <motion.div variants={itemVariants}>
+              <ResendVerification email={emailNaoVerificado} />
             </motion.div>
           )}
 
