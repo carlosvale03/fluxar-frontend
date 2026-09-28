@@ -10,13 +10,14 @@ import { AuthShell } from "@/components/auth/auth-shell"
 import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
 import { AlertCircle, UserPlus, ShieldCheck } from "lucide-react"
 import { Controller } from "react-hook-form"
 import { Checkbox } from "@/components/ui/checkbox"
+import { ResendVerification } from "@/components/auth/resend-verification"
 
 const registerSchema = z.object({
   name: z.string()
@@ -45,6 +46,15 @@ const registerSchema = z.object({
 
 type RegisterForm = z.infer<typeof registerSchema>
 
+// Campo do backend -> campo do formulário, para cada erro aparecer no lugar certo (AUTH-07)
+const CAMPOS_DO_BACKEND: Record<string, keyof RegisterForm> = {
+  name: "name",
+  email: "email",
+  password: "password",
+  password_confirm: "confirmPassword",
+  terms_accepted: "termsAccepted",
+}
+
 const itemVariants = {
   hidden: { opacity: 0, y: 10 },
   show: { opacity: 1, y: 0 }
@@ -52,6 +62,7 @@ const itemVariants = {
 
 export default function RegisterPage() {
   const [isLoading, setIsLoading] = useState(false)
+  const [envioFalhou, setEnvioFalhou] = useState<{ email: string; mensagem: string } | null>(null)
   const router = useRouter()
   
   const { register, handleSubmit, setError, control, formState: { errors } } = useForm<RegisterForm>({
@@ -73,24 +84,54 @@ export default function RegisterPage() {
         terms_accepted: data.termsAccepted
       }
       
-      await api.post("/auth/register/", payload)
-      toast.success("Cadastro realizado! Verifique seu e-mail para confirmar a conta.")
+      const response = await api.post("/auth/register/", payload)
+      // A conta foi criada, mas o e-mail não saiu: fica na tela com o reenvio (AUTH-26)
+      if (response.data.email_sent === false) {
+        setEnvioFalhou({ email: data.email, mensagem: response.data.message })
+        return
+      }
+      toast.success(response.data.message)
       router.push("/auth/login")
-    } catch (error: any) {
+    } catch (error) {
       console.error(error)
-      const backendErrors = error.response?.data
-      
-      if (backendErrors?.email) {
-        setError("email", { message: "Este e-mail já está em uso por outra conta." })
-        toast.error("E-mail já cadastrado.")
-      } else {
-        const msg = backendErrors?.detail || "Erro ao realizar cadastro. Tente novamente mais tarde."
+      const backendErrors = (error as { response?: { data?: Record<string, unknown> } }).response?.data
+      let temErroDeCampo = false
+
+      for (const [chave, campo] of Object.entries(CAMPOS_DO_BACKEND)) {
+        const mensagens = backendErrors?.[chave]
+        if (mensagens) {
+          setError(campo, { message: Array.isArray(mensagens) ? mensagens.join(" ") : String(mensagens) })
+          temErroDeCampo = true
+        }
+      }
+
+      if (!temErroDeCampo) {
+        const msg = mensagemDeErro(error, "Erro ao realizar cadastro. Tente novamente mais tarde.")
         setError("root", { message: msg })
         toast.error(msg)
       }
     } finally {
       setIsLoading(false)
     }
+  }
+
+  if (envioFalhou) {
+    return (
+      <AuthShell title="Conta criada" description="Falta só confirmar o seu e-mail.">
+        <div className="flex flex-col items-center space-y-6 py-4">
+          <div className="w-16 h-16 rounded-[24px] bg-amber-500/10 flex items-center justify-center text-amber-500">
+            <AlertCircle className="h-8 w-8" />
+          </div>
+          <p className="text-sm text-center text-muted-foreground leading-relaxed font-medium">
+            {envioFalhou.mensagem}
+          </p>
+          <ResendVerification email={envioFalhou.email} />
+          <Link href="/auth/login" className="text-sm text-primary font-black hover:underline underline-offset-4 decoration-2">
+            Ir para o login
+          </Link>
+        </div>
+      </AuthShell>
+    )
   }
 
   return (
