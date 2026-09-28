@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
     <AuthShell 
       title="Recuperar Senha" 
       description={success 
-        ? "Quase lá! Instruções enviadas para o seu e-mail."
+        ? "Pedido recebido. Confira a mensagem abaixo."
         : "Não se preocupe, acontece. Informe seu e-mail e enviaremos um link para você criar uma nova senha."
       }
     >

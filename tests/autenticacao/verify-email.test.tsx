@@ -1,3 +1,4 @@
+import { StrictMode } from "react"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -63,5 +64,19 @@ describe("Tela de verificação de e-mail", () => {
 
     expect(post).toHaveBeenCalledWith("/auth/resend-verification/", { email: "ana@x.com" })
     expect(login).not.toHaveBeenCalled()
+  })
+
+  it("usa o link uma vez só, mesmo com o efeito rodando duas vezes no StrictMode", async () => {
+    get.mockResolvedValue({
+      data: { message: "E-mail verificado com sucesso.", access: "acesso-novo", refresh: "renovacao-nova" },
+    })
+    render(
+      <StrictMode>
+        <VerifyEmailPage />
+      </StrictMode>,
+    )
+
+    expect(await screen.findByRole("button", { name: /acessar minha conta/i })).toBeInTheDocument()
+    expect(get).toHaveBeenCalledTimes(1)
   })
 })

@@ -39,6 +39,8 @@ describe("Tela de esqueci a senha", () => {
 
     expect(post).toHaveBeenCalledWith("/auth/forgot-password/", { email: "ana@x.com" })
     expect(await screen.findByText(MENSAGEM_NEUTRA)).toBeInTheDocument()
+    // AUTH-18: o cabeçalho também não afirma que um e-mail foi enviado
+    expect(screen.queryByText(/instruções enviadas/i)).not.toBeInTheDocument()
   })
 
   it("mostra a mensagem do 429", async () => {

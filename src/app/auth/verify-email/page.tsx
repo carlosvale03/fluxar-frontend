@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Suspense } from "react"
+import { useEffect, useRef, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { AuthShell } from "@/components/auth/auth-shell"
@@ -23,12 +23,16 @@ function VerifyEmailContent() {
   const [tokens, setTokens] = useState<{access: string, refresh: string} | null>(null)
   const [mensagemErro, setMensagemErro] = useState(LINK_INVALIDO)
   const [emailReenvio, setEmailReenvio] = useState("")
+  // O link só pode ser usado uma vez: o StrictMode roda o efeito duas vezes em desenvolvimento
+  const tokenVerificado = useRef<string | null>(null)
 
   useEffect(() => {
     if (!token) {
       setStatus("error")
       return
     }
+    if (tokenVerificado.current === token) return
+    tokenVerificado.current = token
 
     const verify = async () => {
       try {
