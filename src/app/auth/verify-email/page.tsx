@@ -2,14 +2,18 @@
 
 import { useEffect, useState, Suspense } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { AuthShell } from "@/components/auth/auth-shell"
+import { ResendVerification } from "@/components/auth/resend-verification"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { Loader2, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 
 import { useAuth } from "@/contexts/auth-context"
+
+const LINK_INVALIDO = "Este link de verificação é inválido ou expirou. Tente solicitar um novo acesso."
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
@@ -17,6 +21,8 @@ function VerifyEmailContent() {
   const { login } = useAuth()
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
   const [tokens, setTokens] = useState<{access: string, refresh: string} | null>(null)
+  const [mensagemErro, setMensagemErro] = useState(LINK_INVALIDO)
+  const [emailReenvio, setEmailReenvio] = useState("")
 
   useEffect(() => {
     if (!token) {
@@ -34,6 +40,7 @@ function VerifyEmailContent() {
         setStatus("success")
       } catch (error) {
         console.error(error)
+        setMensagemErro(mensagemDeErro(error, LINK_INVALIDO))
         setStatus("error")
       }
     }
@@ -120,8 +127,23 @@ function VerifyEmailContent() {
               </div>
               <div className="text-center space-y-2 px-4">
                 <h3 className="text-xl font-black tracking-tight text-destructive">Falha na Verificação</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Este link de verificação é inválido ou expirou. Tente solicitar um novo acesso.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">{mensagemErro}</p>
               </div>
+              {/* O link não diz de qual conta é: o reenvio pede o e-mail (AUTH-09) */}
+              <div className="w-full space-y-2">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="email-reenvio">
+                  Seu e-mail
+                </label>
+                <Input
+                  id="email-reenvio"
+                  type="email"
+                  placeholder="exemplo@email.com"
+                  value={emailReenvio}
+                  onChange={(event) => setEmailReenvio(event.target.value)}
+                  className="h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10 hover:border-primary/30 focus-visible:ring-primary/20"
+                />
+              </div>
+              <ResendVerification email={emailReenvio.trim()} />
               <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-border/60 font-bold transition-all hover:bg-muted">
                 <Link href="/auth/login">Voltar para o Login</Link>
               </Button>
