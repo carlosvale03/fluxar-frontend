@@ -11,11 +11,39 @@ export const api = axios.create({
   },
 })
 
+// Rotas públicas de autenticação: saem sem token, e um 401 delas não renova a
+// sessão nem redireciona para o login (AUTH-41)
+export const ROTAS_PUBLICAS = [
+  "/auth/register/",
+  "/auth/login/",
+  "/auth/verify-email/",
+  "/auth/resend-verification/",
+  "/auth/forgot-password/",
+  "/auth/reset-password/",
+]
+
+const ehRotaPublica = (url?: string) => {
+  const caminho = (url ?? "").split("?")[0]
+  return ROTAS_PUBLICAS.some((rota) => caminho.endsWith(rota))
+}
+
+// Mensagem do backend para exibir na tela, inclusive a do 429 (AUTH-36)
+export const mensagemDeErro = (
+  error: unknown,
+  fallback = "Não foi possível concluir. Tente novamente.",
+) => {
+  const detail = (error as { response?: { data?: { detail?: unknown } } } | null)?.response?.data?.detail
+  return typeof detail === "string" ? detail : fallback
+}
+
 // Intercept requests to add tokens and monitor status
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("fluxar.token")
   
-  if (token) {
+  if (ehRotaPublica(config.url)) {
+    // Remove também o token que a renovação deixa nos cabeçalhos padrão
+    config.headers.delete("Authorization")
+  } else if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
 
@@ -76,7 +104,7 @@ api.interceptors.response.use(
         return Promise.reject(error)
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    if (error.response?.status === 401 && !originalRequest._retry && !ehRotaPublica(originalRequest?.url)) {
         if (isRefreshing) {
             return new Promise(function(resolve, reject) {
                 failedQueue.push({resolve, reject})
