@@ -13,7 +13,8 @@ export const api = axios.create({
 })
 
 // Rotas públicas de autenticação: saem sem token, e um 401 delas não renova a
-// sessão nem redireciona para o login (AUTH-41)
+// sessão nem redireciona para o login (AUTH-41). A renovação e o logout usam
+// só o cookie de renovação.
 export const ROTAS_PUBLICAS = [
   "/auth/register/",
   "/auth/login/",
@@ -21,7 +22,24 @@ export const ROTAS_PUBLICAS = [
   "/auth/resend-verification/",
   "/auth/forgot-password/",
   "/auth/reset-password/",
+  "/auth/refresh/",
+  "/auth/logout/",
 ]
+
+// O token de acesso fica só na memória da aba (SESSAO-02)
+let tokenDeAcesso: string | null = null
+
+export const definirTokenDeAcesso = (token: string | null) => {
+  tokenDeAcesso = token
+}
+
+export const obterTokenDeAcesso = () => tokenDeAcesso
+
+// Apaga os tokens que as versões antigas guardavam no localStorage (SESSAO-06)
+export const limparTokensAntigos = () => {
+  localStorage.removeItem("fluxar.token")
+  localStorage.removeItem("fluxar.refresh_token")
+}
 
 const ehRotaPublica = (url?: string) => {
   const caminho = (url ?? "").split("?")[0]
@@ -39,13 +57,10 @@ export const mensagemDeErro = (
 
 // Intercept requests to add tokens and monitor status
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("fluxar.token")
-  
   if (ehRotaPublica(config.url)) {
-    // Remove também o token que a renovação deixa nos cabeçalhos padrão
     config.headers.delete("Authorization")
-  } else if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  } else if (tokenDeAcesso) {
+    config.headers.Authorization = `Bearer ${tokenDeAcesso}`
   }
 
   // Monitoramento de Wake-up
@@ -120,40 +135,27 @@ api.interceptors.response.use(
         originalRequest._retry = true
         isRefreshing = true
 
-        const refreshToken = localStorage.getItem("fluxar.refresh_token")
+        try {
+             // O token de renovação vai no cookie httpOnly da mesma origem
+             const response = await axios.post("/api/auth/refresh/")
 
-        if (refreshToken) {
-            try {
-                 const response = await axios.post(
-                     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/auth/refresh/`, 
-                     { refresh: refreshToken }
-                 )
-
-                 const { access } = response.data
-                 
-                 localStorage.setItem("fluxar.token", access)
-                 api.defaults.headers.common['Authorization'] = 'Bearer ' + access
-                 originalRequest.headers['Authorization'] = 'Bearer ' + access
-                 
-                 processQueue(null, access)
-                 return api(originalRequest)
-            } catch (err) {
-                 processQueue(err, null)
-                 // Logout user if refresh fails
-                 localStorage.removeItem("fluxar.token")
-                 localStorage.removeItem("fluxar.refresh_token")
-                 if (typeof window !== "undefined") {
-                     window.location.href = "/auth/login"
-                 }
-                 return Promise.reject(err)
-            } finally {
-                isRefreshing = false
-            }
-        } else {
-             localStorage.removeItem("fluxar.token")
+             const { access } = response.data
+             
+             definirTokenDeAcesso(access)
+             originalRequest.headers['Authorization'] = 'Bearer ' + access
+             
+             processQueue(null, access)
+             return api(originalRequest)
+        } catch (err) {
+             processQueue(err, null)
+             // Logout user if refresh fails
+             definirTokenDeAcesso(null)
              if (typeof window !== "undefined") {
                  window.location.href = "/auth/login"
              }
+             return Promise.reject(err)
+        } finally {
+            isRefreshing = false
         }
     }
     return Promise.reject(error)
