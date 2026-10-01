@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react"
 import { Loader2, RefreshCcw, DollarSign, AlertCircle, CheckCircle2 } from "lucide-react"
 import { toast } from "sonner"
-import { format } from "date-fns"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -16,7 +15,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account } from "@/types/accounts"
 import { MoneyInput } from "@/components/ui/money-input"
 import { cn } from "@/lib/utils"
@@ -31,52 +30,17 @@ interface BalanceAdjustmentDialogProps {
 export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess }: BalanceAdjustmentDialogProps) {
   const [newBalance, setNewBalance] = useState<number>(0)
   const [isLoading, setIsLoading] = useState(false)
-  const [reajusteCategory, setReajusteCategory] = useState<any>(null)
 
   useEffect(() => {
     if (open && account) {
-      setNewBalance(account.balance)
-      fetchReajusteCategory()
+      // A API manda o saldo como texto decimal ("1000.10")
+      setNewBalance(Number(account.balance))
     }
   }, [open, account])
 
-  const fetchReajusteCategory = async () => {
-    try {
-      const response = await api.get("/categories/")
-      const categories = Array.isArray(response.data) ? response.data : response.data.results
-      
-      // Procura por "Reajuste" em categorias e subcategorias
-      let found = null
-      for (const cat of categories) {
-        if (cat.name === "Reajuste") {
-          found = cat
-          break
-        }
-        if (cat.subcategories) {
-          const sub = cat.subcategories.find((s: any) => s.name === "Reajuste")
-          if (sub) {
-            found = sub
-            break
-          }
-        }
-      }
-      
-      if (found) {
-        setReajusteCategory(found)
-      } else {
-        // Se não existir, vamos usar uma categoria genérica ou informar o erro
-        console.warn("Categoria 'Reajuste' não encontrada.")
-      }
-    } catch (error) {
-      console.error("Erro ao buscar categorias", error)
-    }
-  }
-
   const handleConfirm = async () => {
     if (!account) return
-    
-    const difference = newBalance - account.balance
-    
+
     if (difference === 0) {
       onOpenChange(false)
       return
@@ -84,31 +48,22 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
 
     setIsLoading(true)
     try {
-      const type = difference > 0 ? "INCOME" : "EXPENSE"
-      const absAmount = Math.abs(difference)
+      // O backend calcula a diferença em decimal (SALDO-41). O valor vem do
+      // MoneyInput como centavos/100; Math.round(valor*100) recupera os
+      // centavos inteiros, e toFixed(2) de centavos/100 sempre devolve esses
+      // centavos, porque o double mais próximo de um valor com duas casas
+      // fica a menos de meio centavo dele (até 15 dígitos significativos).
+      const new_balance = (Math.round(newBalance * 100) / 100).toFixed(2)
+      await api.post(`/accounts/${account.id}/adjust-balance/`, { new_balance })
 
-      const payload = {
-        description: "Reajuste*",
-        amount: absAmount,
-        date: format(new Date(), "yyyy-MM-dd"),
-        type: type,
-        account: account.id,
-        category: reajusteCategory?.id || null, // Se não achar a categoria, tenta enviar nulo (o backend pode validar)
-        status: "COMPLETED"
-      }
-
-      await api.post("/transactions/", payload)
-      
       toast.success("Saldo reajustado com sucesso!", {
         icon: <CheckCircle2 className="h-4 w-4 text-emerald-500" />
       })
-      
+
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Erro ao reajustar saldo:", error)
-      const errorMsg = error.response?.data?.category ? "A categoria 'Reajuste' é obrigatória e não foi encontrada no sistema." : "Erro ao processar o reajuste de saldo."
-      toast.error(errorMsg)
+    } catch (error) {
+      toast.error(mensagemDeErro(error, "Erro ao processar o reajuste de saldo."))
     } finally {
       setIsLoading(false)
     }
@@ -121,7 +76,8 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
     }).format(value)
   }
 
-  const difference = newBalance - (account?.balance || 0)
+  // Diferença prevista em centavos inteiros, só para exibir e bloquear o envio
+  const difference = (Math.round(newBalance * 100) - Math.round(Number(account?.balance || 0) * 100)) / 100
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -145,7 +101,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
           <div className="space-y-6">
             <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 flex flex-col gap-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Saldo Atual</span>
-                <span className="text-xl font-black tabular-nums">{formatCurrency(account?.balance || 0)}</span>
+                <span className="text-xl font-black tabular-nums">{formatCurrency(Number(account?.balance || 0))}</span>
             </div>
 
             <div className="space-y-3">

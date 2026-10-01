@@ -220,9 +220,9 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           let amount = Math.abs(data.amount) // Backend V2 expects absolute value and handles sign by type/signed_amount
 
           
-          // Determine accounts based on direction (Source vs Target)
-          // If editing OUTGOING (Source), 'account_id' is Source, 'target_account_id' is Partner (Target)
-          // If editing INCOMING (Target), 'account_id' is Target, 'target_account_id' is Partner (Source)
+          // O backend usa `account` como a conta da perna editada e
+          // `target_account_id` como a da outra perna (SALDO-13, SALDO-14).
+          // Editando a saída, a perna é a origem; editando a entrada, é o destino.
           
           let accountIdParam = ""
           let targetAccountIdParam = ""
@@ -241,7 +241,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               description: data.description,
               amount: amount, 
               date: formattedDate,
-              account_id: accountIdParam,
+              account: accountIdParam,
               target_account_id: targetAccountIdParam,
               type: initialData.type,
               tags: data.tags

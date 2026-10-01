@@ -30,7 +30,7 @@ import {
 import { AccountCard } from "@/components/accounts/account-card"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { BalanceAdjustmentDialog } from "@/components/accounts/balance-adjustment-dialog"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountType } from "@/types/accounts"
 import { usePlan } from "@/hooks/use-plan"
 import { cn } from "@/lib/utils"
@@ -147,7 +147,8 @@ export default function AccountsPage() {
       setDeleteId(null)
       fetchAccounts() // Refresh list
     } catch (error) {
-      toast.error("Erro ao excluir conta. Verifique se há transações vinculadas.")
+      // SALDO-32 e SALDO-33: o backend diz o que resolver antes de excluir
+      toast.error(mensagemDeErro(error, "Erro ao excluir conta."))
     }
   }
 
