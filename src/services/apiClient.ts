@@ -6,9 +6,13 @@ import { serverStatusManager } from "./serverStatus"
 
 const SHOULD_SHOW_WAKEUP = process.env.NEXT_PUBLIC_SHOW_WAKEUP_MESSAGE === "true"
 
+// Toda requisição tem tempo máximo (AD-024)
+export const TEMPO_MAXIMO_MS = 30_000
+
 export const api = axios.create({
   // Mesma origem da página; o Next.js faz o rewrite para o backend (AD-036)
   baseURL: "/api",
+  timeout: TEMPO_MAXIMO_MS,
   headers: {
     "Content-Type": "application/json",
   },
@@ -124,6 +128,7 @@ api.interceptors.response.use(
         try {
             await renovarSessao()
         } catch (erroDaRenovacao) {
+            // Só a recusa encerra a sessão; rede, tempo esgotado e 5xx não (SESSAO-12)
             if (axios.isAxiosError(erroDaRenovacao) && erroDaRenovacao.response?.status === 401) {
                 definirTokenDeAcesso(null)
                 ouvintesDaSessaoEncerrada.forEach((ouvinte) => ouvinte())

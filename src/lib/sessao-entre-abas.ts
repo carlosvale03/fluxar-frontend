@@ -1,6 +1,6 @@
 import axios from "axios"
 
-import { definirTokenDeAcesso, obterTokenDeAcesso } from "@/services/apiClient"
+import { definirTokenDeAcesso, obterTokenDeAcesso, TEMPO_MAXIMO_MS } from "@/services/apiClient"
 
 // Uma renovação só para várias requisições e abas (SESSAO-10), e o aviso de
 // fim da sessão às outras abas (SESSAO-14).
@@ -50,7 +50,7 @@ async function renovarDentroDoLock(): Promise<string> {
   }
 
   // O token de renovação vai no cookie httpOnly da mesma origem
-  const { data } = await axios.post<{ access: string }>("/api/auth/refresh/")
+  const { data } = await axios.post<{ access: string }>("/api/auth/refresh/", null, { timeout: TEMPO_MAXIMO_MS })
   definirTokenDeAcesso(data.access)
   obterCanal()?.postMessage({ tipo: "token", token: data.access, em: Date.now() } satisfies Mensagem)
   return data.access
