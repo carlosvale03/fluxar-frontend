@@ -53,7 +53,7 @@ interface AuthContextType {
   // tentar de novo (SESSAO-12)
   erroDeConexao: boolean
   tentarDeNovo: () => Promise<void>
-  login: (token: string, refreshToken?: string, user?: User) => Promise<void>
+  login: (token: string, user?: User) => Promise<void>
   logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
@@ -120,24 +120,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = async (token: string, refreshToken?: string, newUser?: User) => {
-    localStorage.setItem("fluxar.token", token)
-    if (refreshToken) {
-        localStorage.setItem("fluxar.refresh_token", refreshToken)
-    }
-    
+  // O token de renovação chega só no cookie httpOnly, e o de acesso fica na
+  // memória da aba (SESSAO-01, SESSAO-02)
+  const login = async (token: string, newUser?: User) => {
+    definirTokenDeAcesso(token)
     if (newUser) {
       setUser(newUser)
+      setEstado("pronto")
     } else {
-      try {
-        await refreshUser()
-      } catch (error) {
-        console.error("Failed to fetch user on login", error)
-        // If fetch fails, we might want to logout or handle it. 
-        // For now, let's assume it works or the interceptor handles 401.
-      }
+      await carregarUsuario()
     }
-    
+
     router.push("/dashboard")
   }
 

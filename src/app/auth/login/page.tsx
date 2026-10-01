@@ -46,7 +46,7 @@ export default function LoginPage() {
       setIsLoading(true)
       setEmailNaoVerificado(null)
       const response = await api.post("/auth/login/", data)
-      await login(response.data.access, response.data.refresh, response.data.user)
+      await login(response.data.access, response.data.user)
       toast.success("Bem-vindo de volta ao Fluxar!")
     } catch (error) {
       const msg = mensagemDeErro(error, "E-mail ou senha incorretos. Tente novamente.")

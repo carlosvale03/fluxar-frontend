@@ -20,7 +20,7 @@ function VerifyEmailContent() {
   const token = searchParams.get("token")
   const { login } = useAuth()
   const [status, setStatus] = useState<"loading" | "success" | "error">("loading")
-  const [tokens, setTokens] = useState<{access: string, refresh: string} | null>(null)
+  const [tokens, setTokens] = useState<{access: string} | null>(null)
   const [mensagemErro, setMensagemErro] = useState(LINK_INVALIDO)
   const [emailReenvio, setEmailReenvio] = useState("")
   // O link só pode ser usado uma vez: o StrictMode roda o efeito duas vezes em desenvolvimento
@@ -37,10 +37,7 @@ function VerifyEmailContent() {
     const verify = async () => {
       try {
         const response = await api.get(`/auth/verify-email/?token=${token}`)
-        setTokens({
-          access: response.data.access,
-          refresh: response.data.refresh
-        })
+        setTokens({ access: response.data.access })
         setStatus("success")
       } catch (error) {
         console.error(error)
@@ -54,7 +51,7 @@ function VerifyEmailContent() {
 
   const handleAccessAccount = async () => {
     if (tokens) {
-      await login(tokens.access, tokens.refresh)
+      await login(tokens.access)
     }
   }
 
