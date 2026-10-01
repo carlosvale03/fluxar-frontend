@@ -1,7 +1,7 @@
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { api, definirTokenDeAcesso, mensagemDeErro, obterTokenDeAcesso } from "@/services/apiClient"
+import { aoSessaoEncerrada, api, definirTokenDeAcesso, mensagemDeErro, obterTokenDeAcesso } from "@/services/apiClient"
 
 // AUTH-41: as rotas públicas de autenticação saem sem token e um 401 delas
 // não renova a sessão nem redireciona para o login. AUTH-36: a mensagem do 429.
@@ -83,13 +83,21 @@ describe("apiClient nas rotas públicas", () => {
     expect(obterTokenDeAcesso()).toBe("token-antigo")
   })
 
-  it("um 401 de rota privada com a renovação recusada continua redirecionando para o login", async () => {
+  it("um 401 de rota privada com a renovação recusada encerra a sessão", async () => {
     responder(401, { detail: "Token inválido" })
-    vi.spyOn(axios, "post").mockRejectedValue(new AxiosError("recusada", AxiosError.ERR_BAD_REQUEST))
+    const recusa = { data: {}, status: 401, statusText: "", headers: {}, config: {} } as AxiosResponse
+    const renovacao = vi
+      .spyOn(axios, "post")
+      .mockRejectedValue(new AxiosError("recusada", AxiosError.ERR_BAD_REQUEST, undefined, null, recusa))
+    // O AuthProvider escuta este aviso e leva ao login (SESSAO-11)
+    const fim = vi.fn()
+    const cancelar = aoSessaoEncerrada(fim)
 
     await api.get("/auth/me/").catch(() => undefined)
+    cancelar()
 
-    expect(window.location.href).toBe("/auth/login")
+    expect(renovacao).toHaveBeenCalledTimes(1)
+    expect(fim).toHaveBeenCalledTimes(1)
     expect(obterTokenDeAcesso()).toBeNull()
   })
 })

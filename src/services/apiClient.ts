@@ -1,5 +1,7 @@
 import axios from "axios"
 
+import { renovarSessao } from "@/lib/sessao-entre-abas"
+
 import { serverStatusManager } from "./serverStatus"
 
 const SHOULD_SHOW_WAKEUP = process.env.NEXT_PUBLIC_SHOW_WAKEUP_MESSAGE === "true"
@@ -74,20 +76,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Queue to hold requests while refreshing token
-let isRefreshing = false
-let failedQueue: any[] = []
+// Avisados quando a renovação é recusada com 401; o AuthProvider encerra a
+// sessão e leva ao login (SESSAO-11)
+const ouvintesDaSessaoEncerrada = new Set<() => void>()
 
-const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error)
-        } else {
-            prom.resolve(token)
-        }
-    })
-    
-    failedQueue = []
+export const aoSessaoEncerrada = (ouvinte: () => void) => {
+  ouvintesDaSessaoEncerrada.add(ouvinte)
+  return () => {
+    ouvintesDaSessaoEncerrada.delete(ouvinte)
+  }
 }
 
 // Intercept responses to handle auth errors and monitor status
@@ -121,42 +118,19 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry && !ehRotaPublica(originalRequest?.url)) {
-        if (isRefreshing) {
-            return new Promise(function(resolve, reject) {
-                failedQueue.push({resolve, reject})
-            }).then(token => {
-                originalRequest.headers['Authorization'] = 'Bearer ' + token
-                return api(originalRequest)
-            }).catch(err => {
-                return Promise.reject(err)
-            })
-        }
-
+        // Uma renovação só para as requisições e abas, e uma nova tentativa
+        // por requisição (SESSAO-10); o interceptor de envio põe o token novo
         originalRequest._retry = true
-        isRefreshing = true
-
         try {
-             // O token de renovação vai no cookie httpOnly da mesma origem
-             const response = await axios.post("/api/auth/refresh/")
-
-             const { access } = response.data
-             
-             definirTokenDeAcesso(access)
-             originalRequest.headers['Authorization'] = 'Bearer ' + access
-             
-             processQueue(null, access)
-             return api(originalRequest)
-        } catch (err) {
-             processQueue(err, null)
-             // Logout user if refresh fails
-             definirTokenDeAcesso(null)
-             if (typeof window !== "undefined") {
-                 window.location.href = "/auth/login"
-             }
-             return Promise.reject(err)
-        } finally {
-            isRefreshing = false
+            await renovarSessao()
+        } catch (erroDaRenovacao) {
+            if (axios.isAxiosError(erroDaRenovacao) && erroDaRenovacao.response?.status === 401) {
+                definirTokenDeAcesso(null)
+                ouvintesDaSessaoEncerrada.forEach((ouvinte) => ouvinte())
+            }
+            return Promise.reject(erroDaRenovacao)
         }
+        return api(originalRequest)
     }
     return Promise.reject(error)
   }
