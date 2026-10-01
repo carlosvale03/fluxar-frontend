@@ -7,8 +7,15 @@ import {
   useState,
   ReactNode,
 } from "react"
-import { api } from "@/services/apiClient"
 import { useRouter } from "next/navigation"
+
+import { renovarSessao } from "@/lib/sessao-entre-abas"
+import {
+  aoSessaoEncerrada,
+  api,
+  definirTokenDeAcesso,
+  limparTokensAntigos,
+} from "@/services/apiClient"
 
 export interface UserPreferences {
   currency: string
@@ -42,6 +49,10 @@ interface AuthContextType {
   user: User | null
   isAuthenticated: boolean
   isLoading: boolean
+  // O servidor não respondeu ao abrir a sessão: ela continua, e a tela oferece
+  // tentar de novo (SESSAO-12)
+  erroDeConexao: boolean
+  tentarDeNovo: () => Promise<void>
   login: (token: string, refreshToken?: string, user?: User) => Promise<void>
   logout: () => void
   refreshUser: () => Promise<void>
@@ -49,30 +60,59 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType)
 
+// Sem resposta, tempo esgotado ou 5xx: o servidor não respondeu, e a sessão
+// não é dada como encerrada (SESSAO-12)
+const ehFalhaDeConexao = (error: unknown) => {
+  const status = (error as { response?: { status?: number } } | null)?.response?.status
+  return status === undefined || status >= 500
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando")
   const router = useRouter()
 
   const refreshUser = async () => {
+    const response = await api.get("/auth/me/")
+    setUser(response.data)
+  }
+
+  // Um 401 do /auth/me/ já passou pela renovação no apiClient
+  const carregarUsuario = async () => {
     try {
-      // Assuming GET /auth/me returns the user data
-      const response = await api.get("/auth/me/")
-      setUser(response.data)
-    } catch {
-      logout()
-    } finally {
-      setIsLoading(false)
+      await refreshUser()
+      setEstado("pronto")
+    } catch (error) {
+      setEstado(ehFalhaDeConexao(error) ? "erro" : "pronto")
     }
   }
 
+  // A página carregada renova pelo cookie antes de pedir os dados (SESSAO-03);
+  // a renovação recusada só deixa a sessão fechada, e o AuthGuard leva ao login
+  const iniciarSessao = () =>
+    renovarSessao().then(carregarUsuario, (error: unknown) => {
+      setEstado(ehFalhaDeConexao(error) ? "erro" : "pronto")
+    })
+
+  const tentarDeNovo = async () => {
+    setEstado("carregando")
+    await iniciarSessao()
+  }
+
+  // Fim da sessão na aba (SESSAO-14). Pode chegar várias vezes seguidas, e
+  // repetir não muda nada. Numa página protegida, o AuthGuard leva ao login.
+  const encerrarSessaoLocal = () => {
+    definirTokenDeAcesso(null)
+    localStorage.removeItem("dashboard_layout_config")
+    setUser(null)
+    setEstado("pronto")
+  }
+
   useEffect(() => {
-    const token = localStorage.getItem("fluxar.token")
-    if (token) {
-      refreshUser()
-    } else {
-      setIsLoading(false)
-    }
+    limparTokensAntigos()
+    const cancelar = aoSessaoEncerrada(encerrarSessaoLocal)
+    iniciarSessao()
+    return cancelar
   }, [])
 
   const login = async (token: string, refreshToken?: string, newUser?: User) => {
@@ -108,7 +148,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isAuthenticated: !!user,
-        isLoading,
+        isLoading: estado === "carregando",
+        erroDeConexao: estado === "erro",
+        tentarDeNovo,
         login,
         logout,
         refreshUser,
