@@ -43,7 +43,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { CreditCard, Invoice } from "@/types/cards"
@@ -178,7 +178,13 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
       }
   }
 
+  // SALDO-18: o pagamento só existe com uma fatura; o endpoint genérico
+  // recusa INVOICE_PAYMENT
+  const targetInvoiceId = propInvoiceId || selectedInvoiceId
+
   const onSubmit = async (data: FormValues) => {
+    if (!targetInvoiceId) return
+
     setIsLoading(true)
     try {
       const payload = {
@@ -186,27 +192,14 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
           account_id: data.account_id,
           date: format(data.date, "yyyy-MM-dd"),
       }
-      
-      const targetInvoiceId = propInvoiceId || selectedInvoiceId
-      
-      let response
-      if (targetInvoiceId) {
-          response = await api.post(`/invoices/${targetInvoiceId}/pay/`, payload)
-      } else {
-           // Fallback generic payment
-           response = await api.post("/transactions/", {
-              ...payload, 
-              description: data.description,
-              type: "INVOICE_PAYMENT"
-           })
-      }
+
+      await api.post(`/invoices/${targetInvoiceId}/pay/`, payload)
 
       toast.success("Pagamento registrado!")
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting invoice payment:", error)
-      toast.error("Erro ao registrar pagamento.")
+    } catch (error) {
+      toast.error(mensagemDeErro(error, "Erro ao registrar pagamento."))
     } finally {
       setIsLoading(false)
     }
@@ -523,6 +516,12 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                     </Select>
                                                 </div>
                                             )}
+
+                                            {!targetInvoiceId && (
+                                                <p role="alert" className="text-[10px] font-bold text-destructive pl-1">
+                                                    Escolha a fatura a pagar.
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 
@@ -607,7 +606,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                             </Button>
                             <Button 
                                 type="submit" 
-                                disabled={isLoading}
+                                disabled={isLoading || !targetInvoiceId}
                                 className="h-14 px-12 rounded-full bg-purple-600 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all group relative overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
