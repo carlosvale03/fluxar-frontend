@@ -21,10 +21,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ push, replace: vi.fn() }),
 }))
 
-// O canal entre abas não é usado aqui, mas o AuthProvider pode abri-lo
+// O canal entre abas guarda as mensagens enviadas, para conferir o aviso às outras abas
+const mensagensDoCanal: unknown[] = []
 class CanalFalso {
   constructor(public name: string) {}
-  postMessage() {}
+  postMessage(mensagem: unknown) {
+    mensagensDoCanal.push(mensagem)
+  }
   addEventListener() {}
   removeEventListener() {}
   close() {}
@@ -92,6 +95,7 @@ describe("início da sessão no AuthProvider", () => {
 
   beforeEach(() => {
     push.mockReset()
+    mensagensDoCanal.length = 0
     localStorage.clear()
     definirTokenDeAcesso(null)
     renovacao = vi.spyOn(axios, "post")
@@ -199,5 +203,7 @@ describe("início da sessão no AuthProvider", () => {
     expect(localStorage.getItem("dashboard_layout_config")).toBeNull()
     expect(push).toHaveBeenCalledTimes(1)
     expect(push).toHaveBeenCalledWith("/auth/login")
+    // SESSAO-14: as outras abas são avisadas uma vez só, mesmo com duas recusas
+    expect(mensagensDoCanal.filter((m) => (m as { tipo?: string }).tipo === "fim")).toHaveLength(1)
   })
 })

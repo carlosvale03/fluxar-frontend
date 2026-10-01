@@ -6,6 +6,7 @@ import {
   useEffect,
   useState,
   ReactNode,
+  useRef,
 } from "react"
 import { useRouter } from "next/navigation"
 
@@ -71,6 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando")
   const router = useRouter()
+  const fimAnunciado = useRef(false)
 
   const refreshUser = async () => {
     const response = await api.get("/auth/me/")
@@ -81,6 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const carregarUsuario = async () => {
     try {
       await refreshUser()
+      fimAnunciado.current = false
       setEstado("pronto")
     } catch (error) {
       setEstado(ehFalhaDeConexao(error) ? "erro" : "pronto")
@@ -110,7 +113,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     limparTokensAntigos()
-    const cancelarRecusa = aoSessaoEncerrada(encerrarSessaoLocal)
+    // A renovação recusada nesta aba também encerra a sessão nas outras (SESSAO-14);
+    // o aviso sai uma vez só por sessão, mesmo com várias recusas seguidas
+    const cancelarRecusa = aoSessaoEncerrada(() => {
+      encerrarSessaoLocal()
+      if (!fimAnunciado.current) {
+        fimAnunciado.current = true
+        anunciarFimDaSessao()
+      }
+    })
     // O logout de outra aba já avisou o backend (SESSAO-14)
     const cancelarOutraAba = aoFimDaSessao(encerrarSessaoLocal)
     iniciarSessao()
@@ -124,6 +135,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // memória da aba (SESSAO-01, SESSAO-02)
   const login = async (token: string, newUser?: User) => {
     definirTokenDeAcesso(token)
+    fimAnunciado.current = false
     if (newUser) {
       setUser(newUser)
       setEstado("pronto")
