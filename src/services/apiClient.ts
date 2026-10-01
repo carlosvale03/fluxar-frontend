@@ -5,7 +5,8 @@ import { serverStatusManager } from "./serverStatus"
 const SHOULD_SHOW_WAKEUP = process.env.NEXT_PUBLIC_SHOW_WAKEUP_MESSAGE === "true"
 
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  // Mesma origem da página; o Next.js faz o rewrite para o backend (AD-036)
+  baseURL: "/api",
   headers: {
     "Content-Type": "application/json",
   },
