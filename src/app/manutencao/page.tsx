@@ -1,11 +1,38 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Server, ShieldAlert, Globe, ArrowLeft, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { api, CHAVE_DA_VOLTA_DA_MANUTENCAO } from "@/services/apiClient"
+
+const INTERVALO_DA_CONSULTA_MS = 30_000
 
 export default function MaintenancePage() {
+    const router = useRouter()
+
+    // Consulta o estado ao abrir e a cada 30 segundos; quando a manutenção
+    // acaba, volta à página em que o usuário estava (SESSAO-22)
+    useEffect(() => {
+        const consultar = async () => {
+            try {
+                const { data } = await api.get<{ maintenance: boolean }>("/health/")
+                if (data.maintenance === false) {
+                    const destino = sessionStorage.getItem(CHAVE_DA_VOLTA_DA_MANUTENCAO) || "/dashboard"
+                    sessionStorage.removeItem(CHAVE_DA_VOLTA_DA_MANUTENCAO)
+                    router.replace(destino)
+                }
+            } catch {
+                // Sem resposta, a próxima consulta tenta de novo
+            }
+        }
+        consultar()
+        const intervalo = setInterval(consultar, INTERVALO_DA_CONSULTA_MS)
+        return () => clearInterval(intervalo)
+    }, [router])
+
     return (
         <div className="min-h-screen bg-black flex flex-col items-center justify-center p-4 relative overflow-hidden font-inter">
             {/* Background Gradients */}

@@ -32,6 +32,10 @@ export const ROTAS_PUBLICAS = [
   "/auth/logout/",
 ]
 
+// Página em que o usuário estava quando a manutenção começou; a página de
+// manutenção volta para ela quando a manutenção acaba (SESSAO-22)
+export const CHAVE_DA_VOLTA_DA_MANUTENCAO = "fluxar.voltar_da_manutencao"
+
 // O token de acesso fica só na memória da aba (SESSAO-02)
 let tokenDeAcesso: string | null = null
 
@@ -115,6 +119,8 @@ api.interceptors.response.use(
 
         if (isMaintenance) {
             if (typeof window !== "undefined" && window.location.pathname !== "/manutencao") {
+                // A sessão continua aberta durante a manutenção (SESSAO-21)
+                sessionStorage.setItem(CHAVE_DA_VOLTA_DA_MANUTENCAO, window.location.pathname + window.location.search)
                 window.location.href = "/manutencao"
             }
         }
