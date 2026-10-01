@@ -9,7 +9,7 @@ import {
 } from "react"
 import { useRouter } from "next/navigation"
 
-import { renovarSessao } from "@/lib/sessao-entre-abas"
+import { anunciarFimDaSessao, aoFimDaSessao, renovarSessao } from "@/lib/sessao-entre-abas"
 import {
   aoSessaoEncerrada,
   api,
@@ -54,7 +54,7 @@ interface AuthContextType {
   erroDeConexao: boolean
   tentarDeNovo: () => Promise<void>
   login: (token: string, refreshToken?: string, user?: User) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
   refreshUser: () => Promise<void>
 }
 
@@ -110,9 +110,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     limparTokensAntigos()
-    const cancelar = aoSessaoEncerrada(encerrarSessaoLocal)
+    const cancelarRecusa = aoSessaoEncerrada(encerrarSessaoLocal)
+    // O logout de outra aba já avisou o backend (SESSAO-14)
+    const cancelarOutraAba = aoFimDaSessao(encerrarSessaoLocal)
     iniciarSessao()
-    return cancelar
+    return () => {
+      cancelarRecusa()
+      cancelarOutraAba()
+    }
   }, [])
 
   const login = async (token: string, refreshToken?: string, newUser?: User) => {
@@ -136,10 +141,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.push("/dashboard")
   }
 
-  const logout = () => {
-    localStorage.removeItem("fluxar.token")
-    localStorage.removeItem("fluxar.refresh_token")
-    setUser(null)
+  // Revoga a sessão no backend (SESSAO-13); sem resposta, a sessão termina na
+  // aba do mesmo jeito, e as outras abas são avisadas (SESSAO-14)
+  const logout = async () => {
+    try {
+      await api.post("/auth/logout/")
+    } catch {
+      // O fim local não depende da resposta
+    }
+    encerrarSessaoLocal()
+    anunciarFimDaSessao()
     router.push("/auth/login")
   }
 
