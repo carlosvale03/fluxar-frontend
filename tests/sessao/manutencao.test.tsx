@@ -89,7 +89,7 @@ describe("redirecionamento para a manutenção no apiClient", () => {
 
 describe("volta da página de manutenção", () => {
   // O /health/ responde com o estado da manutenção, na ordem dada; o último se repete
-  function servidorDeSaude(...estados: boolean[]) {
+  function servidorDeSaude(...estados: (boolean | null)[]) {
     const consultas: string[] = []
     api.defaults.adapter = async (config: InternalAxiosRequestConfig) => {
       consultas.push(config.url ?? "")
@@ -127,6 +127,18 @@ describe("volta da página de manutenção", () => {
     expect(consultas).toEqual(["/health/", "/health/"])
     expect(replace).toHaveBeenCalledWith("/transacoes?mes=3")
     expect(sessionStorage.getItem(CHAVE)).toBeNull()
+  })
+
+  it("com o estado desconhecido (backend sem banco), continua na página de manutenção", async () => {
+    sessionStorage.setItem(CHAVE, "/transacoes")
+    const consultas = servidorDeSaude(null)
+
+    render(<MaintenancePage />)
+    await act(() => vi.advanceTimersByTimeAsync(30_000))
+
+    expect(consultas).toHaveLength(2)
+    expect(replace).not.toHaveBeenCalled()
+    expect(sessionStorage.getItem(CHAVE)).toBe("/transacoes")
   })
 
   it("sem página guardada, volta ao dashboard", async () => {

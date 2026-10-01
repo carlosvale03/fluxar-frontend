@@ -18,7 +18,7 @@ export default function MaintenancePage() {
     useEffect(() => {
         const consultar = async () => {
             try {
-                const { data } = await api.get<{ maintenance: boolean }>("/health/")
+                const { data } = await api.get<{ maintenance: boolean | null }>("/health/")
                 if (data.maintenance === false) {
                     const destino = sessionStorage.getItem(CHAVE_DA_VOLTA_DA_MANUTENCAO) || "/dashboard"
                     sessionStorage.removeItem(CHAVE_DA_VOLTA_DA_MANUTENCAO)
