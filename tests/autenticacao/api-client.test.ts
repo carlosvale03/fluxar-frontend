@@ -1,7 +1,7 @@
 import axios, { AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from "axios"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
-import { api, mensagemDeErro } from "@/services/apiClient"
+import { aoSessaoEncerrada, api, definirTokenDeAcesso, mensagemDeErro, obterTokenDeAcesso } from "@/services/apiClient"
 
 // AUTH-41: as rotas públicas de autenticação saem sem token e um 401 delas
 // não renova a sessão nem redireciona para o login. AUTH-36: a mensagem do 429.
@@ -36,8 +36,8 @@ function authorizationDe(config: InternalAxiosRequestConfig) {
 
 describe("apiClient nas rotas públicas", () => {
   beforeEach(() => {
-    localStorage.setItem("fluxar.token", "token-antigo")
-    localStorage.setItem("fluxar.refresh_token", "refresh-antigo")
+    // O token de acesso fica na memória da aba (SESSAO-02)
+    definirTokenDeAcesso("token-antigo")
     Object.defineProperty(window, "location", {
       configurable: true,
       value: { href: "http://localhost/auth/register", pathname: "/auth/register" },
@@ -47,7 +47,7 @@ describe("apiClient nas rotas públicas", () => {
   afterEach(() => {
     api.defaults.adapter = adapterOriginal
     delete api.defaults.headers.common["Authorization"]
-    localStorage.clear()
+    definirTokenDeAcesso(null)
     Object.defineProperty(window, "location", { configurable: true, value: locationOriginal })
     vi.restoreAllMocks()
   })
@@ -80,17 +80,25 @@ describe("apiClient nas rotas públicas", () => {
     expect((erro as AxiosError).response?.status).toBe(401)
     expect(renovacao).not.toHaveBeenCalled()
     expect(window.location.href).toBe("http://localhost/auth/register")
-    expect(localStorage.getItem("fluxar.token")).toBe("token-antigo")
+    expect(obterTokenDeAcesso()).toBe("token-antigo")
   })
 
-  it("um 401 de rota privada sem refresh continua redirecionando para o login", async () => {
-    localStorage.removeItem("fluxar.refresh_token")
+  it("um 401 de rota privada com a renovação recusada encerra a sessão", async () => {
     responder(401, { detail: "Token inválido" })
+    const recusa = { data: {}, status: 401, statusText: "", headers: {}, config: {} } as AxiosResponse
+    const renovacao = vi
+      .spyOn(axios, "post")
+      .mockRejectedValue(new AxiosError("recusada", AxiosError.ERR_BAD_REQUEST, undefined, null, recusa))
+    // O AuthProvider escuta este aviso e leva ao login (SESSAO-11)
+    const fim = vi.fn()
+    const cancelar = aoSessaoEncerrada(fim)
 
     await api.get("/auth/me/").catch(() => undefined)
+    cancelar()
 
-    expect(window.location.href).toBe("/auth/login")
-    expect(localStorage.getItem("fluxar.token")).toBeNull()
+    expect(renovacao).toHaveBeenCalledTimes(1)
+    expect(fim).toHaveBeenCalledTimes(1)
+    expect(obterTokenDeAcesso()).toBeNull()
   })
 })
 

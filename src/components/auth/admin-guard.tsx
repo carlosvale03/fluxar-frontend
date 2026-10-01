@@ -4,20 +4,22 @@ import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAuth } from "@/contexts/auth-context"
 import { Loader2 } from "lucide-react"
+import { AvisoDeConexao } from "@/components/sessao/aviso-de-conexao"
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
-  const { user, isAuthenticated, isLoading } = useAuth()
+  const { user, isAuthenticated, isLoading, erroDeConexao, tentarDeNovo } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading) {
+    // Sem resposta do servidor, a sessão não é dada como encerrada (SESSAO-12)
+    if (!isLoading && !erroDeConexao) {
         if (!isAuthenticated) {
             router.push("/auth/login")
         } else if (user?.role !== "ADMIN") {
             router.push("/dashboard")
         }
     }
-  }, [isLoading, isAuthenticated, user, router])
+  }, [isLoading, isAuthenticated, erroDeConexao, user, router])
 
   if (isLoading) {
     return (
@@ -25,6 +27,10 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
+  }
+
+  if (erroDeConexao) {
+    return <AvisoDeConexao onTentarDeNovo={tentarDeNovo} />
   }
 
   if (!isAuthenticated || user?.role !== "ADMIN") {

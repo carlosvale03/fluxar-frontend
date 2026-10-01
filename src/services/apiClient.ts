@@ -1,18 +1,26 @@
 import axios from "axios"
 
+import { renovarSessao } from "@/lib/sessao-entre-abas"
+
 import { serverStatusManager } from "./serverStatus"
 
 const SHOULD_SHOW_WAKEUP = process.env.NEXT_PUBLIC_SHOW_WAKEUP_MESSAGE === "true"
 
+// Toda requisição tem tempo máximo (AD-024)
+export const TEMPO_MAXIMO_MS = 30_000
+
 export const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api",
+  // Mesma origem da página; o Next.js faz o rewrite para o backend (AD-036)
+  baseURL: "/api",
+  timeout: TEMPO_MAXIMO_MS,
   headers: {
     "Content-Type": "application/json",
   },
 })
 
 // Rotas públicas de autenticação: saem sem token, e um 401 delas não renova a
-// sessão nem redireciona para o login (AUTH-41)
+// sessão nem redireciona para o login (AUTH-41). A renovação e o logout usam
+// só o cookie de renovação.
 export const ROTAS_PUBLICAS = [
   "/auth/register/",
   "/auth/login/",
@@ -20,7 +28,28 @@ export const ROTAS_PUBLICAS = [
   "/auth/resend-verification/",
   "/auth/forgot-password/",
   "/auth/reset-password/",
+  "/auth/refresh/",
+  "/auth/logout/",
 ]
+
+// Página em que o usuário estava quando a manutenção começou; a página de
+// manutenção volta para ela quando a manutenção acaba (SESSAO-22)
+export const CHAVE_DA_VOLTA_DA_MANUTENCAO = "fluxar.voltar_da_manutencao"
+
+// O token de acesso fica só na memória da aba (SESSAO-02)
+let tokenDeAcesso: string | null = null
+
+export const definirTokenDeAcesso = (token: string | null) => {
+  tokenDeAcesso = token
+}
+
+export const obterTokenDeAcesso = () => tokenDeAcesso
+
+// Apaga os tokens que as versões antigas guardavam no localStorage (SESSAO-06)
+export const limparTokensAntigos = () => {
+  localStorage.removeItem("fluxar.token")
+  localStorage.removeItem("fluxar.refresh_token")
+}
 
 const ehRotaPublica = (url?: string) => {
   const caminho = (url ?? "").split("?")[0]
@@ -38,13 +67,10 @@ export const mensagemDeErro = (
 
 // Intercept requests to add tokens and monitor status
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("fluxar.token")
-  
   if (ehRotaPublica(config.url)) {
-    // Remove também o token que a renovação deixa nos cabeçalhos padrão
     config.headers.delete("Authorization")
-  } else if (token) {
-    config.headers.Authorization = `Bearer ${token}`
+  } else if (tokenDeAcesso) {
+    config.headers.Authorization = `Bearer ${tokenDeAcesso}`
   }
 
   // Monitoramento de Wake-up
@@ -58,20 +84,15 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-// Queue to hold requests while refreshing token
-let isRefreshing = false
-let failedQueue: any[] = []
+// Avisados quando a renovação é recusada com 401; o AuthProvider encerra a
+// sessão e leva ao login (SESSAO-11)
+const ouvintesDaSessaoEncerrada = new Set<() => void>()
 
-const processQueue = (error: any, token: string | null = null) => {
-    failedQueue.forEach(prom => {
-        if (error) {
-            prom.reject(error)
-        } else {
-            prom.resolve(token)
-        }
-    })
-    
-    failedQueue = []
+export const aoSessaoEncerrada = (ouvinte: () => void) => {
+  ouvintesDaSessaoEncerrada.add(ouvinte)
+  return () => {
+    ouvintesDaSessaoEncerrada.delete(ouvinte)
+  }
 }
 
 // Intercept responses to handle auth errors and monitor status
@@ -98,6 +119,8 @@ api.interceptors.response.use(
 
         if (isMaintenance) {
             if (typeof window !== "undefined" && window.location.pathname !== "/manutencao") {
+                // A sessão continua aberta durante a manutenção (SESSAO-21)
+                sessionStorage.setItem(CHAVE_DA_VOLTA_DA_MANUTENCAO, window.location.pathname + window.location.search)
                 window.location.href = "/manutencao"
             }
         }
@@ -105,55 +128,20 @@ api.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry && !ehRotaPublica(originalRequest?.url)) {
-        if (isRefreshing) {
-            return new Promise(function(resolve, reject) {
-                failedQueue.push({resolve, reject})
-            }).then(token => {
-                originalRequest.headers['Authorization'] = 'Bearer ' + token
-                return api(originalRequest)
-            }).catch(err => {
-                return Promise.reject(err)
-            })
-        }
-
+        // Uma renovação só para as requisições e abas, e uma nova tentativa
+        // por requisição (SESSAO-10); o interceptor de envio põe o token novo
         originalRequest._retry = true
-        isRefreshing = true
-
-        const refreshToken = localStorage.getItem("fluxar.refresh_token")
-
-        if (refreshToken) {
-            try {
-                 const response = await axios.post(
-                     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"}/auth/refresh/`, 
-                     { refresh: refreshToken }
-                 )
-
-                 const { access } = response.data
-                 
-                 localStorage.setItem("fluxar.token", access)
-                 api.defaults.headers.common['Authorization'] = 'Bearer ' + access
-                 originalRequest.headers['Authorization'] = 'Bearer ' + access
-                 
-                 processQueue(null, access)
-                 return api(originalRequest)
-            } catch (err) {
-                 processQueue(err, null)
-                 // Logout user if refresh fails
-                 localStorage.removeItem("fluxar.token")
-                 localStorage.removeItem("fluxar.refresh_token")
-                 if (typeof window !== "undefined") {
-                     window.location.href = "/auth/login"
-                 }
-                 return Promise.reject(err)
-            } finally {
-                isRefreshing = false
+        try {
+            await renovarSessao()
+        } catch (erroDaRenovacao) {
+            // Só a recusa encerra a sessão; rede, tempo esgotado e 5xx não (SESSAO-12)
+            if (axios.isAxiosError(erroDaRenovacao) && erroDaRenovacao.response?.status === 401) {
+                definirTokenDeAcesso(null)
+                ouvintesDaSessaoEncerrada.forEach((ouvinte) => ouvinte())
             }
-        } else {
-             localStorage.removeItem("fluxar.token")
-             if (typeof window !== "undefined") {
-                 window.location.href = "/auth/login"
-             }
+            return Promise.reject(erroDaRenovacao)
         }
+        return api(originalRequest)
     }
     return Promise.reject(error)
   }

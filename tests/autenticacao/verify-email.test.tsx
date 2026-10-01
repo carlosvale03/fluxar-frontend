@@ -37,16 +37,16 @@ describe("Tela de verificação de e-mail", () => {
     login.mockReset()
   })
 
-  it("com o link válido confirma e entra com os tokens recebidos", async () => {
+  it("com o link válido confirma e entra com o token de acesso recebido", async () => {
     get.mockResolvedValue({
-      data: { message: "E-mail verificado com sucesso.", access: "acesso-novo", refresh: "renovacao-nova" },
+      data: { message: "E-mail verificado com sucesso.", access: "acesso-novo" },
     })
     render(<VerifyEmailPage />)
 
     await userEvent.click(await screen.findByRole("button", { name: /acessar minha conta/i }))
 
     expect(get).toHaveBeenCalledWith("/auth/verify-email/?token=link-do-email")
-    expect(login).toHaveBeenCalledWith("acesso-novo", "renovacao-nova")
+    expect(login).toHaveBeenCalledWith("acesso-novo")
   })
 
   it("com o link inválido mostra a mensagem do backend e o reenvio", async () => {
@@ -68,7 +68,7 @@ describe("Tela de verificação de e-mail", () => {
 
   it("usa o link uma vez só, mesmo com o efeito rodando duas vezes no StrictMode", async () => {
     get.mockResolvedValue({
-      data: { message: "E-mail verificado com sucesso.", access: "acesso-novo", refresh: "renovacao-nova" },
+      data: { message: "E-mail verificado com sucesso.", access: "acesso-novo" },
     })
     render(
       <StrictMode>
