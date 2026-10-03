@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { format, parseISO } from "date-fns"
+import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { FileText, Calendar, CreditCard, ShoppingBag, ArrowRight } from "lucide-react"
 
@@ -25,13 +25,14 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
-import { nomeDoMes } from "@/lib/datas"
+import { lerData, nomeDoMes } from "@/lib/datas"
 
 interface Transaction {
   id: string
   description: string
   amount: number
   date: string
+  purchase_date?: string | null
   category_detail?: {
     name: string
     color: string
@@ -62,9 +63,9 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
     if (!invoice) return
     setIsLoading(true)
     try {
-      const response = await api.get(`/transactions/?invoice=${invoice.id}`)
-      const data = response.data.results || response.data
-      setTransactions(data)
+      // FATURA-44: todas as compras da fatura, sem paginação
+      const response = await api.get(`/invoices/${invoice.id}/transactions/`)
+      setTransactions(response.data)
     } catch (error) {
       console.error("Erro ao buscar transações da fatura", error)
     } finally {
@@ -154,7 +155,8 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium mt-1">
                           <Calendar className="h-3 w-3" />
-                          {format(parseISO(tx.date), "dd 'de' MMMM", { locale: ptBR })}
+                          {/* FATURA-16: data da compra; compras antigas só têm a data gravada */}
+                          {format(lerData(tx.purchase_date || tx.date), "dd 'de' MMMM", { locale: ptBR })}
                           {tx.category_detail && (
                              <>
                                 <span className="opacity-30">•</span>

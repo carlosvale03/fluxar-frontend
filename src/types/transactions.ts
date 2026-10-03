@@ -15,6 +15,8 @@ export interface Transaction {
     description: string
     amount: number
     date: string
+    // FATURA-16: data real da compra no cartão; nula nas compras antigas
+    purchase_date?: string | null
     type: TransactionType
     status?: TransactionStatus
 
