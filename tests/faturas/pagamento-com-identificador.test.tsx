@@ -52,7 +52,7 @@ const botaoConfirmar = () => screen.getByRole("button", { name: /confirmar baixa
 
 function dialogo(open: boolean) {
   return (
-    <InvoicePaymentDialog open={open} onOpenChange={vi.fn()} onSuccess={vi.fn()} invoiceId="fatura-1" initialAmount={1000} />
+    <InvoicePaymentDialog open={open} onOpenChange={vi.fn()} onSuccess={vi.fn()} invoiceId="fatura-1" initialAmount="1000.00" />
   )
 }
 

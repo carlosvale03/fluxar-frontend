@@ -34,6 +34,7 @@ import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountType } from "@/types/accounts"
 import { usePlan } from "@/hooks/use-plan"
 import { cn } from "@/lib/utils"
+import { lerValorDigitado, paraCentavos } from "@/lib/dinheiro"
 
 const PLAN_LIMITS = {
     common: 2,
@@ -97,9 +98,12 @@ export default function AccountsPage() {
       const matchesStatus = statusFilter === "ALL" || (statusFilter === "ACTIVE" ? acc.is_active : !acc.is_active)
       const matchesBank = selectedBanks.length === 0 || (acc.institution && selectedBanks.includes(acc.institution))
       
-      const balance = acc.balance
-      const matchesMin = minBalance === "" || balance >= parseFloat(minBalance)
-      const matchesMax = maxBalance === "" || balance <= parseFloat(maxBalance)
+      // CONTRATO-16: o saldo chega como texto; a comparação é feita em centavos
+      const balance = paraCentavos(acc.balance)
+      const minimo = lerValorDigitado(minBalance, { negativo: true })
+      const maximo = lerValorDigitado(maxBalance, { negativo: true })
+      const matchesMin = minimo === null || balance >= paraCentavos(minimo)
+      const matchesMax = maximo === null || balance <= paraCentavos(maximo)
       
       return matchesType && matchesStatus && matchesBank && matchesMin && matchesMax
   })

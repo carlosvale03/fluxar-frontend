@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { formatarMoeda } from "@/lib/dinheiro"
 import { Goal } from "@/types/goals"
 import { Account, AccountType } from "@/types/accounts"
 import { goalsService } from "@/services/goals"
@@ -448,7 +449,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                                       />
                                       <div className="flex flex-col">
                                         <span className="font-black text-xs group-focus:text-primary-foreground transition-colors">{bank.name}</span>
-                                        <span className="text-[8px] font-bold uppercase opacity-70 group-focus:text-primary-foreground/80 transition-colors">Saldo real: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bank.balance)}</span>
+                                        <span className="text-[8px] font-bold uppercase opacity-70 group-focus:text-primary-foreground/80 transition-colors">Saldo real: {formatarMoeda(bank.balance)}</span>
                                       </div>
                                     </div>
                                   </SelectItem>

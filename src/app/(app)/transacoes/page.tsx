@@ -357,14 +357,6 @@ export default function TransactionsPage() {
 
   useEffect(() => () => buscaAtual.current?.abort(), [])
 
-  // Helper to format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-    }).format(value)
-  }
 
   // Helper for type icons/colors
   const getTypeConfig = (type: TransactionType) => {
@@ -674,7 +666,7 @@ export default function TransactionsPage() {
                                         isNegative ? "text-red-500" : "text-emerald-500"
                                     )}>
                                         {isNegative ? "- " : "+ "}
-                                        {formatCurrency(Number(transaction.amount))}
+                                        {formatarMoeda(transaction.amount)}
                                     </div>
                                 </div>
                             )
@@ -922,7 +914,7 @@ export default function TransactionsPage() {
                                                     isNegative ? "text-red-500" : "text-emerald-500"
                                                 )}>
                                                     {isNegative ? "- " : "+ "}
-                                                    {formatCurrency(Number(transaction.amount))}
+                                                    {formatarMoeda(transaction.amount)}
                                                 </div>
 
                                                 {/* Floating Action Button (FAB) - Hover Only */}

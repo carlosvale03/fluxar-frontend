@@ -17,6 +17,7 @@ import { CalendarDayReport } from "@/types/reports"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TrendingUp, TrendingDown, Calendar as CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, X, Sparkles } from "lucide-react"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 interface FinancialCalendarProps {
     month: number
@@ -40,14 +41,6 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
     const getDayData = (date: Date) => {
         const dateStr = format(date, "yyyy-MM-dd")
         return daysData.find(d => d.date === dateStr)
-    }
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', { 
-            style: 'currency', 
-            currency: 'BRL',
-            maximumFractionDigits: 0
-        }).format(value)
     }
 
     const weekDays = ["D", "S", "T", "Q", "Q", "S", "S"]
@@ -108,10 +101,10 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
                                 </span>
                                 
                                 {/* Desktop Indicator (Neon Glow) */}
-                                {dayData && (dayData.total_incomes > 0 || dayData.total_expenses > 0) && (
+                                {dayData && (paraCentavos(dayData.total_incomes) > 0 || paraCentavos(dayData.total_expenses) > 0) && (
                                      <div className={cn(
                                          "w-2 h-2 rounded-full mt-1 hidden sm:block",
-                                         dayData.net_amount >= 0 
+                                         paraCentavos(dayData.net_amount) >= 0 
                                             ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" 
                                             : "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]"
                                      )} />
@@ -120,32 +113,32 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
 
                             {/* Mobile Indicators */}
                             <div className="flex sm:hidden justify-center gap-1.5 mt-2">
-                                {dayData && dayData.total_incomes > 0 && (
+                                {dayData && paraCentavos(dayData.total_incomes) > 0 && (
                                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
                                 )}
-                                {dayData && dayData.total_expenses > 0 && (
+                                {dayData && paraCentavos(dayData.total_expenses) > 0 && (
                                     <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.5)]" />
                                 )}
                             </div>
 
                             {/* Desktop Strategy: Premium Soft Pills */}
                             <div className="hidden sm:flex flex-col gap-1.5 mt-auto">
-                                {dayData && dayData.total_incomes > 0 && (
+                                {dayData && paraCentavos(dayData.total_incomes) > 0 && (
                                     <div className="flex items-center justify-between gap-1 text-[9px] font-black text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 rounded-full uppercase tracking-wider transition-all group-hover:bg-emerald-500/20">
                                         <div className="flex items-center gap-1 min-w-0">
                                             <TrendingUp className="h-3 w-3 shrink-0" />
                                             <span className="truncate">Receitas</span>
                                         </div>
-                                        <span className="tabular-nums">{formatCurrency(dayData.total_incomes)}</span>
+                                        <span className="tabular-nums">{formatarMoeda(dayData.total_incomes)}</span>
                                     </div>
                                 )}
-                                {dayData && dayData.total_expenses > 0 && (
+                                {dayData && paraCentavos(dayData.total_expenses) > 0 && (
                                     <div className="flex items-center justify-between gap-1 text-[9px] font-black text-rose-600 bg-rose-500/10 border border-rose-500/20 px-2 py-1.5 rounded-full uppercase tracking-wider transition-all group-hover:bg-rose-500/20">
                                         <div className="flex items-center gap-1 min-w-0">
                                             <TrendingDown className="h-3 w-3 shrink-0" />
                                             <span className="truncate">Despesas</span>
                                         </div>
-                                        <span className="tabular-nums">{formatCurrency(dayData.total_expenses)}</span>
+                                        <span className="tabular-nums">{formatarMoeda(dayData.total_expenses)}</span>
                                     </div>
                                 )}
                             </div>
@@ -196,7 +189,7 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
                                             <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500/60">Receitas</span>
                                         </div>
                                         <p className="text-2xl font-black text-emerald-600 tabular-nums">
-                                            {formatCurrency(selectedDayData?.total_incomes || 0)}
+                                            {formatarMoeda(selectedDayData?.total_incomes)}
                                         </p>
                                     </div>
 
@@ -209,7 +202,7 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
                                             <span className="text-[9px] font-black uppercase tracking-widest text-rose-500/60">Despesas</span>
                                         </div>
                                         <p className="text-2xl font-black text-rose-600 tabular-nums">
-                                            {formatCurrency(selectedDayData?.total_expenses || 0)}
+                                            {formatarMoeda(selectedDayData?.total_expenses)}
                                         </p>
                                     </div>
 
@@ -223,14 +216,14 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
                                         </div>
                                         <p className={cn(
                                             "text-2xl font-black tabular-nums",
-                                            (selectedDayData?.net_amount || 0) >= 0 ? "text-emerald-600" : "text-rose-600"
+                                            paraCentavos(selectedDayData?.net_amount) >= 0 ? "text-emerald-600" : "text-rose-600"
                                         )}>
-                                            {formatCurrency(selectedDayData?.net_amount || 0)}
+                                            {formatarMoeda(selectedDayData?.net_amount)}
                                         </p>
                                     </div>
                                 </div>
 
-                                {!selectedDayData || (selectedDayData.total_incomes === 0 && selectedDayData.total_expenses === 0) ? (
+                                {!selectedDayData || (paraCentavos(selectedDayData.total_incomes) === 0 && paraCentavos(selectedDayData.total_expenses) === 0) ? (
                                     <div className="py-14 text-center border-2 border-dashed border-border/20 rounded-[32px] bg-muted/5 group">
                                         <div className="w-12 h-12 rounded-full bg-muted/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-500">
                                             <Sparkles className="h-6 w-6 text-muted-foreground/30" />

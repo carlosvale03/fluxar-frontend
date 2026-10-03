@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
 import { lerData, nomeDoMes } from "@/lib/datas"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 interface Transaction {
   id: string
@@ -73,13 +74,6 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
@@ -102,7 +96,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Total da Fatura</p>
                 <p className="text-2xl font-black tracking-tighter text-primary">
-                  {formatCurrency(Number(invoice.total_amount))}
+                  {formatarMoeda(invoice.total_amount)}
                 </p>
               </div>
             )}
@@ -173,7 +167,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
                     </div>
                     <div className="text-right">
                       <span className="font-black text-sm tabular-nums">
-                        {formatCurrency(Number(tx.amount))}
+                        {formatarMoeda(tx.amount)}
                       </span>
                     </div>
                   </div>

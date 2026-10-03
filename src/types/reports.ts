@@ -2,16 +2,16 @@ import { Category } from "./categories"
 
 export interface DashboardReport {
     summary: {
-        total_balance: number
-        monthly_income: number
-        monthly_expense: number
-        net_result: number
-        total_credit_limit: number
-        total_current_invoices: number
-        net_worth: number
+        total_balance: string
+        monthly_income: string
+        monthly_expense: string
+        net_result: string
+        total_credit_limit: string
+        total_current_invoices: string
+        net_worth: string
         savings_rate: number
-        total_liquid_balance: number
-        total_investment_balance: number
+        total_liquid_balance: string
+        total_investment_balance: string
         liquidity_ratio: number
         financial_score: number
     }
@@ -23,9 +23,9 @@ export interface DashboardReport {
     credit_cards?: {
         id: string
         name: string
-        limit: number
-        current_invoice: number
-        available_limit: number
+        limit: string
+        current_invoice: string
+        available_limit: string
         color: string
         institution: string
         due_day: number
@@ -38,9 +38,9 @@ export interface DashboardReport {
 
 export interface CalendarDayReport {
     date: string
-    total_incomes: number
-    total_expenses: number
-    net_amount: number
+    total_incomes: string
+    total_expenses: string
+    net_amount: string
     is_positive: boolean
 }
 
@@ -48,8 +48,8 @@ export interface CalendarReport {
     month: number
     year: number
     days: CalendarDayReport[]
-    total_income: number
-    total_expense: number
+    total_income: string
+    total_expense: string
 }
 
 export interface TransactionReportFilters {
@@ -68,21 +68,21 @@ export interface TransactionReportFilters {
 export interface SimpleChartsReport {
     income_vs_expense: {
         label: string
-        income: number
-        expense: number
+        income: string
+        expense: string
         full_date?: string
     }[]
     expense_by_category: {
         id?: string
         category_name: string
-        amount: number
+        amount: string
         color: string
         percentage: number
     }[]
     income_by_category: {
         id?: string
         category_name: string
-        amount: number
+        amount: string
         color: string
         percentage: number
     }[]
@@ -91,7 +91,7 @@ export interface SimpleChartsReport {
 export interface AdvancedChartsReport {
     net_worth_evolution: {
         date: string
-        balance: number
+        balance: string
     }[]
     spending_frequency: {
         day_of_week: number
@@ -100,15 +100,15 @@ export interface AdvancedChartsReport {
     }[]
     investment_analysis?: {
         has_investments_account: boolean
-        total_invested: number
+        total_invested: string
         monthly_history: {
             month: string
-            contribution: number
-            returns: number
+            contribution: string
+            returns: string
         }[]
         asset_allocation: {
             name: string
-            value: number
+            value: string
             color: string
         }[]
     }
@@ -118,30 +118,30 @@ export interface AdvancedChartsReport {
         type: 'category' | 'tag'
         icon?: string
         color?: string
-        current_month: number
-        average_month: number
+        current_month: string
+        average_month: string
         status: 'success' | 'warning' | 'error'
     }[]
     next_big_expense?: {
         description: string
-        amount: number
+        amount: string
         date: string
         category: string
     } | null
     financial_freedom_projection?: {
         years: number
         label: string
-        value: number
+        value: string
     }[]
     fixed_vs_variable?: {
-        fixed: number
-        variable: number
-        total: number
+        fixed: string
+        variable: string
+        total: string
     }
     daily_spending_report?: {
-        safe_daily_spend: number
+        safe_daily_spend: string
         remaining_days: number
-        available_for_month: number
+        available_for_month: string
     }
     risk_analysis?: {
         level: 'Baixa' | 'Média' | 'Alta'
@@ -151,7 +151,7 @@ export interface AdvancedChartsReport {
     }
     spend_by_weekday?: {
         label: string
-        amount: number
+        amount: string
     }[]
     period?: {
         start_date: string
@@ -162,22 +162,22 @@ export interface AdvancedChartsReport {
 
 export interface MonthlyComparisonData {
     month: string
-    income: number
-    expense: number
-    balance: number
+    income: string
+    expense: string
+    balance: string
 }
 
 export interface TagDistributionReport {
     expense_by_tag: {
         id: string
         name: string
-        amount: number
+        amount: string
         color: string
     }[]
     income_by_tag: {
         id: string
         name: string
-        amount: number
+        amount: string
         color: string
     }[]
     period: {

@@ -21,19 +21,8 @@ export const getCalendarReport = async (month: number, year: number): Promise<Ca
     const response = await api.get<any>("/reports/calendar/", {
         params: { month, year }
     })
-    const data = response.data
-
-    return {
-        ...data,
-        days: (data.days || []).map((day: any) => ({
-            ...day,
-            total_incomes: Number(day.total_incomes || 0),
-            total_expenses: Number(day.total_expenses || 0),
-            net_amount: Number(day.net_amount || 0)
-        })),
-        total_income: Number(data.total_income || 0),
-        total_expense: Number(data.total_expense || 0)
-    }
+    // CONTRATO-16: os valores chegam como texto e seguem como texto
+    return { ...response.data, days: response.data.days || [] }
 }
 
 export const getTransactionHistory = async (filters: TransactionReportFilters) => {

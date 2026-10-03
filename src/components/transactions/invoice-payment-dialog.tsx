@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MoneyInput } from "@/components/ui/money-input"
+import { formatarMoeda } from "@/lib/dinheiro"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 
@@ -64,7 +65,7 @@ interface InvoicePaymentDialogProps {
   onSuccess: () => void
   // New props for handling specific invoice payment
   invoiceId?: string
-  initialAmount?: number
+  initialAmount?: string
 }
 
 export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId: propInvoiceId, initialAmount }: InvoicePaymentDialogProps) {
@@ -117,7 +118,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                 
                 // 2. Reset form to defaults
                 form.reset({
-                    amount: initialAmount || 0,
+                    amount: Number(initialAmount || 0),
                     date: new Date(),
                     account_id: "",
                     description: "Pagamento de Fatura",
@@ -445,7 +446,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         <div className="text-right">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Total Previsto</p>
                                             <p className="text-sm font-black text-purple-600">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(selectedInvoiceObject.total_amount))}
+                                                {formatarMoeda(selectedInvoiceObject.total_amount)}
                                             </p>
                                         </div>
                                     </div>
@@ -513,7 +514,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                             <div className="flex items-center justify-between w-full min-w-[200px]">
                                                                                 <span className="font-black tracking-tight">{capitalizedMonth} {year}</span>
                                                                                 <span className="text-[10px] font-black text-purple-600 ml-4 bg-purple-500/5 px-2 py-1 rounded-lg">
-                                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(inv.total_amount))}
+                                                                                    {formatarMoeda(inv.total_amount)}
                                                                                 </span>
                                                                             </div>
                                                                         </SelectItem>
@@ -567,7 +568,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                 <div className="text-right">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Total Devido</p>
                                                     <p className="text-xl font-black tracking-tighter text-purple-600">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(selectedInvoiceObject.total_amount))}
+                                                        {formatarMoeda(selectedInvoiceObject.total_amount)}
                                                     </p>
                                                 </div>
                                             </div>

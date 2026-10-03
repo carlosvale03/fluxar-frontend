@@ -29,6 +29,7 @@ import { TransactionFormDialog } from "@/components/transactions/transaction-for
 import { Paginacao } from "@/components/ui/paginacao"
 import { lerData } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 export default function RecurringTransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -62,13 +63,6 @@ export default function RecurringTransactionsPage() {
   const handleEdit = (transaction: Transaction) => {
       setSelectedTransaction(transaction)
       setIsCreateOpen(true)
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
   }
 
   const getFrequencyLabel = (freq: string | undefined) => {
@@ -142,7 +136,7 @@ export default function RecurringTransactionsPage() {
                                 </TableCell>
                                 <TableCell className={t.type === 'EXPENSE' ? 'text-red-500' : 'text-emerald-500'}>
                                     {t.type === 'EXPENSE' ? '- ' : '+ '}
-                                    {formatCurrency(Number(t.amount))}
+                                    {formatarMoeda(t.amount)}
                                 </TableCell>
                                 <TableCell>
                                     {/* Assuming date is the next occurrence or start date */}

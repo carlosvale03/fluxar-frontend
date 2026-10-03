@@ -13,7 +13,7 @@ export enum TransactionStatus {
 export interface Transaction {
     id: string
     description: string
-    amount: number
+    amount: string
     date: string
     // FATURA-16: data real da compra no cartão; nula nas compras antigas
     purchase_date?: string | null
@@ -48,7 +48,7 @@ export interface Transaction {
 
     // Transfer Logic
     transfer_id?: string
-    signed_amount?: number // Added for V2 Backend
+    signed_amount?: string // Added for V2 Backend
     related_transaction?: string | { id: string, account_name?: string, type?: TransactionType } | Transaction // ID or object
     account_from?: string
     account_to?: string

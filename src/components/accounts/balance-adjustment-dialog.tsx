@@ -19,7 +19,7 @@ import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account } from "@/types/accounts"
 import { MoneyInput } from "@/components/ui/money-input"
 import { cn } from "@/lib/utils"
-import { deCentavos, paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, paraCentavos, formatarMoeda } from "@/lib/dinheiro"
 
 interface BalanceAdjustmentDialogProps {
   open: boolean
@@ -67,13 +67,6 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
-
   // Diferença prevista em centavos inteiros, só para exibir e bloquear o envio
   const difference = (paraCentavos(newBalance) - paraCentavos(account?.balance)) / 100
 
@@ -99,7 +92,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
           <div className="space-y-6">
             <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 flex flex-col gap-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Saldo Atual</span>
-                <span className="text-xl font-black tabular-nums">{formatCurrency(Number(account?.balance || 0))}</span>
+                <span className="text-xl font-black tabular-nums">{formatarMoeda(account?.balance || 0)}</span>
             </div>
 
             <div className="space-y-3">
@@ -124,7 +117,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
                         <div className="flex flex-col gap-0.5">
                             <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Movimentação Prevista</span>
                             <p className="text-xs font-bold leading-relaxed">
-                                Será gerada uma <span className={difference > 0 ? "text-emerald-600" : "text-rose-600"}>{difference > 0 ? "Receita" : "Despesa"}</span> no valor de <strong>{formatCurrency(Math.abs(difference))}</strong> para ajustar o saldo.
+                                Será gerada uma <span className={difference > 0 ? "text-emerald-600" : "text-rose-600"}>{difference > 0 ? "Receita" : "Despesa"}</span> no valor de <strong>{formatarMoeda(Math.abs(difference))}</strong> para ajustar o saldo.
                             </p>
                         </div>
                     </div>

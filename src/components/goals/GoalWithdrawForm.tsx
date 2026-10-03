@@ -35,6 +35,7 @@ import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 const parseAmount = (val: string) => {
   if (val.includes(',')) {
@@ -43,7 +44,8 @@ const parseAmount = (val: string) => {
   return Number(val);
 };
 
-const withdrawSchema = (maxAmount: number) => z.object({
+// CONTRATO-16: o saldo da meta chega como texto; a comparação é em centavos
+const withdrawSchema = (maxAmount: string) => z.object({
   amount: z.string()
     .refine((val) => {
       const num = parseAmount(val);
@@ -51,8 +53,8 @@ const withdrawSchema = (maxAmount: number) => z.object({
     }, {
       message: "O valor deve ser maior que zero",
     })
-    .refine((val) => parseAmount(val) <= maxAmount, {
-      message: `O valor máximo para resgate nesta meta é ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxAmount)}`,
+    .refine((val) => Math.round(parseAmount(val) * 100) <= paraCentavos(maxAmount), {
+      message: `O valor máximo para resgate nesta meta é ${formatarMoeda(maxAmount)}`,
     }),
   account_to: z.string().min(1, "Selecione a conta de destino"),
 })
@@ -73,7 +75,7 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
   const [isLoading, setIsLoading] = useState(false)
   const [accounts, setAccounts] = useState<Account[]>([])
 
-  const currentSchema = useMemo(() => withdrawSchema(goal?.current_amount || 0), [goal?.current_amount])
+  const currentSchema = useMemo(() => withdrawSchema(goal?.current_amount || "0.00"), [goal?.current_amount])
 
   const form = useForm<WithdrawFormValues>({
     resolver: zodResolver(currentSchema),

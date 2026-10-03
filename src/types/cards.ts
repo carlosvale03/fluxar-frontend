@@ -2,7 +2,7 @@
 export interface CreditCard {
     id: string
     name: string
-    limit: number
+    limit: string
     closing_day: number
     due_day: number
     brand?: string // optional brand (visa, master) if API expands
@@ -12,8 +12,8 @@ export interface CreditCard {
     created_at: string
     updated_at: string
     // Helper fields often returned by serializers for UI convenience
-    current_invoice_total?: number
-    available_limit?: number
+    current_invoice_total?: string
+    available_limit?: string
     next_due_date?: string
     is_active?: boolean
 }
@@ -35,7 +35,7 @@ export interface Invoice {
     month: number
     year: number
     status: "OPEN" | "CLOSED" | "PAID" | "OVERDUE"
-    total_amount: number
+    total_amount: string
     due_date: string
     closing_date: string
     credit_card_id?: string
@@ -44,7 +44,7 @@ export interface Invoice {
 }
 
 export interface InvoicePayment {
-    amount: number | string
+    amount: string
     account_id: string
     account_name: string
     date: string

@@ -48,6 +48,7 @@ import { User } from "@/contexts/auth-context"
 import { getAbsoluteUrl } from "@/lib/utils"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -213,9 +214,9 @@ export default function UserDetailsPage() {
       
       // Limpa os status financeiros locais para refletir na interface
       setFinancialStats({
-          total_balance: 0,
-          avg_income_value: 0,
-          avg_expense_value: 0,
+          total_balance: "0.00",
+          avg_income_value: "0.00",
+          avg_expense_value: "0.00",
           income_count_per_day: 0,
           expense_count_per_day: 0,
           last_transaction_date: "Sem dados"
@@ -349,7 +350,7 @@ export default function UserDetailsPage() {
                          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1 group hover:bg-emerald-500/15 transition-colors">
                              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/70">Receitas (Méd. Valor)</p>
                              <p className="text-2xl font-black text-emerald-600 leading-tight">
-                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialStats?.avg_income_value || 0)}
+                                 {formatarMoeda(financialStats?.avg_income_value)}
                              </p>
                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600/60 uppercase pt-1">
                                 <Activity className="h-3 w-3" /> {financialStats?.income_count_per_day?.toFixed(1) || 0} registros/dia
@@ -358,7 +359,7 @@ export default function UserDetailsPage() {
                          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-1 group hover:bg-red-500/15 transition-colors">
                              <p className="text-xs font-bold uppercase tracking-wider text-red-600/70">Despesas (Méd. Valor)</p>
                              <p className="text-2xl font-black text-red-600 leading-tight">
-                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialStats?.avg_expense_value || 0)}
+                                 {formatarMoeda(financialStats?.avg_expense_value)}
                              </p>
                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-red-600/60 uppercase pt-1">
                                 <Activity className="h-3 w-3" /> {financialStats?.expense_count_per_day?.toFixed(1) || 0} registros/dia
@@ -367,7 +368,7 @@ export default function UserDetailsPage() {
                           <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-1">
                              <p className="text-xs font-bold uppercase tracking-wider text-blue-600/70">Saldo Total</p>
                              <p className="text-2xl font-black text-blue-600">
-                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialStats?.total_balance || 0)}
+                                 {formatarMoeda(financialStats?.total_balance)}
                              </p>
                              <Wallet className="h-4 w-4 text-blue-500 opacity-50" />
                          </div>

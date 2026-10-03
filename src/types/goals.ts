@@ -4,15 +4,15 @@ export interface Goal {
   id: string;
   name: string;
   description?: string;
-  target_amount: number;
-  current_amount: number;
+  target_amount: string;
+  current_amount: string;
   target_date?: string;
   image?: string;
   account: string;
   status: GoalStatus;
   progress_percentage: number;
-  amount_remaining: number;
-  suggested_monthly_saving?: number;
+  amount_remaining: string;
+  suggested_monthly_saving?: string;
   months_remaining?: number;
   created_at: string;
   updated_at: string;
@@ -23,7 +23,7 @@ export interface GoalTransaction {
   goal: string;
   account: string;
   account_name: string;
-  amount: number;
+  amount: string;
   type: 'DEPOSIT' | 'WITHDRAWAL';
   description?: string;
   datetime: string;

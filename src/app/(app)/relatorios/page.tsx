@@ -31,6 +31,11 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { HelpInfo } from "@/components/ui/help-info"
+import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+
+// CONTRATO-16: os valores chegam como texto; o Recharts precisa de número, e
+// a conversão é só para plotar
+const numero = (valor: string | undefined) => paraCentavos(valor) / 100
 
 export default function ReportsPage() {
     const { user } = useAuth()
@@ -168,9 +173,6 @@ export default function ReportsPage() {
     )).sort();
 
 
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-    }
 
     const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
 
@@ -365,7 +367,7 @@ export default function ReportsPage() {
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <h3 className="text-2xl font-black">
-                                                {isLoadingSummary ? "..." : formatCurrency(summaryData?.summary.total_liquid_balance ?? 0)}
+                                                {isLoadingSummary ? "..." : formatarMoeda(summaryData?.summary.total_liquid_balance)}
                                             </h3>
                                             <span className="text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-900/50 rounded-full px-2 py-0.5 font-black uppercase tracking-widest">Reserva OK</span>
                                         </div>
@@ -407,7 +409,7 @@ export default function ReportsPage() {
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <h3 className="text-2xl font-black text-amber-500">
-                                                {advancedData?.next_big_expense ? formatCurrency(advancedData.next_big_expense.amount) : "---"}
+                                                {advancedData?.next_big_expense ? formatarMoeda(advancedData.next_big_expense.amount) : "---"}
                                             </h3>
                                         </div>
                                     </div>
@@ -506,7 +508,7 @@ export default function ReportsPage() {
                                                                 <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                                     <PieChart>
                                                                             <Pie
-                                                                                data={advancedData.investment_analysis.asset_allocation}
+                                                                                data={advancedData.investment_analysis.asset_allocation.map(a => ({ ...a, value: numero(a.value) }))}
                                                                                 innerRadius={70}
                                                                                 outerRadius={activePieIndex !== null ? 95 : 90}
                                                                                 paddingAngle={8}
@@ -543,10 +545,10 @@ export default function ReportsPage() {
                                                                             "text-lg font-black transition-all",
                                                                             activePieIndex !== null ? "text-foreground scale-110" : "text-primary"
                                                                         )}>
-                                                                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', compactDisplay: 'short' }).format(
+                                                                            {formatarMoeda(
                                                                                 activePieIndex !== null 
                                                                                     ? advancedData.investment_analysis.asset_allocation[activePieIndex].value 
-                                                                                    : (advancedData?.investment_analysis?.total_invested || 0)
+                                                                                    : advancedData?.investment_analysis?.total_invested
                                                                             )}
                                                                         </span>
                                                                     </div>
@@ -561,7 +563,7 @@ export default function ReportsPage() {
                                                                     <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
                                                                     <span className="text-xs font-bold">{item.name}</span>
                                                                 </div>
-                                                                <span className="text-xs font-black">{formatCurrency(item.value)}</span>
+                                                                <span className="text-xs font-black">{formatarMoeda(item.value)}</span>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -583,7 +585,7 @@ export default function ReportsPage() {
                                                             />
                                                         ) : (
                                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                            <BarChart data={advancedData.investment_analysis.monthly_history} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                            <BarChart data={advancedData.investment_analysis.monthly_history.map(m => ({ ...m, contribution: numero(m.contribution), returns: numero(m.returns) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                                 <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
                                                                 <XAxis 
                                                                     dataKey="month" 
@@ -607,14 +609,14 @@ export default function ReportsPage() {
                                                                                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                                                                                                 <span className="text-[10px] font-bold text-blue-500">Aporte:</span>
                                                                                             </div>
-                                                                                            <span className="text-[10px] font-black">{formatCurrency(payload[0].value)}</span>
+                                                                                            <span className="text-[10px] font-black">{formatarMoeda(payload[0].value)}</span>
                                                                                         </div>
                                                                                         <div className="flex items-center justify-between gap-6">
                                                                                             <div className="flex items-center gap-1.5">
                                                                                                 <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                                                                                 <span className="text-[10px] font-bold text-amber-500">Resgate:</span>
                                                                                             </div>
-                                                                                            <span className="text-[10px] font-black">{formatCurrency(payload[1].value)}</span>
+                                                                                            <span className="text-[10px] font-black">{formatarMoeda(payload[1].value)}</span>
                                                                                         </div>
                                                                                     </div>
                                                                                 </div>
@@ -723,18 +725,18 @@ export default function ReportsPage() {
                                                     <div className="grid grid-cols-2 gap-4">
                                                         <div className="bg-background/40 p-4 rounded-2xl border border-border/5">
                                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mês Atual</p>
-                                                            <p className="text-lg font-black mt-1">{formatCurrency(monitor.current_month)}</p>
+                                                            <p className="text-lg font-black mt-1">{formatarMoeda(monitor.current_month)}</p>
                                                         </div>
                                                         <div className="bg-background/40 p-4 rounded-2xl border border-border/5">
                                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Média Histórica</p>
-                                                            <p className="text-lg font-black mt-1">{formatCurrency(monitor.average_month)}</p>
+                                                            <p className="text-lg font-black mt-1">{formatarMoeda(monitor.average_month)}</p>
                                                         </div>
                                                     </div>
 
                                                     <div className="relative pt-2">
                                                         <div className="flex items-center justify-between text-[10px] font-black uppercase mb-1.5 px-1">
                                                             <span>Progressão</span>
-                                                            <span>{Math.round((monitor.current_month / monitor.average_month) * 100)}%</span>
+                                                            <span>{Math.round((paraCentavos(monitor.current_month) / paraCentavos(monitor.average_month)) * 100)}%</span>
                                                         </div>
                                                         <div className="w-full bg-muted/40 h-2.5 rounded-full overflow-hidden">
                                                             <div 
@@ -742,7 +744,7 @@ export default function ReportsPage() {
                                                                     "h-full transition-all duration-1000",
                                                                     monitor.status === 'success' ? "bg-emerald-500" : monitor.status === 'warning' ? "bg-amber-500" : "bg-destructive"
                                                                 )} 
-                                                                style={{ width: `${Math.min((monitor.current_month / monitor.average_month) * 100, 100)}%` }} 
+                                                                style={{ width: `${Math.min((paraCentavos(monitor.current_month) / paraCentavos(monitor.average_month)) * 100, 100)}%` }} 
                                                             />
                                                         </div>
                                                     </div>
@@ -781,7 +783,7 @@ export default function ReportsPage() {
                                                             <HelpInfo topic="SAFE_DAILY_SPEND" />
                                                         </div>
                                                         <p className="text-2xl font-black text-primary">
-                                                            {formatCurrency(advancedData?.daily_spending_report?.safe_daily_spend || 0)}
+                                                            {formatarMoeda(advancedData?.daily_spending_report?.safe_daily_spend)}
                                                         </p>
                                                     </div>
                                                     <div className="text-right bg-primary/5 p-3 rounded-2xl border border-primary/10">
@@ -813,20 +815,20 @@ export default function ReportsPage() {
                                                 <div className="w-full bg-muted/20 h-4 rounded-full overflow-hidden flex shadow-inner">
                                                     <div 
                                                         className="h-full bg-blue-500/80 transition-all duration-1000" 
-                                                        style={{ width: `${(advancedData?.fixed_vs_variable?.fixed || 0) / (advancedData?.fixed_vs_variable?.total || 1) * 100}%` }}
+                                                        style={{ width: `${paraCentavos(advancedData?.fixed_vs_variable?.fixed) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
                                                     />
                                                     <div 
                                                         className="h-full bg-amber-500/80 transition-all duration-1000" 
-                                                        style={{ width: `${(advancedData?.fixed_vs_variable?.variable || 0) / (advancedData?.fixed_vs_variable?.total || 1) * 100}%` }}
+                                                        style={{ width: `${paraCentavos(advancedData?.fixed_vs_variable?.variable) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
                                                     />
                                                 </div>
                                                 <div className="flex items-center justify-between text-[10px] font-bold px-1">
                                                     <div className="flex items-center gap-1.5">
                                                         <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                                        <span>Fixos: {formatCurrency(advancedData?.fixed_vs_variable?.fixed || 0)}</span>
+                                                        <span>Fixos: {formatarMoeda(advancedData?.fixed_vs_variable?.fixed)}</span>
                                                     </div>
                                                     <div className="flex items-center gap-1.5 text-right">
-                                                        <span>Variáveis: {formatCurrency(advancedData?.fixed_vs_variable?.variable || 0)}</span>
+                                                        <span>Variáveis: {formatarMoeda(advancedData?.fixed_vs_variable?.variable)}</span>
                                                         <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                                                     </div>
                                                 </div>
@@ -891,7 +893,7 @@ export default function ReportsPage() {
                                         </CardHeader>
                                         <CardContent className="h-[300px] p-8 pt-4">
                                             {isLoadingAdvanced ? <Skeleton className="w-full h-full rounded-2xl" /> : (
-                                                (!advancedData?.spend_by_weekday || advancedData.spend_by_weekday.length === 0 || advancedData.spend_by_weekday.every((d: any) => d.amount === 0)) ? (
+                                                (!advancedData?.spend_by_weekday || advancedData.spend_by_weekday.length === 0 || advancedData.spend_by_weekday.every((d) => paraCentavos(d.amount) === 0)) ? (
                                                     <ChartEmptyState 
                                                         type="bar" 
                                                         height="100%" 
@@ -902,7 +904,7 @@ export default function ReportsPage() {
                                                 ) : (
                                                     <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart 
-                                                        data={advancedData?.spend_by_weekday || []}
+                                                        data={(advancedData?.spend_by_weekday || []).map(d => ({ ...d, amount: numero(d.amount) }))}
                                                         margin={{ top: 0, right: 10, left: 10, bottom: 0 }}
                                                     >
                                                         <defs>
@@ -925,7 +927,7 @@ export default function ReportsPage() {
                                                             tickLine={false} 
                                                             fontSize={10}
                                                             tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                                            tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                                            tickFormatter={formatarMoedaDoEixo}
                                                             width={45}
                                                         />
                                                         <Tooltip 
@@ -939,7 +941,7 @@ export default function ReportsPage() {
                                                                             </p>
                                                                             <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Média Diária</p>
                                                                             <p className="text-sm font-black text-purple-500">
-                                                                                {formatCurrency(payload[0].value as number)}
+                                                                                {formatarMoeda(payload[0].value as number)}
                                                                             </p>
                                                                         </div>
                                                                     )
@@ -988,7 +990,7 @@ export default function ReportsPage() {
                                             />
                                         ) : (
                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                            <AreaChart data={advancedData?.financial_freedom_projection || []} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
+                                            <AreaChart data={(advancedData?.financial_freedom_projection || []).map(p => ({ ...p, value: numero(p.value) }))} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
                                                 <defs>
                                                     <linearGradient id="projGradient" x1="0" y1="0" x2="0" y2="1">
                                                         <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
@@ -1004,7 +1006,7 @@ export default function ReportsPage() {
                                                             return (
                                                                 <div className="z-50 bg-background/95 backdrop-blur-xl border border-border/50 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
                                                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{payload[0].payload.label}</p>
-                                                                    <p className="text-sm font-black text-emerald-500">{formatCurrency(payload[0].value)}</p>
+                                                                    <p className="text-sm font-black text-emerald-500">{formatarMoeda(payload[0].value)}</p>
                                                                     <p className="text-[9px] font-bold opacity-60 italic">Estimado</p>
                                                                 </div>
                                                             )

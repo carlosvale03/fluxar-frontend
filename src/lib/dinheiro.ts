@@ -92,3 +92,9 @@ export function formatarMoeda(valor: Valor): string {
 export function formatarMoedaCompacta(valor: Valor): string {
   return MOEDA_COMPACTA.format(paraCentavos(valor) / 100)
 }
+
+// CONTRATO-18: eixo de gráfico em reais; valores a partir de mil ficam
+// compactos para caber ("R$ 800,00", "R$ 1,2 mil").
+export function formatarMoedaDoEixo(valor: Valor): string {
+  return Math.abs(paraCentavos(valor)) >= 100000 ? formatarMoedaCompacta(valor) : formatarMoeda(valor)
+}

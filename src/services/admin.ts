@@ -108,9 +108,9 @@ export async function getAdminUser(userId: string) {
 }
 
 export interface UserFinancialStats {
-    total_balance: number
-    avg_income_value: number
-    avg_expense_value: number
+    total_balance: string
+    avg_income_value: string
+    avg_expense_value: string
     income_count_per_day: number
     expense_count_per_day: number
     last_transaction_date: string

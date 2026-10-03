@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 
 import { ChartEmptyState } from "./ChartEmptyState"
 import { BarChart3, TrendingUp } from "lucide-react"
+import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
 
 interface MonthlyComparisonChartProps {
     data: MonthlyComparisonData[]
@@ -28,15 +29,8 @@ export function MonthlyComparisonChart({
     className
 }: MonthlyComparisonChartProps) {
     
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', {
-            style: 'currency',
-            currency: 'BRL',
-            maximumFractionDigits: 0
-        }).format(value)
-    }
 
-    const isEmpty = !data || data.length === 0 || data.every(d => Number(d.income) === 0 && Number(d.expense) === 0)
+    const isEmpty = !data || data.length === 0 || data.every(d => paraCentavos(d.income) === 0 && paraCentavos(d.expense) === 0)
 
     if (isEmpty) {
         return (
@@ -58,6 +52,15 @@ export function MonthlyComparisonChart({
     }
 
     const currentEntry = data[data.length - 1]
+
+    // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número,
+    // e a conversão é só para plotar
+    const dadosDoGrafico = data.map(d => ({
+        ...d,
+        income: paraCentavos(d.income) / 100,
+        expense: paraCentavos(d.expense) / 100,
+        balance: paraCentavos(d.balance) / 100,
+    }))
 
     return (
         <Card className={cn(
@@ -85,19 +88,19 @@ export function MonthlyComparisonChart({
                         <div className="flex flex-row lg:flex-col justify-between lg:justify-start gap-4 lg:gap-6 min-w-full lg:min-w-[140px] shrink-0 border-b lg:border-b-0 lg:border-r border-border/10 pb-4 lg:pb-0 lg:pr-6 mb-2 lg:mb-0">
                             <div className="space-y-0.5 group">
                                 <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--finance-income)', opacity: 0.7 }}>Ganhos</span>
-                                <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatCurrency(currentEntry.income)}</p>
+                                <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatarMoeda(currentEntry.income)}</p>
                             </div>
                             <div className="space-y-0.5 group">
                                 <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--finance-expense)', opacity: 0.7 }}>Gastos</span>
-                                <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatCurrency(currentEntry.expense)}</p>
+                                <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatarMoeda(currentEntry.expense)}</p>
                             </div>
                             <div className="space-y-0.5 group hidden sm:block lg:block lg:pt-2 lg:border-t lg:border-border/10">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/70 block">Resultado</span>
                                 <p 
                                     className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter"
-                                    style={{ color: currentEntry.balance >= 0 ? 'var(--finance-income)' : 'var(--finance-expense)' }}
+                                    style={{ color: paraCentavos(currentEntry.balance) >= 0 ? 'var(--finance-income)' : 'var(--finance-expense)' }}
                                 >
-                                    {formatCurrency(currentEntry.balance)}
+                                    {formatarMoeda(currentEntry.balance)}
                                 </p>
                             </div>
                         </div>
@@ -106,7 +109,7 @@ export function MonthlyComparisonChart({
                     <div className="flex-1 w-full transition-opacity duration-500" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             {variant === "bars" ? (
-                                <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                <BarChart data={dadosDoGrafico} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="incomeGradientBars" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
@@ -134,7 +137,7 @@ export function MonthlyComparisonChart({
                                         tickLine={false} 
                                         fontSize={10}
                                         tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                        tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                        tickFormatter={formatarMoedaDoEixo}
                                         width={45}
                                     />
                                     <Tooltip 
@@ -154,7 +157,7 @@ export function MonthlyComparisonChart({
                                                                         <span className="text-xs font-bold text-muted-foreground">{entry.name}</span>
                                                                     </div>
                                                                     <span className="text-xs font-black">
-                                                                        {formatCurrency(entry.value)}
+                                                                        {formatarMoeda(entry.value)}
                                                                     </span>
                                                                 </div>
                                                             ))}
@@ -189,7 +192,7 @@ export function MonthlyComparisonChart({
                                     />
                                 </BarChart>
                             ) : (
-                                <AreaChart data={data} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
+                                <AreaChart data={dadosDoGrafico} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="balanceGradientPremium" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
@@ -213,7 +216,7 @@ export function MonthlyComparisonChart({
                                         tickLine={false} 
                                         fontSize={10}
                                         tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                        tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                        tickFormatter={formatarMoedaDoEixo}
                                         width={45}
                                     />
                                     <Tooltip 
@@ -229,7 +232,7 @@ export function MonthlyComparisonChart({
                                                                 className="text-sm font-black"
                                                                 style={{ color: val >= 0 ? '#10b981' : '#ef4444' }}
                                                             >
-                                                                {formatCurrency(val)}
+                                                                {formatarMoeda(val)}
                                                             </p>
                                                         </div>
                                                     </div>

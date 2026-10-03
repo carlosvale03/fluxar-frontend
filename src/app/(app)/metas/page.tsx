@@ -53,6 +53,7 @@ import { SpareChangeBank } from "@/components/goals/SpareChangeBank"
 import { GoalDetails } from "@/components/goals/GoalDetails"
 import { GoalWithdrawForm } from "@/components/goals/GoalWithdrawForm"
 import { PageHelp } from "@/components/ui/page-help"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 export default function GoalsPage() {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -93,7 +94,7 @@ export default function GoalsPage() {
   }, [isPremiumPlus, isAuthLoading])
 
   const handleDelete = async (goal: Goal) => {
-    if (Number(goal.current_amount) !== 0) {
+    if (paraCentavos(goal.current_amount) !== 0) {
       toast.error("Ops! Você não pode excluir uma meta que ainda tem saldo. Resgate o dinheiro primeiro para zerar a meta.")
       return
     }
@@ -108,13 +109,6 @@ export default function GoalsPage() {
       const message = error.response?.data?.error || "Erro ao excluir meta."
       toast.error(message)
     }
-  }
-
-  const formatCurrencyLocal = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
   }
 
   if (!isAuthLoading && !isPremiumPlus && !isLoading) {
@@ -206,7 +200,7 @@ export default function GoalsPage() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Total Guardado</p>
                   <p className="text-xl font-black text-primary truncate">
-                    {formatCurrencyLocal(goals.reduce((acc, g) => acc + Number(g.current_amount || 0), 0))}
+                    {formatarMoeda(deCentavos(goals.reduce((acc, g) => acc + paraCentavos(g.current_amount), 0)))}
                   </p>
                 </div>
               </div>
@@ -222,7 +216,7 @@ export default function GoalsPage() {
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-widest opacity-40">Objetivo Total</p>
                   <p className="text-xl font-black text-emerald-600 truncate">
-                    {formatCurrencyLocal(goals.reduce((acc, g) => acc + Number(g.target_amount || 0), 0))}
+                    {formatarMoeda(deCentavos(goals.reduce((acc, g) => acc + paraCentavos(g.target_amount), 0)))}
                   </p>
                 </div>
               </div>
@@ -477,7 +471,7 @@ export default function GoalsPage() {
                       "font-black text-base truncate",
                       goal.image ? "text-emerald-400 drop-shadow-sm" : "text-emerald-600"
                     )}>
-                      {formatCurrencyLocal(goal.current_amount)}
+                      {formatarMoeda(goal.current_amount)}
                     </p>
                   </div>
                   <div className="space-y-1 text-right">
@@ -491,7 +485,7 @@ export default function GoalsPage() {
                       "font-black text-base truncate",
                       goal.image ? "text-white drop-shadow-sm" : "text-foreground"
                     )}>
-                      {formatCurrencyLocal(goal.target_amount)}
+                      {formatarMoeda(goal.target_amount)}
                     </p>
                   </div>
                 </div>
@@ -510,10 +504,11 @@ export default function GoalsPage() {
                   }
 
                   // Calculate suggested saving if not provided or zero
+                  // CONTRATO-16: os valores chegam como texto; a conta é feita em centavos
                   let suggested = goal.suggested_monthly_saving
-                  if (!suggested || suggested === 0) {
-                    const remaining = goal.target_amount - goal.current_amount
-                    suggested = Math.max(0, remaining / months)
+                  if (!suggested || paraCentavos(suggested) === 0) {
+                    const remaining = paraCentavos(goal.target_amount) - paraCentavos(goal.current_amount)
+                    suggested = deCentavos(Math.max(0, Math.round(remaining / months)))
                   }
 
                   return (
@@ -541,7 +536,7 @@ export default function GoalsPage() {
                         "text-[10px] md:text-xs font-semibold leading-relaxed",
                         goal.image ? "text-white/90" : "text-muted-foreground leading-snug"
                       )}>
-                        Você precisa guardar <span className={cn("font-black text-xs md:text-sm border-b-2", goal.image ? "text-white border-emerald-500/50" : "text-primary border-primary/30")}>{formatCurrencyLocal(suggested || 0)}/mês</span> para atingir sua meta em {format(targetDate, "MMMM 'de' yyyy", { locale: ptBR })}.
+                        Você precisa guardar <span className={cn("font-black text-xs md:text-sm border-b-2", goal.image ? "text-white border-emerald-500/50" : "text-primary border-primary/30")}>{formatarMoeda(suggested)}/mês</span> para atingir sua meta em {format(targetDate, "MMMM 'de' yyyy", { locale: ptBR })}.
                       </p>
                     </div>
                   )

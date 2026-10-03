@@ -19,8 +19,8 @@ export interface Account {
     id: string
     name: string
     type: AccountType
-    balance: number
-    initial_balance: number
+    balance: string
+    initial_balance: string
     currency?: string
     is_active: boolean
     institution?: string

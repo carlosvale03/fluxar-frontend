@@ -25,7 +25,7 @@ const FATURA = {
   due_date: "2026-10-10",
   closing_date: "2026-10-03",
   status: "OPEN",
-  total_amount: 350,
+  total_amount: "350.00",
   payment: null,
 } as Invoice
 

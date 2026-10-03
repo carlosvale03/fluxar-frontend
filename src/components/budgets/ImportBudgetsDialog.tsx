@@ -18,6 +18,7 @@ import { Loader2, Calendar, Search, Filter, CheckCircle2, ChevronRight, Copy } f
 import { MonthRangePicker } from "@/components/ui/month-range-picker"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 interface ImportBudgetsDialogProps {
   isOpen: boolean
@@ -303,7 +304,7 @@ export function ImportBudgetsDialog({
                                                     </div>
                                                 </div>
                                                 <div className="text-right ml-2">
-                                                    <div className="text-[11px] sm:text-[13px] font-black text-foreground">R$ {Number(budget.amount_limit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                                                    <div className="text-[11px] sm:text-[13px] font-black text-foreground">{formatarMoeda(budget.amount_limit)}</div>
                                                     <div className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase opacity-80 tracking-tighter whitespace-nowrap">Teto Limite</div>
                                                 </div>
 

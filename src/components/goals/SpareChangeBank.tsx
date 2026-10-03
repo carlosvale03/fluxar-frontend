@@ -22,6 +22,7 @@ import { Goal } from "@/types/goals"
 import { api } from "@/services/apiClient"
 import { toast } from "sonner"
 import { goalsService } from "@/services/goals"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 interface SpareChangeBankProps {
   goals: Goal[]
@@ -112,13 +113,6 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
-
   if (isLoading) return null
   if (items.length === 0) return null
 
@@ -136,7 +130,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-black text-primary">{formatCurrency(totalRoundUp)}</p>
+            <p className="text-2xl font-black text-primary">{formatarMoeda(totalRoundUp)}</p>
             <p className="text-[10px] font-bold opacity-60">ACUMULADO</p>
           </div>
         </div>
@@ -179,7 +173,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
              <CheckCircle2 className="h-3.5 w-3.5" />
            </div>
            <p className="text-[10px] font-medium text-muted-foreground italic">
-             Detectamos <strong>{items.length}</strong> transações que podem ser arredondadas para poupar <strong>{formatCurrency(totalRoundUp)}</strong>.
+             Detectamos <strong>{items.length}</strong> transações que podem ser arredondadas para poupar <strong>{formatarMoeda(totalRoundUp)}</strong>.
            </p>
         </div>
       </CardContent>

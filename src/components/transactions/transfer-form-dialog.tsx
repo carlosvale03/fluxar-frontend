@@ -38,6 +38,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { paraCentavos } from "@/lib/dinheiro"
 
 import { api } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
@@ -227,7 +228,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           let accountIdParam = ""
           let targetAccountIdParam = ""
 
-          const isOutgoing = initialData.type === 'TRANSFER_OUT' || initialData.type === 'TRANSFER' || (initialData.amount < 0 && initialData.type !== 'TRANSFER_IN');
+          const isOutgoing = initialData.type === 'TRANSFER_OUT' || initialData.type === 'TRANSFER' || (paraCentavos(initialData.amount) < 0 && initialData.type !== 'TRANSFER_IN');
 
           if (isOutgoing) {
               accountIdParam = data.source_account_id

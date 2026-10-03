@@ -18,6 +18,7 @@ import {
   ChevronUp
 } from "lucide-react"
 import { MoneyInput } from "@/components/ui/money-input"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -242,7 +243,7 @@ export function CreditCardFormDialog({
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold text-white/40 tracking-widest uppercase">Limite Total</p>
                                 <p className="text-lg font-black text-white leading-none">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(watchedLimit) || 0)}
+                                    {formatarMoeda(watchedLimit)}
                                 </p>
                             </div>
                             <div className="flex -space-x-3 opacity-80">

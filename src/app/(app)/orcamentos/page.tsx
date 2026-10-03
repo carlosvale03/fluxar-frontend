@@ -44,6 +44,7 @@ import {
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
 import { Badge } from "@/components/ui/badge"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 export default function BudgetsPage() {
   const [budgets, setBudgets] = useState<Budget[]>([])
@@ -154,9 +155,6 @@ export default function BudgetsPage() {
     return "bg-red-500"
   }
 
-  const formatCurrency = (value: number) => {
-      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-  }
 
   const CATEGORY_ICON_MAP: Record<string, string> = {
     "moradia": "Home",
@@ -378,11 +376,11 @@ export default function BudgetsPage() {
                       <div className="flex flex-col gap-1">
                           <div className="flex justify-between items-end mb-1">
                               <span className="text-sm text-muted-foreground">Gastos acumulados</span>
-                              <span className="text-sm font-semibold">{formatCurrency(budget.total_spent)}</span>
+                              <span className="text-sm font-semibold">{formatarMoeda(budget.total_spent)}</span>
                           </div>
                           <Progress value={Math.min(budget.percentage_used, 100)} className="h-2.5" indicatorColor={progressColor} />
                           <div className="flex justify-between items-start mt-1">
-                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Limite: {formatCurrency(budget.amount_limit)}</span>
+                              <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Limite: {formatarMoeda(budget.amount_limit)}</span>
                               <span className={cn("text-[10px] font-bold", budget.percentage_used > 100 ? "text-destructive" : "text-muted-foreground")}>
                                 {budget.percentage_used.toFixed(1)}%
                               </span>
@@ -393,7 +391,7 @@ export default function BudgetsPage() {
                           <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/5 text-red-600 border border-red-200/50">
                               <AlertCircle className="h-4 w-4 shrink-0" />
                               <p className="text-[11px] font-medium leading-tight">
-                                Orçamento excedido em {formatCurrency(Math.max(0, budget.total_spent - budget.amount_limit))}
+                                Orçamento excedido em {formatarMoeda(deCentavos(Math.max(0, paraCentavos(budget.total_spent) - paraCentavos(budget.amount_limit))))}
                               </p>
                           </div>
                       )}
