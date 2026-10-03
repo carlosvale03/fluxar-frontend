@@ -352,9 +352,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Valor do Pagamento</FormLabel>
                                                 <FormControl>
                                                     <div className="relative group">
-                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground/30 group-focus-within:text-purple-500 transition-colors">R$</span>
                                                         <MoneyInput 
-                                                            value={field.value}
+                                                            value={field.value ? String(field.value) : ""}
                                                             onValueChange={field.onChange}
                                                             className="h-14 pl-10 bg-card border-border/40 rounded-2xl focus-visible:ring-purple-500/20 font-black text-xl tracking-tighter"
                                                         />

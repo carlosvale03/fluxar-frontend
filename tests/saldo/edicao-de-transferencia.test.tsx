@@ -53,7 +53,8 @@ async function editarValorPara150(perna: typeof SAIDA) {
   render(
     <TransferFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} initialData={perna as unknown as Transaction} />
   )
-  const valor = await screen.findByDisplayValue("100,00")
+  // CONTRATO-19: o campo de dinheiro mostra o valor em reais
+  const valor = await screen.findByDisplayValue(/^R\$\s100,00$/)
   fireEvent.change(valor, { target: { value: "150,00" } })
   await userEvent.click(screen.getByRole("button", { name: /salvar alterações/i }))
   await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))

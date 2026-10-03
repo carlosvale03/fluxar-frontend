@@ -309,8 +309,8 @@ export function AccountFormDialog({
                             <div className="relative group">
                                 <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                                 <MoneyInput 
-                                    value={Number(watch("initial_balance"))}
-                                    onValueChange={(val) => setValue("initial_balance", val.toString())}
+                                    value={watch("initial_balance")}
+                                    onValueChange={(val) => setValue("initial_balance", val ?? "")}
                                     className="h-12 pl-10 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-tight"
                                 />
                             </div>

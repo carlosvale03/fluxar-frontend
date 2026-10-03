@@ -402,14 +402,8 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Valor Total</FormLabel>
                                             <FormControl>
                                                 <div className="relative group">
-                                                    <div className={cn(
-                                                        "absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-lg font-black text-[11px] transition-colors",
-                                                        isIncome ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
-                                                    )}>
-                                                        R$
-                                                    </div>
-                                                    <MoneyInput 
-                                                        value={field.value}
+                                                    <MoneyInput
+                                                        value={field.value ? String(field.value) : ""}
                                                         onValueChange={field.onChange}
                                                         className="h-12 pl-12 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-black tracking-tight text-lg"
                                                     />

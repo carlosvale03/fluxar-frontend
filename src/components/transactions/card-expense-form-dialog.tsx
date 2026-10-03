@@ -288,9 +288,8 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Valor Total</FormLabel>
                             <FormControl>
                                 <div className="relative">
-                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
                                   <MoneyInput 
-                                      value={field.value}
+                                      value={field.value ? String(field.value) : ""}
                                       onValueChange={field.onChange}
                                       className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                   />

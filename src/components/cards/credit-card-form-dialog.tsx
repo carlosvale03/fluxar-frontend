@@ -386,10 +386,9 @@ export function CreditCardFormDialog({
                     <div className="space-y-2">
                         <Label htmlFor="limit" className="text-xs font-bold pl-1">Limite Total de Crédito</Label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground/60 tracking-tight">R$</span>
                             <MoneyInput 
-                                value={Number(watch("limit"))}
-                                onValueChange={(val) => setValue("limit", val.toString())}
+                                value={watch("limit")}
+                                onValueChange={(val) => setValue("limit", val ?? "")}
                                 className="h-12 pl-12 rounded-xl border-border/60 font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
                             />
                         </div>
