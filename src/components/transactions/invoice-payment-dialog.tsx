@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -78,6 +78,13 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
   const [selectedInvoiceObject, setSelectedInvoiceObject] = useState<Invoice | null>(null)
   
   const [isLoading, setIsLoading] = useState(false)
+
+  // FATURA-29: um identificador por abertura do diálogo, reenviado em toda
+  // nova tentativa até o sucesso; fechar e abrir de novo gera outro
+  const chaveDaTentativa = useRef("")
+  useEffect(() => {
+    if (open) chaveDaTentativa.current = crypto.randomUUID()
+  }, [open])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -192,6 +199,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
           amount: data.amount,
           account_id: data.account_id,
           date: format(data.date, "yyyy-MM-dd"),
+          idempotency_key: chaveDaTentativa.current,
       }
 
       await api.post(`/invoices/${targetInvoiceId}/pay/`, payload)
