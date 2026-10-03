@@ -1,8 +1,9 @@
 "use client"
 
 import { motion, AnimatePresence } from "framer-motion"
-import { Coffee, Cloud, Sparkles, Loader2 } from "lucide-react"
+import { Coffee, Cloud, Sparkles, Loader2, X } from "lucide-react"
 import { useServerStatus } from "@/hooks/use-server-status"
+import { serverStatusManager } from "@/services/serverStatus"
 
 export function ServerWakeupOverlay() {
   const { isWakingUp } = useServerStatus()
@@ -41,6 +42,16 @@ export function ServerWakeupOverlay() {
                     className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-emerald-500/20 to-transparent rounded-full blur-[100px]"
                 />
             </div>
+
+            {/* CONTRATO-35: o aviso pode ser fechado */}
+            <button
+                type="button"
+                aria-label="Fechar"
+                onClick={() => serverStatusManager.dismiss()}
+                className="absolute top-5 right-5 z-20 w-9 h-9 rounded-2xl flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            >
+                <X className="w-4 h-4" />
+            </button>
 
             <div className="relative z-10">
                 <div className="flex justify-center mb-6">

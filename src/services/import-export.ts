@@ -1,5 +1,9 @@
 import { api } from "./apiClient";
 
+// CONTRATO-34: importação e exportação podem levar até 120 segundos; as
+// demais requisições ficam com os 30 segundos do apiClient
+export const TEMPO_MAXIMO_ARQUIVOS_MS = 120_000;
+
 export interface ImportSummary {
   total: number;
   imported: number;
@@ -34,6 +38,7 @@ export const importExportService = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });
 
     return response.data;
@@ -56,6 +61,7 @@ export const importExportService = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });
 
     return response.data;
@@ -82,6 +88,7 @@ export const importExportService = {
       headers: {
         "Content-Type": "multipart/form-data",
       },
+      timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });
 
     return response.data;
@@ -94,6 +101,7 @@ export const importExportService = {
     const response = await api.get("/export/transactions/pdf/", {
       params: filters,
       responseType: "blob",
+      timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });
     return response.data;
   },
@@ -105,6 +113,7 @@ export const importExportService = {
     const response = await api.get("/export/transactions/xls/", {
       params: filters,
       responseType: "blob",
+      timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });
     return response.data;
   },
