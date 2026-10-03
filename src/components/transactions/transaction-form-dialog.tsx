@@ -113,7 +113,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
               api.get("/accounts/")
           ])
           
-          let rawCats: Category[] = catRes.data.results || catRes.data || []
+          let rawCats: Category[] = catRes.data
           const organized: any[] = []
           rawCats.forEach(parent => {
               organized.push({ ...parent, isSubcategory: false })
@@ -130,7 +130,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
           })
           
           setCategories(organized)
-          setAccounts(accRes.data.results || accRes.data || [])
+          setAccounts(accRes.data)
       } catch (error) {
           console.error("Failed to fetch dependencies", error)
           toast.error("Erro ao carregar categorias ou contas.")
@@ -202,7 +202,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
          const fetchSuggestions = async () => {
              try {
                  const res = await api.get(`/transactions/?limit=50&type=${type}`)
-                 const records = res.data.results || res.data || []
+                 const records = res.data.results
                  setRecentTransactions(records)
              } catch (error) {
                  console.error("Failed to fetch suggestions", error)

@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { Activity, Server, FileText, AlertTriangle, RefreshCw, Loader2, Database, Globe } from "lucide-react"
 import { toast } from "sonner"
 import { getAdminStats, getSystemLogs, updateSystemSettings, getSystemSettings, AdminStats, SystemLog } from "@/services/admin"
+import { Paginacao } from "@/components/ui/paginacao"
+import { tratarErro } from "@/lib/erros"
 
 export default function AdminSettingsPage() {
   const [activeTab, setActiveTab] = useState("system")
@@ -19,17 +21,38 @@ export default function AdminSettingsPage() {
   // Data State
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [logs, setLogs] = useState<SystemLog[]>([])
+  // CONTRATO-02 e CONTRATO-05: os logs vêm paginados
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsCount, setLogsCount] = useState(0)
+  const [logsTotalPages, setLogsTotalPages] = useState(1)
+  const [isLoadingLogs, setIsLoadingLogs] = useState(false)
+
+  const loadLogs = async () => {
+      try {
+          setIsLoadingLogs(true)
+          const data = await getSystemLogs(logsPage)
+          setLogs(data.results)
+          setLogsCount(data.count)
+          setLogsTotalPages(data.total_pages)
+      } catch (error) {
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar os logs.", tentarDeNovo: loadLogs })
+      } finally {
+          setIsLoadingLogs(false)
+      }
+  }
+
+  useEffect(() => {
+    loadLogs()
+  }, [logsPage])
 
   const loadData = async () => {
       try {
           setIsRefreshing(true)
-          const [statsData, logsData, settingsData] = await Promise.all([
+          const [statsData, settingsData] = await Promise.all([
               getAdminStats(),
-              getSystemLogs(),
               getSystemSettings()
           ])
           setStats(statsData)
-          setLogs(logsData)
           if (settingsData && settingsData.maintenance_mode) {
               setMaintenanceMode(settingsData.maintenance_mode === 'true')
           }
@@ -91,7 +114,7 @@ export default function AdminSettingsPage() {
         <Button 
             variant="outline" 
             size="sm" 
-            onClick={loadData} 
+            onClick={() => { loadData(); loadLogs() }} 
             disabled={isRefreshing}
             className="rounded-full font-bold border-primary/20 hover:bg-primary/10 hover:text-primary transition-all duration-300"
         >
@@ -236,13 +259,13 @@ export default function AdminSettingsPage() {
                             <CardDescription>Registro imutável de atividades administrativas.</CardDescription>
                         </div>
                         <Badge variant="outline" className="bg-background/50 font-mono text-xs">
-                            {logs.length} registros
+                            {logsCount} registros
                         </Badge>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
                     <div className="divide-y divide-border/40">
-                        {isRefreshing && logs.length === 0 ? (
+                        {isLoadingLogs && logs.length === 0 ? (
                             <div className="p-12 flex flex-col items-center justify-center text-muted-foreground">
                                 <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
                                 <p className="text-sm font-bold uppercase tracking-widest">Carregando logs...</p>
@@ -286,10 +309,15 @@ export default function AdminSettingsPage() {
                         )}
                     </div>
                 </CardContent>
-                <CardFooter className="bg-muted/30 border-t border-border/40 p-4 flex justify-center">
-                    <Button variant="ghost" size="sm" className="w-full text-muted-foreground hover:text-primary font-bold text-xs uppercase tracking-widest">
-                        Ver histórico completo
-                    </Button>
+                <CardFooter className="p-0">
+                    <Paginacao
+                        pagina={logsPage}
+                        totalDePaginas={logsTotalPages}
+                        total={logsCount}
+                        rotulo="registros"
+                        carregando={isLoadingLogs}
+                        onMudarPagina={setLogsPage}
+                    />
                 </CardFooter>
             </Card>
         </TabsContent>

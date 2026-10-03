@@ -99,7 +99,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
   const fetchAccounts = async () => {
     try {
         const response = await api.get("/accounts/")
-        const data = response.data.results || response.data || []
+        const data = response.data
         setAccounts(data)
     } catch (err) {
         console.error("Erro ao buscar contas", err)
@@ -142,7 +142,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                     }
                 } else {
                     const cardsResponse = await api.get("/credit-cards/")
-                    setCards(cardsResponse.data.results || cardsResponse.data || [])
+                    setCards(cardsResponse.data)
                 }
             } catch (error) {
                 console.error("Initialization failed", error)
@@ -174,7 +174,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
       try {
           // Fetch invoices for the specific card
           const response = await api.get(`/credit-cards/${cardId}/invoices/`)
-          const allInvoices = response.data.results || response.data || []
+          const allInvoices = response.data
           
           // Client-side filtering to ensure PAID invoices are excluded
           // We only want OPEN, OVERDUE, or CLOSED (if not fully paid)

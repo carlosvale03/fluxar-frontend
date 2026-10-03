@@ -122,7 +122,7 @@ export function CreditCardFormDialog({
   useEffect(() => {
     if (open) {
         api.get("/accounts/").then(res => {
-            const data = Array.isArray(res.data) ? res.data : res.data.results
+            const data = res.data
             setAccounts(data || [])
         }).catch(err => {
             console.error("Failed to fetch accounts", err)

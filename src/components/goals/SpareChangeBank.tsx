@@ -48,7 +48,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       setIsLoading(true)
       // Fetch recent transactions to calculate round-ups
       const response = await api.get<any>("/transactions/")
-      const transactions = Array.isArray(response.data) ? response.data : response.data.results || []
+      const transactions = response.data.results
       
       const roundUps: RoundUpItem[] = transactions
         .filter((t: any) => t.type === 'EXPENSE')

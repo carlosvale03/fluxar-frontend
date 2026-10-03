@@ -74,6 +74,7 @@ export default function UserManagementPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   const [viewArchived, setViewArchived] = useState(false)
   const [filterRole, setFilterRole] = useState<string>("ALL")
   const [filterPlan, setFilterPlan] = useState<string>("ALL")
@@ -119,6 +120,7 @@ export default function UserManagementPage() {
       )
       setUsers(data.results)
       setTotalCount(data.count)
+      setTotalPages(data.total_pages)
     } catch (error) {
       console.error("Failed to load users", error)
       toast.error("Erro ao carregar lista de usuários")
@@ -528,7 +530,8 @@ export default function UserManagementPage() {
               variant="outline" 
               size="sm" 
               onClick={() => setPage(p => p + 1)}
-              disabled={page * 10 >= totalCount || isLoading}
+              // CONTRATO-02: a última página vem da API (20 itens por página)
+              disabled={page >= totalPages || isLoading}
               className="flex-1 sm:flex-none rounded-xl h-8 px-4 font-black text-[10px] uppercase tracking-widest"
             >
               Próx. <ChevronRight className="h-3 w-3 ml-1" />

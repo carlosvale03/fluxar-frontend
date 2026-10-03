@@ -114,7 +114,7 @@ export default function CategoriesPage() {
       const data = await getCategories()
       setCategories(data)
     } catch (error) {
-      console.error(error)
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias", tentarDeNovo: refreshCategories })
     }
   }
 

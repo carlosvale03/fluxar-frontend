@@ -38,7 +38,7 @@ export default function RecurringTransactionsPage() {
       setIsLoading(true)
       // Assuming backend supports filtering by is_recurring=true
       const response = await api.get("/transactions/?is_recurring=true")
-      setTransactions(response.data.results || response.data || [])
+      setTransactions(response.data.results)
     } catch (error) {
       console.error("Failed to fetch recurring transactions", error)
     } finally {

@@ -110,7 +110,7 @@ export default function TransactionsPage() {
       try {
           const response = await api.get("/categories/")
           // O backend pode retornar { results: [...] } ou direto o array
-          const catData = response.data.results || response.data || []
+          const catData = response.data
           setCategories(catData)
       } catch (error) {
           console.error("Failed to fetch categories", error)
@@ -347,7 +347,7 @@ export default function TransactionsPage() {
   const fetchAccounts = async () => {
     try {
         const response = await api.get("/accounts/")
-        setAccounts(response.data.results || response.data || [])
+        setAccounts(response.data)
     } catch (e) {
         console.error("Failed to fetch accounts", e)
     }

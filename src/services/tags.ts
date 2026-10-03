@@ -2,15 +2,9 @@ import { api } from "./apiClient"
 import { Tag, TagInput } from "@/types/categories"
 
 export const getTags = async (): Promise<Tag[]> => {
-    const response = await api.get("/tags/")
-    if (Array.isArray(response.data)) {
-        return response.data
-    }
-    if (response.data && Array.isArray(response.data.results)) {
-        return response.data.results
-    }
-    console.warn("Unexpected response format from /tags/", response.data)
-    return []
+    // CONTRATO-01: coleção completa, como array; o erro sobe para a tela
+    const response = await api.get<Tag[]>("/tags/")
+    return response.data
 }
 
 export const createTag = async (data: TagInput): Promise<Tag> => {

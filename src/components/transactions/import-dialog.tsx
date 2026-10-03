@@ -96,7 +96,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
   const fetchAccounts = async () => {
     try {
       const response = await api.get("/accounts/")
-      setAccounts(response.data.results || response.data || [])
+      setAccounts(response.data)
     } catch (error) {
       console.error("Failed to fetch accounts", error)
     }

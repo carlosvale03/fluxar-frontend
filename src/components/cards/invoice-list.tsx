@@ -45,7 +45,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
     try {
       const response = await api.get(`/credit-cards/${cardId}/invoices/`)
       // Backend returns a list of invoices
-      setInvoices(response.data.results || response.data || [])
+      setInvoices(response.data)
     } catch (error) {
       console.error("Failed to fetch invoices", error)
       toast.error("Erro ao carregar faturas.")

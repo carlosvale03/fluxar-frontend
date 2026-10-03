@@ -11,6 +11,7 @@ import { Category, Tag } from "@/types/categories"
 import { createFocusedMonitor } from "@/services/focused-monitors"
 import { cn } from "@/lib/utils"
 import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { LucideIcon } from "@/components/ui/icon-picker"
 
 interface FocusSelectionModalProps {
@@ -39,7 +40,7 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
             setCategories(cats)
             setTags(tgs)
         } catch (error) {
-            console.error("Erro ao carregar categorias/tags:", error)
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias e tags.", tentarDeNovo: loadData })
         } finally {
             setIsLoading(false)
         }

@@ -134,7 +134,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               api.get("/credit-cards/")
           ])
           
-          let rawCats: Category[] = catRes.data.results || catRes.data || []
+          let rawCats: Category[] = catRes.data
           
           // Organizar hierarquicamente (Flattened)
           const organized: any[] = []
@@ -153,7 +153,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           })
           
           setCategories(organized)
-          setCards(cardRes.data.results || cardRes.data || [])
+          setCards(cardRes.data)
       } catch (error) {
           console.error("Failed to fetch resources", error)
           toast.error("Erro ao carregar dados.")

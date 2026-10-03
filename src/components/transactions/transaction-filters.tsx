@@ -89,7 +89,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
             api.get("/accounts/")
         ])
         
-        let rawCats: Category[] = catRes.data.results || catRes.data || []
+        let rawCats: Category[] = catRes.data
         
         // Organizar hierarquicamente (Flattened)
         const organized: Category[] = []
@@ -106,7 +106,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         })
 
         setCategories(organized)
-        setAccounts(accRes.data.results || accRes.data || [])
+        setAccounts(accRes.data)
     } catch (error) {
         console.error("Failed to fetch filter dependencies", error)
     }

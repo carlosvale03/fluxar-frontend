@@ -1,8 +1,11 @@
 import { api } from "./apiClient"
 import { User } from "@/contexts/auth-context"
 
+// CONTRATO-02: formato único das listas paginadas
 export interface PaginatedResponse<T> {
   count: number
+  total_pages: number
+  current_page: number
   next: string | null
   previous: string | null
   results: T[]
@@ -83,8 +86,8 @@ export interface SystemLog {
   details?: any
 }
 
-export async function getSystemLogs(): Promise<SystemLog[]> {
-  const response = await api.get<SystemLog[]>("/admin/logs/")
+export async function getSystemLogs(page: number = 1): Promise<PaginatedResponse<SystemLog>> {
+  const response = await api.get<PaginatedResponse<SystemLog>>("/admin/logs/", { params: { page } })
   return response.data
 }
 
@@ -99,26 +102,9 @@ export async function getSystemSettings(): Promise<Record<string, any>> {
 }
 // User Details
 export async function getAdminUser(userId: string) {
-    // Assuming standard REST endpoint
-    // If it doesn't exist, we might need to fallback to filtered list, but let's try direct first or mock if 404
-    try {
-        const response = await api.get<User>(`/admin/users/${userId}/`)
-        return response.data
-    } catch (error) {
-        console.warn("API de detalhes de usuário não encontrada, usando mock de fallback.")
-        // Mock fallback for development if backend isn't ready
-        return {
-            id: userId,
-            name: "Usuário Mock",
-            email: "mock@fluxar.com",
-            role: "USER",
-            is_active: true,
-            plan: "PREMIUM",
-            created_at: new Date().toISOString(),
-            avatar_url: null,
-            emailVerified: true
-        } as User
-    }
+    // O erro sobe para a tela, sem usuário de mentira
+    const response = await api.get<User>(`/admin/users/${userId}/`)
+    return response.data
 }
 
 export interface UserFinancialStats {
@@ -135,8 +121,8 @@ export async function getUserFinancialStats(userId: string): Promise<UserFinanci
     return response.data
 }
 
-export async function getUserLogs(userId: string): Promise<SystemLog[]> {
-    const response = await api.get<SystemLog[]>(`/admin/users/${userId}/logs/`)
+export async function getUserLogs(userId: string, page: number = 1): Promise<PaginatedResponse<SystemLog>> {
+    const response = await api.get<PaginatedResponse<SystemLog>>(`/admin/users/${userId}/logs/`, { params: { page } })
     return response.data
 }
 

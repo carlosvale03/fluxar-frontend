@@ -100,18 +100,20 @@ export default function TagsPage() {
   const paginatedTags = filteredTags.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
   const hasMultiplePages = totalPages > 1
 
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const data = await getTags()
-        setTags(data)
-      } catch (error) {
-        console.error(error)
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar tags" })
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchTags = async () => {
+    try {
+      setIsLoading(true)
+      const data = await getTags()
+      setTags(data)
+    } catch (error) {
+      // CONTRATO-33: a carga que falha pode ser repetida pelo aviso
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar tags", tentarDeNovo: fetchTags })
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchTags()
   }, [])
 
@@ -120,7 +122,7 @@ export default function TagsPage() {
         const data = await getTags()
         setTags(data)
       } catch (error) {
-        console.error(error)
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar tags", tentarDeNovo: refreshTags })
       }
   }
 

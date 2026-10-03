@@ -135,7 +135,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                console.log("Looking up partner via transfer_id:", data.transfer_id)
                try {
                   const listRes = await api.get(`/transactions/?transfer_id=${data.transfer_id}`)
-                  const results = listRes.data.results || listRes.data
+                  const results = listRes.data.results
                   if (Array.isArray(results)) {
                       const found = results.find((t: any) => t.id !== data.id)
                       if (found) partnerId = found.id
@@ -202,7 +202,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
   const fetchAccounts = async () => {
       try {
           const response = await api.get("/accounts/")
-          setAccounts(response.data.results || response.data || [])
+          setAccounts(response.data)
       } catch (error) {
           console.error("Failed to fetch accounts", error)
           toast.error("Erro ao carregar contas.")

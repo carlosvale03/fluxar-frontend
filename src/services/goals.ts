@@ -3,9 +3,9 @@ import { CreateGoalData, Goal, GoalDepositData, GoalTransaction } from "@/types/
 
 export const goalsService = {
   getGoals: async () => {
-    const response = await api.get<any>("/goals/");
-    const data = Array.isArray(response.data) ? response.data : response.data.results;
-    return (data || []) as Goal[];
+    // CONTRATO-01: coleção completa, como array
+    const response = await api.get<Goal[]>("/goals/");
+    return response.data;
   },
 
   getGoal: async (id: string) => {
@@ -71,8 +71,7 @@ export const goalsService = {
   },
 
   getHistory: async (id: string) => {
-    const response = await api.get<any>(`/goals/${id}/history/`);
-    const data = Array.isArray(response.data) ? response.data : response.data.results;
-    return (data || []) as GoalTransaction[];
+    const response = await api.get<GoalTransaction[]>(`/goals/${id}/history/`);
+    return response.data;
   },
 };

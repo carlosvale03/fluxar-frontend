@@ -46,6 +46,8 @@ import {
 import { toast } from "sonner"
 import { User } from "@/contexts/auth-context"
 import { getAbsoluteUrl } from "@/lib/utils"
+import { Paginacao } from "@/components/ui/paginacao"
+import { tratarErro } from "@/lib/erros"
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -57,6 +59,10 @@ export default function UserDetailsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [financialStats, setFinancialStats] = useState<UserFinancialStats | null>(null)
   const [logs, setLogs] = useState<SystemLog[]>([])
+  // CONTRATO-02 e CONTRATO-05: os logs do usuário vêm paginados
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsCount, setLogsCount] = useState(0)
+  const [logsTotalPages, setLogsTotalPages] = useState(1)
 
   // Modal Alterar Plano
   const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false)
@@ -77,12 +83,18 @@ export default function UserDetailsPage() {
   const loadLogs = async () => {
     if (!userId) return
     try {
-        const logsData = await getUserLogs(userId)
-        setLogs(logsData)
+        const logsData = await getUserLogs(userId, logsPage)
+        setLogs(logsData.results)
+        setLogsCount(logsData.count)
+        setLogsTotalPages(logsData.total_pages)
     } catch (error) {
-        console.error("Erro ao carregar logs:", error)
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar os logs.", tentarDeNovo: loadLogs })
     }
   }
+
+  useEffect(() => {
+    loadLogs()
+  }, [userId, logsPage])
 
   useEffect(() => {
     async function loadData() {
@@ -90,18 +102,15 @@ export default function UserDetailsPage() {
 
         try {
             setIsLoading(true)
-            const [userData, statsData, logsData] = await Promise.all([
+            const [userData, statsData] = await Promise.all([
                 getAdminUser(userId),
-                getUserFinancialStats(userId),
-                getUserLogs(userId)
+                getUserFinancialStats(userId)
             ])
             setUser(userData)
             setFinancialStats(statsData)
-            setLogs(logsData)
             setNewPlan(userData.plan)
         } catch (error) {
-            console.error(error)
-            toast.error("Erro ao carregar detalhes do usuário.")
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar detalhes do usuário." })
             router.push("/admin/usuarios")
         } finally {
             setIsLoading(false)
@@ -420,6 +429,15 @@ export default function UserDetailsPage() {
                         ))}
                     </div>
                 </CardContent>
+                <CardFooter className="p-0">
+                    <Paginacao
+                        pagina={logsPage}
+                        totalDePaginas={logsTotalPages}
+                        total={logsCount}
+                        rotulo="registros"
+                        onMudarPagina={setLogsPage}
+                    />
+                </CardFooter>
              </Card>
          </TabsContent>
 

@@ -79,7 +79,7 @@ export default function AccountsPage() {
     try {
       setIsLoading(true)
       const response = await api.get("/accounts/")
-      const data = Array.isArray(response.data) ? response.data : response.data.results
+      const data = response.data
       setAccounts(data || [])
     } catch (error) {
       toast.error("Erro ao carregar contas.")
