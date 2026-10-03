@@ -13,3 +13,15 @@ export function lerData(data: string): Date {
 export function nomeDoMes(mes: number): string {
   return format(new Date(2000, mes - 1, 1), "MMMM", { locale: ptBR })
 }
+
+// CONTRATO-25: data sem hora para a API ("AAAA-MM-DD") pelos componentes
+// locais. toISOString() passa para UTC e, à noite no Brasil, já é o dia
+// seguinte.
+export function paraApi(data: Date): string {
+  return format(data, "yyyy-MM-dd")
+}
+
+// CONTRATO-25: o dia de hoje no calendário do usuário, para a API
+export function hojeNaApi(): string {
+  return paraApi(new Date())
+}

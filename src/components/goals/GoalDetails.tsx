@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import { format, differenceInDays, differenceInCalendarDays, addDays, isAfter, parseISO } from "date-fns"
+import { lerData } from "@/lib/datas"
 import { ptBR } from "date-fns/locale"
 import { 
   AreaChart, 
@@ -107,7 +108,8 @@ export function GoalDetails({
     if (!goal || !goal.created_at) return []
 
     // 1. Definir Intervalo: Desde a criação ou primeira transação até hoje
-    const historyDates = history.map(tx => new Date(tx.datetime).getTime())
+    // CONTRATO-24: a data do aporte não tem hora; lida no dia gravado
+    const historyDates = history.map(tx => lerData(tx.datetime).getTime())
     const firstTxDate = historyDates.length > 0 ? new Date(Math.min(...historyDates)) : new Date()
     const goalCreationDate = new Date(goal.created_at)
     
@@ -121,7 +123,7 @@ export function GoalDetails({
     // 2. Agrupar transações por data (YYYY-MM-DD) coercindo para Number
     const txByDate: Record<string, number> = {}
     history.forEach(tx => {
-      const dateStr = format(new Date(tx.datetime), 'yyyy-MM-dd')
+      const dateStr = format(lerData(tx.datetime), 'yyyy-MM-dd')
       const amount = Number(tx.amount) * (tx.type === 'WITHDRAWAL' ? -1 : 1)
       txByDate[dateStr] = (txByDate[dateStr] || 0) + amount
     })
@@ -176,7 +178,7 @@ export function GoalDetails({
       estimatedEndDate = addDays(today, daysToFinish)
       
       if (goal.target_date) {
-        const targetDate = new Date(goal.target_date)
+        const targetDate = lerData(goal.target_date)
         status = isAfter(targetDate, estimatedEndDate) ? 'positive' : 'negative'
       }
     }

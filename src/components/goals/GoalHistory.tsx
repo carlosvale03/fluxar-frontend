@@ -5,6 +5,7 @@ import { History, Loader2, ArrowDownCircle, ArrowUpCircle } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+import { lerData } from "@/lib/datas"
 
 import { 
   Dialog, 
@@ -97,7 +98,8 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
                           </p>
                         )}
                         <p className="text-[10px] font-medium text-muted-foreground">
-                          {format(new Date(transaction.datetime), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                          {/* CONTRATO-24: data sem hora, no dia gravado */}
+                          {format(lerData(transaction.datetime), "dd 'de' MMM, yyyy", { locale: ptBR })}
                         </p>
                       </div>
                     </div>

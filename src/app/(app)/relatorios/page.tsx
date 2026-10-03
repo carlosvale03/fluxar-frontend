@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { format, getDaysInMonth, parseISO, differenceInDays } from "date-fns"
+import { lerData } from "@/lib/datas"
 import { ptBR } from "date-fns/locale"
 import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary, getTagDistribution } from "@/services/reports"
 import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport, TagDistributionReport } from "@/types/reports"
@@ -413,7 +414,7 @@ export default function ReportsPage() {
                                     <div className="mt-4 pt-4 border-t border-border/10">
                                         <span className="text-[10px] font-bold text-muted-foreground">
                                             {advancedData?.next_big_expense 
-                                                ? `Previsão: ${format(new Date(advancedData.next_big_expense.date), 'dd/MM/yyyy')}`
+                                                ? `Previsão: ${format(lerData(advancedData.next_big_expense.date), 'dd/MM/yyyy')}`
                                                 : "Nenhuma previsão de alto valor"
                                             }
                                         </span>

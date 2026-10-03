@@ -44,6 +44,7 @@ import Link from "next/link"
 import { Goal } from "@/types/goals"
 import { goalsService } from "@/services/goals"
 import { cn, getAbsoluteUrl } from "@/lib/utils"
+import { lerData } from "@/lib/datas"
 import { GoalForm } from "@/components/goals/GoalForm"
 import { GoalDepositForm } from "@/components/goals/GoalDepositForm"
 import { GoalHistory } from "@/components/goals/GoalHistory"
@@ -496,7 +497,8 @@ export default function GoalsPage() {
                 </div>
 
                 {goal.target_date && goal.status !== 'COMPLETED' && (() => {
-                  const targetDate = new Date(goal.target_date)
+                  // CONTRATO-24: data sem hora no dia gravado, em qualquer fuso
+                  const targetDate = lerData(goal.target_date)
                   const now = new Date()
                   
                   // Calculate months remaining if not provided by backend
