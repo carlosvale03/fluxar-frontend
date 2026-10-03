@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Fragment } from "react"
+import { useEffect, useRef, useState, Fragment } from "react"
 import { useSearchParams } from "next/navigation"
 import { 
     Plus, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightCircle, ArrowRightLeft,
@@ -54,6 +54,7 @@ import { Account } from "@/types/accounts"
 import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
 import { lerData } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
 
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
 
@@ -145,6 +146,8 @@ export default function TransactionsPage() {
 
   // Filters state
   const [search, setSearch] = useState(searchParam || "")
+  // CONTRATO-08: o texto que vai para a API, 300 ms depois da última tecla
+  const [buscaComEspera, setBuscaComEspera] = useState(searchParam || "")
   // Initialize filters based on default Period (Month) or URL params
   const [filters, setFilters] = useState<FilterState>({
       startDate: startDateParam ? parseISO(startDateParam) : startOfMonth(initialDate),
@@ -181,7 +184,9 @@ export default function TransactionsPage() {
 
       if (newFilters.startDate?.getTime() !== filters.startDate?.getTime() || 
           newFilters.endDate?.getTime() !== filters.endDate?.getTime()) {
+          // CONTRATO-06: filtro novo volta para a página 1 na mesma renderização
           setFilters(newFilters)
+          setPage(1)
       }
   }, [viewMode, currentDate])
 
@@ -223,6 +228,7 @@ export default function TransactionsPage() {
               ...prev,
               categoryId: category
           }))
+          setPage(1)
           if (!searchVal) {
               setSearch("")
           }
@@ -250,6 +256,7 @@ export default function TransactionsPage() {
                   ...prev,
                   categoryId: String(categoryByName.id)
               }))
+              setPage(1)
               setSearch("")
           } else {
               setSearch(searchVal)
@@ -270,7 +277,13 @@ export default function TransactionsPage() {
       }
   }
 
+  // CONTRATO-07: cada busca cancela a anterior, e a resposta dela é descartada
+  const buscaAtual = useRef<AbortController | null>(null)
+
   const fetchTransactions = async () => {
+    buscaAtual.current?.abort()
+    const controlador = new AbortController()
+    buscaAtual.current = controlador
     try {
       setIsLoading(true)
       
@@ -323,24 +336,20 @@ export default function TransactionsPage() {
         })
       }
 
-      if (search) params.append('search', search)
+      if (buscaComEspera) params.append('search', buscaComEspera)
 
-      const response = await api.get(`/transactions/?${params.toString()}`)
-      
-      if (response.data.results) {
-        setData(response.data.results)
-        setTotal(response.data.count)
-        setTotalPages(response.data.total_pages)
-      } else if (Array.isArray(response.data)) {
-        setData(response.data)
-        setTotal(response.data.length)
-        setTotalPages(1)
-      }
-    } catch (error: any) {
-      console.error("Failed to fetch transactions", error)
-      toast.error("Erro ao carregar transações.")
+      const response = await api.get(`/transactions/?${params.toString()}`, { signal: controlador.signal })
+      if (controlador.signal.aborted) return
+
+      // CONTRATO-02: as transações vêm paginadas
+      setData(response.data.results)
+      setTotal(response.data.count)
+      setTotalPages(response.data.total_pages)
+    } catch (error) {
+      if (controlador.signal.aborted) return
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar transações.", tentarDeNovo: fetchTransactions })
     } finally {
-      setIsLoading(false)
+      if (buscaAtual.current === controlador) setIsLoading(false)
     }
   }
 
@@ -354,18 +363,26 @@ export default function TransactionsPage() {
   }
 
   useEffect(() => {
-    fetchTransactions()
     fetchAccounts()
   }, [])
 
+  // CONTRATO-06 e CONTRATO-08: a busca vai 300 ms depois da última tecla,
+  // já na página 1
+  useEffect(() => {
+    if (search === buscaComEspera) return
+    const espera = setTimeout(() => {
+      setBuscaComEspera(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(espera)
+  }, [search])
+
+  // CONTRATO-05 a CONTRATO-07: um efeito só busca as transações
   useEffect(() => {
     fetchTransactions()
-  }, [page, pageSize, filters, search])
+  }, [page, pageSize, filters, buscaComEspera])
 
-  // Reset page when filters change
-  useEffect(() => {
-    if (page !== 1) setPage(1)
-  }, [filters, search])
+  useEffect(() => () => buscaAtual.current?.abort(), [])
 
   // Helper to format currency
   const formatCurrency = (value: number) => {
@@ -472,14 +489,22 @@ export default function TransactionsPage() {
                 placeholder="Busca..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchTransactions()}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        setBuscaComEspera(search)
+                        setPage(1)
+                    }
+                }}
                 className="h-12 pl-11 rounded-2xl border-border/60 bg-card shadow-sm focus:ring-primary/20 transition-all font-bold text-xs"
             />
         </div>
         <div className="shrink-0">
              <TransactionFilters 
                 currentFilters={filters}
-                onApplyFilters={setFilters}
+                onApplyFilters={(novos) => {
+                    setFilters(novos)
+                    setPage(1)
+                }}
              />
         </div>
       </div>
@@ -986,7 +1011,10 @@ export default function TransactionsPage() {
             <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Exibir</span>
             <select 
                 value={pageSize} 
-                onChange={(e) => setPageSize(Number(e.target.value))}
+                onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setPage(1)
+                }}
                 className="bg-card border border-border/40 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
             >
                 <option value={10}>10</option>

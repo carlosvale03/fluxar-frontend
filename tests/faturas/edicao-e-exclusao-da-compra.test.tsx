@@ -58,7 +58,10 @@ function respostas(url: string) {
     "/categories/?type=EXPENSE": [{ id: "cat-1", name: "Eletrônicos", color: "#000", subcategories: [] }],
     "/credit-cards/": [{ id: "cartao-1", name: "Cartão Roxo" }],
   }
-  if (url.startsWith("/transactions/?")) return Promise.resolve({ data: [PARCELA] })
+  // CONTRATO-02: a lista de transações vem paginada
+  if (url.startsWith("/transactions/?")) {
+    return Promise.resolve({ data: { count: 1, total_pages: 1, current_page: 1, next: null, previous: null, results: [PARCELA], day_totals: {} } })
+  }
   return Promise.resolve({ data: dados[url] ?? [] })
 }
 
