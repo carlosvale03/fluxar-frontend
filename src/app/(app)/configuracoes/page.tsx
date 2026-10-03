@@ -15,6 +15,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useTheme } from "next-themes"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Settings, Lock, Globe, Bell } from "lucide-react"
+import { Switch } from "@/components/ui/switch"
+import { tratarErro } from "@/lib/erros"
 
 // --- Settings Form Schema ---
 const settingsSchema = z.object({
@@ -47,7 +49,7 @@ import { PasswordInput } from "@/components/ui/password-input"
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
-  const { setTheme, theme: currentTheme } = useTheme()
+  const { setTheme } = useTheme()
   const [activeTab, setActiveTab] = useState("general")
   const [isSettingsLoading, setIsSettingsLoading] = useState(false)
   const [isPasswordLoading, setIsPasswordLoading] = useState(false)
@@ -58,7 +60,9 @@ export default function SettingsPage() {
     reset: resetSettings, 
     watch, 
     setValue,
-    getValues
+    getValues,
+    setError: setSettingsError,
+    formState: { errors: settingsErrors },
   } = useForm<SettingsForm>({
     resolver: zodResolver(settingsSchema),
     defaultValues: { 
@@ -83,20 +87,17 @@ export default function SettingsPage() {
           notifications_email: user.preferences?.notifications?.email ?? true,
           notifications_push: user.preferences?.notifications?.push ?? false,
         })
-        
-        if (user.preferences?.theme && currentTheme !== user.preferences.theme) {
-             setTheme(user.preferences.theme)
-        }
+        // CONTRATO-27: o tema do usuário é aplicado no auth-context, ao carregar
         setLastSyncedUserJson(userJson)
     }
-  }, [user, lastSyncedUserJson, resetSettings, setTheme, currentTheme])
+  }, [user, lastSyncedUserJson, resetSettings])
 
   const onSettingsSubmit = async (data: SettingsForm) => {
      try {
          setIsSettingsLoading(true)
          
+         // CONTRATO-26: só o objeto preferences, sem espalhar o usuário
          const payload = {
-            ...user, // Preserve other user data
             preferences: {
                 currency: data.currency,
                 language: data.language,
@@ -108,12 +109,22 @@ export default function SettingsPage() {
             }
          }
 
-         await api.put("/users/me/", payload)
+         await api.patch("/users/me/", payload)
          await refreshUser()
          toast.success("Configurações atualizadas com sucesso!")
-     } catch (error: any) {
-         console.error("Settings update error:", error)
-         toast.error("Erro ao atualizar configurações.")
+     } catch (error) {
+         // CONTRATO-28 e CONTRATO-30: o erro de cada preferência vai para o campo
+         tratarErro(error, {
+             form: { setError: setSettingsError },
+             campos: {
+                 "preferences.currency": "currency",
+                 "preferences.language": "language",
+                 "preferences.theme": "theme",
+                 "preferences.notifications.email": "notifications_email",
+                 "preferences.notifications.push": "notifications_push",
+             },
+             mensagemPadrao: "Erro ao atualizar configurações.",
+         })
      } finally {
          setIsSettingsLoading(false)
      }
@@ -197,6 +208,7 @@ export default function SettingsPage() {
                                       <SelectItem value="EUR">Euro (EUR)</SelectItem>
                                   </SelectContent>
                               </Select>
+                              {settingsErrors.currency && <p className="text-[10px] font-bold text-destructive uppercase ml-1">{settingsErrors.currency.message}</p>}
                           </div>
                           
                           <div className="space-y-2 opacity-60">
@@ -208,6 +220,28 @@ export default function SettingsPage() {
                                   </SelectContent>
                               </Select>
                               <p className="text-[9px] font-bold text-muted-foreground uppercase ml-1">Multi-idioma disponível em breve</p>
+                          </div>
+
+                          <div className="space-y-3">
+                              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1 flex items-center gap-2">
+                                  <Bell className="h-3 w-3" /> Notificações
+                              </label>
+                              {([
+                                  ["notifications_email", "Notificações por e-mail"],
+                                  ["notifications_push", "Notificações no navegador"],
+                              ] as const).map(([campo, rotulo]) => (
+                                  <div key={campo} className="space-y-1">
+                                      <div className="flex items-center justify-between rounded-2xl border border-border/40 px-4 h-11">
+                                          <label htmlFor={campo} className="text-sm font-medium">{rotulo}</label>
+                                          <Switch
+                                              id={campo}
+                                              checked={!!watch(campo)}
+                                              onCheckedChange={(ligado) => setValue(campo, ligado, { shouldDirty: true })}
+                                          />
+                                      </div>
+                                      {settingsErrors[campo] && <p className="text-[10px] font-bold text-destructive uppercase ml-1">{settingsErrors[campo]?.message}</p>}
+                                  </div>
+                              ))}
                           </div>
                       </CardContent>
                       <CardFooter className="px-8 pb-8 pt-0">
@@ -261,6 +295,7 @@ export default function SettingsPage() {
                               </button>
                             ))}
                           </div>
+                          {settingsErrors.theme && <p className="text-[10px] font-bold text-destructive uppercase ml-1">{settingsErrors.theme.message}</p>}
                       </div>
                   </CardContent>
               </Card>
