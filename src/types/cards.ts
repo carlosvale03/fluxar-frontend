@@ -38,4 +38,14 @@ export interface Invoice {
     total_amount: number
     due_date: string
     closing_date: string
+    credit_card_id?: string
+    // FATURA-27: pagamento ativo da fatura paga
+    payment?: InvoicePayment | null
+}
+
+export interface InvoicePayment {
+    amount: number | string
+    account_id: string
+    account_name: string
+    date: string
 }

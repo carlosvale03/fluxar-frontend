@@ -25,6 +25,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
+import { nomeDoMes } from "@/lib/datas"
 
 interface Transaction {
   id: string
@@ -78,12 +79,6 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
     }).format(value)
   }
 
-  const getMonthName = (month: number) => {
-    const date = new Date()
-    date.setMonth(month - 1)
-    return format(date, "MMMM", { locale: ptBR })
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl rounded-[32px] p-0 overflow-hidden border-none shadow-2xl">
@@ -98,7 +93,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
                   Detalhes da Fatura
                 </DialogTitle>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest mt-1">
-                  {invoice ? `${getMonthName(invoice.month)} ${invoice.year}` : ""}
+                  {invoice ? `${nomeDoMes(invoice.month)} ${invoice.year}` : ""}
                 </p>
               </div>
             </div>
