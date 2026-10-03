@@ -62,7 +62,7 @@ export default function ImportExportPage() {
     startDate: startOfMonth(new Date()),
     endDate: endOfMonth(new Date()),
     type: "ALL",
-    categoryId: "ALL",
+    categoryIds: [],
     accountId: "ALL",
     tagIds: []
   })

@@ -55,6 +55,7 @@ import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
 import { lerData } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
 
@@ -65,6 +66,8 @@ export default function TransactionsPage() {
   const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  // CONTRATO-09: total de cada dia, sobre o filtro inteiro, calculado pela API
+  const [totaisDoDia, setTotaisDoDia] = useState<Record<string, string>>({})
   const [accounts, setAccounts] = useState<Account[]>([])
   const [categories, setCategories] = useState<Category[]>([])
 
@@ -153,7 +156,7 @@ export default function TransactionsPage() {
       startDate: startDateParam ? parseISO(startDateParam) : startOfMonth(initialDate),
       endDate: endDateParam ? parseISO(endDateParam) : endOfMonth(initialDate),
       type: "ALL",
-      categoryId: categoryParam || "ALL",
+      categoryIds: categoryParam ? [categoryParam] : [],
       accountId: "ALL"
   })
 
@@ -226,7 +229,7 @@ export default function TransactionsPage() {
       if (category && categories.length > 0) {
           setFilters(prev => ({
               ...prev,
-              categoryId: category
+              categoryIds: [category]
           }))
           setPage(1)
           if (!searchVal) {
@@ -254,7 +257,7 @@ export default function TransactionsPage() {
           if (categoryByName) {
               setFilters(prev => ({
                   ...prev,
-                  categoryId: String(categoryByName.id)
+                  categoryIds: [String(categoryByName.id)]
               }))
               setPage(1)
               setSearch("")
@@ -294,40 +297,9 @@ export default function TransactionsPage() {
       if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
       if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
       if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
-      if (filters.categoryId && filters.categoryId !== 'ALL') {
-          const allIds: string[] = [filters.categoryId]
-          
-          // Função recursiva para encontrar todos os descendentes
-          const collectIds = (parentId: string) => {
-              // Procura a categoria pai na árvore
-              const findInTree = (cats: Category[]): Category | undefined => {
-                  for (const c of cats) {
-                      if (String(c.id) === String(parentId)) return c
-                      if (c.subcategories) {
-                          const found = findInTree(c.subcategories)
-                          if (found) return found
-                      }
-                  }
-                  return undefined
-              }
-
-              const parent = findInTree(categories)
-              if (parent && parent.subcategories) {
-                  parent.subcategories.forEach(sub => {
-                      allIds.push(String(sub.id))
-                      collectIds(sub.id) // Chamada recursiva para níveis mais profundos
-                  })
-              }
-          }
-          
-          collectIds(filters.categoryId)
-          
-          // Remove duplicatas por segurança
-          const uniqueIds = Array.from(new Set(allIds))
-          
-          // Adicionar cada ID individualmente (padrão DRF para filtros múltiplos)
-          uniqueIds.forEach(id => params.append('categoryId', id))
-      }
+      // CONTRATO-10 a CONTRATO-12: as categorias escolhidas vão repetidas
+      // (categoryId=a&categoryId=b); o backend inclui as subcategorias
+      filters.categoryIds.forEach(id => params.append('categoryId', id))
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
       
       if (filters.tagIds && filters.tagIds.length > 0) {
@@ -345,6 +317,7 @@ export default function TransactionsPage() {
       setData(response.data.results)
       setTotal(response.data.count)
       setTotalPages(response.data.total_pages)
+      setTotaisDoDia(response.data.day_totals ?? {})
     } catch (error) {
       if (controlador.signal.aborted) return
       tratarErro(error, { mensagemPadrao: "Erro ao carregar transações.", tentarDeNovo: fetchTransactions })
@@ -574,14 +547,11 @@ export default function TransactionsPage() {
         ) : (() => {
             const grouped = data.reduce((groups, transaction) => {
                 const date = transaction.date
-                if (!groups[date]) groups[date] = { transactions: [], total: 0 }
-                groups[date].transactions.push(transaction)
-                const amount = Number(transaction.amount)
-                if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
-                    groups[date].total += amount
-                } else {
-                    groups[date].total -= amount
+                if (!groups[date]) {
+                    // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
+                    groups[date] = { transactions: [], total: paraCentavos(totaisDoDia[date]) / 100 }
                 }
+                groups[date].transactions.push(transaction)
                 return groups
             }, {} as Record<string, { transactions: Transaction[], total: number }>)
 
@@ -605,7 +575,7 @@ export default function TransactionsPage() {
                             "text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full",
                             grouped[date].total >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
                         )}>
-                            {formatCurrency(grouped[date].total)}
+                            {formatarMoeda(grouped[date].total)}
                         </div>
                     </div>
 
@@ -762,17 +732,10 @@ export default function TransactionsPage() {
                         const grouped = data.reduce((groups, transaction) => {
                             const date = transaction.date
                             if (!groups[date]) {
-                                groups[date] = { transactions: [], total: 0 }
+                                // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
+                                groups[date] = { transactions: [], total: paraCentavos(totaisDoDia[date]) / 100 }
                             }
                             groups[date].transactions.push(transaction)
-                            
-                            // Calculate daily total
-                            const amount = Number(transaction.amount)
-                            if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
-                                groups[date].total += amount
-                            } else {
-                                groups[date].total -= amount
-                            }
                             return groups
                         }, {} as Record<string, { transactions: Transaction[], total: number }>)
 
@@ -810,7 +773,7 @@ export default function TransactionsPage() {
                                                     ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
                                                     : "bg-red-500/10 text-red-600 border border-red-500/20"
                                             )}>
-                                                {grouped[date].total >= 0 ? "Saldo do Dia: +" : "Saldo do Dia: "} {formatCurrency(grouped[date].total)}
+                                                {grouped[date].total >= 0 ? "Saldo do Dia: +" : "Saldo do Dia: "} {formatarMoeda(grouped[date].total)}
                                             </div>
                                         </div>
                                     </TableCell>
