@@ -36,6 +36,7 @@ import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
+import { hojeNaApi } from "@/lib/datas"
 
 // CONTRATO-16: o saldo da meta chega como texto; a comparação é em centavos
 const withdrawSchema = (maxAmount: string) => z.object({
@@ -112,7 +113,8 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
       await goalsService.withdraw(goal.id, {
         amount: values.amount,
         account_to: values.account_to,
-        datetime: new Date().toISOString(),
+        // CONTRATO-25: a data do resgate vai sem hora, no calendário do usuário
+        date: hojeNaApi(),
       })
 
       toast.success("Resgate realizado com sucesso!")

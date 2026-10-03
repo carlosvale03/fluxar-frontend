@@ -114,8 +114,9 @@ describe("Tempo máximo das requisições (CONTRATO-34)", () => {
     await importExportService.importOFX(arquivo, "conta-1")
     await importExportService.preflightSpreadsheet(arquivo, mapa, "INCOME_EXPENSE")
     await importExportService.importSpreadsheet(arquivo, "conta-1", mapa)
-    await importExportService.exportTransactionsPDF({})
-    await importExportService.exportTransactionsXLS({})
+    const filtros = { startDate: undefined, endDate: undefined, type: "ALL", categoryIds: [], accountId: "ALL" }
+    await importExportService.exportTransactionsPDF(filtros)
+    await importExportService.exportTransactionsXLS(filtros)
 
     const tempos = [...post.mock.calls, ...get.mock.calls].map((chamada) => (chamada.at(-1) as { timeout?: number }).timeout)
     expect(tempos).toEqual([120_000, 120_000, 120_000, 120_000, 120_000])

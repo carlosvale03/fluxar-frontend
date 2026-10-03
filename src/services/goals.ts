@@ -1,4 +1,5 @@
 import { api } from "./apiClient";
+import { paraApi } from "@/lib/datas";
 import { CreateGoalData, Goal, GoalDepositData, GoalTransaction } from "@/types/goals";
 
 export const goalsService = {
@@ -20,7 +21,8 @@ export const goalsService = {
         if (key === 'image' && value instanceof File) {
           formData.append(key, value);
         } else if (value instanceof Date) {
-          formData.append(key, value.toISOString().split('T')[0]);
+          // CONTRATO-25: data sem hora pelos componentes locais, não em UTC
+          formData.append(key, paraApi(value));
         } else {
           formData.append(key, value.toString());
         }
@@ -40,7 +42,8 @@ export const goalsService = {
         if (key === 'image' && value instanceof File) {
           formData.append(key, value);
         } else if (value instanceof Date) {
-          formData.append(key, value.toISOString().split('T')[0]);
+          // CONTRATO-25: data sem hora pelos componentes locais, não em UTC
+          formData.append(key, paraApi(value));
         } else {
           formData.append(key, value.toString());
         }

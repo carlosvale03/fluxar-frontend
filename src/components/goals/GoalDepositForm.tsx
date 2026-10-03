@@ -39,6 +39,7 @@ import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { maiorQueZero } from "@/lib/dinheiro"
+import { hojeNaApi } from "@/lib/datas"
 
 const depositSchema = z.object({
   // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e entrega
@@ -94,7 +95,8 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
       await goalsService.deposit(goal.id, {
         amount: values.amount,
         account_from: values.account_from,
-        datetime: new Date().toISOString(),
+        // CONTRATO-25: a data do aporte vai sem hora, no calendário do usuário
+        date: hojeNaApi(),
       })
 
       toast.success("Aporte realizado com sucesso!")

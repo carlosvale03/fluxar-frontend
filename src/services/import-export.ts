@@ -1,4 +1,6 @@
 import { api } from "./apiClient";
+import { paraApi } from "@/lib/datas";
+import type { FilterState } from "@/components/transactions/transaction-filters";
 
 // CONTRATO-34: importação e exportação podem levar até 120 segundos; as
 // demais requisições ficam com os 30 segundos do apiClient
@@ -23,6 +25,21 @@ export interface SpreadsheetMapping {
   account_column?: string;
   source_account_column?: string;
   dest_account_column?: string;
+}
+
+// CONTRATO-12 e CONTRATO-25: os filtros da exportação no formato da API.
+// Vários valores repetem o parâmetro (categoryId=a&categoryId=b, sem o
+// tagIds[] do axios), "ALL" não vai, e as datas vão como AAAA-MM-DD (o axios
+// mandava o Date por toISOString, em UTC).
+export function paramsDaExportacao(filtros: FilterState): URLSearchParams {
+  const params = new URLSearchParams();
+  if (filtros.startDate) params.append("startDate", paraApi(filtros.startDate));
+  if (filtros.endDate) params.append("endDate", paraApi(filtros.endDate));
+  if (filtros.type && filtros.type !== "ALL") params.append("type", filtros.type);
+  filtros.categoryIds.filter((id) => id !== "ALL").forEach((id) => params.append("categoryId", id));
+  if (filtros.accountId && filtros.accountId !== "ALL") params.append("accountId", filtros.accountId);
+  (filtros.tagIds ?? []).forEach((id) => params.append("tagIds", id));
+  return params;
 }
 
 export const importExportService = {
@@ -97,9 +114,9 @@ export const importExportService = {
   /**
    * Exporta transações para PDF
    */
-  exportTransactionsPDF: async (filters: any): Promise<Blob> => {
+  exportTransactionsPDF: async (filters: FilterState): Promise<Blob> => {
     const response = await api.get("/export/transactions/pdf/", {
-      params: filters,
+      params: paramsDaExportacao(filters),
       responseType: "blob",
       timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });
@@ -109,9 +126,9 @@ export const importExportService = {
   /**
    * Exporta transações para XLS
    */
-  exportTransactionsXLS: async (filters: any): Promise<Blob> => {
+  exportTransactionsXLS: async (filters: FilterState): Promise<Blob> => {
     const response = await api.get("/export/transactions/xls/", {
-      params: filters,
+      params: paramsDaExportacao(filters),
       responseType: "blob",
       timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
     });

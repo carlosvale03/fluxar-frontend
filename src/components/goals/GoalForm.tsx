@@ -42,6 +42,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 import { formatarMoeda, maiorQueZero } from "@/lib/dinheiro"
+import { lerData, paraApi } from "@/lib/datas"
 import { MoneyInput } from "@/components/ui/money-input"
 import { Goal } from "@/types/goals"
 import { Account, AccountType } from "@/types/accounts"
@@ -130,7 +131,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
         name: initialData.name,
         description: initialData.description || "",
         target_amount: initialData.target_amount,
-        target_date: initialData.target_date ? new Date(initialData.target_date) : null,
+        // CONTRATO-24: a data-alvo não tem hora; lida no dia gravado
+        target_date: initialData.target_date ? lerData(initialData.target_date) : null,
         image: initialData.image || null,
         account: initialData.account || null,
       })
@@ -181,7 +183,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       const data: any = {
         ...values,
         target_amount: values.target_amount,
-        target_date: values.target_date ? format(values.target_date, "yyyy-MM-dd") : undefined,
+        // CONTRATO-25: enviada como AAAA-MM-DD, sem hora
+        target_date: values.target_date ? paraApi(values.target_date) : undefined,
       }
 
       // Se for cofrinho existente, limpa os campos de novo cofrinho

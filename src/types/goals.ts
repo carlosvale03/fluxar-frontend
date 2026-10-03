@@ -44,6 +44,7 @@ export interface CreateGoalData {
 export interface GoalDepositData {
   account_from: string;
   amount: string;
-  datetime?: string;
+  // CONTRATO-25: AAAA-MM-DD; sem ela, a API usa hoje
+  date?: string;
   description?: string;
 }
