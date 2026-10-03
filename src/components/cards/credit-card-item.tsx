@@ -27,7 +27,8 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
   // Calculate generic usage (mock if invoice data is missing)
   const limit = Number(card.limit) || 0
   const currentTotal = Number(card.current_invoice_total) || 0
-  const available = card.available_limit !== undefined ? Number(card.available_limit) : (limit - currentTotal)
+  // FATURA-42: o limite disponível vem só do backend
+  const available = Number(card.available_limit)
   
   // O limite utilizado é a diferença entre o limite total e o disponível
   const usedAmount = limit - available

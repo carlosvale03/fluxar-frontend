@@ -53,6 +53,7 @@ import { Transaction, TransactionType, TransactionStatus } from "@/types/transac
 import { Account } from "@/types/accounts"
 import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
+import { lerData } from "@/lib/datas"
 
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
 
@@ -650,6 +651,13 @@ export default function TransactionsPage() {
                                                 )
                                             })()}
 
+                                            {/* FATURA-16: a linha fica no vencimento; a data da compra aparece aqui */}
+                                            {transaction.type === 'CREDIT_CARD' && transaction.purchase_date && (
+                                                <span className="text-[10px] font-bold text-muted-foreground/60">
+                                                    Compra em {format(lerData(transaction.purchase_date), "dd/MM")}
+                                                </span>
+                                            )}
+
                                             {/* Tags */}
                                             {transaction.tags_detail && transaction.tags_detail.length > 0 && (
                                                 <div className="flex gap-1">
@@ -848,6 +856,12 @@ export default function TransactionsPage() {
                                                                 <Repeat className="h-3 w-3 text-primary/40 animate-pulse" />
                                                             )}
                                                         </div>
+                                                        {/* FATURA-16: a linha fica no vencimento; a data da compra aparece aqui */}
+                                                        {transaction.type === 'CREDIT_CARD' && transaction.purchase_date && (
+                                                            <span className="text-[10px] font-bold text-muted-foreground/60">
+                                                                Compra em {format(lerData(transaction.purchase_date), "dd/MM")}
+                                                            </span>
+                                                        )}
                                                         {transaction.tags_detail && transaction.tags_detail.length > 0 && (
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {transaction.tags_detail.map(tag => (

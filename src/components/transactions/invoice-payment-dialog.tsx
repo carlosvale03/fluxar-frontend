@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -42,6 +42,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { lerData } from "@/lib/datas"
 
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
@@ -77,6 +78,13 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
   const [selectedInvoiceObject, setSelectedInvoiceObject] = useState<Invoice | null>(null)
   
   const [isLoading, setIsLoading] = useState(false)
+
+  // FATURA-29: um identificador por abertura do diálogo, reenviado em toda
+  // nova tentativa até o sucesso; fechar e abrir de novo gera outro
+  const chaveDaTentativa = useRef("")
+  useEffect(() => {
+    if (open) chaveDaTentativa.current = crypto.randomUUID()
+  }, [open])
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -191,6 +199,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
           amount: data.amount,
           account_id: data.account_id,
           date: format(data.date, "yyyy-MM-dd"),
+          idempotency_key: chaveDaTentativa.current,
       }
 
       await api.post(`/invoices/${targetInvoiceId}/pay/`, payload)
@@ -413,7 +422,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                 <div>
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Fatura de Referência</p>
                                                     <p className="text-xs font-black tracking-tight">
-                                                        {format(new Date(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
+                                                        {format(lerData(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
                                                     </p>
                                                 </div>
                                             </div>
@@ -432,7 +441,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                     <div className="grid grid-cols-2 gap-4 pt-2 border-t border-purple-500/5">
                                         <div>
                                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Vencimento</p>
-                                            <p className="text-xs font-black tracking-tight">{format(new Date(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</p>
+                                            <p className="text-xs font-black tracking-tight">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Total Previsto</p>
@@ -482,8 +491,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                         if (inv) {
                                                             setSelectedInvoiceObject(inv)
                                                             form.setValue('amount', Number(inv.total_amount))
-                                                            const monthName = format(new Date(inv.due_date), "MMMM", { locale: ptBR })
-                                                            const formattedDate = monthName.charAt(0).toUpperCase() + monthName.slice(1) + format(new Date(inv.due_date), "/yyyy")
+                                                            const monthName = format(lerData(inv.due_date), "MMMM", { locale: ptBR })
+                                                            const formattedDate = monthName.charAt(0).toUpperCase() + monthName.slice(1) + format(lerData(inv.due_date), "/yyyy")
                                                             form.setValue('description', `Fatura ${formattedDate}`)
                                                         }
                                                     }} value={selectedInvoiceId}>
@@ -495,7 +504,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                 <SelectItem value="none" disabled className="text-xs opacity-50 italic">Nenhuma fatura disponível</SelectItem>
                                                             ) : (
                                                                 invoices.map((inv) => {
-                                                                    const date = new Date(inv.due_date)
+                                                                    const date = lerData(inv.due_date)
                                                                     const month = format(date, "MMMM", { locale: ptBR })
                                                                     const capitalizedMonth = month.charAt(0).toUpperCase() + month.slice(1)
                                                                     const year = format(date, "yyyy")
@@ -535,7 +544,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                             <Receipt className="h-4 w-4" />
                                                         </div>
                                                         <p className="text-sm font-black tracking-tight">
-                                                            {format(new Date(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
+                                                            {format(lerData(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -554,7 +563,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             <div className="flex items-center justify-between">
                                                 <div className="space-y-0.5">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Vencimento</p>
-                                                    <span className="text-xs font-black tracking-tight">{format(new Date(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</span>
+                                                    <span className="text-xs font-black tracking-tight">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</span>
                                                 </div>
                                                 <div className="text-right">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Total Devido</p>

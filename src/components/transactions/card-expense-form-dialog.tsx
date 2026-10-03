@@ -41,7 +41,8 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
+import { lerData } from "@/lib/datas"
 import { Category } from "@/types/categories"
 import { CreditCard as CreditCardType } from "@/types/cards"
 
@@ -99,11 +100,11 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
         
         if (initialData) {
             // Edit Mode
-            const [year, month, day] = initialData.date.split('-').map(Number);
             form.reset({
                 description: initialData.description,
                 amount: Number(initialData.amount),
-                date: new Date(year, month - 1, day),
+                // FATURA-16: a data da compra; compras antigas só têm a data gravada
+                date: lerData(initialData.purchase_date || initialData.date),
                 category_id: (typeof initialData.category === 'object' ? (initialData.category as any).id : initialData.category) || initialData.category_detail?.id || "",
                 card_id: (typeof initialData.credit_card === 'object' ? (initialData.credit_card as any).id : initialData.credit_card) || initialData.credit_card_detail?.id || "",
                 installments: initialData.installment_total || 1,
@@ -184,6 +185,8 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           if (isEditingInstallment) {
               (finalPayload as any).update_scope = data.update_scope
           }
+          // FATURA-17: na edição, a data da compra muda só por purchase_date
+          Object.assign(finalPayload, { purchase_date: payload.date })
 
           await api.put(`/transactions/${initialData.id}/`, finalPayload)
           toast.success("Despesa atualizada com sucesso!")
@@ -204,7 +207,8 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           console.error("Server Response Status:", error.response.status)
           console.error("Server Response Data:", error.response.data)
       }
-      toast.error("Erro ao salvar despesa. Verifique os dados.")
+      // FATURA-19: a recusa da compra em fatura paga vem no detail
+      toast.error(mensagemDeErro(error, "Erro ao salvar despesa. Verifique os dados."))
     } finally {
       setIsLoading(false)
     }

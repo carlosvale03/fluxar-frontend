@@ -1,8 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { format, parseISO } from "date-fns"
-import { ptBR } from "date-fns/locale"
+import { format } from "date-fns"
 import { FileText, CheckCircle2, AlertCircle, Clock } from "lucide-react"
 import { toast } from "sonner"
 
@@ -23,6 +22,7 @@ import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
 import { InvoiceDetailsDialog } from "./invoice-details-dialog"
 import { cn } from "@/lib/utils"
+import { lerData, nomeDoMes } from "@/lib/datas"
 
 interface InvoiceListProps {
   cardId: string
@@ -96,12 +96,6 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
       }
     }
 
-  const getMonthName = (month: number) => {
-      const date = new Date()
-      date.setMonth(month - 1)
-      return format(date, "MMMM", { locale: ptBR })
-  }
-
   return (
     <Card className="border border-border/60 bg-card shadow-xl shadow-black/5 rounded-[32px] overflow-hidden">
       <CardHeader className="bg-muted/30 pb-4 border-b border-border/40">
@@ -153,7 +147,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                             <TableCell className="pl-8">
                                 <div className="flex flex-col">
                                     <span className="capitalize font-black text-sm text-foreground">
-                                        {getMonthName(invoice.month)}
+                                        {nomeDoMes(invoice.month)}
                                     </span>
                                     <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">{invoice.year}</span>
                                 </div>
@@ -161,7 +155,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                             <TableCell className="text-sm font-medium text-muted-foreground">
                                 <div className="flex items-center gap-2">
                                     <Clock className="h-3 w-3 opacity-50" />
-                                    {format(parseISO(invoice.due_date), "dd/MM/yyyy")}
+                                    {format(lerData(invoice.due_date), "dd/MM/yyyy")}
                                 </div>
                             </TableCell>
                             <TableCell>
@@ -172,6 +166,12 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                             </TableCell>
                             <TableCell className="text-right font-black tabular-nums text-base">
                                 {formatCurrency(Number(invoice.total_amount))}
+                                {/* FATURA-27: valor, conta e data do pagamento */}
+                                {invoice.status === 'PAID' && invoice.payment && (
+                                    <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
+                                        Pago {formatCurrency(Number(invoice.payment.amount))} em {format(lerData(invoice.payment.date), "dd/MM/yyyy")} · {invoice.payment.account_name}
+                                    </p>
+                                )}
                             </TableCell>
                             <TableCell className="text-right pr-8">
                                 {isPayable && (
