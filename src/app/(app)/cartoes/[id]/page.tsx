@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation"
 import { ArrowLeft, CreditCard as CardIcon, Calendar, FileText, Edit, Wallet } from "lucide-react"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
+import { format } from "date-fns"
+import { lerData } from "@/lib/datas"
 
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -129,7 +131,8 @@ export default function CardDetailsPage() {
   }
 
   const limit = Number(card.limit) || 0
-  const available = card.available_limit !== undefined ? Number(card.available_limit) : (limit - Number(card.current_invoice_total || 0))
+  // FATURA-42: o limite disponível vem só do backend
+  const available = Number(card.available_limit)
   const usedAmount = limit - available
   const usagePercentage = limit > 0 ? Math.min((usedAmount / limit) * 100, 100) : 0
   const progressColor = getProgressColor(usagePercentage)
@@ -256,9 +259,12 @@ export default function CardDetailsPage() {
                       <div className="space-y-1">
                           <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Valor Parcial</p>
                           <div className="text-4xl font-black tracking-tighter">{formatCurrency(card.current_invoice_total || 0)}</div>
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1 mt-2">
-                              <Calendar className="h-3 w-3" /> Vence em {card.due_day}/{new Date().getMonth() + 1}
-                          </p>
+                          {/* FATURA-06: o próximo vencimento calculado pelo backend */}
+                          {card.next_due_date && (
+                              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1 mt-2">
+                                  <Calendar className="h-3 w-3" /> Vence em {format(lerData(card.next_due_date), "dd/MM")}
+                              </p>
+                          )}
                       </div>
 
                       <div className="flex-1 w-full max-w-md space-y-4">

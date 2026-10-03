@@ -186,7 +186,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               (finalPayload as any).update_scope = data.update_scope
           }
           // FATURA-17: na edição, a data da compra muda só por purchase_date
-          (finalPayload as any).purchase_date = payload.date
+          Object.assign(finalPayload, { purchase_date: payload.date })
 
           await api.put(`/transactions/${initialData.id}/`, finalPayload)
           toast.success("Despesa atualizada com sucesso!")

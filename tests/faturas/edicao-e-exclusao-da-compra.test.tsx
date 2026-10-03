@@ -62,7 +62,7 @@ function respostas(url: string) {
   return Promise.resolve({ data: dados[url] ?? [] })
 }
 
-function abrirEdicao(compra: Partial<typeof PARCELA> & { purchase_date: string | null }) {
+function abrirEdicao(compra: { purchase_date: string | null }) {
   render(
     <CardExpenseFormDialog
       open
