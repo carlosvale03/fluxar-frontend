@@ -201,7 +201,8 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
      if (open && watchDescription && watchDescription.length === 1 && recentTransactions.length === 0) {
          const fetchSuggestions = async () => {
              try {
-                 const res = await api.get(`/transactions/?limit=50&type=${type}`)
+                 // CONTRATO-03 e CONTRATO-14: o tamanho da página é page_size (limit é recusado)
+                 const res = await api.get("/transactions/", { params: { page_size: 50, type } })
                  const records = res.data.results
                  setRecentTransactions(records)
              } catch (error) {
