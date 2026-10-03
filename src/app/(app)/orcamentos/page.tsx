@@ -41,7 +41,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Badge } from "@/components/ui/badge"
 
 export default function BudgetsPage() {
@@ -60,7 +61,6 @@ export default function BudgetsPage() {
   const [activeCardId, setActiveCardId] = useState<string | null>(null)
 
 
-  const { toast } = useToast()
 
   const fetchBudgets = async () => {
     setIsLoading(true)
@@ -69,10 +69,7 @@ export default function BudgetsPage() {
       setBudgets(data)
     } catch (error) {
       console.error(error)
-      toast({
-        title: "Erro ao carregar orçamentos",
-        variant: "destructive",
-      })
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar orçamentos", tentarDeNovo: fetchBudgets })
     } finally {
       setIsLoading(false)
     }
@@ -106,18 +103,11 @@ export default function BudgetsPage() {
 
     try {
       await deleteBudget(deletingBudget.id)
-      toast({
-        title: "Sucesso",
-        description: "Orçamento excluído com sucesso.",
-      })
+      toast.success("Orçamento excluído com sucesso.")
       fetchBudgets()
     } catch (error) {
        console.error(error)
-       toast({
-        title: "Erro",
-        description: "Não foi possível excluir o orçamento.",
-        variant: "destructive",
-       })
+       tratarErro(error, { mensagemPadrao: "Não foi possível excluir o orçamento." })
     } finally {
       setDeletingBudget(null)
     }

@@ -7,7 +7,8 @@ import { FinancialCalendar } from "@/components/calendar/FinancialCalendar"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, Info } from "lucide-react"
 import { MonthPicker } from "@/components/ui/month-picker"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function CalendarPage() {
@@ -16,7 +17,6 @@ export default function CalendarPage() {
     const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear())
     const [report, setReport] = useState<CalendarReport | null>(null)
     const [isLoading, setIsLoading] = useState(true)
-    const { toast } = useToast()
 
     const fetchCalendar = async () => {
         setIsLoading(true)
@@ -25,10 +25,7 @@ export default function CalendarPage() {
             setReport(data)
         } catch (error) {
             console.error("Failed to fetch calendar report", error)
-            toast({
-                title: "Erro ao carregar calendário",
-                variant: "destructive"
-            })
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar calendário", tentarDeNovo: fetchCalendar })
         } finally {
             setIsLoading(false)
         }

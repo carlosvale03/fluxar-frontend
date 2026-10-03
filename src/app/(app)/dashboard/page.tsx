@@ -7,7 +7,8 @@ import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
 import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { BudgetSummary } from "@/components/dashboard/BudgetSummary"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
 import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
@@ -119,7 +120,6 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true)
     const [isCustomizerOpen, setIsCustomizerOpen] = useState(false)
     const [layoutConfig, setLayoutConfig] = useState<DashboardModuleConfig[]>([])
-    const { toast } = useToast()
 
     // Transaction Dialog States
     const [isFormOpen, setIsFormOpen] = useState(false)
@@ -165,10 +165,9 @@ export default function DashboardPage() {
             setTagCharts(tagDistributionData)
         } catch (error) {
             console.error("Failed to fetch dashboard data", error)
-            toast({
-                title: "Erro ao carregar dashboard",
-                description: "Não foi possível sincronizar seus dados financeiros agora.",
-                variant: "destructive"
+            tratarErro(error, {
+                mensagemPadrao: "Não foi possível sincronizar seus dados financeiros agora.",
+                tentarDeNovo: fetchData,
             })
         } finally {
             setIsLoading(false)
@@ -178,8 +177,7 @@ export default function DashboardPage() {
     const handleLayoutChange = (newConfig: DashboardModuleConfig[]) => {
         setLayoutConfig(newConfig)
         localStorage.setItem("dashboard_layout_config", JSON.stringify(newConfig))
-        toast({
-            title: "Layout atualizado",
+        toast.success("Layout atualizado", {
             description: "Suas preferências foram salvas localmente."
         })
     }

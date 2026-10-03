@@ -26,7 +26,8 @@ import {
 } from "@/components/ui/select"
 import { Category, CategoryInput } from "@/types/categories"
 import { createCategory, updateCategory } from "@/services/categories"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { IconPicker } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
 
@@ -68,7 +69,6 @@ interface CategoryFormProps {
 
 export function CategoryForm({ category, parentCategory, currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -101,18 +101,15 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
 
       if (category) {
         await updateCategory(category.id, payload)
-        toast({ title: "Categoria atualizada com sucesso!" })
+        toast.success("Categoria atualizada com sucesso!")
       } else {
         await createCategory(payload)
-        toast({ title: "Categoria criada com sucesso!" })
+        toast.success("Categoria criada com sucesso!")
       }
       onSuccess()
     } catch (error: any) {
       console.error("Erro ao salvar categoria:", error)
-      toast({ 
-        title: "Erro ao salvar categoria", 
-        variant: "destructive" 
-      })
+      tratarErro(error, { mensagemPadrao: "Erro ao salvar categoria" })
     } finally {
       setIsLoading(false)
     }

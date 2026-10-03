@@ -12,7 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Budget } from "@/types/budgets"
 import { getBudgets, bulkImportBudgets } from "@/services/budgets"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Loader2, Calendar, Search, Filter, CheckCircle2, ChevronRight, Copy } from "lucide-react"
 import { MonthRangePicker } from "@/components/ui/month-range-picker"
 import { Input } from "@/components/ui/input"
@@ -52,7 +53,6 @@ export function ImportBudgetsDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const { toast } = useToast()
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -74,10 +74,9 @@ export function ImportBudgetsDialog({
       setSelectedIds([]) 
     } catch (error) {
       console.error(error)
-      toast({
-        title: "Erro ao buscar orçamentos",
-        description: "Não foi possível carregar os orçamentos do período selecionado.",
-        variant: "destructive"
+      tratarErro(error, {
+        mensagemPadrao: "Não foi possível carregar os orçamentos do período selecionado.",
+        tentarDeNovo: fetchSourceBudgets,
       })
     } finally {
       setIsLoading(false)
@@ -111,19 +110,12 @@ export function ImportBudgetsDialog({
     setIsImporting(true)
     try {
       const response = await bulkImportBudgets(selectedIds, targetMonth, targetYear)
-      toast({
-        title: "Importação concluída",
-        description: response.message,
-      })
+      toast.success("Importação concluída", { description: response.message })
       onSuccess()
       onClose()
     } catch (error: any) {
       console.error(error)
-      toast({
-        title: "Erro na importação",
-        description: error.response?.data?.error || "Ocorreu um erro inesperado.",
-        variant: "destructive"
-      })
+      tratarErro(error, { mensagemPadrao: "Erro na importação. Ocorreu um erro inesperado." })
     } finally {
       setIsImporting(false)
     }

@@ -27,7 +27,8 @@ import { Budget } from "@/types/budgets"
 import { Category } from "@/types/categories"
 import { getCategories } from "@/services/categories"
 import { createBudget, updateBudget } from "@/services/budgets"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
@@ -52,7 +53,6 @@ type FormValues = z.infer<typeof formSchema>
 export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultYear }: BudgetFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
-  const { toast } = useToast()
 
   const currentYear = new Date().getFullYear()
   const currentMonth = new Date().getMonth() + 1
@@ -89,32 +89,26 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
         setCategories(organized)
       } catch (error) {
         console.error("Failed to fetch categories", error)
-        toast({
-            title: "Erro ao carregar categorias",
-            variant: "destructive"
-        })
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias" })
       }
     }
     fetchCategories()
-  }, [toast])
+  }, [])
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
       if (budget) {
         await updateBudget(budget.id, values)
-        toast({ title: "Orçamento atualizado!" })
+        toast.success("Orçamento atualizado!")
       } else {
         await createBudget(values)
-        toast({ title: "Orçamento definido!" })
+        toast.success("Orçamento definido!")
       }
       onSuccess()
     } catch (error) {
       console.error(error)
-      toast({ 
-        title: "Erro ao salvar orçamento", 
-        variant: "destructive" 
-      })
+      tratarErro(error, { mensagemPadrao: "Erro ao salvar orçamento" })
     } finally {
       setIsLoading(false)
     }

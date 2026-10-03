@@ -38,7 +38,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
 
 // Componente de Texto Expansível para os exemplos de Tags (Regra #4)
@@ -71,7 +72,6 @@ export default function TagsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagType | undefined>(undefined)
   const [deletingTag, setDeletingTag] = useState<TagType | null>(null)
-  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   
@@ -107,16 +107,13 @@ export default function TagsPage() {
         setTags(data)
       } catch (error) {
         console.error(error)
-        toast({
-          title: "Erro ao carregar tags",
-          variant: "destructive",
-        })
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar tags" })
       } finally {
         setIsLoading(false)
       }
     }
     fetchTags()
-  }, [toast])
+  }, [])
 
   const refreshTags = async () => {
       try {
@@ -132,15 +129,11 @@ export default function TagsPage() {
 
     try {
       await deleteTag(deletingTag.id)
-      toast({ title: "Tag excluída com sucesso" })
+      toast.success("Tag excluída com sucesso")
       refreshTags()
     } catch (error) {
        console.error(error)
-       toast({
-        title: "Erro ao excluir tag",
-        description: "Tente novamente.",
-        variant: "destructive",
-       })
+       tratarErro(error, { mensagemPadrao: "Erro ao excluir tag. Tente novamente." })
     } finally {
       setDeletingTag(null)
     }
@@ -157,11 +150,7 @@ export default function TagsPage() {
       setInsightsData(data)
     } catch (error) {
       console.error(error)
-      toast({
-        title: "Erro ao carregar insights",
-        description: "Não foi possível obter os dados da tag no momento.",
-        variant: "destructive",
-      })
+      tratarErro(error, { mensagemPadrao: "Não foi possível obter os dados da tag no momento." })
       if (!insightsData) setIsInsightsModalOpen(false)
     } finally {
       setIsLoadingInsights(false)
