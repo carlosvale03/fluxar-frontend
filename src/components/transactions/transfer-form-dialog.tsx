@@ -49,6 +49,7 @@ import { Transaction } from "@/types/transactions"
 import { TagSelector } from "@/components/tags/TagSelector"
 
 import { MoneyInput } from "@/components/ui/money-input"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   description: z.string().optional(),
@@ -143,7 +144,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                       if (found) partnerId = found.id
                   }
                } catch (err) {
-                   console.error("Failed to lookup by transfer_id", err)
+                   // CONTRATO-33: nenhuma falha silenciosa
+                   tratarErro(err, { mensagemPadrao: "Erro ao carregar a outra perna da transferência." })
                }
           }
 
@@ -154,7 +156,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                   partnerTransaction = relatedRes.data
                   console.log("Partner Transaction Fetched (Full):", partnerTransaction)
               } catch (err) {
-                  console.error("Failed to fetch related transaction full details", err)
+                  tratarErro(err, { mensagemPadrao: "Erro ao carregar a outra perna da transferência." })
               }
           }
 
@@ -270,13 +272,20 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
 
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting transfer:", error)
-      if (error.response) {
-          console.error("Server Response Status:", error.response.status)
-          console.error("Server Response Data:", error.response.data)
-      }
-      toast.error("Erro ao salvar transferência. Verifique os dados.")
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: {
+          description: "description",
+          amount: "amount",
+          date: "date",
+          account_from: "source_account_id",
+          account_to: "target_account_id",
+          tags: "tags",
+        },
+        mensagemPadrao: "Erro ao salvar transferência. Verifique os dados.",
+      })
     } finally {
       setIsLoading(false)
     }

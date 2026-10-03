@@ -54,6 +54,7 @@ import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
 import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -183,14 +184,22 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
 
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting transaction:", error)
-      const errorMessage = error.response?.data?.detail || error.response?.data?.message || "Erro ao salvar transação. Verifique os dados."
-      toast.error(errorMessage)
-      
-      if (error.response?.data) {
-        console.error("Server validation errors:", error.response.data)
-      }
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: {
+          description: "description",
+          amount: "amount",
+          date: "date",
+          category: "category_id",
+          account: "account_id",
+          type: "type",
+          tags: "tags",
+          frequency: "frequency",
+        },
+        mensagemPadrao: "Erro ao salvar transação. Verifique os dados.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -208,7 +217,8 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                  const records = res.data.results
                  setRecentTransactions(records)
              } catch (error) {
-                 console.error("Failed to fetch suggestions", error)
+                 // CONTRATO-33: nenhuma falha silenciosa
+                 tratarErro(error, { mensagemPadrao: "Erro ao carregar sugestões." })
              }
          }
          fetchSuggestions()

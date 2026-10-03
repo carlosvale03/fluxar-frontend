@@ -109,8 +109,13 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
       }
       onSuccess()
     } catch (error) {
-      console.error(error)
-      tratarErro(error, { mensagemPadrao: "Erro ao salvar orçamento" })
+      // CONTRATO-30: o erro de cada campo vai para o campo, como o orçamento
+      // duplicado no campo da categoria
+      tratarErro(error, {
+        form,
+        campos: ["category", "amount_limit", "month", "year"],
+        mensagemPadrao: "Erro ao salvar orçamento",
+      })
     } finally {
       setIsLoading(false)
     }

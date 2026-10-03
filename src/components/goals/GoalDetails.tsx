@@ -48,6 +48,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/hooks/use-auth"
 import { AlertCircle, RefreshCw } from "lucide-react"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 interface GoalDetailsProps {
   open: boolean
@@ -95,10 +96,12 @@ export function GoalDetails({
       setAuthError(false)
       const data = await goalsService.getHistory(goal.id)
       setHistory(data)
-    } catch (error: any) {
-      console.error("Failed to fetch history", error)
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         setAuthError(true)
+      } else {
+        // CONTRATO-33: nenhuma falha silenciosa
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: fetchHistory })
       }
     } finally {
       setIsLoading(false)

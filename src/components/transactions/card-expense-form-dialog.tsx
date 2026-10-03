@@ -41,7 +41,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-import { api, mensagemDeErro } from "@/services/apiClient"
+import { api } from "@/services/apiClient"
 import { lerData } from "@/lib/datas"
 import { Category } from "@/types/categories"
 import { CreditCard as CreditCardType } from "@/types/cards"
@@ -53,6 +53,7 @@ import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
 import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -203,14 +204,24 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
 
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting card expense:", error)
-      if (error.response) {
-          console.error("Server Response Status:", error.response.status)
-          console.error("Server Response Data:", error.response.data)
-      }
-      // FATURA-19: a recusa da compra em fatura paga vem no detail
-      toast.error(mensagemDeErro(error, "Erro ao salvar despesa. Verifique os dados."))
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo. FATURA-19: a
+      // recusa da compra em fatura paga vem no detail, que vai ao Sonner
+      tratarErro(error, {
+        form,
+        campos: {
+          description: "description",
+          amount: "amount",
+          date: "date",
+          purchase_date: "date",
+          credit_card: "card_id",
+          category: "category_id",
+          installments: "installments",
+          tags: "tags",
+          update_scope: "update_scope",
+        },
+        mensagemPadrao: "Erro ao salvar despesa. Verifique os dados.",
+      })
     } finally {
       setIsLoading(false)
     }

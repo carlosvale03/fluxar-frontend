@@ -44,6 +44,7 @@ import { api } from "@/services/apiClient"
 import { CreditCard } from "@/types/cards"
 import { BANKS } from "@/data/banks"
 import { Account, AccountType } from "@/types/accounts"
+import { tratarErro } from "@/lib/erros"
 
 // ...
 
@@ -100,6 +101,7 @@ export function CreditCardFormDialog({
     setValue,
     reset,
     watch,
+    setError,
     formState: { errors },
   } = useForm<CardFormValues>({
     resolver: zodResolver(cardSchema),
@@ -180,10 +182,13 @@ export function CreditCardFormDialog({
       
       if (setOpen) setOpen(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error(error)
-      const msg = error.response?.data?.detail || "Erro ao salvar cartão."
-      toast.error(msg)
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form: { setError },
+        campos: ["name", "limit", "closing_day", "due_day", "account_id"],
+        mensagemPadrao: "Erro ao salvar cartão.",
+      })
     } finally {
       setIsLoading(false)
     }

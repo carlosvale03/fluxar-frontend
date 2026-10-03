@@ -117,7 +117,8 @@ export default function TransactionsPage() {
           const catData = response.data
           setCategories(catData)
       } catch (error) {
-          console.error("Failed to fetch categories", error)
+          // CONTRATO-33: nenhuma falha silenciosa
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias.", tentarDeNovo: fetchCategories })
       }
   }
 
@@ -330,8 +331,8 @@ export default function TransactionsPage() {
     try {
         const response = await api.get("/accounts/")
         setAccounts(response.data)
-    } catch (e) {
-        console.error("Failed to fetch accounts", e)
+    } catch (error) {
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 

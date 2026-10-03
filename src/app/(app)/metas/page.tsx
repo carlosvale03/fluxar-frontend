@@ -54,6 +54,7 @@ import { GoalDetails } from "@/components/goals/GoalDetails"
 import { GoalWithdrawForm } from "@/components/goals/GoalWithdrawForm"
 import { PageHelp } from "@/components/ui/page-help"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 export default function GoalsPage() {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -82,8 +83,7 @@ export default function GoalsPage() {
       const data = await goalsService.getGoals()
       setGoals(data)
     } catch (error) {
-      console.error("Failed to fetch goals", error)
-      toast.error("Erro ao carregar metas.")
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar metas.", tentarDeNovo: fetchGoals })
     } finally {
       setIsLoading(false)
     }
@@ -105,9 +105,9 @@ export default function GoalsPage() {
       await goalsService.deleteGoal(goal.id)
       toast.success("Meta excluída com sucesso!")
       fetchGoals()
-    } catch (error: any) {
-      const message = error.response?.data?.error || "Erro ao excluir meta."
-      toast.error(message)
+    } catch (error) {
+      // CONTRATO-31: a API não usa mais a chave error; o detail vai ao Sonner
+      tratarErro(error, { mensagemPadrao: "Erro ao excluir meta." })
     }
   }
 

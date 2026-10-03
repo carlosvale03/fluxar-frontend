@@ -27,6 +27,7 @@ import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
 import { lerData, nomeDoMes } from "@/lib/datas"
 import { formatarMoeda } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 interface Transaction {
   id: string
@@ -68,7 +69,8 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
       const response = await api.get(`/invoices/${invoice.id}/transactions/`)
       setTransactions(response.data)
     } catch (error) {
-      console.error("Erro ao buscar transações da fatura", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar as compras da fatura.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }

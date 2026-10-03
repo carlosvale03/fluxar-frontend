@@ -66,7 +66,8 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
       onChange([...selectedTagIds, newTag.id])
       setSearchTerm("")
     } catch (error) {
-      console.error("Erro ao criar tag:", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao criar a tag." })
     } finally {
       setIsCreating(false)
     }

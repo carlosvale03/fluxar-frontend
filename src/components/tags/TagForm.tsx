@@ -76,9 +76,13 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
         toast.success("Tag criada com sucesso!")
       }
       onSuccess()
-    } catch (error: any) {
-      console.error(error)
-      tratarErro(error, { mensagemPadrao: "Erro ao salvar tag. Tente novamente." })
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: ["name", "color"],
+        mensagemPadrao: "Erro ao salvar tag. Tente novamente.",
+      })
     } finally {
       setIsLoading(false)
     }

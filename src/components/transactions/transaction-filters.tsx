@@ -39,6 +39,7 @@ import { Category } from "@/types/categories"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { TagSelector } from "@/components/tags/TagSelector"
+import { tratarErro } from "@/lib/erros"
 
 interface TransactionFiltersProps {
   onApplyFilters: (filters: FilterState) => void
@@ -110,7 +111,8 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         setCategories(organized)
         setAccounts(accRes.data)
     } catch (error) {
-        console.error("Failed to fetch filter dependencies", error)
+        // CONTRATO-33: nenhuma falha silenciosa
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar os filtros.", tentarDeNovo: fetchDependencies })
     }
   }
 

@@ -37,6 +37,7 @@ import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 import { hojeNaApi } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
 
 // CONTRATO-16: o saldo da meta chega como texto; a comparação é em centavos
 const withdrawSchema = (maxAmount: string) => z.object({
@@ -94,7 +95,8 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
       const filtered = data.filter((acc: Account) => acc.id !== goal?.account)
       setAccounts(filtered)
     } catch (error) {
-      console.error("Failed to fetch accounts", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -121,8 +123,12 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to withdraw", error)
-      toast.error("Erro ao realizar resgate.")
+      // CONTRATO-30: o erro de cada campo vai para o campo
+      tratarErro(error, {
+        form,
+        campos: ["amount", "account_to"],
+        mensagemPadrao: "Erro ao realizar resgate.",
+      })
     } finally {
       setIsLoading(false)
     }

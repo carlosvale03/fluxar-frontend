@@ -40,6 +40,7 @@ import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
 import { maiorQueZero } from "@/lib/dinheiro"
 import { hojeNaApi } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
 
 const depositSchema = z.object({
   // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e entrega
@@ -83,7 +84,8 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
       const data = await accountsService.getAccounts()
       setAccounts(data)
     } catch (error) {
-      console.error("Failed to fetch accounts", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -103,8 +105,12 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to deposit", error)
-      toast.error("Erro ao realizar aporte.")
+      // CONTRATO-30: o erro de cada campo vai para o campo
+      tratarErro(error, {
+        form,
+        campos: { amount: "amount", account_from: "account_from", account_id: "account_from" },
+        mensagemPadrao: "Erro ao realizar aporte.",
+      })
     } finally {
       setIsLoading(false)
     }

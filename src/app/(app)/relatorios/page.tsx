@@ -32,6 +32,7 @@ import { cn } from "@/lib/utils"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { HelpInfo } from "@/components/ui/help-info"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número, e
 // a conversão é só para plotar
@@ -67,10 +68,20 @@ export default function ReportsPage() {
             const data = await getAdvancedCharts(period)
             setAdvancedData(data)
         } catch (error) {
-            console.error("Failed to fetch advanced charts", error)
+            // CONTRATO-33: nenhuma falha silenciosa
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar os relatórios avançados.", tentarDeNovo: fetchAdvanced })
         } finally {
             setIsLoadingAdvanced(false)
         }
+    }
+
+    // Depois de criar uma conta de investimento, recarrega os avançados e o
+    // resumo; uma falha mostra o aviso com "Tentar de novo" (CONTRATO-33)
+    const recarregarInvestimentos = () => {
+        fetchAdvanced()
+        getDashboardSummary(new Date().getMonth() + 1, new Date().getFullYear())
+            .then(setSummaryData)
+            .catch((error) => tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: recarregarInvestimentos }))
     }
 
     // Fetch simple data on mount
@@ -82,7 +93,7 @@ export default function ReportsPage() {
                 const data = await getSimpleCharts(period)
                 setSimpleData(data)
             } catch (error) {
-                console.error("Failed to fetch simple charts", error)
+                tratarErro(error, { mensagemPadrao: "Erro ao carregar os gráficos.", tentarDeNovo: fetchSimple })
             } finally {
                 setIsLoadingSimple(false)
             }
@@ -104,7 +115,7 @@ export default function ReportsPage() {
                 const data = await getMonthlyComparison(monthsToFetch)
                 setMonthlyComparison(data)
             } catch (error) {
-                console.error("Failed to fetch monthly comparison", error)
+                tratarErro(error, { mensagemPadrao: "Erro ao carregar a comparação mensal.", tentarDeNovo: fetchComparison })
             } finally {
                 setIsLoadingComparison(false)
             }
@@ -123,7 +134,7 @@ export default function ReportsPage() {
                 const data = await getDashboardSummary(undefined, undefined, days)
                 setSummaryData(data)
             } catch (error) {
-                console.error("Failed to fetch dashboard summary", error)
+                tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: fetchSummary })
             } finally {
                 setIsLoadingSummary(false)
             }
@@ -135,7 +146,7 @@ export default function ReportsPage() {
                 const data = await getTagDistribution(undefined, undefined, period)
                 setTagData(data)
             } catch (error) {
-                console.error("Failed to fetch tag distribution", error)
+                tratarErro(error, { mensagemPadrao: "Erro ao carregar a distribuição por tags.", tentarDeNovo: fetchTagDistribution })
             }
         }
 
@@ -452,11 +463,7 @@ export default function ReportsPage() {
                                             {!advancedData?.investment_analysis?.has_investments_account && (
                                                 <AccountFormDialog 
                                                     defaultType={AccountType.INVESTMENT}
-                                                    onSuccess={() => {
-                                                        setIsLoadingAdvanced(true);
-                                                        getAdvancedCharts(period).then(setAdvancedData).finally(() => setIsLoadingAdvanced(false));
-                                                        getDashboardSummary(new Date().getMonth() + 1, new Date().getFullYear()).then(setSummaryData);
-                                                    }}
+                                                    onSuccess={recarregarInvestimentos}
                                                     trigger={
                                                         <Button size="sm" className="rounded-xl font-black text-xs gap-2">
                                                             <Plus className="h-4 w-4" /> Criar Conta de Investimento
@@ -479,11 +486,7 @@ export default function ReportsPage() {
                                                     </p>
                                                     <AccountFormDialog 
                                                         defaultType={AccountType.INVESTMENT}
-                                                        onSuccess={() => {
-                                                            setIsLoadingAdvanced(true);
-                                                            getAdvancedCharts(period).then(setAdvancedData).finally(() => setIsLoadingAdvanced(false));
-                                                            getDashboardSummary(new Date().getMonth() + 1, new Date().getFullYear()).then(setSummaryData);
-                                                        }}
+                                                        onSuccess={recarregarInvestimentos}
                                                         trigger={
                                                             <Button variant="outline" className="rounded-xl font-bold mt-4">Configurar Contas Agora</Button>
                                                         }

@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button"
 import { Goal, GoalTransaction } from "@/types/goals"
 import { goalsService } from "@/services/goals"
 import { formatCurrency } from "@/lib/utils"
+import { tratarErro } from "@/lib/erros"
 
 interface GoalHistoryProps {
   goal: Goal | null
@@ -42,7 +43,8 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
       const data = await goalsService.getHistory(goal.id)
       setHistory(data)
     } catch (error) {
-      console.error("Failed to fetch history", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: fetchHistory })
     } finally {
       setIsLoading(false)
     }

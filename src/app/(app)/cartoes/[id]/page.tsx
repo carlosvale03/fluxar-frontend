@@ -27,6 +27,7 @@ import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-
 import { Invoice } from "@/types/cards"
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 export default function CardDetailsPage() {
   const params = useParams()
@@ -54,7 +55,8 @@ export default function CardDetailsPage() {
               const accResponse = await api.get(`/accounts/${cardData.account_id}/`)
               setAccount(accResponse.data)
           } catch (err) {
-              console.error("Erro ao buscar conta vinculada", err)
+              // CONTRATO-33: nenhuma falha silenciosa
+              tratarErro(err, { mensagemPadrao: "Erro ao carregar a conta do cartão.", tentarDeNovo: fetchCard })
           }
       }
     } catch (error) {

@@ -23,6 +23,7 @@ import { api } from "@/services/apiClient"
 import { toast } from "sonner"
 import { goalsService } from "@/services/goals"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 interface SpareChangeBankProps {
   goals: Goal[]
@@ -76,7 +77,8 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
 
       setItems(roundUps)
     } catch (error) {
-      console.error("Failed to fetch transactions for round-up", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar as transações do cofrinho.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }
@@ -108,7 +110,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       setItems([])
       onSuccess()
     } catch (error) {
-      toast.error("Erro ao investir trocos.")
+      tratarErro(error, { mensagemPadrao: "Erro ao investir trocos." })
     } finally {
       setIsDepositing(false)
     }

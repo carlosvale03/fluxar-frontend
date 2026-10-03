@@ -50,7 +50,9 @@ describe("Só o Sonner", () => {
   })
 
   it("salvar uma tag com erro mostra o aviso do Sonner com a mensagem do backend", async () => {
-    vi.mocked(createTag).mockRejectedValue(erroHttp(400, { name: ["Já existe uma tag com este nome."] }))
+    // Erro que não é de um campo do formulário (CONTRATO-30: o erro de campo
+    // vai para o campo; o que sobra, como non_field_errors, vai ao Sonner)
+    vi.mocked(createTag).mockRejectedValue(erroHttp(400, { non_field_errors: ["Já existe uma tag com este nome."] }))
 
     await salvarTag("Viagem")
 

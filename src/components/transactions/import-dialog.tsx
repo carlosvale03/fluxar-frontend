@@ -38,6 +38,7 @@ import { importExportService, ImportSummary, SpreadsheetMapping } from "@/servic
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { tratarErro } from "@/lib/erros"
 
 interface ImportDialogProps {
   open: boolean
@@ -98,7 +99,8 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
       const response = await api.get("/accounts/")
       setAccounts(response.data)
     } catch (error) {
-      console.error("Failed to fetch accounts", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -177,8 +179,9 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
       } else {
         toast.error("Nenhuma conta encontrada na planilha. Verifique o mapeamento das colunas.")
       }
-    } catch (error: any) {
-      toast.error(error.response?.data?.error || "Erro ao processar planilha.")
+    } catch (error) {
+      // CONTRATO-30 e CONTRATO-31: a API não usa mais a chave error
+      tratarErro(error, { mensagemPadrao: "Erro ao processar planilha." })
     } finally {
       setIsLoading(false)
     }
@@ -212,8 +215,8 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
       setSummary(result)
       setStep("SUMMARY")
       toast.success("Processamento concluído!")
-    } catch (error: any) {
-      toast.error(error.response?.data?.detail || "Erro ao importar dados.")
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao importar dados." })
     } finally {
       setIsLoading(false)
     }

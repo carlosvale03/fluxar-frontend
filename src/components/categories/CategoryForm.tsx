@@ -107,9 +107,13 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
         toast.success("Categoria criada com sucesso!")
       }
       onSuccess()
-    } catch (error: any) {
-      console.error("Erro ao salvar categoria:", error)
-      tratarErro(error, { mensagemPadrao: "Erro ao salvar categoria" })
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: ["name", "type", "icon", "color", "parent"],
+        mensagemPadrao: "Erro ao salvar categoria",
+      })
     } finally {
       setIsLoading(false)
     }

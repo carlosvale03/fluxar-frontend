@@ -37,6 +37,7 @@ import { Account, AccountType, AccountTypeLabels } from "@/types/accounts"
 import { BANKS } from "@/data/banks"
 import { cn } from "@/lib/utils"
 import { deCentavos, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 const PRESET_COLORS = [
   "#6366f1", // Indigo
@@ -104,6 +105,7 @@ export function AccountFormDialog({
     setValue,
     reset,
     watch,
+    setError,
     formState: { errors },
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
@@ -175,13 +177,13 @@ export function AccountFormDialog({
       
       setOpen?.(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error("Erro ao salvar conta:", error.response?.data)
-      let msg = "Erro ao salvar conta."
-      if (error.response?.data) {
-        msg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.detail || Object.values(error.response.data)[0])
-      }
-      toast.error(msg)
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form: { setError },
+        campos: ["name", "initial_balance"],
+        mensagemPadrao: "Erro ao salvar conta.",
+      })
     } finally {
       setIsLoading(false)
     }

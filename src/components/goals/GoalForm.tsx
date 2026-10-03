@@ -50,6 +50,7 @@ import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { BANKS } from "@/data/banks"
 import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 
 const goalSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -161,7 +162,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       const filtered = accounts.filter((acc: Account) => acc.type === AccountType.PIGGY_BANK && acc.is_active)
       setPiggyBanks(filtered)
     } catch (error) {
-      console.error("Failed to fetch piggy banks", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar os cofrinhos.", tentarDeNovo: fetchPiggyBanks })
     }
   }
 
@@ -207,8 +209,12 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to save goal", error)
-      toast.error("Erro ao salvar meta.")
+      // CONTRATO-30: o erro de cada campo vai para o campo
+      tratarErro(error, {
+        form,
+        campos: ["name", "description", "target_amount", "target_date", "account", "cofrinho_name", "institution", "color", "image"],
+        mensagemPadrao: "Erro ao salvar meta.",
+      })
     } finally {
       setIsLoading(false)
     }

@@ -49,6 +49,7 @@ import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { CreditCard, Invoice } from "@/types/cards"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
@@ -104,7 +105,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
         const data = response.data
         setAccounts(data)
     } catch (err) {
-        console.error("Erro ao buscar contas", err)
+        // CONTRATO-33: nenhuma falha silenciosa
+        tratarErro(err, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -184,7 +186,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
           
           setInvoices(payableInvoices)
       } catch (error) {
-          console.error("Failed to fetch invoices", error)
+          // CONTRATO-33: nenhuma falha silenciosa
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar as faturas.", tentarDeNovo: () => fetchInvoices(cardId) })
       }
   }
 
