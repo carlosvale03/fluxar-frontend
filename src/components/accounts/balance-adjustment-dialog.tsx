@@ -35,7 +35,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
   useEffect(() => {
     if (open && account) {
       // A API manda o saldo como texto decimal ("1000.10")
-      setNewBalance(String(account.balance))
+      setNewBalance(account.balance)
     }
   }, [open, account])
 
@@ -68,7 +68,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
   }
 
   // Diferença prevista em centavos inteiros, só para exibir e bloquear o envio
-  const difference = (paraCentavos(newBalance) - paraCentavos(account?.balance)) / 100
+  const difference = paraCentavos(newBalance) - paraCentavos(account?.balance)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -92,7 +92,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
           <div className="space-y-6">
             <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 flex flex-col gap-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Saldo Atual</span>
-                <span className="text-xl font-black tabular-nums">{formatarMoeda(account?.balance || 0)}</span>
+                <span className="text-xl font-black tabular-nums">{formatarMoeda(account?.balance)}</span>
             </div>
 
             <div className="space-y-3">
@@ -101,6 +101,8 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
                 <MoneyInput 
                   value={newBalance}
                   onValueChange={(valor) => setNewBalance(valor ?? "")}
+                  // CONTRATO-20: o novo saldo pode ser negativo
+                  permitirNegativo
                   className="h-14 pl-12 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-black tracking-tight text-xl"
                   autoFocus
                 />
@@ -117,7 +119,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
                         <div className="flex flex-col gap-0.5">
                             <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Movimentação Prevista</span>
                             <p className="text-xs font-bold leading-relaxed">
-                                Será gerada uma <span className={difference > 0 ? "text-emerald-600" : "text-rose-600"}>{difference > 0 ? "Receita" : "Despesa"}</span> no valor de <strong>{formatarMoeda(Math.abs(difference))}</strong> para ajustar o saldo.
+                                Será gerada uma <span className={difference > 0 ? "text-emerald-600" : "text-rose-600"}>{difference > 0 ? "Receita" : "Despesa"}</span> no valor de <strong>{formatarMoeda(deCentavos(Math.abs(difference)))}</strong> para ajustar o saldo.
                             </p>
                         </div>
                     </div>

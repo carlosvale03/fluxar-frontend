@@ -61,7 +61,7 @@ export interface Transaction {
 
 export interface CreateTransactionDTO {
     description: string
-    amount: number
+    amount: string
     date: string
     type: TransactionType
     category_id?: string

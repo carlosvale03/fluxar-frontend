@@ -32,7 +32,7 @@ export interface GoalTransaction {
 export interface CreateGoalData {
   name: string;
   description?: string;
-  target_amount: number;
+  target_amount: string;
   target_date?: string;
   image?: File | string | null;
   account?: string; // Optional: if null, backend creates auto
@@ -43,7 +43,7 @@ export interface CreateGoalData {
 
 export interface GoalDepositData {
   account_from: string;
-  amount: number;
+  amount: string;
   datetime?: string;
   description?: string;
 }

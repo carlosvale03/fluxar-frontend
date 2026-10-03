@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MoneyInput } from "@/components/ui/money-input"
-import { formatarMoeda } from "@/lib/dinheiro"
+import { formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 
@@ -51,7 +51,8 @@ import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { CreditCard, Invoice } from "@/types/cards"
 
 const formSchema = z.object({
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   account_id: z.string().min(1, "Selecione a conta de pagamento."),
   description: z.string().optional(),
@@ -90,7 +91,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      amount: 0,
+      amount: "",
       date: new Date(),
       account_id: "",
       description: "Pagamento de Fatura",
@@ -118,7 +119,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                 
                 // 2. Reset form to defaults
                 form.reset({
-                    amount: Number(initialAmount || 0),
+                    amount: initialAmount || "",
                     date: new Date(),
                     account_id: "",
                     description: "Pagamento de Fatura",
@@ -354,8 +355,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                 <FormControl>
                                                     <div className="relative group">
                                                         <MoneyInput 
-                                                            value={field.value ? String(field.value) : ""}
-                                                            onValueChange={field.onChange}
+                                                            value={field.value ?? ""}
+                                                            onValueChange={(valor) => field.onChange(valor ?? "")}
                                                             className="h-14 pl-10 bg-card border-border/40 rounded-2xl focus-visible:ring-purple-500/20 font-black text-xl tracking-tighter"
                                                         />
                                                     </div>
@@ -490,7 +491,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                         const inv = invoices.find(i => i.id === val)
                                                         if (inv) {
                                                             setSelectedInvoiceObject(inv)
-                                                            form.setValue('amount', Number(inv.total_amount))
+                                                            form.setValue('amount', inv.total_amount)
                                                             const monthName = format(lerData(inv.due_date), "MMMM", { locale: ptBR })
                                                             const formattedDate = monthName.charAt(0).toUpperCase() + monthName.slice(1) + format(lerData(inv.due_date), "/yyyy")
                                                             form.setValue('description', `Fatura ${formattedDate}`)
@@ -576,9 +577,9 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             <div className="pt-2">
                                                 <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1.5 px-1">
                                                     <span>Progresso de Quitação</span>
-                                                    <span>{Math.round((form.watch('amount') / Number(selectedInvoiceObject.total_amount)) * 100)}%</span>
+                                                    <span>{Math.round((paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100)}%</span>
                                                 </div>
-                                                <Progress value={(form.watch('amount') / Number(selectedInvoiceObject.total_amount)) * 100} className="h-1.5 bg-muted/50 rounded-full overflow-hidden [&>div]:bg-purple-500" />
+                                                <Progress value={(paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100} className="h-1.5 bg-muted/50 rounded-full overflow-hidden [&>div]:bg-purple-500" />
                                             </div>
                                         </div>
                                     )}

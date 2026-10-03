@@ -22,7 +22,7 @@ import { Goal } from "@/types/goals"
 import { api } from "@/services/apiClient"
 import { toast } from "sonner"
 import { goalsService } from "@/services/goals"
-import { formatarMoeda } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 interface SpareChangeBankProps {
   goals: Goal[]
@@ -32,7 +32,8 @@ interface SpareChangeBankProps {
 interface RoundUpItem {
   id: string
   description: string
-  amount: number
+  amount: string
+  // CONTRATO-17: arredondamento em centavos inteiros
   roundUp: number
   account: string
   accountName: string
@@ -54,12 +55,12 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       const roundUps: RoundUpItem[] = transactions
         .filter((t: any) => t.type === 'EXPENSE')
         .map((t: any) => {
-          const amount = Math.abs(t.amount)
-          const ceil = Math.ceil(amount)
-          const diff = ceil - amount
+          // CONTRATO-17: o troco até o próximo real, em centavos, sem ponto flutuante
+          const amount = Math.abs(paraCentavos(t.amount))
+          const diff = (100 - (amount % 100)) % 100
           
           // Only include if difference is > 0 and < 4 (as per user request)
-          if (diff > 0 && diff < 4) {
+          if (diff > 0 && diff < 400) {
             return {
               id: t.id,
               description: t.description,
@@ -98,7 +99,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       const mainAccount = items[0]?.account
 
       await goalsService.deposit(selectedGoalId, {
-        amount: Number(totalRoundUp.toFixed(2)),
+        amount: deCentavos(totalRoundUp),
         account_from: mainAccount,
         description: `Troco de ${items.length} transações (Arredondamento Automático)`
       })
@@ -130,7 +131,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-black text-primary">{formatarMoeda(totalRoundUp)}</p>
+            <p className="text-2xl font-black text-primary">{formatarMoeda(deCentavos(totalRoundUp))}</p>
             <p className="text-[10px] font-bold opacity-60">ACUMULADO</p>
           </div>
         </div>
@@ -173,7 +174,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
              <CheckCircle2 className="h-3.5 w-3.5" />
            </div>
            <p className="text-[10px] font-medium text-muted-foreground italic">
-             Detectamos <strong>{items.length}</strong> transações que podem ser arredondadas para poupar <strong>{formatarMoeda(totalRoundUp)}</strong>.
+             Detectamos <strong>{items.length}</strong> transações que podem ser arredondadas para poupar <strong>{formatarMoeda(deCentavos(totalRoundUp))}</strong>.
            </p>
         </div>
       </CardContent>

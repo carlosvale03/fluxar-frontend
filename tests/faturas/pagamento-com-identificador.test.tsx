@@ -119,7 +119,7 @@ describe("Pagamento com identificador da tentativa", () => {
     await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(1))
     expect(post).toHaveBeenCalledWith(
       "/invoices/fatura-1/pay/",
-      expect.objectContaining({ account_id: "conta-1", amount: 1000 })
+      expect.objectContaining({ account_id: "conta-1", amount: "1000.00" })
     )
   })
 

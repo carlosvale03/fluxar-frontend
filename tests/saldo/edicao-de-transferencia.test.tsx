@@ -76,7 +76,7 @@ describe("Edição de transferência", () => {
     expect(corpo).toMatchObject({
       account: "conta-a",
       target_account_id: "conta-b",
-      amount: 150,
+      amount: "150.00",
       date: "2026-10-01",
       description: "Reserva",
     })
@@ -90,7 +90,7 @@ describe("Edição de transferência", () => {
     expect(corpo).toMatchObject({
       account: "conta-b",
       target_account_id: "conta-a",
-      amount: 150,
+      amount: "150.00",
       date: "2026-10-01",
       description: "Reserva",
     })

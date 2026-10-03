@@ -15,7 +15,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import { MoneyInput } from "@/components/ui/money-input"
+import { maiorQueZero } from "@/lib/dinheiro"
 import {
   Select,
   SelectContent,
@@ -37,7 +38,8 @@ const formSchema = z.object({
   category: z.string().min(1, "Categoria é obrigatória"),
   month: z.number().min(1).max(12),
   year: z.number().min(2023).max(2030),
-  amount_limit: z.coerce.number().min(0.01, "O limite deve ser maior que zero"),
+  // CONTRATO-17: o limite vai à API como texto decimal ("1234.56")
+  amount_limit: z.string().refine(maiorQueZero, "O limite deve ser maior que zero"),
 })
 
 interface BudgetFormProps {
@@ -63,7 +65,7 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
       category: budget?.category || "",
       month: budget?.month || defaultMonth || currentMonth,
       year: budget?.year || defaultYear || currentYear,
-      amount_limit: budget?.amount_limit ? Number(budget.amount_limit) : 0,
+      amount_limit: budget?.amount_limit ?? "",
     },
   })
 
@@ -254,14 +256,14 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
                 <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Limite do Orçamento</FormLabel>
                 <FormControl>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="0,00" 
-                      {...field}
+                    <MoneyInput 
+                      name={field.name}
+                      ref={field.ref}
+                      value={field.value ?? ""}
+                      onValueChange={(valor) => field.onChange(valor ?? "")}
+                      onBlur={field.onBlur}
                       onFocus={(e) => e.target.select()}
-                      className="h-12 pl-10 pr-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base font-bold text-rose-500"
+                      className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base font-bold text-rose-500"
                     />
                   </div>
                 </FormControl>

@@ -18,7 +18,7 @@ export interface Budget {
 
 export interface BudgetInput {
     category: string
-    amount_limit: number
+    amount_limit: string
     month: number
     year: number
 }

@@ -36,6 +36,7 @@ import { api } from "@/services/apiClient"
 import { Account, AccountType, AccountTypeLabels } from "@/types/accounts"
 import { BANKS } from "@/data/banks"
 import { cn } from "@/lib/utils"
+import { deCentavos, paraCentavos } from "@/lib/dinheiro"
 
 const PRESET_COLORS = [
   "#6366f1", // Indigo
@@ -59,7 +60,8 @@ const PRESET_COLORS = [
 const accountSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   type: z.nativeEnum(AccountType),
-  initial_balance: z.string().refine((val) => !isNaN(Number(val)), {
+  // CONTRATO-17: o saldo inicial vai à API como texto decimal ("1234.56")
+  initial_balance: z.string().refine((val) => !isNaN(paraCentavos(val)), {
       message: "Valor deve ser um número válido",
   }),
   institution: z.string().optional(),
@@ -136,7 +138,7 @@ export function AccountFormDialog({
       reset({
         name: account.name,
         type: account.type,
-        initial_balance: account.initial_balance.toString(),
+        initial_balance: account.initial_balance,
         institution: account.institution || "other",
         color: account.color || "#6366f1",
         is_active: account.is_active,
@@ -158,7 +160,7 @@ export function AccountFormDialog({
     try {
       const payload = {
           ...data,
-          initial_balance: Number(data.initial_balance),
+          initial_balance: deCentavos(paraCentavos(data.initial_balance)),
           is_active: data.is_active ?? true,
           institution: data.institution === "other" ? "" : data.institution
       }

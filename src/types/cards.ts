@@ -20,7 +20,7 @@ export interface CreditCard {
 
 export interface CreateCreditCardDTO {
     name: string
-    limit: number
+    limit: string
     closing_day: number
     due_day: number
     institution?: string

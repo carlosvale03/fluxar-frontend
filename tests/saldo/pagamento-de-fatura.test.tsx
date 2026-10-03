@@ -93,7 +93,7 @@ describe("Pagamento de fatura exige a fatura", () => {
     expect(post).toHaveBeenCalledTimes(1)
     expect(post).toHaveBeenCalledWith(
       "/invoices/fatura-1/pay/",
-      expect.objectContaining({ amount: 1000, account_id: "conta-1" })
+      expect.objectContaining({ amount: "1000.00", account_id: "conta-1" })
     )
   })
 })

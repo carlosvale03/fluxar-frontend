@@ -32,7 +32,7 @@ export interface Account {
 export interface CreateAccountDTO {
     name: string
     type: AccountType
-    initial_balance: number
+    initial_balance: string
     institution?: string
     color?: string
     is_active?: boolean

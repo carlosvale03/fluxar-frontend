@@ -38,7 +38,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
-import { paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 
 import { api } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
@@ -52,7 +52,8 @@ import { MoneyInput } from "@/components/ui/money-input"
 
 const formSchema = z.object({
   description: z.string().optional(),
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   source_account_id: z.string().min(1, "Selecione a conta de origem."),
   target_account_id: z.string().min(1, "Selecione a conta de destino."),
@@ -80,7 +81,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: "",
       source_account_id: "",
       target_account_id: "",
     },
@@ -99,7 +100,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
             // Create mode
             form.reset({
                 description: "",
-                amount: 0,
+                amount: "",
                 date: new Date(),
                 source_account_id: "",
                 target_account_id: "",
@@ -157,7 +158,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               }
           }
 
-          const isOutgoing = data.type === 'TRANSFER_OUT' || data.type === 'TRANSFER' || (data.amount < 0 && data.type !== 'TRANSFER_IN');
+          const isOutgoing = data.type === 'TRANSFER_OUT' || data.type === 'TRANSFER' || (paraCentavos(data.amount) < 0 && data.type !== 'TRANSFER_IN');
 
           if (isOutgoing) {
               // OUTGOING: Main transaction is SOURCE
@@ -185,7 +186,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           
           form.reset({
               description: data.description,
-              amount: Math.abs(Number(data.amount)),
+              amount: deCentavos(Math.abs(paraCentavos(data.amount))),
               date: new Date(year, month - 1, day),
               source_account_id: sourceId,
               target_account_id: targetId,
@@ -218,7 +219,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
       if (initialData) {
           // Edit
           // Ensure correct sign for the transaction being edited
-          let amount = Math.abs(data.amount) // Backend V2 expects absolute value and handles sign by type/signed_amount
+          // Backend V2 expects absolute value and handles sign by type/signed_amount
+          const amount = deCentavos(Math.abs(paraCentavos(data.amount)))
 
           
           // O backend usa `account` como a conta da perna editada e
@@ -361,8 +363,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                               <FormControl>
                                   <div className="relative">
                                     <MoneyInput 
-                                        value={field.value ? String(field.value) : ""}
-                                        onValueChange={field.onChange}
+                                        value={field.value ?? ""}
+                                        onValueChange={(valor) => field.onChange(valor ?? "")}
                                         className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                     />
                                   </div>

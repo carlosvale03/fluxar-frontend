@@ -18,7 +18,7 @@ import {
   ChevronUp
 } from "lucide-react"
 import { MoneyInput } from "@/components/ui/money-input"
-import { formatarMoeda } from "@/lib/dinheiro"
+import { formatarMoeda, maiorQueZero } from "@/lib/dinheiro"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -49,7 +49,8 @@ import { Account, AccountType } from "@/types/accounts"
 
 const cardSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  limit: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+  // CONTRATO-17: o limite vai à API como texto decimal ("1234.56")
+  limit: z.string().refine(maiorQueZero, {
       message: "Limite deve ser maior que zero",
   }),
   closing_day: z.string().refine((val) => {
@@ -136,7 +137,7 @@ export function CreditCardFormDialog({
     if (card) {
       reset({
         name: card.name,
-        limit: card.limit.toString(),
+        limit: card.limit,
         closing_day: card.closing_day.toString(),
         due_day: card.due_day.toString(),
         institution: card.institution || "",
@@ -161,7 +162,7 @@ export function CreditCardFormDialog({
     try {
       const payload = {
           name: data.name,
-          limit: Number(data.limit),
+          limit: data.limit,
           closing_day: Number(data.closing_day),
           due_day: Number(data.due_day),
           institution: data.institution,

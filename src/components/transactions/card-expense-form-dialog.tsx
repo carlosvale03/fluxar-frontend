@@ -51,11 +51,13 @@ import { Transaction } from "@/types/transactions"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
+import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   category_id: z.string().min(1, "Selecione uma categoria."),
   card_id: z.string().min(1, "Selecione um cartão."),
@@ -83,7 +85,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: "",
       category_id: "",
       card_id: "",
       installments: 1,
@@ -102,7 +104,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
             // Edit Mode
             form.reset({
                 description: initialData.description,
-                amount: Number(initialData.amount),
+                amount: initialData.amount,
                 // FATURA-16: a data da compra; compras antigas só têm a data gravada
                 date: lerData(initialData.purchase_date || initialData.date),
                 category_id: (typeof initialData.category === 'object' ? (initialData.category as any).id : initialData.category) || initialData.category_detail?.id || "",
@@ -115,7 +117,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
             // Create Mode
             form.reset({
                 description: "",
-                amount: 0,
+                amount: "",
                 date: new Date(),
                 category_id: "",
                 card_id: "",
@@ -289,8 +291,8 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             <FormControl>
                                 <div className="relative">
                                   <MoneyInput 
-                                      value={field.value ? String(field.value) : ""}
-                                      onValueChange={field.onChange}
+                                      value={field.value ?? ""}
+                                      onValueChange={(valor) => field.onChange(valor ?? "")}
                                       className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                   />
                                 </div>

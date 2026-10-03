@@ -52,11 +52,13 @@ import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
+import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   category_id: z.string().min(1, "Selecione uma categoria."),
   account_id: z.string().min(1, "Selecione uma conta."),
@@ -98,7 +100,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: "",
       type: type,
       category_id: "",
     },
@@ -257,7 +259,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
             const [year, month, day] = initialData.date.split('-').map(Number);
             form.reset({
                 description: initialData.description,
-                amount: Number(initialData.amount),
+                amount: initialData.amount,
                 date: new Date(year, month - 1, day),
                 type: initialData.type,
                 // Mapeamento robusto para IDs, aceitando string ou objeto (nested)
@@ -270,7 +272,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
         } else {
             form.reset({
                 description: "",
-                amount: 0,
+                amount: "",
                 date: new Date(),
                 type: type,
                 category_id: "",
@@ -404,8 +406,8 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                             <FormControl>
                                                 <div className="relative group">
                                                     <MoneyInput
-                                                        value={field.value ? String(field.value) : ""}
-                                                        onValueChange={field.onChange}
+                                                        value={field.value ?? ""}
+                                                        onValueChange={(valor) => field.onChange(valor ?? "")}
                                                         className="h-12 pl-12 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-black tracking-tight text-lg"
                                                     />
                                                 </div>

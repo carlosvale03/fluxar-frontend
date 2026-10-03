@@ -21,6 +21,12 @@ export function paraCentavos(valor: Valor): number {
   return sinal === "-" && centavos !== 0 ? -centavos : centavos
 }
 
+// CONTRATO-17: um valor digitado (texto da API) maior que zero, para os
+// formulários
+export function maiorQueZero(valor: string | null | undefined): boolean {
+  return paraCentavos(valor) > 0
+}
+
 // CONTRATO-16: centavos inteiros para o texto da API ("1234.56").
 export function deCentavos(centavos: number): string {
   const absoluto = Math.abs(centavos)
