@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import { api } from "@/services/apiClient"
+import { api, mensagemDeErro } from "@/services/apiClient"
 import { Transaction } from "@/types/transactions"
 
 interface TransactionDeleteDialogProps {
@@ -32,6 +32,10 @@ export function TransactionDeleteDialog({
   const [deleteScope, setDeleteScope] = useState<"SINGLE" | "ALL">("SINGLE")
 
   const isRecurring = !!transaction?.recurring_source
+  // FATURA-20: excluir uma parcela exclui a compra inteira no cartão
+  const isCardInstallment =
+    (transaction?.type === "CREDIT_CARD" || transaction?.type === "CREDIT_CARD_EXPENSE") &&
+    (!!transaction?.is_installment || (transaction?.installment_total || 0) > 1)
 
   const handleDelete = async () => {
     if (!transaction) return
@@ -49,7 +53,8 @@ export function TransactionDeleteDialog({
       onOpenChange(false)
     } catch (error) {
       console.error("Failed to delete transaction", error)
-      toast.error("Erro ao excluir transação.")
+      // FATURA-19: a recusa da compra em fatura paga vem no detail
+      toast.error(mensagemDeErro(error, "Erro ao excluir transação."))
     } finally {
       setIsLoading(false)
     }
@@ -64,6 +69,13 @@ export function TransactionDeleteDialog({
             Tem certeza que deseja excluir esta transação?
           </DialogDescription>
         </DialogHeader>
+
+        {isCardInstallment && (
+            <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
+                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>Todas as parcelas desta compra serão excluídas.</span>
+            </div>
+        )}
 
         {isRecurring && (
              <div className="py-4 space-y-3">
