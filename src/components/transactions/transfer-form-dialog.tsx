@@ -38,6 +38,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { deCentavos, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 
 import { api } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
@@ -48,10 +49,12 @@ import { Transaction } from "@/types/transactions"
 import { TagSelector } from "@/components/tags/TagSelector"
 
 import { MoneyInput } from "@/components/ui/money-input"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   description: z.string().optional(),
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   source_account_id: z.string().min(1, "Selecione a conta de origem."),
   target_account_id: z.string().min(1, "Selecione a conta de destino."),
@@ -79,7 +82,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: "",
       source_account_id: "",
       target_account_id: "",
     },
@@ -98,7 +101,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
             // Create mode
             form.reset({
                 description: "",
-                amount: 0,
+                amount: "",
                 date: new Date(),
                 source_account_id: "",
                 target_account_id: "",
@@ -135,13 +138,14 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                console.log("Looking up partner via transfer_id:", data.transfer_id)
                try {
                   const listRes = await api.get(`/transactions/?transfer_id=${data.transfer_id}`)
-                  const results = listRes.data.results || listRes.data
+                  const results = listRes.data.results
                   if (Array.isArray(results)) {
                       const found = results.find((t: any) => t.id !== data.id)
                       if (found) partnerId = found.id
                   }
                } catch (err) {
-                   console.error("Failed to lookup by transfer_id", err)
+                   // CONTRATO-33: nenhuma falha silenciosa
+                   tratarErro(err, { mensagemPadrao: "Erro ao carregar a outra perna da transferência." })
                }
           }
 
@@ -152,11 +156,11 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                   partnerTransaction = relatedRes.data
                   console.log("Partner Transaction Fetched (Full):", partnerTransaction)
               } catch (err) {
-                  console.error("Failed to fetch related transaction full details", err)
+                  tratarErro(err, { mensagemPadrao: "Erro ao carregar a outra perna da transferência." })
               }
           }
 
-          const isOutgoing = data.type === 'TRANSFER_OUT' || data.type === 'TRANSFER' || (data.amount < 0 && data.type !== 'TRANSFER_IN');
+          const isOutgoing = data.type === 'TRANSFER_OUT' || data.type === 'TRANSFER' || (paraCentavos(data.amount) < 0 && data.type !== 'TRANSFER_IN');
 
           if (isOutgoing) {
               // OUTGOING: Main transaction is SOURCE
@@ -184,7 +188,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           
           form.reset({
               description: data.description,
-              amount: Math.abs(Number(data.amount)),
+              amount: deCentavos(Math.abs(paraCentavos(data.amount))),
               date: new Date(year, month - 1, day),
               source_account_id: sourceId,
               target_account_id: targetId,
@@ -202,7 +206,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
   const fetchAccounts = async () => {
       try {
           const response = await api.get("/accounts/")
-          setAccounts(response.data.results || response.data || [])
+          setAccounts(response.data)
       } catch (error) {
           console.error("Failed to fetch accounts", error)
           toast.error("Erro ao carregar contas.")
@@ -217,7 +221,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
       if (initialData) {
           // Edit
           // Ensure correct sign for the transaction being edited
-          let amount = Math.abs(data.amount) // Backend V2 expects absolute value and handles sign by type/signed_amount
+          // Backend V2 expects absolute value and handles sign by type/signed_amount
+          const amount = deCentavos(Math.abs(paraCentavos(data.amount)))
 
           
           // O backend usa `account` como a conta da perna editada e
@@ -227,7 +232,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           let accountIdParam = ""
           let targetAccountIdParam = ""
 
-          const isOutgoing = initialData.type === 'TRANSFER_OUT' || initialData.type === 'TRANSFER' || (initialData.amount < 0 && initialData.type !== 'TRANSFER_IN');
+          const isOutgoing = initialData.type === 'TRANSFER_OUT' || initialData.type === 'TRANSFER' || (paraCentavos(initialData.amount) < 0 && initialData.type !== 'TRANSFER_IN');
 
           if (isOutgoing) {
               accountIdParam = data.source_account_id
@@ -267,13 +272,20 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
 
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting transfer:", error)
-      if (error.response) {
-          console.error("Server Response Status:", error.response.status)
-          console.error("Server Response Data:", error.response.data)
-      }
-      toast.error("Erro ao salvar transferência. Verifique os dados.")
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: {
+          description: "description",
+          amount: "amount",
+          date: "date",
+          account_from: "source_account_id",
+          account_to: "target_account_id",
+          tags: "tags",
+        },
+        mensagemPadrao: "Erro ao salvar transferência. Verifique os dados.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -359,10 +371,9 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                               <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Quanto?</FormLabel>
                               <FormControl>
                                   <div className="relative">
-                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
                                     <MoneyInput 
-                                        value={field.value}
-                                        onValueChange={field.onChange}
+                                        value={field.value ?? ""}
+                                        onValueChange={(valor) => field.onChange(valor ?? "")}
                                         className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                     />
                                   </div>

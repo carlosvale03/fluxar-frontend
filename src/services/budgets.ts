@@ -2,15 +2,9 @@ import { api } from "./apiClient"
 import { Budget, BudgetInput, BudgetFilters } from "@/types/budgets"
 
 export const getBudgets = async (filters?: BudgetFilters): Promise<Budget[]> => {
-    const response = await api.get("/budgets/", { params: filters })
-    if (Array.isArray(response.data)) {
-        return response.data
-    }
-    if (response.data && Array.isArray(response.data.results)) {
-        return response.data.results
-    }
-    console.warn("Unexpected response format from /budgets/", response.data)
-    return []
+    // CONTRATO-01: coleção completa, como array; o erro sobe para a tela
+    const response = await api.get<Budget[]>("/budgets/", { params: filters })
+    return response.data
 }
 
 export const getBudgetById = async (id: string): Promise<Budget> => {

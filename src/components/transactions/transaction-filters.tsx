@@ -32,12 +32,14 @@ import {
     SelectValue 
 } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
+import { Checkbox } from "@/components/ui/checkbox"
 
 import { api } from "@/services/apiClient"
 import { Category } from "@/types/categories"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { TagSelector } from "@/components/tags/TagSelector"
+import { tratarErro } from "@/lib/erros"
 
 interface TransactionFiltersProps {
   onApplyFilters: (filters: FilterState) => void
@@ -48,7 +50,8 @@ export interface FilterState {
   startDate: Date | undefined
   endDate: Date | undefined
   type: string
-  categoryId: string
+  // CONTRATO-10: várias categorias; a API inclui as subcategorias de cada uma
+  categoryIds: string[]
   accountId: string
   tagIds?: string[]
 }
@@ -60,7 +63,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   const [startDate, setStartDate] = useState<Date | undefined>(currentFilters.startDate)
   const [endDate, setEndDate] = useState<Date | undefined>(currentFilters.endDate)
   const [type, setType] = useState<string>(currentFilters.type)
-  const [categoryId, setCategoryId] = useState<string>(currentFilters.categoryId)
+  const [categoryIds, setCategoryIds] = useState<string[]>(currentFilters.categoryIds)
   const [accountId, setAccountId] = useState<string>(currentFilters.accountId)
   const [tagIds, setTagIds] = useState<string[]>(currentFilters.tagIds || [])
 
@@ -74,7 +77,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         setStartDate(currentFilters.startDate)
         setEndDate(currentFilters.endDate)
         setType(currentFilters.type)
-        setCategoryId(currentFilters.categoryId)
+        setCategoryIds(currentFilters.categoryIds)
         setAccountId(currentFilters.accountId)
         setTagIds(currentFilters.tagIds || [])
 
@@ -89,7 +92,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
             api.get("/accounts/")
         ])
         
-        let rawCats: Category[] = catRes.data.results || catRes.data || []
+        let rawCats: Category[] = catRes.data
         
         // Organizar hierarquicamente (Flattened)
         const organized: Category[] = []
@@ -106,9 +109,10 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         })
 
         setCategories(organized)
-        setAccounts(accRes.data.results || accRes.data || [])
+        setAccounts(accRes.data)
     } catch (error) {
-        console.error("Failed to fetch filter dependencies", error)
+        // CONTRATO-33: nenhuma falha silenciosa
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar os filtros.", tentarDeNovo: fetchDependencies })
     }
   }
 
@@ -117,18 +121,22 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
           startDate,
           endDate,
           type,
-          categoryId,
+          categoryIds,
           accountId,
           tagIds
       })
       setIsOpen(false)
   }
 
+  const alternarCategoria = (id: string, marcada: boolean) => {
+      setCategoryIds(prev => marcada ? [...prev, id] : prev.filter(c => c !== id))
+  }
+
   const handleClear = () => {
       setStartDate(undefined)
       setEndDate(undefined)
       setType("ALL")
-      setCategoryId("ALL")
+      setCategoryIds([])
       setAccountId("ALL")
       setTagIds([])
   }
@@ -136,7 +144,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   const activeFilterCount = [
       startDate || endDate,
       type !== "ALL",
-      categoryId !== "ALL",
+      categoryIds.length > 0,
       accountId !== "ALL",
       tagIds.length > 0
   ].filter(Boolean).length
@@ -294,32 +302,39 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                    <Layers className="h-3.5 w-3.5 text-primary opacity-70" />
                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Categoria</Label>
                 </div>
-                <Select value={categoryId} onValueChange={setCategoryId}>
-                    <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
-                        <SelectValue placeholder="Todas as categorias" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
-                        <SelectItem value="ALL" className="rounded-xl font-bold">Todas as categorias</SelectItem>
-                        {categories.map((cat: Category) => (
-                            <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
-                                <div className="flex items-center gap-2">
-                                    <div 
-                                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                                        style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                                    >
-                                        <LucideIcon name={cat.icon} className="h-4 w-4" />
-                                    </div>
-                                    <span className={cn(
-                                        "font-bold",
-                                        cat.name.startsWith("↳") ? "text-muted-foreground ml-1 font-medium" : ""
-                                    )}>
-                                        {cat.name}
-                                    </span>
+                {/* CONTRATO-10: seleção de várias categorias */}
+                <div className="max-h-[300px] overflow-y-auto rounded-[24px] border border-border/40 bg-muted/20 p-2 space-y-1">
+                    {categories.map((cat: Category) => {
+                        const marcada = categoryIds.includes(String(cat.id))
+                        return (
+                            <label
+                                key={cat.id}
+                                className={cn(
+                                    "flex items-center gap-2 rounded-xl px-2 py-1.5 cursor-pointer transition-colors hover:bg-muted/40",
+                                    marcada && "bg-primary/5"
+                                )}
+                            >
+                                <Checkbox
+                                    checked={marcada}
+                                    onCheckedChange={(valor) => alternarCategoria(String(cat.id), valor === true)}
+                                    aria-label={cat.name.replace("↳ ", "")}
+                                />
+                                <div 
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                                    style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
+                                >
+                                    <LucideIcon name={cat.icon} className="h-4 w-4" />
                                 </div>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                                <span className={cn(
+                                    "font-bold text-xs",
+                                    cat.name.startsWith("↳") ? "text-muted-foreground ml-1 font-medium" : ""
+                                )}>
+                                    {cat.name}
+                                </span>
+                            </label>
+                        )
+                    })}
+                </div>
             </div>
 
             {/* Tags Filter */}

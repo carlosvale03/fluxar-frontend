@@ -21,7 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import { MoneyInput } from "@/components/ui/money-input"
 import {
   Select,
   SelectContent,
@@ -35,24 +35,22 @@ import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
+import { formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
+import { hojeNaApi } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
 
-const parseAmount = (val: string) => {
-  if (val.includes(',')) {
-    return Number(val.replace(/\./g, '').replace(',', '.'));
-  }
-  return Number(val);
-};
-
-const withdrawSchema = (maxAmount: number) => z.object({
+// CONTRATO-16: o saldo da meta chega como texto; a comparação é em centavos
+const withdrawSchema = (maxAmount: string) => z.object({
   amount: z.string()
     .refine((val) => {
-      const num = parseAmount(val);
-      return !isNaN(num) && num > 0;
+      // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e
+      // entrega o texto decimal ("1500.00") que vai à API
+      return maiorQueZero(val);
     }, {
       message: "O valor deve ser maior que zero",
     })
-    .refine((val) => parseAmount(val) <= maxAmount, {
-      message: `O valor máximo para resgate nesta meta é ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(maxAmount)}`,
+    .refine((val) => paraCentavos(val) <= paraCentavos(maxAmount), {
+      message: `O valor máximo para resgate nesta meta é ${formatarMoeda(maxAmount)}`,
     }),
   account_to: z.string().min(1, "Selecione a conta de destino"),
 })
@@ -73,7 +71,7 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
   const [isLoading, setIsLoading] = useState(false)
   const [accounts, setAccounts] = useState<Account[]>([])
 
-  const currentSchema = useMemo(() => withdrawSchema(goal?.current_amount || 0), [goal?.current_amount])
+  const currentSchema = useMemo(() => withdrawSchema(goal?.current_amount || "0.00"), [goal?.current_amount])
 
   const form = useForm<WithdrawFormValues>({
     resolver: zodResolver(currentSchema),
@@ -97,15 +95,14 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
       const filtered = data.filter((acc: Account) => acc.id !== goal?.account)
       setAccounts(filtered)
     } catch (error) {
-      console.error("Failed to fetch accounts", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
   const handleWithdrawAll = () => {
     if (goal?.current_amount) {
-      // Usar replace para garantir que o formato no input apareça com vírgula 
-      // para consistência (e o parseAmount vai lidar com isso)
-      form.setValue('amount', goal.current_amount.toString().replace('.', ','))
+      form.setValue('amount', goal.current_amount)
       form.trigger('amount')
     }
   }
@@ -116,17 +113,22 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
     try {
       setIsLoading(true)
       await goalsService.withdraw(goal.id, {
-        amount: parseAmount(values.amount),
+        amount: values.amount,
         account_to: values.account_to,
-        datetime: new Date().toISOString(),
+        // CONTRATO-25: a data do resgate vai sem hora, no calendário do usuário
+        date: hojeNaApi(),
       })
 
       toast.success("Resgate realizado com sucesso!")
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to withdraw", error)
-      toast.error("Erro ao realizar resgate.")
+      // CONTRATO-30: o erro de cada campo vai para o campo
+      tratarErro(error, {
+        form,
+        campos: ["amount", "account_to"],
+        mensagemPadrao: "Erro ao realizar resgate.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -203,12 +205,14 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
                     </div>
                     <FormControl>
                       <div className="relative group">
-                        <Input 
-                          placeholder="0,00" 
-                          {...field} 
+                        <MoneyInput 
+                          name={field.name}
+                          ref={field.ref}
+                          value={field.value}
+                          onValueChange={(valor) => field.onChange(valor ?? "")}
+                          onBlur={field.onBlur}
                           className="rounded-[20px] border-border/40 bg-muted/20 px-14 focus:bg-background h-16 text-2xl font-black text-orange-600 transition-all shadow-inner group-hover:bg-muted/30 text-center"
                         />
-                        <span className="absolute left-6 top-1/2 -translate-y-1/2 text-orange-500/40 font-black text-lg">R$</span>
                       </div>
                     </FormControl>
                     <FormMessage className="text-[10px] font-bold" />

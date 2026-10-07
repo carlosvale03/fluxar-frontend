@@ -12,11 +12,13 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Budget } from "@/types/budgets"
 import { getBudgets, bulkImportBudgets } from "@/services/budgets"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Loader2, Calendar, Search, Filter, CheckCircle2, ChevronRight, Copy } from "lucide-react"
 import { MonthRangePicker } from "@/components/ui/month-range-picker"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 interface ImportBudgetsDialogProps {
   isOpen: boolean
@@ -52,7 +54,6 @@ export function ImportBudgetsDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [isImporting, setIsImporting] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const { toast } = useToast()
 
   const months = [
     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -74,10 +75,9 @@ export function ImportBudgetsDialog({
       setSelectedIds([]) 
     } catch (error) {
       console.error(error)
-      toast({
-        title: "Erro ao buscar orçamentos",
-        description: "Não foi possível carregar os orçamentos do período selecionado.",
-        variant: "destructive"
+      tratarErro(error, {
+        mensagemPadrao: "Não foi possível carregar os orçamentos do período selecionado.",
+        tentarDeNovo: fetchSourceBudgets,
       })
     } finally {
       setIsLoading(false)
@@ -111,19 +111,12 @@ export function ImportBudgetsDialog({
     setIsImporting(true)
     try {
       const response = await bulkImportBudgets(selectedIds, targetMonth, targetYear)
-      toast({
-        title: "Importação concluída",
-        description: response.message,
-      })
+      toast.success("Importação concluída", { description: response.message })
       onSuccess()
       onClose()
     } catch (error: any) {
       console.error(error)
-      toast({
-        title: "Erro na importação",
-        description: error.response?.data?.error || "Ocorreu um erro inesperado.",
-        variant: "destructive"
-      })
+      tratarErro(error, { mensagemPadrao: "Erro na importação. Ocorreu um erro inesperado." })
     } finally {
       setIsImporting(false)
     }
@@ -311,7 +304,7 @@ export function ImportBudgetsDialog({
                                                     </div>
                                                 </div>
                                                 <div className="text-right ml-2">
-                                                    <div className="text-[11px] sm:text-[13px] font-black text-foreground">R$ {Number(budget.amount_limit).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+                                                    <div className="text-[11px] sm:text-[13px] font-black text-foreground">{formatarMoeda(budget.amount_limit)}</div>
                                                     <div className="text-[8px] sm:text-[10px] font-black text-muted-foreground uppercase opacity-80 tracking-tighter whitespace-nowrap">Teto Limite</div>
                                                 </div>
 

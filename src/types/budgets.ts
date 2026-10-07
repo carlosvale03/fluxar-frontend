@@ -6,10 +6,10 @@ export interface Budget {
     id: string
     category: string
     category_detail: Category
-    amount_limit: number
+    amount_limit: string
     month: number
     year: number
-    total_spent: number
+    total_spent: string
     percentage_used: number
     status: BudgetStatus
     created_at: string
@@ -18,7 +18,7 @@ export interface Budget {
 
 export interface BudgetInput {
     category: string
-    amount_limit: number
+    amount_limit: string
     month: number
     year: number
 }

@@ -12,13 +12,22 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ChartEmptyState } from "./ChartEmptyState"
+import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
 
+// CONTRATO-16: os valores chegam como texto ("1234.56")
 interface DailyCashFlowData {
     label: string
-    income: number
-    expense: number
+    income: string
+    expense: string
     full_date?: string
 }
+
+// O Recharts precisa de número: a conversão é só para plotar
+const paraGrafico = (d: DailyCashFlowData) => ({
+    ...d,
+    income: paraCentavos(d.income) / 100,
+    expense: paraCentavos(d.expense) / 100,
+})
 
 interface DailyCashFlowChartProps {
     data: DailyCashFlowData[]
@@ -65,40 +74,36 @@ export function DailyCashFlowChart({
             }
         }
 
-        if (!targetMonthStr) return data;
+        if (!targetMonthStr) return data.map(paraGrafico);
 
         try {
             const [year, month] = targetMonthStr.split('-').map(Number);
-            if (isNaN(year) || isNaN(month)) return data;
+            if (isNaN(year) || isNaN(month)) return data.map(paraGrafico);
             
             const daysInMonth = getDaysInMonth(new Date(year, month - 1));
-            if (isNaN(daysInMonth)) return data;
+            if (isNaN(daysInMonth)) return data.map(paraGrafico);
             
             return Array.from({ length: daysInMonth }, (_, i) => {
                 const day = i + 1;
                 const dateStr = `${targetMonthStr}-${day.toString().padStart(2, '0')}`;
                 
                 // Encontrar dado existente para este dia
-                const existingDayData = data.find((d: any) => d.full_date === dateStr);
+                const existingDayData = data.find((d) => d.full_date === dateStr);
                 
                 return {
                     label: day.toString(),
-                    income: existingDayData?.income || 0,
-                    expense: existingDayData?.expense || 0,
+                    income: paraCentavos(existingDayData?.income) / 100,
+                    expense: paraCentavos(existingDayData?.expense) / 100,
                     full_date: dateStr
                 };
             });
         } catch (error) {
             console.error("Erro ao gerar dados mensais completos:", error);
-            return data;
+            return data.map(paraGrafico);
         }
     }, [data, isLoading, selectedMonth, selectedYear, activeMonthStr]);
 
     const isEmpty = !isLoading && (!completeDailyData || completeDailyData.length === 0 || completeDailyData.every(d => d.income === 0 && d.expense === 0));
-
-    const formatCurrency = (value: number) => {
-        return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value)
-    }
 
     return (
         <Card className={cn("border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden flex flex-col", className)}>
@@ -196,7 +201,7 @@ export function DailyCashFlowChart({
                                             tickLine={false} 
                                             fontSize={10}
                                             tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                            tickFormatter={(value) => value >= 1000 ? `R$ ${(value/1000).toFixed(1)}k` : `R$ ${value}`}
+                                            tickFormatter={formatarMoedaDoEixo}
                                             width={45}
                                         />
                                         <Tooltip 
@@ -214,7 +219,7 @@ export function DailyCashFlowChart({
                                                                             <span className="text-xs font-bold text-muted-foreground">{entry.name === 'income' ? 'Receita' : entry.name === 'expense' ? 'Despesa' : entry.name}</span>
                                                                         </div>
                                                                         <span className="text-xs font-black">
-                                                                            {formatCurrency(entry.value)}
+                                                                            {formatarMoeda(entry.value)}
                                                                         </span>
                                                                     </div>
                                                                 ))}

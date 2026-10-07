@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { TagForm } from "@/components/tags/TagForm"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn, formatCurrency } from "@/lib/utils"
+import { formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
 import { 
   LineChart, 
   Line, 
@@ -38,7 +39,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
 
 // Componente de Texto Expansível para os exemplos de Tags (Regra #4)
@@ -71,7 +73,6 @@ export default function TagsPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [editingTag, setEditingTag] = useState<TagType | undefined>(undefined)
   const [deletingTag, setDeletingTag] = useState<TagType | null>(null)
-  const { toast } = useToast()
   const [searchTerm, setSearchTerm] = useState("")
   const [isHelpOpen, setIsHelpOpen] = useState(false)
   
@@ -100,30 +101,29 @@ export default function TagsPage() {
   const paginatedTags = filteredTags.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
   const hasMultiplePages = totalPages > 1
 
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const data = await getTags()
-        setTags(data)
-      } catch (error) {
-        console.error(error)
-        toast({
-          title: "Erro ao carregar tags",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchTags = async () => {
+    try {
+      setIsLoading(true)
+      const data = await getTags()
+      setTags(data)
+    } catch (error) {
+      // CONTRATO-33: a carga que falha pode ser repetida pelo aviso
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar tags", tentarDeNovo: fetchTags })
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchTags()
-  }, [toast])
+  }, [])
 
   const refreshTags = async () => {
       try {
         const data = await getTags()
         setTags(data)
       } catch (error) {
-        console.error(error)
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar tags", tentarDeNovo: refreshTags })
       }
   }
 
@@ -132,15 +132,11 @@ export default function TagsPage() {
 
     try {
       await deleteTag(deletingTag.id)
-      toast({ title: "Tag excluída com sucesso" })
+      toast.success("Tag excluída com sucesso")
       refreshTags()
     } catch (error) {
        console.error(error)
-       toast({
-        title: "Erro ao excluir tag",
-        description: "Tente novamente.",
-        variant: "destructive",
-       })
+       tratarErro(error, { mensagemPadrao: "Erro ao excluir tag. Tente novamente." })
     } finally {
       setDeletingTag(null)
     }
@@ -157,11 +153,7 @@ export default function TagsPage() {
       setInsightsData(data)
     } catch (error) {
       console.error(error)
-      toast({
-        title: "Erro ao carregar insights",
-        description: "Não foi possível obter os dados da tag no momento.",
-        variant: "destructive",
-      })
+      tratarErro(error, { mensagemPadrao: "Não foi possível obter os dados da tag no momento." })
       if (!insightsData) setIsInsightsModalOpen(false)
     } finally {
       setIsLoadingInsights(false)
@@ -644,7 +636,7 @@ export default function TagsPage() {
                                                        insightsData.focus_monitor.status === 'error' && "bg-rose-500"
                                                    )} 
                                                    style={{ 
-                                                       width: `${Math.min(100, (insightsData.focus_monitor.current_month / (insightsData.focus_monitor.average_month || 1)) * 100)}%` 
+                                                       width: `${Math.min(100, (paraCentavos(insightsData.focus_monitor.current_month) / (paraCentavos(insightsData.focus_monitor.average_month) || 1)) * 100)}%` 
                                                    }}
                                                />
                                            </div>
@@ -654,7 +646,7 @@ export default function TagsPage() {
                                                insightsData.focus_monitor.status === 'warning' && "text-amber-600",
                                                insightsData.focus_monitor.status === 'error' && "text-rose-600"
                                            )}>
-                                               {Math.round((insightsData.focus_monitor.current_month / (insightsData.focus_monitor.average_month || 1)) * 100)}%
+                                               {Math.round((paraCentavos(insightsData.focus_monitor.current_month) / (paraCentavos(insightsData.focus_monitor.average_month) || 1)) * 100)}%
                                            </span>
                                        </div>
                                    </div>
@@ -699,7 +691,7 @@ export default function TagsPage() {
                                    <div className="h-[240px] w-full mt-4">
                                        {isInsightsModalOpen && insightsData && (
                                            <ResponsiveContainer width="100%" height="100%">
-                                               <AreaChart data={insightsData.history_chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                               <AreaChart data={insightsData.history_chart.map((h: { income: string; expense: string }) => ({ ...h, income: paraCentavos(h.income) / 100, expense: paraCentavos(h.expense) / 100 }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                    <defs>
                                                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
                                                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
@@ -721,7 +713,7 @@ export default function TagsPage() {
                                                        axisLine={false} 
                                                        tickLine={false} 
                                                        tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
-                                                       tickFormatter={(val) => `R$${val}`}
+                                                       tickFormatter={formatarMoedaDoEixo}
                                                    />
                                                    <Tooltip 
                                                        contentStyle={{ 

@@ -23,6 +23,7 @@ import { Invoice } from "@/types/cards"
 import { InvoiceDetailsDialog } from "./invoice-details-dialog"
 import { cn } from "@/lib/utils"
 import { lerData, nomeDoMes } from "@/lib/datas"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 interface InvoiceListProps {
   cardId: string
@@ -45,20 +46,13 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
     try {
       const response = await api.get(`/credit-cards/${cardId}/invoices/`)
       // Backend returns a list of invoices
-      setInvoices(response.data.results || response.data || [])
+      setInvoices(response.data)
     } catch (error) {
       console.error("Failed to fetch invoices", error)
       toast.error("Erro ao carregar faturas.")
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
   }
 
     const getStatusConfig = (status: string) => {
@@ -140,7 +134,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
             ) : (
                 invoices.map((invoice) => {
                     const { label, color, icon: Icon } = getStatusConfig(invoice.status)
-                    const isPayable = invoice.status === 'CLOSED' || invoice.status === 'OVERDUE' || (invoice.status === 'OPEN' && invoice.total_amount > 0)
+                    const isPayable = invoice.status === 'CLOSED' || invoice.status === 'OVERDUE' || (invoice.status === 'OPEN' && paraCentavos(invoice.total_amount) > 0)
                     
                     return (
                         <TableRow key={invoice.id} className="h-20 border-b border-border/40 hover:bg-muted/30 transition-all group">
@@ -165,11 +159,11 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                                 </Badge>
                             </TableCell>
                             <TableCell className="text-right font-black tabular-nums text-base">
-                                {formatCurrency(Number(invoice.total_amount))}
+                                {formatarMoeda(invoice.total_amount)}
                                 {/* FATURA-27: valor, conta e data do pagamento */}
                                 {invoice.status === 'PAID' && invoice.payment && (
                                     <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-1">
-                                        Pago {formatCurrency(Number(invoice.payment.amount))} em {format(lerData(invoice.payment.date), "dd/MM/yyyy")} · {invoice.payment.account_name}
+                                        Pago {formatarMoeda(invoice.payment.amount)} em {format(lerData(invoice.payment.date), "dd/MM/yyyy")} · {invoice.payment.account_name}
                                     </p>
                                 )}
                             </TableCell>

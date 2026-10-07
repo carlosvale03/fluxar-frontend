@@ -9,6 +9,7 @@ import {
   useRef,
 } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 
 import { anunciarFimDaSessao, aoFimDaSessao, renovarSessao } from "@/lib/sessao-entre-abas"
 import {
@@ -73,6 +74,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [estado, setEstado] = useState<"carregando" | "pronto" | "erro">("carregando")
   const router = useRouter()
   const fimAnunciado = useRef(false)
+  const { setTheme } = useTheme()
+
+  // CONTRATO-27: o tema salvo nas preferências vale ao carregar o usuário,
+  // em qualquer página; é o único ponto que aplica o tema do usuário
+  const temaDoUsuario = user?.preferences?.theme
+  useEffect(() => {
+    if (temaDoUsuario) setTheme(temaDoUsuario)
+  }, [temaDoUsuario, setTheme])
 
   const refreshUser = async () => {
     const response = await api.get("/auth/me/")

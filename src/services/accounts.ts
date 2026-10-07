@@ -3,10 +3,9 @@ import { Account } from "@/types/accounts";
 
 export const accountsService = {
   getAccounts: async () => {
-    const response = await api.get("/accounts/");
-    // Support both direct array and paginated results
-    const data = Array.isArray(response.data) ? response.data : response.data.results;
-    return data || [];
+    // CONTRATO-01: coleção completa, como array
+    const response = await api.get<Account[]>("/accounts/");
+    return response.data;
   },
   
   getAccount: async (id: string) => {

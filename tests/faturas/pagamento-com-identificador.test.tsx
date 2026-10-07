@@ -52,7 +52,7 @@ const botaoConfirmar = () => screen.getByRole("button", { name: /confirmar baixa
 
 function dialogo(open: boolean) {
   return (
-    <InvoicePaymentDialog open={open} onOpenChange={vi.fn()} onSuccess={vi.fn()} invoiceId="fatura-1" initialAmount={1000} />
+    <InvoicePaymentDialog open={open} onOpenChange={vi.fn()} onSuccess={vi.fn()} invoiceId="fatura-1" initialAmount="1000.00" />
   )
 }
 
@@ -119,7 +119,7 @@ describe("Pagamento com identificador da tentativa", () => {
     await vi.waitFor(() => expect(post).toHaveBeenCalledTimes(1))
     expect(post).toHaveBeenCalledWith(
       "/invoices/fatura-1/pay/",
-      expect.objectContaining({ account_id: "conta-1", amount: 1000 })
+      expect.objectContaining({ account_id: "conta-1", amount: "1000.00" })
     )
   })
 

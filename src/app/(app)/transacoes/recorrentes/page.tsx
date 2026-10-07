@@ -26,21 +26,31 @@ import { Badge } from "@/components/ui/badge"
 import { api } from "@/services/apiClient"
 import { Transaction } from "@/types/transactions"
 import { TransactionFormDialog } from "@/components/transactions/transaction-form-dialog"
+import { Paginacao } from "@/components/ui/paginacao"
+import { lerData } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 export default function RecurringTransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
+  // CONTRATO-05: a lista é paginada, com total e controles
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [totalPages, setTotalPages] = useState(1)
   
   const fetchTransactions = async () => {
     try {
       setIsLoading(true)
-      // Assuming backend supports filtering by is_recurring=true
-      const response = await api.get("/transactions/?is_recurring=true")
-      setTransactions(response.data.results || response.data || [])
+      // CONTRATO-15: só as transações que pertencem a uma série recorrente
+      const response = await api.get("/transactions/", { params: { is_recurring: "true", page } })
+      setTransactions(response.data.results)
+      setTotal(response.data.count)
+      setTotalPages(response.data.total_pages)
     } catch (error) {
-      console.error("Failed to fetch recurring transactions", error)
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar as transações recorrentes.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }
@@ -48,18 +58,11 @@ export default function RecurringTransactionsPage() {
 
   useEffect(() => {
     fetchTransactions()
-  }, [])
+  }, [page])
 
   const handleEdit = (transaction: Transaction) => {
       setSelectedTransaction(transaction)
       setIsCreateOpen(true)
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
   }
 
   const getFrequencyLabel = (freq: string | undefined) => {
@@ -133,13 +136,14 @@ export default function RecurringTransactionsPage() {
                                 </TableCell>
                                 <TableCell className={t.type === 'EXPENSE' ? 'text-red-500' : 'text-emerald-500'}>
                                     {t.type === 'EXPENSE' ? '- ' : '+ '}
-                                    {formatCurrency(Number(t.amount))}
+                                    {formatarMoeda(t.amount)}
                                 </TableCell>
                                 <TableCell>
                                     {/* Assuming date is the next occurrence or start date */}
                                     <div className="flex items-center gap-2">
                                         <Calendar className="h-3 w-3 opacity-70" />
-                                        {new Date(t.date).toLocaleDateString('pt-BR')}
+                                        {/* CONTRATO-24: data sem hora, no dia gravado */}
+                                        {lerData(t.date).toLocaleDateString('pt-BR')}
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right">
@@ -153,6 +157,14 @@ export default function RecurringTransactionsPage() {
                 </TableBody>
             </Table>
           </CardContent>
+          <Paginacao
+              pagina={page}
+              totalDePaginas={totalPages}
+              total={total}
+              rotulo="transações"
+              carregando={isLoading}
+              onMudarPagina={setPage}
+          />
       </Card>
 
       <TransactionFormDialog 

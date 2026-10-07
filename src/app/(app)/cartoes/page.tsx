@@ -72,7 +72,7 @@ export default function CardsPage() {
     try {
       setIsLoading(true)
       const response = await api.get("/credit-cards/")
-      const data = Array.isArray(response.data) ? response.data : response.data.results
+      const data = response.data
       setCards(data || [])
     } catch (error) {
       toast.error("Erro ao carregar cartões.")

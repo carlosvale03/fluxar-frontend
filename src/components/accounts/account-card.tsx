@@ -16,6 +16,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { cn } from "@/lib/utils"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 interface AccountCardProps {
   account: Account
@@ -25,12 +26,6 @@ interface AccountCardProps {
 }
 
 export function AccountCard({ account, onEdit, onDelete, onAdjustment }: AccountCardProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
 
   const color = account.color || "#000000"
   
@@ -78,7 +73,7 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment }: Account
                 <div className="py-1 sm:py-2">
                     <p className="text-[9px] sm:text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1 sm:mb-1.5 opacity-70 text-accent">Saldo Atual</p>
                     <div className="text-xl sm:text-3xl font-black tracking-tighter tabular-nums text-foreground">
-                        {formatCurrency(account.balance)}
+                        {formatarMoeda(account.balance)}
                     </div>
                 </div>
 

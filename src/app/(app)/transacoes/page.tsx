@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, Fragment } from "react"
+import { useEffect, useRef, useState, Fragment } from "react"
 import { useSearchParams } from "next/navigation"
 import { 
     Plus, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightCircle, ArrowRightLeft,
@@ -54,6 +54,8 @@ import { Account } from "@/types/accounts"
 import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
 import { lerData } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
 
@@ -64,6 +66,8 @@ export default function TransactionsPage() {
   const [pageSize, setPageSize] = useState(20)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(0)
+  // CONTRATO-09: total de cada dia, sobre o filtro inteiro, calculado pela API
+  const [totaisDoDia, setTotaisDoDia] = useState<Record<string, string>>({})
   const [accounts, setAccounts] = useState<Account[]>([])
   const [categories, setCategories] = useState<Category[]>([])
 
@@ -110,10 +114,11 @@ export default function TransactionsPage() {
       try {
           const response = await api.get("/categories/")
           // O backend pode retornar { results: [...] } ou direto o array
-          const catData = response.data.results || response.data || []
+          const catData = response.data
           setCategories(catData)
       } catch (error) {
-          console.error("Failed to fetch categories", error)
+          // CONTRATO-33: nenhuma falha silenciosa
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias.", tentarDeNovo: fetchCategories })
       }
   }
 
@@ -145,12 +150,14 @@ export default function TransactionsPage() {
 
   // Filters state
   const [search, setSearch] = useState(searchParam || "")
+  // CONTRATO-08: o texto que vai para a API, 300 ms depois da última tecla
+  const [buscaComEspera, setBuscaComEspera] = useState(searchParam || "")
   // Initialize filters based on default Period (Month) or URL params
   const [filters, setFilters] = useState<FilterState>({
       startDate: startDateParam ? parseISO(startDateParam) : startOfMonth(initialDate),
       endDate: endDateParam ? parseISO(endDateParam) : endOfMonth(initialDate),
       type: "ALL",
-      categoryId: categoryParam || "ALL",
+      categoryIds: categoryParam ? [categoryParam] : [],
       accountId: "ALL"
   })
 
@@ -181,7 +188,9 @@ export default function TransactionsPage() {
 
       if (newFilters.startDate?.getTime() !== filters.startDate?.getTime() || 
           newFilters.endDate?.getTime() !== filters.endDate?.getTime()) {
+          // CONTRATO-06: filtro novo volta para a página 1 na mesma renderização
           setFilters(newFilters)
+          setPage(1)
       }
   }, [viewMode, currentDate])
 
@@ -221,8 +230,9 @@ export default function TransactionsPage() {
       if (category && categories.length > 0) {
           setFilters(prev => ({
               ...prev,
-              categoryId: category
+              categoryIds: [category]
           }))
+          setPage(1)
           if (!searchVal) {
               setSearch("")
           }
@@ -248,8 +258,9 @@ export default function TransactionsPage() {
           if (categoryByName) {
               setFilters(prev => ({
                   ...prev,
-                  categoryId: String(categoryByName.id)
+                  categoryIds: [String(categoryByName.id)]
               }))
+              setPage(1)
               setSearch("")
           } else {
               setSearch(searchVal)
@@ -270,7 +281,13 @@ export default function TransactionsPage() {
       }
   }
 
+  // CONTRATO-07: cada busca cancela a anterior, e a resposta dela é descartada
+  const buscaAtual = useRef<AbortController | null>(null)
+
   const fetchTransactions = async () => {
+    buscaAtual.current?.abort()
+    const controlador = new AbortController()
+    buscaAtual.current = controlador
     try {
       setIsLoading(true)
       
@@ -281,40 +298,9 @@ export default function TransactionsPage() {
       if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
       if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
       if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
-      if (filters.categoryId && filters.categoryId !== 'ALL') {
-          const allIds: string[] = [filters.categoryId]
-          
-          // Função recursiva para encontrar todos os descendentes
-          const collectIds = (parentId: string) => {
-              // Procura a categoria pai na árvore
-              const findInTree = (cats: Category[]): Category | undefined => {
-                  for (const c of cats) {
-                      if (String(c.id) === String(parentId)) return c
-                      if (c.subcategories) {
-                          const found = findInTree(c.subcategories)
-                          if (found) return found
-                      }
-                  }
-                  return undefined
-              }
-
-              const parent = findInTree(categories)
-              if (parent && parent.subcategories) {
-                  parent.subcategories.forEach(sub => {
-                      allIds.push(String(sub.id))
-                      collectIds(sub.id) // Chamada recursiva para níveis mais profundos
-                  })
-              }
-          }
-          
-          collectIds(filters.categoryId)
-          
-          // Remove duplicatas por segurança
-          const uniqueIds = Array.from(new Set(allIds))
-          
-          // Adicionar cada ID individualmente (padrão DRF para filtros múltiplos)
-          uniqueIds.forEach(id => params.append('categoryId', id))
-      }
+      // CONTRATO-10 a CONTRATO-12: as categorias escolhidas vão repetidas
+      // (categoryId=a&categoryId=b); o backend inclui as subcategorias
+      filters.categoryIds.forEach(id => params.append('categoryId', id))
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
       
       if (filters.tagIds && filters.tagIds.length > 0) {
@@ -323,58 +309,55 @@ export default function TransactionsPage() {
         })
       }
 
-      if (search) params.append('search', search)
+      if (buscaComEspera) params.append('search', buscaComEspera)
 
-      const response = await api.get(`/transactions/?${params.toString()}`)
-      
-      if (response.data.results) {
-        setData(response.data.results)
-        setTotal(response.data.count)
-        setTotalPages(response.data.total_pages)
-      } else if (Array.isArray(response.data)) {
-        setData(response.data)
-        setTotal(response.data.length)
-        setTotalPages(1)
-      }
-    } catch (error: any) {
-      console.error("Failed to fetch transactions", error)
-      toast.error("Erro ao carregar transações.")
+      const response = await api.get(`/transactions/?${params.toString()}`, { signal: controlador.signal })
+      if (controlador.signal.aborted) return
+
+      // CONTRATO-02: as transações vêm paginadas
+      setData(response.data.results)
+      setTotal(response.data.count)
+      setTotalPages(response.data.total_pages)
+      setTotaisDoDia(response.data.day_totals ?? {})
+    } catch (error) {
+      if (controlador.signal.aborted) return
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar transações.", tentarDeNovo: fetchTransactions })
     } finally {
-      setIsLoading(false)
+      if (buscaAtual.current === controlador) setIsLoading(false)
     }
   }
 
   const fetchAccounts = async () => {
     try {
         const response = await api.get("/accounts/")
-        setAccounts(response.data.results || response.data || [])
-    } catch (e) {
-        console.error("Failed to fetch accounts", e)
+        setAccounts(response.data)
+    } catch (error) {
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
   useEffect(() => {
-    fetchTransactions()
     fetchAccounts()
   }, [])
 
+  // CONTRATO-06 e CONTRATO-08: a busca vai 300 ms depois da última tecla,
+  // já na página 1
+  useEffect(() => {
+    if (search === buscaComEspera) return
+    const espera = setTimeout(() => {
+      setBuscaComEspera(search)
+      setPage(1)
+    }, 300)
+    return () => clearTimeout(espera)
+  }, [search])
+
+  // CONTRATO-05 a CONTRATO-07: um efeito só busca as transações
   useEffect(() => {
     fetchTransactions()
-  }, [page, pageSize, filters, search])
+  }, [page, pageSize, filters, buscaComEspera])
 
-  // Reset page when filters change
-  useEffect(() => {
-    if (page !== 1) setPage(1)
-  }, [filters, search])
+  useEffect(() => () => buscaAtual.current?.abort(), [])
 
-  // Helper to format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-      minimumFractionDigits: 2,
-    }).format(value)
-  }
 
   // Helper for type icons/colors
   const getTypeConfig = (type: TransactionType) => {
@@ -472,14 +455,22 @@ export default function TransactionsPage() {
                 placeholder="Busca..." 
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && fetchTransactions()}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                        setBuscaComEspera(search)
+                        setPage(1)
+                    }
+                }}
                 className="h-12 pl-11 rounded-2xl border-border/60 bg-card shadow-sm focus:ring-primary/20 transition-all font-bold text-xs"
             />
         </div>
         <div className="shrink-0">
              <TransactionFilters 
                 currentFilters={filters}
-                onApplyFilters={setFilters}
+                onApplyFilters={(novos) => {
+                    setFilters(novos)
+                    setPage(1)
+                }}
              />
         </div>
       </div>
@@ -549,14 +540,11 @@ export default function TransactionsPage() {
         ) : (() => {
             const grouped = data.reduce((groups, transaction) => {
                 const date = transaction.date
-                if (!groups[date]) groups[date] = { transactions: [], total: 0 }
-                groups[date].transactions.push(transaction)
-                const amount = Number(transaction.amount)
-                if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
-                    groups[date].total += amount
-                } else {
-                    groups[date].total -= amount
+                if (!groups[date]) {
+                    // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
+                    groups[date] = { transactions: [], total: paraCentavos(totaisDoDia[date]) / 100 }
                 }
+                groups[date].transactions.push(transaction)
                 return groups
             }, {} as Record<string, { transactions: Transaction[], total: number }>)
 
@@ -580,7 +568,7 @@ export default function TransactionsPage() {
                             "text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full",
                             grouped[date].total >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
                         )}>
-                            {formatCurrency(grouped[date].total)}
+                            {formatarMoeda(grouped[date].total)}
                         </div>
                     </div>
 
@@ -679,7 +667,7 @@ export default function TransactionsPage() {
                                         isNegative ? "text-red-500" : "text-emerald-500"
                                     )}>
                                         {isNegative ? "- " : "+ "}
-                                        {formatCurrency(Number(transaction.amount))}
+                                        {formatarMoeda(transaction.amount)}
                                     </div>
                                 </div>
                             )
@@ -737,17 +725,10 @@ export default function TransactionsPage() {
                         const grouped = data.reduce((groups, transaction) => {
                             const date = transaction.date
                             if (!groups[date]) {
-                                groups[date] = { transactions: [], total: 0 }
+                                // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
+                                groups[date] = { transactions: [], total: paraCentavos(totaisDoDia[date]) / 100 }
                             }
                             groups[date].transactions.push(transaction)
-                            
-                            // Calculate daily total
-                            const amount = Number(transaction.amount)
-                            if (transaction.type === 'INCOME' || transaction.type === 'TRANSFER_IN') {
-                                groups[date].total += amount
-                            } else {
-                                groups[date].total -= amount
-                            }
                             return groups
                         }, {} as Record<string, { transactions: Transaction[], total: number }>)
 
@@ -785,7 +766,7 @@ export default function TransactionsPage() {
                                                     ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
                                                     : "bg-red-500/10 text-red-600 border border-red-500/20"
                                             )}>
-                                                {grouped[date].total >= 0 ? "Saldo do Dia: +" : "Saldo do Dia: "} {formatCurrency(grouped[date].total)}
+                                                {grouped[date].total >= 0 ? "Saldo do Dia: +" : "Saldo do Dia: "} {formatarMoeda(grouped[date].total)}
                                             </div>
                                         </div>
                                     </TableCell>
@@ -934,7 +915,7 @@ export default function TransactionsPage() {
                                                     isNegative ? "text-red-500" : "text-emerald-500"
                                                 )}>
                                                     {isNegative ? "- " : "+ "}
-                                                    {formatCurrency(Number(transaction.amount))}
+                                                    {formatarMoeda(transaction.amount)}
                                                 </div>
 
                                                 {/* Floating Action Button (FAB) - Hover Only */}
@@ -986,7 +967,10 @@ export default function TransactionsPage() {
             <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Exibir</span>
             <select 
                 value={pageSize} 
-                onChange={(e) => setPageSize(Number(e.target.value))}
+                onChange={(e) => {
+                    setPageSize(Number(e.target.value))
+                    setPage(1)
+                }}
                 className="bg-card border border-border/40 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
             >
                 <option value={10}>10</option>

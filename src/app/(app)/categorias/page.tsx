@@ -50,7 +50,8 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -63,7 +64,6 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
   const [creatingSubcategoryFor, setCreatingSubcategoryFor] = useState<Category | null>(null)
-  const { toast } = useToast()
 
   const CATEGORY_ICON_MAP: Record<string, string> = {
     "moradia": "Home",
@@ -103,10 +103,7 @@ export default function CategoriesPage() {
       setCategories(data)
     } catch (error) {
       console.error(error)
-      toast({
-        title: "Erro ao carregar categorias",
-        variant: "destructive",
-      })
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias", tentarDeNovo: fetchCategories })
     } finally {
       setIsLoading(false)
     }
@@ -117,7 +114,7 @@ export default function CategoriesPage() {
       const data = await getCategories()
       setCategories(data)
     } catch (error) {
-      console.error(error)
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias", tentarDeNovo: refreshCategories })
     }
   }
 
@@ -126,15 +123,11 @@ export default function CategoriesPage() {
 
     try {
       await deleteCategory(deletingCategory.id)
-      toast({ title: "Categoria excluída com sucesso" })
+      toast.success("Categoria excluída com sucesso")
       refreshCategories()
     } catch (error) {
        console.error(error)
-       toast({
-        title: "Erro ao excluir categoria",
-        description: "Verifique se existem transações vinculadas.",
-        variant: "destructive",
-       })
+       tratarErro(error, { mensagemPadrao: "Erro ao excluir categoria. Verifique se existem transações vinculadas." })
     } finally {
       setDeletingCategory(null)
     }

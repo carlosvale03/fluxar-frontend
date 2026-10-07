@@ -2,15 +2,9 @@ import { api } from "./apiClient"
 import { Category, CategoryInput } from "@/types/categories"
 
 export const getCategories = async (): Promise<Category[]> => {
-    const response = await api.get("/categories/")
-        if (Array.isArray(response.data)) {
-        return response.data
-    }
-    if (response.data && Array.isArray(response.data.results)) {
-        return response.data.results
-    }
-            console.warn("Unexpected response format from /categories/", response.data)
-    return []
+    // CONTRATO-01: coleção completa, como array; o erro sobe para a tela
+    const response = await api.get<Category[]>("/categories/")
+    return response.data
 }
 
 export const createCategory = async (data: CategoryInput): Promise<Category> => {

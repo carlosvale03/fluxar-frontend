@@ -52,11 +52,14 @@ import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
+import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   category_id: z.string().min(1, "Selecione uma categoria."),
   account_id: z.string().min(1, "Selecione uma conta."),
@@ -98,7 +101,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: "",
       type: type,
       category_id: "",
     },
@@ -113,7 +116,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
               api.get("/accounts/")
           ])
           
-          let rawCats: Category[] = catRes.data.results || catRes.data || []
+          let rawCats: Category[] = catRes.data
           const organized: any[] = []
           rawCats.forEach(parent => {
               organized.push({ ...parent, isSubcategory: false })
@@ -130,7 +133,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
           })
           
           setCategories(organized)
-          setAccounts(accRes.data.results || accRes.data || [])
+          setAccounts(accRes.data)
       } catch (error) {
           console.error("Failed to fetch dependencies", error)
           toast.error("Erro ao carregar categorias ou contas.")
@@ -181,14 +184,22 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
 
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting transaction:", error)
-      const errorMessage = error.response?.data?.detail || error.response?.data?.message || "Erro ao salvar transação. Verifique os dados."
-      toast.error(errorMessage)
-      
-      if (error.response?.data) {
-        console.error("Server validation errors:", error.response.data)
-      }
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: {
+          description: "description",
+          amount: "amount",
+          date: "date",
+          category: "category_id",
+          account: "account_id",
+          type: "type",
+          tags: "tags",
+          frequency: "frequency",
+        },
+        mensagemPadrao: "Erro ao salvar transação. Verifique os dados.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -201,11 +212,13 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
      if (open && watchDescription && watchDescription.length === 1 && recentTransactions.length === 0) {
          const fetchSuggestions = async () => {
              try {
-                 const res = await api.get(`/transactions/?limit=50&type=${type}`)
-                 const records = res.data.results || res.data || []
+                 // CONTRATO-03 e CONTRATO-14: o tamanho da página é page_size (limit é recusado)
+                 const res = await api.get("/transactions/", { params: { page_size: 50, type } })
+                 const records = res.data.results
                  setRecentTransactions(records)
              } catch (error) {
-                 console.error("Failed to fetch suggestions", error)
+                 // CONTRATO-33: nenhuma falha silenciosa
+                 tratarErro(error, { mensagemPadrao: "Erro ao carregar sugestões." })
              }
          }
          fetchSuggestions()
@@ -256,7 +269,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
             const [year, month, day] = initialData.date.split('-').map(Number);
             form.reset({
                 description: initialData.description,
-                amount: Number(initialData.amount),
+                amount: initialData.amount,
                 date: new Date(year, month - 1, day),
                 type: initialData.type,
                 // Mapeamento robusto para IDs, aceitando string ou objeto (nested)
@@ -269,7 +282,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
         } else {
             form.reset({
                 description: "",
-                amount: 0,
+                amount: "",
                 date: new Date(),
                 type: type,
                 category_id: "",
@@ -402,15 +415,9 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                             <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Valor Total</FormLabel>
                                             <FormControl>
                                                 <div className="relative group">
-                                                    <div className={cn(
-                                                        "absolute left-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-lg font-black text-[11px] transition-colors",
-                                                        isIncome ? "bg-emerald-500/10 text-emerald-600" : "bg-rose-500/10 text-rose-600"
-                                                    )}>
-                                                        R$
-                                                    </div>
-                                                    <MoneyInput 
-                                                        value={field.value}
-                                                        onValueChange={field.onChange}
+                                                    <MoneyInput
+                                                        value={field.value ?? ""}
+                                                        onValueChange={(valor) => field.onChange(valor ?? "")}
                                                         className="h-12 pl-12 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-black tracking-tight text-lg"
                                                     />
                                                 </div>

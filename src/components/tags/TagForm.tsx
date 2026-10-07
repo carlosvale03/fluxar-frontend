@@ -18,7 +18,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { Tag as TagType, TagInput } from "@/types/categories"
 import { createTag, updateTag } from "@/services/tags"
-import { useToast } from "@/components/ui/use-toast"
+import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
 import { cn } from "@/lib/utils"
 
 const PRESET_COLORS = [
@@ -53,7 +54,6 @@ interface TagFormProps {
 
 export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -70,19 +70,18 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
     try {
       if (tag) {
         await updateTag(tag.id, values as TagInput)
-        toast({ title: "Tag atualizada com sucesso!" })
+        toast.success("Tag atualizada com sucesso!")
       } else {
         await createTag(values as TagInput)
-        toast({ title: "Tag criada com sucesso!" })
+        toast.success("Tag criada com sucesso!")
       }
       onSuccess()
-    } catch (error: any) {
-      console.error(error)
-      const errorMessage = error.response?.data?.name?.[0] || "Erro ao salvar tag. Tente novamente."
-      toast({ 
-        title: "Erro ao salvar tag", 
-        description: errorMessage,
-        variant: "destructive" 
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form,
+        campos: ["name", "color"],
+        mensagemPadrao: "Erro ao salvar tag. Tente novamente.",
       })
     } finally {
       setIsLoading(false)

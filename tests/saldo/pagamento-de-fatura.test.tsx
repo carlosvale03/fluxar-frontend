@@ -79,7 +79,7 @@ describe("Pagamento de fatura exige a fatura", () => {
   it("com a fatura, paga por /invoices/{id}/pay/", async () => {
     const onSuccess = vi.fn()
     render(
-      <InvoicePaymentDialog open onOpenChange={vi.fn()} onSuccess={onSuccess} invoiceId="fatura-1" initialAmount={1000} />
+      <InvoicePaymentDialog open onOpenChange={vi.fn()} onSuccess={onSuccess} invoiceId="fatura-1" initialAmount="1000.00" />
     )
 
     await vi.waitFor(() => expect(get).toHaveBeenCalledWith("/credit-cards/cartao-1/"))
@@ -93,7 +93,7 @@ describe("Pagamento de fatura exige a fatura", () => {
     expect(post).toHaveBeenCalledTimes(1)
     expect(post).toHaveBeenCalledWith(
       "/invoices/fatura-1/pay/",
-      expect.objectContaining({ amount: 1000, account_id: "conta-1" })
+      expect.objectContaining({ amount: "1000.00", account_id: "conta-1" })
     )
   })
 })

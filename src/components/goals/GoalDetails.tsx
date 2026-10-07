@@ -17,6 +17,7 @@ import {
   ChevronRight
 } from "lucide-react"
 import { format, differenceInDays, differenceInCalendarDays, addDays, isAfter, parseISO } from "date-fns"
+import { lerData } from "@/lib/datas"
 import { ptBR } from "date-fns/locale"
 import { 
   AreaChart, 
@@ -46,6 +47,8 @@ import { cn, getAbsoluteUrl } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/hooks/use-auth"
 import { AlertCircle, RefreshCw } from "lucide-react"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 interface GoalDetailsProps {
   open: boolean
@@ -93,10 +96,12 @@ export function GoalDetails({
       setAuthError(false)
       const data = await goalsService.getHistory(goal.id)
       setHistory(data)
-    } catch (error: any) {
-      console.error("Failed to fetch history", error)
-      if (error.response?.status === 401) {
+    } catch (error) {
+      if ((error as { response?: { status?: number } }).response?.status === 401) {
         setAuthError(true)
+      } else {
+        // CONTRATO-33: nenhuma falha silenciosa
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: fetchHistory })
       }
     } finally {
       setIsLoading(false)
@@ -107,7 +112,8 @@ export function GoalDetails({
     if (!goal || !goal.created_at) return []
 
     // 1. Definir Intervalo: Desde a criação ou primeira transação até hoje
-    const historyDates = history.map(tx => new Date(tx.datetime).getTime())
+    // CONTRATO-24: a data do aporte não tem hora; lida no dia gravado
+    const historyDates = history.map(tx => lerData(tx.datetime).getTime())
     const firstTxDate = historyDates.length > 0 ? new Date(Math.min(...historyDates)) : new Date()
     const goalCreationDate = new Date(goal.created_at)
     
@@ -118,11 +124,12 @@ export function GoalDetails({
     // Usar calendar days para evitar problemas com horas/fuso horários
     const diffDays = Math.max(0, differenceInCalendarDays(today, startDate))
     
-    // 2. Agrupar transações por data (YYYY-MM-DD) coercindo para Number
+    // 2. Agrupar transações por data (YYYY-MM-DD), em centavos (CONTRATO-16:
+    // os valores chegam como texto)
     const txByDate: Record<string, number> = {}
     history.forEach(tx => {
-      const dateStr = format(new Date(tx.datetime), 'yyyy-MM-dd')
-      const amount = Number(tx.amount) * (tx.type === 'WITHDRAWAL' ? -1 : 1)
+      const dateStr = format(lerData(tx.datetime), 'yyyy-MM-dd')
+      const amount = paraCentavos(tx.amount) * (tx.type === 'WITHDRAWAL' ? -1 : 1)
       txByDate[dateStr] = (txByDate[dateStr] || 0) + amount
     })
 
@@ -142,7 +149,8 @@ export function GoalDetails({
         points.push({
             date: format(currentDate, 'dd/MM'),
             fullDate: currentDate,
-            balance: Number(Math.max(0, currentAccumulatedBalance).toFixed(2)),
+            // O Recharts precisa de número: a conversão é só para plotar
+            balance: Math.max(0, currentAccumulatedBalance) / 100,
         })
     }
 
@@ -163,11 +171,11 @@ export function GoalDetails({
     const daysSinceStart = Math.max(1, differenceInDays(today, createdAt))
     
     // Média de economia diária real
-    const dailyAvg = goal.current_amount / daysSinceStart
+    const dailyAvg = paraCentavos(goal.current_amount) / 100 / daysSinceStart
     const monthlyAvg = dailyAvg * 30
 
     // Projeção real de data de término
-    const remaining = goal.target_amount - goal.current_amount
+    const remaining = (paraCentavos(goal.target_amount) - paraCentavos(goal.current_amount)) / 100
     let estimatedEndDate = null
     let status = 'neutral' // 'positive' | 'negative' | 'neutral'
 
@@ -176,7 +184,7 @@ export function GoalDetails({
       estimatedEndDate = addDays(today, daysToFinish)
       
       if (goal.target_date) {
-        const targetDate = new Date(goal.target_date)
+        const targetDate = lerData(goal.target_date)
         status = isAfter(targetDate, estimatedEndDate) ? 'positive' : 'negative'
       }
     }
@@ -190,10 +198,6 @@ export function GoalDetails({
   }, [goal])
 
   if (!goal) return null
-
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val)
-  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -247,11 +251,11 @@ export function GoalDetails({
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-5 rounded-[28px] bg-primary/5 border border-primary/10 space-y-1">
                   <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Objetivo</p>
-                  <p className="text-2xl font-black text-primary">{formatCurrency(goal.target_amount)}</p>
+                  <p className="text-2xl font-black text-primary">{formatarMoeda(goal.target_amount)}</p>
                 </div>
                 <div className="p-5 rounded-[28px] bg-emerald-500/5 border border-emerald-500/10 space-y-1">
                   <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60">Já Guardado</p>
-                  <p className="text-2xl font-black text-emerald-600">{formatCurrency(goal.current_amount)}</p>
+                  <p className="text-2xl font-black text-emerald-600">{formatarMoeda(goal.current_amount)}</p>
                 </div>
               </div>
 
@@ -262,7 +266,7 @@ export function GoalDetails({
                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Progresso</p>
                     <p className="text-sm font-bold">{Math.round(goal.progress_percentage)}% Concluído</p>
                   </div>
-                  <p className="text-sm font-black text-primary">Faltam {formatCurrency(goal.amount_remaining)}</p>
+                  <p className="text-sm font-black text-primary">Faltam {formatarMoeda(goal.amount_remaining)}</p>
                 </div>
                 <Progress value={goal.progress_percentage} className="h-4 rounded-full bg-muted/50 shadow-inner" />
               </div>
@@ -320,7 +324,7 @@ export function GoalDetails({
                                   <div className="bg-background/90 backdrop-blur-md border border-border/40 p-3 rounded-2xl shadow-xl min-w-[120px]">
                                     <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">{label}</p>
                                     <div className="flex items-center gap-4">
-                                      <span className="text-[11px] font-black text-primary">{formatCurrency(payload[0].value as number)}</span>
+                                      <span className="text-[11px] font-black text-primary">{formatarMoeda(payload[0].value as number)}</span>
                                     </div>
                                   </div>
                                 )
@@ -386,7 +390,7 @@ export function GoalDetails({
                   </div>
                   <div className="space-y-1">
                     <p className="text-xs font-medium text-muted-foreground">Economia Média</p>
-                    <p className="text-lg font-black">{formatCurrency(insights?.monthlyAvg || 0)}/mês</p>
+                    <p className="text-lg font-black">{formatarMoeda(insights?.monthlyAvg || 0)}/mês</p>
                   </div>
                 </div>
 

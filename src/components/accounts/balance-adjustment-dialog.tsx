@@ -19,6 +19,7 @@ import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account } from "@/types/accounts"
 import { MoneyInput } from "@/components/ui/money-input"
 import { cn } from "@/lib/utils"
+import { deCentavos, paraCentavos, formatarMoeda } from "@/lib/dinheiro"
 
 interface BalanceAdjustmentDialogProps {
   open: boolean
@@ -28,13 +29,13 @@ interface BalanceAdjustmentDialogProps {
 }
 
 export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess }: BalanceAdjustmentDialogProps) {
-  const [newBalance, setNewBalance] = useState<number>(0)
+  const [newBalance, setNewBalance] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     if (open && account) {
       // A API manda o saldo como texto decimal ("1000.10")
-      setNewBalance(Number(account.balance))
+      setNewBalance(account.balance)
     }
   }, [open, account])
 
@@ -48,12 +49,9 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
 
     setIsLoading(true)
     try {
-      // O backend calcula a diferença em decimal (SALDO-41). O valor vem do
-      // MoneyInput como centavos/100; Math.round(valor*100) recupera os
-      // centavos inteiros, e toFixed(2) de centavos/100 sempre devolve esses
-      // centavos, porque o double mais próximo de um valor com duas casas
-      // fica a menos de meio centavo dele (até 15 dígitos significativos).
-      const new_balance = (Math.round(newBalance * 100) / 100).toFixed(2)
+      // O backend calcula a diferença em decimal (SALDO-41). O MoneyInput
+      // entrega o texto decimal; a conta é em centavos (CONTRATO-17).
+      const new_balance = deCentavos(paraCentavos(newBalance))
       await api.post(`/accounts/${account.id}/adjust-balance/`, { new_balance })
 
       toast.success("Saldo reajustado com sucesso!", {
@@ -69,15 +67,8 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
     }
   }
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
-
   // Diferença prevista em centavos inteiros, só para exibir e bloquear o envio
-  const difference = (Math.round(newBalance * 100) - Math.round(Number(account?.balance || 0) * 100)) / 100
+  const difference = paraCentavos(newBalance) - paraCentavos(account?.balance)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -101,18 +92,17 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
           <div className="space-y-6">
             <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 flex flex-col gap-1">
                 <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Saldo Atual</span>
-                <span className="text-xl font-black tabular-nums">{formatCurrency(Number(account?.balance || 0))}</span>
+                <span className="text-xl font-black tabular-nums">{formatarMoeda(account?.balance)}</span>
             </div>
 
             <div className="space-y-3">
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground pl-1">Novo Saldo Disponível</Label>
               <div className="relative group">
-                <div className="absolute left-4 top-1/2 -translate-y-1/2 flex items-center justify-center w-6 h-6 rounded-lg bg-primary/10 text-primary font-black text-[11px]">
-                    R$
-                </div>
                 <MoneyInput 
                   value={newBalance}
-                  onValueChange={setNewBalance}
+                  onValueChange={(valor) => setNewBalance(valor ?? "")}
+                  // CONTRATO-20: o novo saldo pode ser negativo
+                  permitirNegativo
                   className="h-14 pl-12 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-black tracking-tight text-xl"
                   autoFocus
                 />
@@ -129,7 +119,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
                         <div className="flex flex-col gap-0.5">
                             <span className="text-[10px] font-black uppercase tracking-widest opacity-70">Movimentação Prevista</span>
                             <p className="text-xs font-bold leading-relaxed">
-                                Será gerada uma <span className={difference > 0 ? "text-emerald-600" : "text-rose-600"}>{difference > 0 ? "Receita" : "Despesa"}</span> no valor de <strong>{formatCurrency(Math.abs(difference))}</strong> para ajustar o saldo.
+                                Será gerada uma <span className={difference > 0 ? "text-emerald-600" : "text-rose-600"}>{difference > 0 ? "Receita" : "Despesa"}</span> no valor de <strong>{formatarMoeda(deCentavos(Math.abs(difference)))}</strong> para ajustar o saldo.
                             </p>
                         </div>
                     </div>

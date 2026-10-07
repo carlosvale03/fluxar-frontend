@@ -24,7 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
+import { MoneyInput } from "@/components/ui/money-input"
 import {
   Select,
   SelectContent,
@@ -38,19 +38,14 @@ import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
-
-const parseAmount = (val: string) => {
-  if (val.includes(',')) {
-    return Number(val.replace(/\./g, '').replace(',', '.'));
-  }
-  return Number(val);
-};
+import { maiorQueZero } from "@/lib/dinheiro"
+import { hojeNaApi } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
 
 const depositSchema = z.object({
-  amount: z.string().refine((val) => {
-    const num = parseAmount(val);
-    return !isNaN(num) && num > 0;
-  }, {
+  // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e entrega
+  // o texto decimal ("1500.00") que vai à API
+  amount: z.string().refine(maiorQueZero, {
     message: "O valor deve ser maior que zero",
   }),
   account_from: z.string().min(1, "Selecione a conta de origem"),
@@ -89,7 +84,8 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
       const data = await accountsService.getAccounts()
       setAccounts(data)
     } catch (error) {
-      console.error("Failed to fetch accounts", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -99,17 +95,22 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
     try {
       setIsLoading(true)
       await goalsService.deposit(goal.id, {
-        amount: parseAmount(values.amount),
+        amount: values.amount,
         account_from: values.account_from,
-        datetime: new Date().toISOString(),
+        // CONTRATO-25: a data do aporte vai sem hora, no calendário do usuário
+        date: hojeNaApi(),
       })
 
       toast.success("Aporte realizado com sucesso!")
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to deposit", error)
-      toast.error("Erro ao realizar aporte.")
+      // CONTRATO-30: o erro de cada campo vai para o campo
+      tratarErro(error, {
+        form,
+        campos: { amount: "amount", account_from: "account_from", account_id: "account_from" },
+        mensagemPadrao: "Erro ao realizar aporte.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -169,12 +170,14 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
                     <FormLabel className="text-[10px] font-black uppercase tracking-widest opacity-40">Valor do Aporte (R$)</FormLabel>
                     <FormControl>
                       <div className="relative group">
-                        <Input 
-                          placeholder="0,00" 
-                          {...field} 
-                          className="rounded-2xl border-border/40 bg-muted/20 px-12 focus:bg-background h-14 text-xl font-black text-emerald-600 transition-all"
+                        <MoneyInput 
+                          name={field.name}
+                          ref={field.ref}
+                          value={field.value}
+                          onValueChange={(valor) => field.onChange(valor ?? "")}
+                          onBlur={field.onBlur}
+                          className="rounded-2xl border-border/40 bg-muted/20 px-4 focus:bg-background h-14 text-xl font-black text-emerald-600 transition-all"
                         />
-                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-emerald-500 font-bold">R$</span>
                       </div>
                     </FormControl>
                     <FormMessage />

@@ -36,6 +36,8 @@ import { api } from "@/services/apiClient"
 import { Account, AccountType, AccountTypeLabels } from "@/types/accounts"
 import { BANKS } from "@/data/banks"
 import { cn } from "@/lib/utils"
+import { deCentavos, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 const PRESET_COLORS = [
   "#6366f1", // Indigo
@@ -59,7 +61,8 @@ const PRESET_COLORS = [
 const accountSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   type: z.nativeEnum(AccountType),
-  initial_balance: z.string().refine((val) => !isNaN(Number(val)), {
+  // CONTRATO-17: o saldo inicial vai à API como texto decimal ("1234.56")
+  initial_balance: z.string().refine((val) => !isNaN(paraCentavos(val)), {
       message: "Valor deve ser um número válido",
   }),
   institution: z.string().optional(),
@@ -102,6 +105,7 @@ export function AccountFormDialog({
     setValue,
     reset,
     watch,
+    setError,
     formState: { errors },
   } = useForm<AccountFormValues>({
     resolver: zodResolver(accountSchema),
@@ -136,7 +140,7 @@ export function AccountFormDialog({
       reset({
         name: account.name,
         type: account.type,
-        initial_balance: account.initial_balance.toString(),
+        initial_balance: account.initial_balance,
         institution: account.institution || "other",
         color: account.color || "#6366f1",
         is_active: account.is_active,
@@ -158,7 +162,7 @@ export function AccountFormDialog({
     try {
       const payload = {
           ...data,
-          initial_balance: Number(data.initial_balance),
+          initial_balance: deCentavos(paraCentavos(data.initial_balance)),
           is_active: data.is_active ?? true,
           institution: data.institution === "other" ? "" : data.institution
       }
@@ -173,13 +177,13 @@ export function AccountFormDialog({
       
       setOpen?.(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error("Erro ao salvar conta:", error.response?.data)
-      let msg = "Erro ao salvar conta."
-      if (error.response?.data) {
-        msg = typeof error.response.data === 'string' ? error.response.data : (error.response.data.detail || Object.values(error.response.data)[0])
-      }
-      toast.error(msg)
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form: { setError },
+        campos: ["name", "initial_balance"],
+        mensagemPadrao: "Erro ao salvar conta.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -309,8 +313,8 @@ export function AccountFormDialog({
                             <div className="relative group">
                                 <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
                                 <MoneyInput 
-                                    value={Number(watch("initial_balance"))}
-                                    onValueChange={(val) => setValue("initial_balance", val.toString())}
+                                    value={watch("initial_balance")}
+                                    onValueChange={(val) => setValue("initial_balance", val ?? "")}
                                     className="h-12 pl-10 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-tight"
                                 />
                             </div>

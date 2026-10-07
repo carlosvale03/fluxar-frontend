@@ -41,7 +41,7 @@ import { Label } from "@/components/ui/label"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
-import { api, mensagemDeErro } from "@/services/apiClient"
+import { api } from "@/services/apiClient"
 import { lerData } from "@/lib/datas"
 import { Category } from "@/types/categories"
 import { CreditCard as CreditCardType } from "@/types/cards"
@@ -51,11 +51,14 @@ import { Transaction } from "@/types/transactions"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
+import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   category_id: z.string().min(1, "Selecione uma categoria."),
   card_id: z.string().min(1, "Selecione um cartão."),
@@ -83,7 +86,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
       description: "",
-      amount: 0,
+      amount: "",
       category_id: "",
       card_id: "",
       installments: 1,
@@ -102,7 +105,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
             // Edit Mode
             form.reset({
                 description: initialData.description,
-                amount: Number(initialData.amount),
+                amount: initialData.amount,
                 // FATURA-16: a data da compra; compras antigas só têm a data gravada
                 date: lerData(initialData.purchase_date || initialData.date),
                 category_id: (typeof initialData.category === 'object' ? (initialData.category as any).id : initialData.category) || initialData.category_detail?.id || "",
@@ -115,7 +118,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
             // Create Mode
             form.reset({
                 description: "",
-                amount: 0,
+                amount: "",
                 date: new Date(),
                 category_id: "",
                 card_id: "",
@@ -134,7 +137,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               api.get("/credit-cards/")
           ])
           
-          let rawCats: Category[] = catRes.data.results || catRes.data || []
+          let rawCats: Category[] = catRes.data
           
           // Organizar hierarquicamente (Flattened)
           const organized: any[] = []
@@ -153,7 +156,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           })
           
           setCategories(organized)
-          setCards(cardRes.data.results || cardRes.data || [])
+          setCards(cardRes.data)
       } catch (error) {
           console.error("Failed to fetch resources", error)
           toast.error("Erro ao carregar dados.")
@@ -201,14 +204,24 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
 
       onSuccess()
       onOpenChange(false)
-    } catch (error: any) {
-      console.error("Error submitting card expense:", error)
-      if (error.response) {
-          console.error("Server Response Status:", error.response.status)
-          console.error("Server Response Data:", error.response.data)
-      }
-      // FATURA-19: a recusa da compra em fatura paga vem no detail
-      toast.error(mensagemDeErro(error, "Erro ao salvar despesa. Verifique os dados."))
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo. FATURA-19: a
+      // recusa da compra em fatura paga vem no detail, que vai ao Sonner
+      tratarErro(error, {
+        form,
+        campos: {
+          description: "description",
+          amount: "amount",
+          date: "date",
+          purchase_date: "date",
+          credit_card: "card_id",
+          category: "category_id",
+          installments: "installments",
+          tags: "tags",
+          update_scope: "update_scope",
+        },
+        mensagemPadrao: "Erro ao salvar despesa. Verifique os dados.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -288,10 +301,9 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Valor Total</FormLabel>
                             <FormControl>
                                 <div className="relative">
-                                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground font-medium">R$</span>
                                   <MoneyInput 
-                                      value={field.value}
-                                      onValueChange={field.onChange}
+                                      value={field.value ?? ""}
+                                      onValueChange={(valor) => field.onChange(valor ?? "")}
                                       className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
                                   />
                                 </div>

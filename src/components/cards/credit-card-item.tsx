@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { BANKS } from "@/data/banks"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 interface CreditCardItemProps {
   card: CreditCard
@@ -16,19 +17,12 @@ interface CreditCardItemProps {
 
 export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) {
   const router = useRouter()
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
 
-  // Calculate generic usage (mock if invoice data is missing)
-  const limit = Number(card.limit) || 0
-  const currentTotal = Number(card.current_invoice_total) || 0
+  // CONTRATO-16: os valores chegam como texto; a conta é feita em centavos
+  const limit = paraCentavos(card.limit) || 0
+  const currentTotal = card.current_invoice_total
   // FATURA-42: o limite disponível vem só do backend
-  const available = Number(card.available_limit)
+  const available = paraCentavos(card.available_limit)
   
   // O limite utilizado é a diferença entre o limite total e o disponível
   const usedAmount = limit - available
@@ -131,7 +125,7 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
               <div className="text-right shrink-0">
                   <h4 className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase mb-1">Fatura Atual</h4>
                   <p className="text-xl font-black text-white drop-shadow-lg leading-none">
-                    {formatCurrency(currentTotal)}
+                    {formatarMoeda(currentTotal)}
                   </p>
               </div>
           </div>
@@ -141,9 +135,9 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
       <div className="z-10 space-y-3">
           <div className="space-y-1.5">
              <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/50">
-                 <span>Utilizado: {formatCurrency(usedAmount)}</span>
+                 <span>Utilizado: {formatarMoeda(deCentavos(usedAmount))}</span>
                  <div className="flex items-center gap-3">
-                    <span>Limite: {formatCurrency(limit)}</span>
+                    <span>Limite: {formatarMoeda(card.limit)}</span>
                     {/* Mastercard Circles Effect */}
                     <div className="flex -space-x-2.5 opacity-40 group-hover:opacity-70 transition-opacity">
                         <div className="h-6 w-6 rounded-full bg-white/40 border border-white/20" />

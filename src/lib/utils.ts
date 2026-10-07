@@ -24,10 +24,5 @@ export function getAbsoluteUrl(path?: string | null) {
   return `${baseUrl}${finalPath.startsWith("/") ? "" : "/"}${finalPath}`
 }
 
-export function formatCurrency(value: number | string) {
-  const amount = typeof value === "string" ? parseFloat(value) : value
-  return new Intl.NumberFormat("pt-BR", {
-    style: "currency",
-    currency: "BRL",
-  }).format(amount)
-}
+// CONTRATO-18: o formatador único fica em src/lib/dinheiro.ts
+export { formatarMoeda as formatCurrency } from "@/lib/dinheiro"

@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Check, Plus, Tag as TagIcon, X, Search, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { tratarErro } from "@/lib/erros"
 
 interface TagSelectorProps {
   selectedTagIds: string[]
@@ -22,17 +23,19 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
   const [isCreating, setIsCreating] = useState(false)
   const [isOpen, setIsOpen] = useState(false)
 
-  useEffect(() => {
-    const fetchTags = async () => {
-      try {
-        const data = await getTags()
-        setAvailableTags(data)
-      } catch (error) {
-        console.error("Erro ao carregar tags:", error)
-      } finally {
-        setIsLoading(false)
-      }
+  const fetchTags = async () => {
+    try {
+      setIsLoading(true)
+      const data = await getTags()
+      setAvailableTags(data)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar tags.", tentarDeNovo: fetchTags })
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchTags()
   }, [])
 
@@ -63,7 +66,8 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
       onChange([...selectedTagIds, newTag.id])
       setSearchTerm("")
     } catch (error) {
-      console.error("Erro ao criar tag:", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao criar a tag." })
     } finally {
       setIsCreating(false)
     }

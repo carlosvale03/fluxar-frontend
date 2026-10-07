@@ -26,6 +26,8 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { api } from "@/services/apiClient"
 import { Invoice } from "@/types/cards"
 import { lerData, nomeDoMes } from "@/lib/datas"
+import { formatarMoeda } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 interface Transaction {
   id: string
@@ -67,17 +69,11 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
       const response = await api.get(`/invoices/${invoice.id}/transactions/`)
       setTransactions(response.data)
     } catch (error) {
-      console.error("Erro ao buscar transações da fatura", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar as compras da fatura.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
   }
 
   return (
@@ -102,7 +98,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
               <div className="text-right">
                 <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest mb-1">Total da Fatura</p>
                 <p className="text-2xl font-black tracking-tighter text-primary">
-                  {formatCurrency(Number(invoice.total_amount))}
+                  {formatarMoeda(invoice.total_amount)}
                 </p>
               </div>
             )}
@@ -173,7 +169,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
                     </div>
                     <div className="text-right">
                       <span className="font-black text-sm tabular-nums">
-                        {formatCurrency(Number(tx.amount))}
+                        {formatarMoeda(tx.amount)}
                       </span>
                     </div>
                   </div>

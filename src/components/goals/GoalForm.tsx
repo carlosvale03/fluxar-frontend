@@ -41,27 +41,23 @@ import {
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { formatarMoeda, maiorQueZero } from "@/lib/dinheiro"
+import { lerData, paraApi } from "@/lib/datas"
+import { MoneyInput } from "@/components/ui/money-input"
 import { Goal } from "@/types/goals"
 import { Account, AccountType } from "@/types/accounts"
 import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { BANKS } from "@/data/banks"
 import { toast } from "sonner"
-
-const parseAmount = (val: string) => {
-  if (val.includes(',')) {
-    return Number(val.replace(/\./g, '').replace(',', '.'));
-  }
-  return Number(val);
-};
+import { tratarErro } from "@/lib/erros"
 
 const goalSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
   description: z.string().optional(),
-  target_amount: z.string().refine((val) => {
-    const num = parseAmount(val);
-    return !isNaN(num) && num > 0;
-  }, {
+  // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e entrega
+  // o texto decimal ("1500.00") que vai à API
+  target_amount: z.string().refine(maiorQueZero, {
     message: "Valor deve ser maior que zero",
   }),
   target_date: z.date().optional().nullable(),
@@ -135,8 +131,9 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       form.reset({
         name: initialData.name,
         description: initialData.description || "",
-        target_amount: initialData.target_amount.toString(),
-        target_date: initialData.target_date ? new Date(initialData.target_date) : null,
+        target_amount: initialData.target_amount,
+        // CONTRATO-24: a data-alvo não tem hora; lida no dia gravado
+        target_date: initialData.target_date ? lerData(initialData.target_date) : null,
         image: initialData.image || null,
         account: initialData.account || null,
       })
@@ -165,7 +162,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       const filtered = accounts.filter((acc: Account) => acc.type === AccountType.PIGGY_BANK && acc.is_active)
       setPiggyBanks(filtered)
     } catch (error) {
-      console.error("Failed to fetch piggy banks", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar os cofrinhos.", tentarDeNovo: fetchPiggyBanks })
     }
   }
 
@@ -186,8 +184,9 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       setIsLoading(true)
       const data: any = {
         ...values,
-        target_amount: parseAmount(values.target_amount),
-        target_date: values.target_date ? format(values.target_date, "yyyy-MM-dd") : undefined,
+        target_amount: values.target_amount,
+        // CONTRATO-25: enviada como AAAA-MM-DD, sem hora
+        target_date: values.target_date ? paraApi(values.target_date) : undefined,
       }
 
       // Se for cofrinho existente, limpa os campos de novo cofrinho
@@ -210,8 +209,12 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      console.error("Failed to save goal", error)
-      toast.error("Erro ao salvar meta.")
+      // CONTRATO-30: o erro de cada campo vai para o campo
+      tratarErro(error, {
+        form,
+        campos: ["name", "description", "target_amount", "target_date", "account", "cofrinho_name", "institution", "color", "image"],
+        mensagemPadrao: "Erro ao salvar meta.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -272,12 +275,14 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                         <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Valor Alvo (R$)</FormLabel>
                         <FormControl>
                           <div className="relative group">
-                            <Input 
-                              placeholder="0,00" 
-                              {...field} 
-                              className="rounded-[20px] border-border/40 bg-muted/20 h-12 pl-10 focus:bg-background/80 transition-all font-black text-primary placeholder:text-foreground/50"
+                            <MoneyInput 
+                              name={field.name}
+                              ref={field.ref}
+                              value={field.value}
+                              onValueChange={(valor) => field.onChange(valor ?? "")}
+                              onBlur={field.onBlur}
+                              className="rounded-[20px] border-border/40 bg-muted/20 h-12 px-4 focus:bg-background/80 transition-all font-black text-primary placeholder:text-foreground/50"
                             />
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-primary font-bold text-xs">R$</span>
                           </div>
                         </FormControl>
                         <FormMessage />
@@ -448,7 +453,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                                       />
                                       <div className="flex flex-col">
                                         <span className="font-black text-xs group-focus:text-primary-foreground transition-colors">{bank.name}</span>
-                                        <span className="text-[8px] font-bold uppercase opacity-70 group-focus:text-primary-foreground/80 transition-colors">Saldo real: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(bank.balance)}</span>
+                                        <span className="text-[8px] font-bold uppercase opacity-70 group-focus:text-primary-foreground/80 transition-colors">Saldo real: {formatarMoeda(bank.balance)}</span>
                                       </div>
                                     </div>
                                   </SelectItem>

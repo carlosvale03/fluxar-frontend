@@ -26,6 +26,8 @@ import { InvoiceList } from "@/components/cards/invoice-list"
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 import { Invoice } from "@/types/cards"
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
+import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 export default function CardDetailsPage() {
   const params = useParams()
@@ -53,7 +55,8 @@ export default function CardDetailsPage() {
               const accResponse = await api.get(`/accounts/${cardData.account_id}/`)
               setAccount(accResponse.data)
           } catch (err) {
-              console.error("Erro ao buscar conta vinculada", err)
+              // CONTRATO-33: nenhuma falha silenciosa
+              tratarErro(err, { mensagemPadrao: "Erro ao carregar a conta do cartão.", tentarDeNovo: fetchCard })
           }
       }
     } catch (error) {
@@ -67,13 +70,6 @@ export default function CardDetailsPage() {
   useEffect(() => {
     if (id) fetchCard()
   }, [id, router])
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
-  }
 
   const getGradientStyle = (color: string | undefined | null) => {
       const c = color || "#000000"
@@ -130,10 +126,11 @@ export default function CardDetailsPage() {
     return "bg-red-500"
   }
 
-  const limit = Number(card.limit) || 0
+  // CONTRATO-16: os valores chegam como texto; a conta é feita em centavos
+  const limit = paraCentavos(card.limit) || 0
   // FATURA-42: o limite disponível vem só do backend
-  const available = Number(card.available_limit)
-  const usedAmount = limit - available
+  const available = card.available_limit
+  const usedAmount = limit - paraCentavos(available)
   const usagePercentage = limit > 0 ? Math.min((usedAmount / limit) * 100, 100) : 0
   const progressColor = getProgressColor(usagePercentage)
 
@@ -215,7 +212,7 @@ export default function CardDetailsPage() {
               <CardContent className="space-y-6 pt-4">
                   <div>
                       <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Limite Total</p>
-                      <p className="text-4xl font-black tracking-tighter">{formatCurrency(card.limit)}</p>
+                      <p className="text-4xl font-black tracking-tighter">{formatarMoeda(card.limit)}</p>
                   </div>
                   
                   <div className="grid grid-cols-2 gap-3">
@@ -258,7 +255,7 @@ export default function CardDetailsPage() {
                   <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
                       <div className="space-y-1">
                           <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Valor Parcial</p>
-                          <div className="text-4xl font-black tracking-tighter">{formatCurrency(card.current_invoice_total || 0)}</div>
+                          <div className="text-4xl font-black tracking-tighter">{formatarMoeda(card.current_invoice_total)}</div>
                           {/* FATURA-06: o próximo vencimento calculado pelo backend */}
                           {card.next_due_date && (
                               <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1 mt-2">
@@ -271,7 +268,7 @@ export default function CardDetailsPage() {
                           <div className="space-y-1.5">
                               <div className="flex justify-between items-end">
                                   <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Limite Disponível</span>
-                                  <span className="text-sm font-black tabular-nums">{formatCurrency(available)}</span>
+                                  <span className="text-sm font-black tabular-nums">{formatarMoeda(available)}</span>
                               </div>
                               <div className="h-3 w-full bg-muted/50 rounded-full overflow-hidden border border-border/20 p-0.5">
                                    <div 

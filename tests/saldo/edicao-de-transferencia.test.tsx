@@ -53,7 +53,8 @@ async function editarValorPara150(perna: typeof SAIDA) {
   render(
     <TransferFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} initialData={perna as unknown as Transaction} />
   )
-  const valor = await screen.findByDisplayValue("100,00")
+  // CONTRATO-19: o campo de dinheiro mostra o valor em reais
+  const valor = await screen.findByDisplayValue(/^R\$\s100,00$/)
   fireEvent.change(valor, { target: { value: "150,00" } })
   await userEvent.click(screen.getByRole("button", { name: /salvar alterações/i }))
   await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
@@ -75,7 +76,7 @@ describe("Edição de transferência", () => {
     expect(corpo).toMatchObject({
       account: "conta-a",
       target_account_id: "conta-b",
-      amount: 150,
+      amount: "150.00",
       date: "2026-10-01",
       description: "Reserva",
     })
@@ -89,7 +90,7 @@ describe("Edição de transferência", () => {
     expect(corpo).toMatchObject({
       account: "conta-b",
       target_account_id: "conta-a",
-      amount: 150,
+      amount: "150.00",
       date: "2026-10-01",
       description: "Reserva",
     })

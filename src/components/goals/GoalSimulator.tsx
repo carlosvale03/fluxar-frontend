@@ -36,6 +36,7 @@ import {
 } from "recharts"
 import { Goal } from "@/types/goals"
 import { cn, formatCurrency } from "@/lib/utils"
+import { paraCentavos } from "@/lib/dinheiro"
 import { differenceInMonths, addMonths, format, differenceInDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -57,7 +58,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
     const today = new Date()
     const createdAt = new Date(goal.created_at)
     const daysSinceStart = Math.max(1, differenceInDays(today, createdAt))
-    const dailyAvg = goal.current_amount / daysSinceStart
+    const dailyAvg = paraCentavos(goal.current_amount) / 100 / daysSinceStart
     return {
       dailyAvg,
       monthlyAvg: dailyAvg * 30 || 1 // Fallback para 1 para evitar divisão por zero se for nova
@@ -69,7 +70,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
     if (!goal) return null
 
     const today = new Date()
-    const remainingAmount = Number(goal.target_amount) - Number(goal.current_amount)
+    const remainingAmount = (paraCentavos(goal.target_amount) / 100) - (paraCentavos(goal.current_amount) / 100)
     
     // Caminho Atual
     const currentMonthlyRate = baseMetrics.monthlyAvg
@@ -83,7 +84,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
     const simulatedTargetDate = addMonths(today, simulatedMonthsRemaining)
 
     const monthsSaved = Math.max(0, currentMonthsRemaining - simulatedMonthsRemaining)
-    const progressIncrease = (initialLumpSum / Number(goal.target_amount)) * 100
+    const progressIncrease = (initialLumpSum / (paraCentavos(goal.target_amount) / 100)) * 100
 
     return {
       currentMonthsRemaining,
@@ -109,14 +110,14 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
       
       // Cálculo atual
       const currentVal = Math.min(
-        Number(goal.target_amount),
-        Number(goal.current_amount) + (baseMetrics.monthlyAvg * i)
+        (paraCentavos(goal.target_amount) / 100),
+        (paraCentavos(goal.current_amount) / 100) + (baseMetrics.monthlyAvg * i)
       )
 
       // Cálculo simulado
       const simulatedVal = Math.min(
-        Number(goal.target_amount),
-        Number(goal.current_amount) + initialLumpSum + ((baseMetrics.monthlyAvg + extraMonthly) * i)
+        (paraCentavos(goal.target_amount) / 100),
+        (paraCentavos(goal.current_amount) / 100) + initialLumpSum + ((baseMetrics.monthlyAvg + extraMonthly) * i)
       )
 
       data.push({
@@ -181,14 +182,14 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                   <Slider
                     value={[extraMonthly]}
                     onValueChange={(vals) => setExtraMonthly(vals[0])}
-                    max={Number(goal.target_amount) * 0.5}
-                    step={Math.max(1, Math.round(Number(goal.target_amount) * 0.01))}
+                    max={(paraCentavos(goal.target_amount) / 100) * 0.5}
+                    step={Math.max(1, Math.round((paraCentavos(goal.target_amount) / 100) * 0.01))}
                     className="py-4"
                   />
                   <div className="flex justify-between px-1 text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
                     <span>R$ 0</span>
                     <span>Modo Foguete</span>
-                    <span>Max {formatCurrency(Number(goal.target_amount) * 0.5)}</span>
+                    <span>Max {formatCurrency((paraCentavos(goal.target_amount) / 100) * 0.5)}</span>
                   </div>
                 </div>
 
@@ -206,14 +207,14 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                   <Slider
                     value={[initialLumpSum]}
                     onValueChange={(vals) => setInitialLumpSum(vals[0])}
-                    max={Number(goal.target_amount)}
-                    step={Math.max(1, Math.round(Number(goal.target_amount) * 0.02))}
+                    max={(paraCentavos(goal.target_amount) / 100)}
+                    step={Math.max(1, Math.round((paraCentavos(goal.target_amount) / 100) * 0.02))}
                     className="py-4"
                   />
                   <div className="flex justify-between px-1 text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
                     <span>R$ 0</span>
                     <span>Salto no Progresso</span>
-                    <span>Max {formatCurrency(Number(goal.target_amount))}</span>
+                    <span>Max {formatCurrency((paraCentavos(goal.target_amount) / 100))}</span>
                   </div>
                 </div>
               </div>
@@ -302,7 +303,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                           dy={10}
                           interval="preserveStartEnd"
                         />
-                        <YAxis hide domain={[0, goal.target_amount]} />
+                        <YAxis hide domain={[0, paraCentavos(goal.target_amount) / 100]} />
                         <Tooltip 
                           cursor={{ stroke: '#00A8E8', strokeWidth: 1, strokeDasharray: '4 4' }}
                           content={({ active, payload, label }) => {
@@ -327,7 +328,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                           }}
                         />
                         <ReferenceLine 
-                          y={goal.target_amount} 
+                          y={paraCentavos(goal.target_amount) / 100} 
                           stroke="#00A8E8" 
                           strokeDasharray="5 5" 
                           opacity={0.15}

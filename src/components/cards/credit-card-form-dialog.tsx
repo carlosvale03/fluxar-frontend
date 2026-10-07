@@ -18,6 +18,7 @@ import {
   ChevronUp
 } from "lucide-react"
 import { MoneyInput } from "@/components/ui/money-input"
+import { formatarMoeda, maiorQueZero } from "@/lib/dinheiro"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -43,12 +44,14 @@ import { api } from "@/services/apiClient"
 import { CreditCard } from "@/types/cards"
 import { BANKS } from "@/data/banks"
 import { Account, AccountType } from "@/types/accounts"
+import { tratarErro } from "@/lib/erros"
 
 // ...
 
 const cardSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  limit: z.string().refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
+  // CONTRATO-17: o limite vai à API como texto decimal ("1234.56")
+  limit: z.string().refine(maiorQueZero, {
       message: "Limite deve ser maior que zero",
   }),
   closing_day: z.string().refine((val) => {
@@ -98,6 +101,7 @@ export function CreditCardFormDialog({
     setValue,
     reset,
     watch,
+    setError,
     formState: { errors },
   } = useForm<CardFormValues>({
     resolver: zodResolver(cardSchema),
@@ -122,7 +126,7 @@ export function CreditCardFormDialog({
   useEffect(() => {
     if (open) {
         api.get("/accounts/").then(res => {
-            const data = Array.isArray(res.data) ? res.data : res.data.results
+            const data = res.data
             setAccounts(data || [])
         }).catch(err => {
             console.error("Failed to fetch accounts", err)
@@ -135,7 +139,7 @@ export function CreditCardFormDialog({
     if (card) {
       reset({
         name: card.name,
-        limit: card.limit.toString(),
+        limit: card.limit,
         closing_day: card.closing_day.toString(),
         due_day: card.due_day.toString(),
         institution: card.institution || "",
@@ -160,7 +164,7 @@ export function CreditCardFormDialog({
     try {
       const payload = {
           name: data.name,
-          limit: Number(data.limit),
+          limit: data.limit,
           closing_day: Number(data.closing_day),
           due_day: Number(data.due_day),
           institution: data.institution,
@@ -178,10 +182,13 @@ export function CreditCardFormDialog({
       
       if (setOpen) setOpen(false)
       onSuccess?.()
-    } catch (error: any) {
-      console.error(error)
-      const msg = error.response?.data?.detail || "Erro ao salvar cartão."
-      toast.error(msg)
+    } catch (error) {
+      // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
+      tratarErro(error, {
+        form: { setError },
+        campos: ["name", "limit", "closing_day", "due_day", "account_id"],
+        mensagemPadrao: "Erro ao salvar cartão.",
+      })
     } finally {
       setIsLoading(false)
     }
@@ -242,7 +249,7 @@ export function CreditCardFormDialog({
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold text-white/40 tracking-widest uppercase">Limite Total</p>
                                 <p className="text-lg font-black text-white leading-none">
-                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(watchedLimit) || 0)}
+                                    {formatarMoeda(watchedLimit)}
                                 </p>
                             </div>
                             <div className="flex -space-x-3 opacity-80">
@@ -386,10 +393,9 @@ export function CreditCardFormDialog({
                     <div className="space-y-2">
                         <Label htmlFor="limit" className="text-xs font-bold pl-1">Limite Total de Crédito</Label>
                         <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground/60 tracking-tight">R$</span>
                             <MoneyInput 
-                                value={Number(watch("limit"))}
-                                onValueChange={(val) => setValue("limit", val.toString())}
+                                value={watch("limit")}
+                                onValueChange={(val) => setValue("limit", val ?? "")}
                                 className="h-12 pl-12 rounded-xl border-border/60 font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
                             />
                         </div>

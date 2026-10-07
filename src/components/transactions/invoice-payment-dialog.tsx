@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { MoneyInput } from "@/components/ui/money-input"
+import { formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
 
@@ -48,9 +49,11 @@ import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { CreditCard, Invoice } from "@/types/cards"
+import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
-  amount: z.coerce.number().min(0.01, "O valor deve ser maior que 0."),
+  // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
+  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
   date: z.date(),
   account_id: z.string().min(1, "Selecione a conta de pagamento."),
   description: z.string().optional(),
@@ -64,7 +67,7 @@ interface InvoicePaymentDialogProps {
   onSuccess: () => void
   // New props for handling specific invoice payment
   invoiceId?: string
-  initialAmount?: number
+  initialAmount?: string
 }
 
 export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId: propInvoiceId, initialAmount }: InvoicePaymentDialogProps) {
@@ -89,7 +92,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
     defaultValues: {
-      amount: 0,
+      amount: "",
       date: new Date(),
       account_id: "",
       description: "Pagamento de Fatura",
@@ -99,10 +102,11 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
   const fetchAccounts = async () => {
     try {
         const response = await api.get("/accounts/")
-        const data = response.data.results || response.data || []
+        const data = response.data
         setAccounts(data)
     } catch (err) {
-        console.error("Erro ao buscar contas", err)
+        // CONTRATO-33: nenhuma falha silenciosa
+        tratarErro(err, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -117,7 +121,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                 
                 // 2. Reset form to defaults
                 form.reset({
-                    amount: initialAmount || 0,
+                    amount: initialAmount || "",
                     date: new Date(),
                     account_id: "",
                     description: "Pagamento de Fatura",
@@ -142,7 +146,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                     }
                 } else {
                     const cardsResponse = await api.get("/credit-cards/")
-                    setCards(cardsResponse.data.results || cardsResponse.data || [])
+                    setCards(cardsResponse.data)
                 }
             } catch (error) {
                 console.error("Initialization failed", error)
@@ -174,7 +178,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
       try {
           // Fetch invoices for the specific card
           const response = await api.get(`/credit-cards/${cardId}/invoices/`)
-          const allInvoices = response.data.results || response.data || []
+          const allInvoices = response.data
           
           // Client-side filtering to ensure PAID invoices are excluded
           // We only want OPEN, OVERDUE, or CLOSED (if not fully paid)
@@ -182,7 +186,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
           
           setInvoices(payableInvoices)
       } catch (error) {
-          console.error("Failed to fetch invoices", error)
+          // CONTRATO-33: nenhuma falha silenciosa
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar as faturas.", tentarDeNovo: () => fetchInvoices(cardId) })
       }
   }
 
@@ -352,10 +357,9 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                 <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Valor do Pagamento</FormLabel>
                                                 <FormControl>
                                                     <div className="relative group">
-                                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-muted-foreground/30 group-focus-within:text-purple-500 transition-colors">R$</span>
                                                         <MoneyInput 
-                                                            value={field.value}
-                                                            onValueChange={field.onChange}
+                                                            value={field.value ?? ""}
+                                                            onValueChange={(valor) => field.onChange(valor ?? "")}
                                                             className="h-14 pl-10 bg-card border-border/40 rounded-2xl focus-visible:ring-purple-500/20 font-black text-xl tracking-tighter"
                                                         />
                                                     </div>
@@ -446,7 +450,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         <div className="text-right">
                                             <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Total Previsto</p>
                                             <p className="text-sm font-black text-purple-600">
-                                                {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(selectedInvoiceObject.total_amount))}
+                                                {formatarMoeda(selectedInvoiceObject.total_amount)}
                                             </p>
                                         </div>
                                     </div>
@@ -490,7 +494,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                         const inv = invoices.find(i => i.id === val)
                                                         if (inv) {
                                                             setSelectedInvoiceObject(inv)
-                                                            form.setValue('amount', Number(inv.total_amount))
+                                                            form.setValue('amount', inv.total_amount)
                                                             const monthName = format(lerData(inv.due_date), "MMMM", { locale: ptBR })
                                                             const formattedDate = monthName.charAt(0).toUpperCase() + monthName.slice(1) + format(lerData(inv.due_date), "/yyyy")
                                                             form.setValue('description', `Fatura ${formattedDate}`)
@@ -514,7 +518,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                             <div className="flex items-center justify-between w-full min-w-[200px]">
                                                                                 <span className="font-black tracking-tight">{capitalizedMonth} {year}</span>
                                                                                 <span className="text-[10px] font-black text-purple-600 ml-4 bg-purple-500/5 px-2 py-1 rounded-lg">
-                                                                                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(inv.total_amount))}
+                                                                                    {formatarMoeda(inv.total_amount)}
                                                                                 </span>
                                                                             </div>
                                                                         </SelectItem>
@@ -568,7 +572,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                 <div className="text-right">
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Total Devido</p>
                                                     <p className="text-xl font-black tracking-tighter text-purple-600">
-                                                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(selectedInvoiceObject.total_amount))}
+                                                        {formatarMoeda(selectedInvoiceObject.total_amount)}
                                                     </p>
                                                 </div>
                                             </div>
@@ -576,9 +580,9 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             <div className="pt-2">
                                                 <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1.5 px-1">
                                                     <span>Progresso de Quitação</span>
-                                                    <span>{Math.round((form.watch('amount') / Number(selectedInvoiceObject.total_amount)) * 100)}%</span>
+                                                    <span>{Math.round((paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100)}%</span>
                                                 </div>
-                                                <Progress value={(form.watch('amount') / Number(selectedInvoiceObject.total_amount)) * 100} className="h-1.5 bg-muted/50 rounded-full overflow-hidden [&>div]:bg-purple-500" />
+                                                <Progress value={(paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100} className="h-1.5 bg-muted/50 rounded-full overflow-hidden [&>div]:bg-purple-500" />
                                             </div>
                                         </div>
                                     )}

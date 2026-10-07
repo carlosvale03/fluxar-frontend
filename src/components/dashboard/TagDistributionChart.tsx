@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { Tag as TagIcon, LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 interface DistributionData {
     id: string
@@ -31,21 +32,6 @@ interface TagDistributionChartProps {
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
 
-const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-        style: 'currency', 
-        currency: 'BRL',
-        maximumFractionDigits: 0
-    }).format(value)
-}
-
-const formatCurrencyFull = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { 
-        style: 'currency', 
-        currency: 'BRL'
-    }).format(value)
-}
-
 export function TagDistributionChart({
     title,
     description,
@@ -60,7 +46,10 @@ export function TagDistributionChart({
     endDate
 }: TagDistributionChartProps) {
     const router = useRouter()
-    const totalAmount = data.reduce((acc, curr) => acc + Number(curr.amount), 0)
+    // CONTRATO-16: os valores chegam como texto; a soma é feita em centavos
+    const totalAmount = deCentavos(data.reduce((acc, curr) => acc + paraCentavos(curr.amount), 0))
+    // O Recharts precisa de número: a conversão é só para plotar
+    const dadosDoGrafico = data.map(d => ({ ...d, amount: paraCentavos(d.amount) / 100 }))
 
     const handleTagClick = (item: DistributionData) => {
         const params = new URLSearchParams()
@@ -79,7 +68,7 @@ export function TagDistributionChart({
         router.push(`/transacoes?${params.toString()}`)
     }
 
-    const hasData = data && data.length > 0 && data.some(d => Number(d.amount) > 0)
+    const hasData = data && data.length > 0 && data.some(d => paraCentavos(d.amount) > 0)
 
     return (
         <Card className={cn(
@@ -110,7 +99,7 @@ export function TagDistributionChart({
                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                 <PieChart>
                                     <Pie
-                                        data={data}
+                                        data={dadosDoGrafico}
                                         cx="50%"
                                         cy="50%"
                                         innerRadius="65%"
@@ -142,7 +131,7 @@ export function TagDistributionChart({
                                                             <span className="text-sm font-black">{item.name}</span>
                                                         </div>
                                                         <p className="text-xs font-bold text-muted-foreground">
-                                                            {formatCurrencyFull(Number(item.amount))}
+                                                            {formatarMoeda(item.amount)}
                                                         </p>
                                                     </div>
                                                 )
@@ -154,7 +143,7 @@ export function TagDistributionChart({
                             </ResponsiveContainer>
                             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none z-0">
                                 <span className="block text-[8px] font-black uppercase tracking-tighter text-muted-foreground opacity-50">Total Tag</span>
-                                <span className="block text-xs sm:text-base lg:text-lg font-black">{formatCurrency(totalAmount)}</span>
+                                <span className="block text-xs sm:text-base lg:text-lg font-black">{formatarMoeda(totalAmount)}</span>
                             </div>
                         </div>
                         <div className="w-full sm:w-[160px] md:w-[150px] lg:w-[220px] xl:w-[240px] space-y-0.5 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar mt-4 sm:mt-0 shrink-0">
@@ -170,7 +159,7 @@ export function TagDistributionChart({
                                             {item.name}
                                         </span>
                                     </div>
-                                    <span className="text-[10px] sm:text-[11px] font-black shrink-0 ml-2">{formatCurrency(Number(item.amount))}</span>
+                                    <span className="text-[10px] sm:text-[11px] font-black shrink-0 ml-2">{formatarMoeda(item.amount)}</span>
                                 </div>
                             ))}
                         </div>

@@ -6,6 +6,9 @@ class ServerStatusManager {
     private listeners: Set<ServerStatusListener> = new Set();
     private isWakingUp = false;
     private activeRequests = 0;
+    // CONTRATO-35: o usuário fechou o aviso; ele não volta até as requisições
+    // ativas voltarem a zero (fim do episódio)
+    private dismissed = false;
     private wakeupTimers: Map<string, NodeJS.Timeout> = new Map();
 
     subscribe(listener: ServerStatusListener) {
@@ -22,7 +25,7 @@ class ServerStatusManager {
         
         // Se for o primeiro request ou estivermos monitorando, inicia o timer de 5s
         const timer = setTimeout(() => {
-            if (this.activeRequests > 0) {
+            if (this.activeRequests > 0 && !this.dismissed) {
                 this.isWakingUp = true;
                 this.notify();
             }
@@ -42,8 +45,15 @@ class ServerStatusManager {
 
         if (this.activeRequests === 0) {
             this.isWakingUp = false;
+            this.dismissed = false;
             this.notify();
         }
+    }
+
+    dismiss() {
+        this.dismissed = true;
+        this.isWakingUp = false;
+        this.notify();
     }
 }
 

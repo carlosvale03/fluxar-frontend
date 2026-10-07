@@ -46,6 +46,9 @@ import {
 import { toast } from "sonner"
 import { User } from "@/contexts/auth-context"
 import { getAbsoluteUrl } from "@/lib/utils"
+import { Paginacao } from "@/components/ui/paginacao"
+import { tratarErro } from "@/lib/erros"
+import { formatarMoeda } from "@/lib/dinheiro"
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -57,6 +60,10 @@ export default function UserDetailsPage() {
   const [user, setUser] = useState<User | null>(null)
   const [financialStats, setFinancialStats] = useState<UserFinancialStats | null>(null)
   const [logs, setLogs] = useState<SystemLog[]>([])
+  // CONTRATO-02 e CONTRATO-05: os logs do usuário vêm paginados
+  const [logsPage, setLogsPage] = useState(1)
+  const [logsCount, setLogsCount] = useState(0)
+  const [logsTotalPages, setLogsTotalPages] = useState(1)
 
   // Modal Alterar Plano
   const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false)
@@ -77,12 +84,18 @@ export default function UserDetailsPage() {
   const loadLogs = async () => {
     if (!userId) return
     try {
-        const logsData = await getUserLogs(userId)
-        setLogs(logsData)
+        const logsData = await getUserLogs(userId, logsPage)
+        setLogs(logsData.results)
+        setLogsCount(logsData.count)
+        setLogsTotalPages(logsData.total_pages)
     } catch (error) {
-        console.error("Erro ao carregar logs:", error)
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar os logs.", tentarDeNovo: loadLogs })
     }
   }
+
+  useEffect(() => {
+    loadLogs()
+  }, [userId, logsPage])
 
   useEffect(() => {
     async function loadData() {
@@ -90,18 +103,15 @@ export default function UserDetailsPage() {
 
         try {
             setIsLoading(true)
-            const [userData, statsData, logsData] = await Promise.all([
+            const [userData, statsData] = await Promise.all([
                 getAdminUser(userId),
-                getUserFinancialStats(userId),
-                getUserLogs(userId)
+                getUserFinancialStats(userId)
             ])
             setUser(userData)
             setFinancialStats(statsData)
-            setLogs(logsData)
             setNewPlan(userData.plan)
         } catch (error) {
-            console.error(error)
-            toast.error("Erro ao carregar detalhes do usuário.")
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar detalhes do usuário." })
             router.push("/admin/usuarios")
         } finally {
             setIsLoading(false)
@@ -204,9 +214,9 @@ export default function UserDetailsPage() {
       
       // Limpa os status financeiros locais para refletir na interface
       setFinancialStats({
-          total_balance: 0,
-          avg_income_value: 0,
-          avg_expense_value: 0,
+          total_balance: "0.00",
+          avg_income_value: "0.00",
+          avg_expense_value: "0.00",
           income_count_per_day: 0,
           expense_count_per_day: 0,
           last_transaction_date: "Sem dados"
@@ -340,7 +350,7 @@ export default function UserDetailsPage() {
                          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1 group hover:bg-emerald-500/15 transition-colors">
                              <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/70">Receitas (Méd. Valor)</p>
                              <p className="text-2xl font-black text-emerald-600 leading-tight">
-                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialStats?.avg_income_value || 0)}
+                                 {formatarMoeda(financialStats?.avg_income_value)}
                              </p>
                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600/60 uppercase pt-1">
                                 <Activity className="h-3 w-3" /> {financialStats?.income_count_per_day?.toFixed(1) || 0} registros/dia
@@ -349,7 +359,7 @@ export default function UserDetailsPage() {
                          <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-1 group hover:bg-red-500/15 transition-colors">
                              <p className="text-xs font-bold uppercase tracking-wider text-red-600/70">Despesas (Méd. Valor)</p>
                              <p className="text-2xl font-black text-red-600 leading-tight">
-                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialStats?.avg_expense_value || 0)}
+                                 {formatarMoeda(financialStats?.avg_expense_value)}
                              </p>
                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-red-600/60 uppercase pt-1">
                                 <Activity className="h-3 w-3" /> {financialStats?.expense_count_per_day?.toFixed(1) || 0} registros/dia
@@ -358,7 +368,7 @@ export default function UserDetailsPage() {
                           <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-1">
                              <p className="text-xs font-bold uppercase tracking-wider text-blue-600/70">Saldo Total</p>
                              <p className="text-2xl font-black text-blue-600">
-                                 {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(financialStats?.total_balance || 0)}
+                                 {formatarMoeda(financialStats?.total_balance)}
                              </p>
                              <Wallet className="h-4 w-4 text-blue-500 opacity-50" />
                          </div>
@@ -420,6 +430,15 @@ export default function UserDetailsPage() {
                         ))}
                     </div>
                 </CardContent>
+                <CardFooter className="p-0">
+                    <Paginacao
+                        pagina={logsPage}
+                        totalDePaginas={logsTotalPages}
+                        total={logsCount}
+                        rotulo="registros"
+                        onMudarPagina={setLogsPage}
+                    />
+                </CardFooter>
              </Card>
          </TabsContent>
 

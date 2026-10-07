@@ -22,6 +22,8 @@ import { Goal } from "@/types/goals"
 import { api } from "@/services/apiClient"
 import { toast } from "sonner"
 import { goalsService } from "@/services/goals"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { tratarErro } from "@/lib/erros"
 
 interface SpareChangeBankProps {
   goals: Goal[]
@@ -31,7 +33,8 @@ interface SpareChangeBankProps {
 interface RoundUpItem {
   id: string
   description: string
-  amount: number
+  amount: string
+  // CONTRATO-17: arredondamento em centavos inteiros
   roundUp: number
   account: string
   accountName: string
@@ -48,17 +51,17 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       setIsLoading(true)
       // Fetch recent transactions to calculate round-ups
       const response = await api.get<any>("/transactions/")
-      const transactions = Array.isArray(response.data) ? response.data : response.data.results || []
+      const transactions = response.data.results
       
       const roundUps: RoundUpItem[] = transactions
         .filter((t: any) => t.type === 'EXPENSE')
         .map((t: any) => {
-          const amount = Math.abs(t.amount)
-          const ceil = Math.ceil(amount)
-          const diff = ceil - amount
+          // CONTRATO-17: o troco até o próximo real, em centavos, sem ponto flutuante
+          const amount = Math.abs(paraCentavos(t.amount))
+          const diff = (100 - (amount % 100)) % 100
           
           // Only include if difference is > 0 and < 4 (as per user request)
-          if (diff > 0 && diff < 4) {
+          if (diff > 0 && diff < 400) {
             return {
               id: t.id,
               description: t.description,
@@ -74,7 +77,8 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
 
       setItems(roundUps)
     } catch (error) {
-      console.error("Failed to fetch transactions for round-up", error)
+      // CONTRATO-33: nenhuma falha silenciosa
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar as transações do cofrinho.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }
@@ -97,7 +101,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       const mainAccount = items[0]?.account
 
       await goalsService.deposit(selectedGoalId, {
-        amount: Number(totalRoundUp.toFixed(2)),
+        amount: deCentavos(totalRoundUp),
         account_from: mainAccount,
         description: `Troco de ${items.length} transações (Arredondamento Automático)`
       })
@@ -106,17 +110,10 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       setItems([])
       onSuccess()
     } catch (error) {
-      toast.error("Erro ao investir trocos.")
+      tratarErro(error, { mensagemPadrao: "Erro ao investir trocos." })
     } finally {
       setIsDepositing(false)
     }
-  }
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(value)
   }
 
   if (isLoading) return null
@@ -136,7 +133,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-black text-primary">{formatCurrency(totalRoundUp)}</p>
+            <p className="text-2xl font-black text-primary">{formatarMoeda(deCentavos(totalRoundUp))}</p>
             <p className="text-[10px] font-bold opacity-60">ACUMULADO</p>
           </div>
         </div>
@@ -179,7 +176,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
              <CheckCircle2 className="h-3.5 w-3.5" />
            </div>
            <p className="text-[10px] font-medium text-muted-foreground italic">
-             Detectamos <strong>{items.length}</strong> transações que podem ser arredondadas para poupar <strong>{formatCurrency(totalRoundUp)}</strong>.
+             Detectamos <strong>{items.length}</strong> transações que podem ser arredondadas para poupar <strong>{formatarMoeda(deCentavos(totalRoundUp))}</strong>.
            </p>
         </div>
       </CardContent>
