@@ -39,6 +39,7 @@ import { Category } from "@/types/categories"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { TagSelector } from "@/components/tags/TagSelector"
+import { usePlan } from "@/hooks/use-plan"
 import { tratarErro } from "@/lib/erros"
 
 interface TransactionFiltersProps {
@@ -57,6 +58,8 @@ export interface FilterState {
 }
 
 export function TransactionFilters({ onApplyFilters, currentFilters }: TransactionFiltersProps) {
+  // PERM-19: o filtro por tags some com `tags` fechado
+  const tagsLiberadas = usePlan().podeUsar("tags") === true
   const [isOpen, setIsOpen] = useState(false)
   
   // Local state for the filter form (not applied yet)
@@ -337,17 +340,19 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                 </div>
             </div>
 
-            {/* Tags Filter */}
+            {/* Tags Filter: só com `tags` aberto (PERM-19) */}
+            {tagsLiberadas && (
             <div className="space-y-3">
                 <div className="flex items-center gap-2 mb-1">
                    <TagIcon className="h-3.5 w-3.5 text-primary opacity-70" />
                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Etiquetas (Tags)</Label>
                 </div>
-                <TagSelector 
+                <TagSelector
                    selectedTagIds={tagIds}
                    onChange={setTagIds}
                 />
             </div>
+            )}
 
         </div>
 

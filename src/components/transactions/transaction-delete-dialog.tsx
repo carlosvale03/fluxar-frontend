@@ -14,6 +14,8 @@ import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { Transaction } from "@/types/transactions"
+import { usePlan } from "@/hooks/use-plan"
+import { AvisoCompacto } from "@/components/planos/recurso-bloqueado"
 
 interface TransactionDeleteDialogProps {
   open: boolean
@@ -31,7 +33,11 @@ export function TransactionDeleteDialog({
   const [isLoading, setIsLoading] = useState(false)
   const [deleteScope, setDeleteScope] = useState<"SINGLE" | "ALL">("SINGLE")
 
-  const isRecurring = !!transaction?.recurring_source
+  // PERM-19: excluir a série inteira depende de `transacoes_recorrentes`; a
+  // ocorrência sozinha continua podendo ser excluída
+  const { podeUsar } = usePlan()
+  const serieLiberada = podeUsar("transacoes_recorrentes") === true
+  const isRecurring = !!transaction?.recurring_source && serieLiberada
   // FATURA-20: excluir uma parcela exclui a compra inteira no cartão
   const isCardInstallment =
     (transaction?.type === "CREDIT_CARD" || transaction?.type === "CREDIT_CARD_EXPENSE") &&
@@ -76,6 +82,8 @@ export function TransactionDeleteDialog({
                 <span>Todas as parcelas desta compra serão excluídas.</span>
             </div>
         )}
+
+        {!!transaction?.recurring_source && !serieLiberada && <AvisoCompacto />}
 
         {isRecurring && (
              <div className="py-4 space-y-3">

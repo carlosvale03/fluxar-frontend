@@ -28,6 +28,8 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
 }))
 
 const get = vi.mocked(api.get)
+// A suíte inteira roda em paralelo; a sessão leva mais que o padrão de 1 s para abrir
+const ESPERA = { timeout: 5000 }
 
 function Metas() {
   const { podeUsar } = usePlan()
@@ -59,14 +61,16 @@ describe("releitura do acesso", () => {
         <Metas />
       </AuthProvider>,
     )
-    expect(await screen.findByText("metas liberadas")).toBeInTheDocument()
+    expect(await screen.findByText("metas liberadas", undefined, ESPERA)).toBeInTheDocument()
+    // Deixa o React rodar os efeitos do usuário carregado (ouvinte e registro)
+    await act(async () => undefined)
 
     get.mockResolvedValueOnce({ data: usuario({ fechados: ["metas"] }) })
     await act(async () => definirVisibilidade("hidden"))
     expect(get).toHaveBeenCalledTimes(1)
     await act(async () => definirVisibilidade("visible"))
 
-    expect(await screen.findByText("metas travadas")).toBeInTheDocument()
+    expect(await screen.findByText("metas travadas", undefined, ESPERA)).toBeInTheDocument()
     expect(get).toHaveBeenCalledTimes(2)
     expect(get).toHaveBeenLastCalledWith("/auth/me/")
   })
@@ -77,12 +81,14 @@ describe("releitura do acesso", () => {
         <Metas />
       </AuthProvider>,
     )
-    expect(await screen.findByText("metas liberadas")).toBeInTheDocument()
+    expect(await screen.findByText("metas liberadas", undefined, ESPERA)).toBeInTheDocument()
+    // Deixa o React rodar os efeitos do usuário carregado (ouvinte e registro)
+    await act(async () => undefined)
 
     get.mockResolvedValueOnce({ data: usuario({ fechados: ["metas"] }) })
     await act(async () => tratarErro(erroDePlano()))
 
-    expect(await screen.findByText("metas travadas")).toBeInTheDocument()
+    expect(await screen.findByText("metas travadas", undefined, ESPERA)).toBeInTheDocument()
     const [, opcoes] = vi.mocked(toast.error).mock.calls.at(-1) as unknown as [string, { action: { onClick: () => void } }]
     opcoes.action.onClick()
     expect(push).toHaveBeenCalledWith("/planos")

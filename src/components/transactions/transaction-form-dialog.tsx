@@ -50,6 +50,8 @@ import { Category } from "@/types/categories"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { TagSelector } from "@/components/tags/TagSelector"
+import { usePlan } from "@/hooks/use-plan"
+import { AvisoCompacto } from "@/components/planos/recurso-bloqueado"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
 import { maiorQueZero } from "@/lib/dinheiro"
@@ -94,6 +96,11 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
   const [isLoading, setIsLoading] = useState(false)
   const [isCalendarOpen, setIsCalendarOpen] = useState(false)
   const [updateScope, setUpdateScope] = useState<"SINGLE" | "ALL">("SINGLE")
+  // PERM-19: a opção recorrente e a edição da série dependem de
+  // `transacoes_recorrentes`; o campo de tags, de `tags`
+  const { podeUsar } = usePlan()
+  const recorrentesLiberadas = podeUsar("transacoes_recorrentes") === true
+  const tagsLiberadas = podeUsar("tags") === true
   const [recentTransactions, setRecentTransactions] = useState<any[]>([])
   const [showSuggestions, setShowSuggestions] = useState(false)
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false)
@@ -680,6 +687,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                 />
                             </div>
 
+                            {tagsLiberadas && (
                             <FormField
                                 control={form.control}
                                 name="tags"
@@ -687,15 +695,16 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                     <FormItem className="space-y-2">
                                     <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Tags Interativas</FormLabel>
                                     <FormControl>
-                                        <TagSelector 
-                                            selectedTagIds={field.value} 
-                                            onChange={field.onChange} 
+                                        <TagSelector
+                                            selectedTagIds={field.value}
+                                            onChange={field.onChange}
                                         />
                                     </FormControl>
                                     <FormMessage className="text-[10px] font-bold" />
                                     </FormItem>
                                 )}
                             />
+                            )}
                         </div>
 
                         {/* Seção 3: Planejamento / Recorrência */}
@@ -705,8 +714,11 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                 <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Fluxo e Recorrência</h3>
                             </div>
 
+                            {/* PERM-19: sem transacoes_recorrentes, a série não nasce nem muda inteira */}
+                            {!recorrentesLiberadas && <AvisoCompacto />}
+
                             {/* Recurring Update Scope - only show when editing a recurring transaction */}
-                            {initialData?.recurring_source && (
+                            {initialData?.recurring_source && recorrentesLiberadas && (
                                 <div className="space-y-3 p-5 rounded-[28px] bg-amber-500/10 border border-amber-500/20 animate-in slide-in-from-top-2">
                                     <div className="flex items-center gap-2">
                                         <AlertCircle className="h-4 w-4 text-amber-500" />
@@ -727,7 +739,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                 </div>
                             )}
 
-                            {!initialData?.recurring_source && (
+                            {!initialData?.recurring_source && recorrentesLiberadas && (
                                 <div className={cn(
                                     "flex flex-col gap-5 p-6 rounded-[32px] transition-all duration-500 border",
                                     form.watch("is_recurring") 

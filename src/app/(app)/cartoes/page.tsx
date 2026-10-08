@@ -33,8 +33,92 @@ import { api } from "@/services/apiClient"
 import { CreditCard as ICreditCard } from "@/types/cards"
 import { usePlan } from "@/hooks/use-plan"
 import { cn } from "@/lib/utils"
+import { tratarErro } from "@/lib/erros"
+import { AvisoDoPlano } from "@/components/planos/recurso-bloqueado"
+import { InvoiceList } from "@/components/cards/invoice-list"
+import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
+import { Invoice } from "@/types/cards"
 
+// PERM-19 e PERM-22: com `cartoes` fechado, a tela mostra o aviso do plano no
+// lugar dos cartões (sem "Novo cartão") e, abaixo, as faturas dos cartões que
+// já existem, que continuam podendo ser pagas e estornadas
 export default function CardsPage() {
+  const { podeUsar } = usePlan()
+  const cartoes = podeUsar("cartoes")
+  if (cartoes === null) return null
+  return cartoes ? <TelaDeCartoes /> : <FaturasComCartoesTravados />
+}
+
+// SPEC_DEVIATION: a spec lista /credit-cards/ entre as rotas da trava `cartoes`.
+// Reason: PERM-22 exige pagar e estornar as faturas existentes; por isso a
+// leitura dos cartões e das faturas segue liberada (decisão do design.md).
+function FaturasComCartoesTravados() {
+  const [cards, setCards] = useState<ICreditCard[]>([])
+  const [faturaParaPagar, setFaturaParaPagar] = useState<Invoice | null>(null)
+  // Recria as listas de faturas depois de pagar ou estornar
+  const [versao, setVersao] = useState(0)
+
+  const carregarCartoes = async () => {
+    try {
+      const response = await api.get("/credit-cards/")
+      setCards(response.data || [])
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar cartões.", tentarDeNovo: carregarCartoes })
+    }
+  }
+
+  useEffect(() => {
+    carregarCartoes()
+  }, [])
+
+  const estornar = async (invoice: Invoice) => {
+    try {
+      await api.post(`/invoices/${invoice.id}/unpay/`)
+      toast.success("Pagamento desfeito com sucesso!")
+      setVersao((v) => v + 1)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao desfazer pagamento." })
+    }
+  }
+
+  return (
+    <div className="container mx-auto py-12 px-6 max-w-7xl space-y-12 animate-in fade-in duration-700">
+      <AvisoDoPlano titulo="Cartões" />
+
+      {cards.length > 0 && (
+        <div className="space-y-8">
+          <div className="space-y-1 pl-2">
+            <h2 className="text-xl font-bold tracking-tight">Faturas dos seus cartões</h2>
+            <p className="text-sm text-muted-foreground">
+              Você continua podendo pagar e estornar as faturas dos cartões que já tem.
+            </p>
+          </div>
+          {cards.map((card) => (
+            <section key={`${card.id}-${versao}`} aria-label={`Faturas do ${card.name}`} className="space-y-3">
+              <h3 className="font-black pl-2">{card.name}</h3>
+              <InvoiceList cardId={card.id} onPayInvoice={setFaturaParaPagar} onUnpayInvoice={estornar} />
+            </section>
+          ))}
+        </div>
+      )}
+
+      <InvoicePaymentDialog
+        open={!!faturaParaPagar}
+        onOpenChange={(aberto) => {
+          if (!aberto) setFaturaParaPagar(null)
+        }}
+        invoiceId={faturaParaPagar?.id}
+        initialAmount={faturaParaPagar?.total_amount}
+        onSuccess={() => {
+          setFaturaParaPagar(null)
+          setVersao((v) => v + 1)
+        }}
+      />
+    </div>
+  )
+}
+
+function TelaDeCartoes() {
   const [cards, setCards] = useState<ICreditCard[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCard, setSelectedCard] = useState<ICreditCard | undefined>(undefined)

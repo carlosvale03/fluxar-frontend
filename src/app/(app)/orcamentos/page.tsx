@@ -12,6 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { PlusCircle, Pencil, Trash2, AlertTriangle, CheckCircle, AlertCircle, Search, Eye, Copy, Loader2, ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react"
 import { BudgetForm } from "@/components/budgets/BudgetForm"
 import { ImportBudgetsDialog } from "@/components/budgets/ImportBudgetsDialog"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { Input } from "@/components/ui/input"
 import { MonthPicker } from "@/components/ui/month-picker"
@@ -46,7 +47,16 @@ import { tratarErro } from "@/lib/erros"
 import { Badge } from "@/components/ui/badge"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
+// PERM-19: com `orcamentos` fechado, a tela mostra o aviso do plano e /budgets/ não é chamado
 export default function BudgetsPage() {
+  return (
+    <RecursoBloqueado chave="orcamentos" titulo="Orçamentos" className="container mx-auto my-10 max-w-3xl">
+      <TelaDeOrcamentos />
+    </RecursoBloqueado>
+  )
+}
+
+function TelaDeOrcamentos() {
   const [budgets, setBudgets] = useState<Budget[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)

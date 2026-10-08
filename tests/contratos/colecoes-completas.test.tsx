@@ -23,6 +23,11 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))
 
+// PERM-18: o acesso do /auth/me com tudo liberado e sem limite
+vi.mock("@/hooks/use-plan", () => ({
+  usePlan: () => ({ podeUsar: () => true, limite: () => ({ limit: null, used: 0 }), limiteAtingido: () => false }),
+}))
+
 const get = vi.mocked(api.get)
 
 const TAGS = Array.from({ length: 15 }, (_, i) => ({

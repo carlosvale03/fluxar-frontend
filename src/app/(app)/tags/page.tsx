@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { Tag as TagType } from "@/types/categories"
 import { getTags, deleteTag, getTagInsights } from "@/services/tags"
 import { usePlan } from "@/hooks/use-plan"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, Pencil, Trash2, Tag as TagIcon, Search, BarChart3, Sparkles, Filter, Info, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -68,7 +69,16 @@ function ExpandableText({ text }: { text: string }) {
     );
 }
 
+// PERM-19: com `tags` fechado, a tela mostra o aviso do plano e /tags/ não é chamado
 export default function TagsPage() {
+  return (
+    <RecursoBloqueado chave="tags" titulo="Tags" className="container mx-auto my-10 max-w-3xl">
+      <TelaDeTags />
+    </RecursoBloqueado>
+  )
+}
+
+function TelaDeTags() {
   // PERM-19: a análise por tag só aparece com analise_por_tag aberto, e
   // /reports/charts/tag-insights/ não é chamado com a trava fechada
   const { podeUsar } = usePlan()

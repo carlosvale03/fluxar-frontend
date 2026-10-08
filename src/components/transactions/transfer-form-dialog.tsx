@@ -47,6 +47,7 @@ import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { Transaction } from "@/types/transactions"
 
 import { TagSelector } from "@/components/tags/TagSelector"
+import { usePlan } from "@/hooks/use-plan"
 
 import { MoneyInput } from "@/components/ui/money-input"
 import { tratarErro } from "@/lib/erros"
@@ -74,6 +75,8 @@ interface TransferFormDialogProps {
 }
 
 export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData }: TransferFormDialogProps) {
+  // PERM-19: o campo de tags some com `tags` fechado
+  const tagsLiberadas = usePlan().podeUsar("tags") === true
   const [accounts, setAccounts] = useState<Account[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isFetchingDetails, setIsFetchingDetails] = useState(false)
@@ -345,21 +348,23 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                     )}
                   />
 
+                  {tagsLiberadas && (
                   <FormField
                     control={form.control}
                     name="tags"
                     render={({ field }) => (
                       <FormItem className="space-y-2 !mb-2">
                         <FormControl>
-                          <TagSelector 
-                            selectedTagIds={field.value} 
-                            onChange={field.onChange} 
+                          <TagSelector
+                            selectedTagIds={field.value}
+                            onChange={field.onChange}
                           />
                         </FormControl>
                         <FormMessage className="ml-1 text-[11px]" />
                       </FormItem>
                     )}
                   />
+                  )}
 
                   {/* Amount and Date row */}
                   <div className="grid grid-cols-2 gap-4">
