@@ -1,7 +1,16 @@
 import { api } from "./apiClient";
 import type { PaginatedResponse } from "./admin";
 import { paraApi } from "@/lib/datas";
-import { Cofrinho, CreateGoalData, Goal, GoalDepositData, GoalTransaction, GoalWithdrawData } from "@/types/goals";
+import {
+  Cofrinho,
+  ConfiguracaoDeTrocos,
+  CreateGoalData,
+  DepositoDeTrocos,
+  Goal,
+  GoalDepositData,
+  GoalTransaction,
+  GoalWithdrawData,
+} from "@/types/goals";
 
 export const goalsService = {
   getGoals: async () => {
@@ -86,6 +95,24 @@ export const goalsService = {
   getHistory: async (id: string, page = 1, pageSize?: number) => {
     const params = pageSize ? { page, page_size: pageSize } : { page };
     const response = await api.get<PaginatedResponse<GoalTransaction>>(`/goals/${id}/history/`, { params });
+    return response.data;
+  },
+
+  // META-35 e META-37: configuração e trocos pendentes
+  getSpareChange: async () => {
+    const response = await api.get<ConfiguracaoDeTrocos>("/goals/spare-change/");
+    return response.data;
+  },
+
+  // META-35, META-44 e META-45: ativar, escolher a meta ou desativar
+  updateSpareChange: async (data: { active: boolean; goal?: string }) => {
+    const response = await api.put<ConfiguracaoDeTrocos>("/goals/spare-change/", data);
+    return response.data;
+  },
+
+  // META-38 a META-40 e META-43: deposita os trocos pendentes uma vez só
+  depositSpareChange: async () => {
+    const response = await api.post<DepositoDeTrocos>("/goals/spare-change/deposit/");
     return response.data;
   },
 

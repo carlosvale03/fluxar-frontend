@@ -167,7 +167,7 @@ function TelaDeMetas() {
                 },
                 {
                   title: "Troco Solidário",
-                  content: "Ative o 'Troco' no topo da página para arredondar transações e enviar o excesso automaticamente para suas metas.",
+                  content: "Ative o cofrinho de trocos no topo da página: o troco de cada despesa até o próximo real fica guardado, e você deposita na meta quando quiser.",
                   icon: <Sparkles className="h-4 w-4" />
                 }
               ]}

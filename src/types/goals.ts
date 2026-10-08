@@ -78,5 +78,20 @@ export interface GoalWithdrawData {
   date?: string;
 }
 
+// META-35, META-37, META-44 e META-45: configuração e trocos pendentes
+export interface ConfiguracaoDeTrocos {
+  active: boolean;
+  goal: number | string | null;
+  paused: boolean;
+  pending_total: string;
+  pending_count: number;
+}
+
+// META-38 e META-43: um aporte por conta de origem e os trocos descartados
+export interface DepositoDeTrocos {
+  deposits: { account_id: string; amount: string }[];
+  discarded: number;
+}
+
 // Valor do Select de origem ou destino que indica o saldo livre do cofrinho
 export const SALDO_LIVRE = "saldo-livre";
