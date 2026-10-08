@@ -45,6 +45,11 @@ export interface Transaction {
     frequency?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
     recurring_source?: string // UUID of the recurrence group source
 
+    // Importação: lote do arquivo e categoria sugerida pelas correções do
+    // usuário (IMPORT-45, IMPORT-46)
+    import_batch?: string | null
+    category_suggested?: boolean
+
 
     // Transfer Logic
     transfer_id?: string
