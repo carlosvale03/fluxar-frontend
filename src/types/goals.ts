@@ -9,13 +9,26 @@ export interface Goal {
   target_date?: string;
   image?: string;
   account: string;
+  is_active?: boolean;
   status: GoalStatus;
   progress_percentage: number;
   amount_remaining: string;
   suggested_monthly_saving?: string;
   months_remaining?: number;
+  // META-11: aviso único da correção do valor, até o usuário confirmar
+  correction?: { before: string; after: string } | null;
   created_at: string;
   updated_at: string;
+}
+
+// META-02 e META-04: cofrinho com metas, com valores em texto (AD-041); o
+// saldo livre pode ser negativo
+export interface Cofrinho {
+  account_id: string;
+  name: string;
+  balance: string;
+  goals_total: string;
+  free_balance: string;
 }
 
 export interface GoalTransaction {

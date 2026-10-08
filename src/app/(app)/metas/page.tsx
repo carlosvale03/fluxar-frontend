@@ -41,7 +41,7 @@ import { toast } from "sonner"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
-import { Goal } from "@/types/goals"
+import { Cofrinho, Goal } from "@/types/goals"
 import { goalsService } from "@/services/goals"
 import { cn, getAbsoluteUrl } from "@/lib/utils"
 import { lerData } from "@/lib/datas"
@@ -71,6 +71,7 @@ function TelaDeMetas() {
   const { limiteAtingido, atualizarUso } = usePlan()
   const metasNoLimite = limiteAtingido("limite_metas")
   const [goals, setGoals] = useState<Goal[]>([])
+  const [cofrinhos, setCofrinhos] = useState<Cofrinho[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [isDepositOpen, setIsDepositOpen] = useState(false)
@@ -86,8 +87,10 @@ function TelaDeMetas() {
     
     try {
       setIsLoading(true)
-      const data = await goalsService.getGoals()
+      // META-04: as metas e, de cada cofrinho, o saldo, a soma e o saldo livre
+      const [data, dosCofrinhos] = await Promise.all([goalsService.getGoals(), goalsService.getPiggyBanks()])
       setGoals(data)
+      setCofrinhos(dosCofrinhos)
     } catch (error) {
       tratarErro(error, { mensagemPadrao: "Erro ao carregar metas.", tentarDeNovo: fetchGoals })
     } finally {
@@ -140,8 +143,8 @@ function TelaDeMetas() {
                   icon: <PiggyBank className="h-4 w-4" />
                 },
                 {
-                  title: "Divisão Proporcional",
-                  content: "Em cofrinhos compartilhados, o saldo é dividido proporcionalmente aos seus aportes. Se você retirar dinheiro do cofrinho, o saldo de todas as metas vinculadas diminui de forma justa.",
+                  title: "Saldo Livre",
+                  content: "O valor de cada meta é o que você aportou menos o que resgatou. O que entra ou sai do cofrinho por fora dos aportes e resgates fica no saldo livre, que você pode usar para aportar em qualquer meta do cofrinho.",
                   icon: <Zap className="h-4 w-4" />
                 },
                 {
@@ -249,6 +252,24 @@ function TelaDeMetas() {
         </div>
       )}
 
+      {/* META-05: cofrinho com menos dinheiro do que as metas somam */}
+      {!isLoading && cofrinhos.some((c) => paraCentavos(c.free_balance) < 0) && (
+        <div className="space-y-2 mb-8">
+          {cofrinhos.filter((c) => paraCentavos(c.free_balance) < 0).map((c) => (
+            <div
+              key={c.account_id}
+              role="alert"
+              className="flex items-center gap-3 p-4 rounded-2xl border border-orange-500/20 bg-orange-500/5 text-orange-600"
+            >
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <p className="text-xs font-bold">
+                {`O cofrinho ${c.name} tem ${formatarMoeda(deCentavos(-paraCentavos(c.free_balance)))} a menos do que as metas somam.`}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Filtros e Tabs */}
       {!isLoading && goals.length > 0 && (
         <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
@@ -336,9 +357,58 @@ function TelaDeMetas() {
           )
         }
 
+        // META-04: um grupo por cofrinho, na ordem da API; meta sem cofrinho
+        // conhecido fica num grupo à parte
+        const grupos = [
+          ...cofrinhos.map((c) => ({ id: c.account_id, nome: c.name, cofrinho: c as Cofrinho | null })),
+          { id: "sem-cofrinho", nome: "Sem cofrinho", cofrinho: null as Cofrinho | null },
+        ]
+          .map((grupo) => ({
+            ...grupo,
+            metas: filteredGoals.filter((goal) =>
+              grupo.cofrinho ? goal.account === grupo.id : !cofrinhos.some((c) => c.account_id === goal.account),
+            ),
+          }))
+          .filter((grupo) => grupo.metas.length > 0)
+
         return (
+          <div className="space-y-10">
+          {grupos.map((grupo) => (
+          <section key={grupo.id} aria-label={grupo.nome} className="space-y-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-3 px-1">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                  <PiggyBank className="h-5 w-5" />
+                </div>
+                <h2 className="text-lg font-black uppercase tracking-tight">{grupo.nome}</h2>
+              </div>
+              {grupo.cofrinho && (
+                <div className="grid grid-cols-3 gap-4 md:gap-8 text-right">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Saldo</span>
+                    <p aria-label="Saldo do cofrinho" className="font-black text-sm">{formatarMoeda(grupo.cofrinho.balance)}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Metas</span>
+                    <p aria-label="Soma das metas" className="font-black text-sm">{formatarMoeda(grupo.cofrinho.goals_total)}</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest opacity-40">Livre</span>
+                    <p
+                      aria-label="Saldo livre"
+                      className={cn(
+                        "font-black text-sm",
+                        paraCentavos(grupo.cofrinho.free_balance) < 0 ? "text-orange-600" : "text-emerald-600",
+                      )}
+                    >
+                      {formatarMoeda(grupo.cofrinho.free_balance)}
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGoals.map((goal) => (
+            {grupo.metas.map((goal) => (
             <Card 
               key={goal.id} 
               className={cn(
@@ -556,6 +626,9 @@ function TelaDeMetas() {
             </Card>
           ))}
         </div>
+          </section>
+          ))}
+          </div>
       )})()}
 
       <GoalForm 

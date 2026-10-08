@@ -11,7 +11,7 @@ import { Goal } from "@/types/goals"
 // gravado, no fuso de Brasília e no de Lisboa.
 
 vi.mock("@/services/goals", () => ({
-  goalsService: { getGoals: vi.fn(), getHistory: vi.fn() },
+  goalsService: { getGoals: vi.fn(), getPiggyBanks: vi.fn().mockResolvedValue([]), getHistory: vi.fn() },
 }))
 
 vi.mock("@/hooks/use-auth", () => ({ useAuth: () => ({ user: { id: "u1" }, isLoading: false }) }))

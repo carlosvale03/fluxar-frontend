@@ -1,11 +1,17 @@
 import { api } from "./apiClient";
 import { paraApi } from "@/lib/datas";
-import { CreateGoalData, Goal, GoalDepositData, GoalTransaction } from "@/types/goals";
+import { Cofrinho, CreateGoalData, Goal, GoalDepositData, GoalTransaction } from "@/types/goals";
 
 export const goalsService = {
   getGoals: async () => {
     // CONTRATO-01: coleção completa, como array
     const response = await api.get<Goal[]>("/goals/");
+    return response.data;
+  },
+
+  // META-04: saldo, soma das metas e saldo livre de cada cofrinho
+  getPiggyBanks: async () => {
+    const response = await api.get<Cofrinho[]>("/goals/piggy-banks/");
     return response.data;
   },
 
