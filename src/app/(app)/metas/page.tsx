@@ -43,6 +43,7 @@ import { ptBR } from "date-fns/locale"
 
 import { Cofrinho, Goal } from "@/types/goals"
 import { goalsService } from "@/services/goals"
+import { accountsService } from "@/services/accounts"
 import { cn, getAbsoluteUrl } from "@/lib/utils"
 import { lerData } from "@/lib/datas"
 import { GoalForm } from "@/components/goals/GoalForm"
@@ -102,19 +103,31 @@ function TelaDeMetas() {
     fetchGoals()
   }, [isAuthLoading])
 
-  const handleDelete = async (goal: Goal) => {
-    if (paraCentavos(goal.current_amount) !== 0) {
-      toast.error("Ops! Você não pode excluir uma meta que ainda tem saldo. Resgate o dinheiro primeiro para zerar a meta.")
-      return
+  // META-30: o cofrinho ficou sem metas e com saldo zero; o usuário decide
+  // se ele sai da lista de contas também
+  const perguntarPeloCofrinho = async (goal: Goal) => {
+    const nome = cofrinhos.find((c) => c.account_id === goal.account)?.name ?? "da meta"
+    if (!confirm(`O cofrinho ${nome} ficou vazio e sem metas. Deseja excluir o cofrinho também?`)) return
+    try {
+      await accountsService.deleteAccount(goal.account)
+      toast.success("Cofrinho excluído com sucesso!")
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao excluir o cofrinho." })
     }
+  }
 
+  const handleDelete = async (goal: Goal) => {
+    // META-29: a meta com valor é recusada pelo backend, com a mensagem dele
     if (!confirm(`Tem certeza que deseja excluir a meta "${goal.name}"?`)) return
     
     try {
-      await goalsService.deleteGoal(goal.id)
+      const resposta = await goalsService.deleteGoal(goal.id)
       toast.success("Meta excluída com sucesso!")
       // PERM-20: o item excluído sai do uso dos limites do /auth/me
       void atualizarUso()
+      if (resposta?.piggy_bank_empty && goal.account) {
+        await perguntarPeloCofrinho(goal)
+      }
       fetchGoals()
     } catch (error) {
       // CONTRATO-31: a API não usa mais a chave error; o detail vai ao Sonner

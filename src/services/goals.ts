@@ -65,8 +65,10 @@ export const goalsService = {
     return response.data;
   },
 
+  // META-30: diz se o cofrinho ficou sem metas e com saldo zero
   deleteGoal: async (id: string) => {
-    await api.delete(`/goals/${id}/`);
+    const response = await api.delete<{ piggy_bank_empty: boolean }>(`/goals/${id}/`);
+    return response.data;
   },
 
   deposit: async (id: string, data: GoalDepositData) => {
