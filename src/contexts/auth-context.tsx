@@ -13,7 +13,7 @@ import { useTheme } from "next-themes"
 
 import { anunciarFimDaSessao, aoFimDaSessao, renovarSessao } from "@/lib/sessao-entre-abas"
 import { registrarAcoesDePlano } from "@/lib/erros"
-import type { Acesso } from "@/types/planos"
+import type { Acesso, Plano } from "@/types/planos"
 import {
   aoSessaoEncerrada,
   api,
@@ -36,7 +36,7 @@ export interface User {
   id: string
   name: string
   email: string
-  plan: "COMMON" | "PREMIUM" | "PREMIUM_PLUS"
+  plan: Plano
   role: "USER" | "ADMIN"
   emailVerified: boolean
   cpf: string | null

@@ -25,6 +25,8 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
+import { usePlan } from "@/hooks/use-plan"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
@@ -65,6 +67,8 @@ export default function GoalsPage() {
 
 function TelaDeMetas() {
   const { user, isLoading: isAuthLoading } = useAuth()
+  // PERM-20: no limite de metas do plano, a criação fica desabilitada
+  const metasNoLimite = usePlan().limiteAtingido("limite_metas")
   const [goals, setGoals] = useState<Goal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -155,8 +159,9 @@ function TelaDeMetas() {
           </p>
         </div>
         
-        <Button 
+        <Button
           className="rounded-2xl font-black uppercase tracking-widest text-[10px] px-6 h-11 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+          disabled={metasNoLimite}
           onClick={() => {
             setSelectedGoal(null)
             setIsFormOpen(true)
@@ -164,6 +169,10 @@ function TelaDeMetas() {
         >
           <Plus className="mr-2 h-4 w-4" /> Nova Meta
         </Button>
+      </div>
+
+      <div className="mb-8">
+        <AvisoDeLimite chave="limite_metas" rotulo="metas" />
       </div>
 
       <SpareChangeBank goals={goals} onSuccess={fetchGoals} />
@@ -288,9 +297,10 @@ function TelaDeMetas() {
             <p className="font-bold text-lg">Nenhuma meta criada ainda.</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">Comece definindo um objetivo para o seu dinheiro e acompanhe seu progresso.</p>
           </div>
-          <Button 
+          <Button
             variant="outline"
             className="rounded-xl font-bold text-xs"
+            disabled={metasNoLimite}
             onClick={() => setIsFormOpen(true)}
           >
             Criar minha primeira meta

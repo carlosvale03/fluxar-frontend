@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, CreditCard, AlertCircle, Filter, X, RotateCcw, Trash2 } from "lucide-react"
+import { Plus, CreditCard, Filter, X, RotateCcw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -32,6 +32,7 @@ import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog
 import { api } from "@/services/apiClient"
 import { CreditCard as ICreditCard } from "@/types/cards"
 import { usePlan } from "@/hooks/use-plan"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { cn } from "@/lib/utils"
 import { tratarErro } from "@/lib/erros"
 import { AvisoDoPlano } from "@/components/planos/recurso-bloqueado"
@@ -129,14 +130,13 @@ function TelaDeCartoes() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([])
   
-  const { limite, nomeDoPlano: plan } = usePlan()
+  const { limiteAtingido } = usePlan()
   
   // Extract unique institutions from registered cards
   const availableInstitutions = Array.from(new Set(cards.map(c => c.institution).filter(Boolean))) as string[]
 
-  // PERM-18: o limite vem do acesso do /auth/me
-  const limitByPlan = limite("limite_cartoes")?.limit ?? null
-  const hasReachedLimit = limitByPlan !== null && cards.length >= limitByPlan
+  // PERM-18 e PERM-20: o limite e o uso vêm do acesso do /auth/me
+  const hasReachedLimit = limiteAtingido("limite_cartoes")
 
   const filteredCards = cards.filter(card => {
       const matchesInstitution = selectedInstitutions.length === 0 || (card.institution && selectedInstitutions.includes(card.institution))
@@ -322,20 +322,10 @@ function TelaDeCartoes() {
         </div>
       </div>
 
-      {/* Banner de Aviso de Limite */}
-      {!isLoading && hasReachedLimit && (
-        <div className="mb-10 p-5 rounded-[32px] bg-amber-500/5 border border-amber-500/10 text-amber-600 dark:text-amber-500/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                <AlertCircle className="h-5 w-5" />
-            </div>
-            <div>
-                <h4 className="font-bold text-sm">Limite de Cartões Atingido</h4>
-                <p className="text-xs leading-relaxed opacity-80 mt-1 max-w-2xl">
-                    Seu plano atual ({plan}) permite até {limitByPlan} cartões ativos. Para adicionar novos cartões, considere fazer o upgrade do seu plano ou remover um cartão existente.
-                </p>
-            </div>
-        </div>
-      )}
+      {/* PERM-20: uso e limite de cartões do plano */}
+      <div className="mb-10">
+        <AvisoDeLimite chave="limite_cartoes" rotulo="cartões" />
+      </div>
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

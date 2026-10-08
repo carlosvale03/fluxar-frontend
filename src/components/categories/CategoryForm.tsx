@@ -4,8 +4,10 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Loader2, PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag, Info, AlertCircle, ChevronRight } from "lucide-react"
+import { Loader2, PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag, Info, ChevronRight } from "lucide-react"
 import { LucideIcon } from "@/components/ui/icon-picker"
+import { usePlan } from "@/hooks/use-plan"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -68,6 +70,10 @@ interface CategoryFormProps {
 }
 
 export function CategoryForm({ category, parentCategory, currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
+  // PERM-18 e PERM-20: o limite de subcategorias vem do /auth/me; o uso é o da categoria-pai
+  const { limite, limiteAtingido } = usePlan()
+  const limiteDeSubcategorias = limite("limite_subcategorias")?.limit ?? null
+  const subcategoriasNoLimite = !!parentCategory && limiteAtingido("limite_subcategorias", currentSubcategoryCount)
   const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -152,16 +158,11 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
                         <span className="text-xs font-bold text-primary">Nova Item</span>
                     </div>
                     <div className="ml-auto px-2.5 py-1 rounded-full bg-muted/20 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
-                        {currentSubcategoryCount} / 5
+                        {currentSubcategoryCount}{limiteDeSubcategorias !== null && ` / ${limiteDeSubcategorias}`}
                     </div>
                 </div>
                 
-                {currentSubcategoryCount >= 5 && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-rose-500/5 border border-rose-500/10 rounded-xl text-rose-600">
-                        <AlertCircle className="h-3.5 w-3.5" />
-                        <p className="text-[10px] font-black uppercase tracking-wider">Limite de subcategorias atingido</p>
-                    </div>
-                )}
+                <AvisoDeLimite chave="limite_subcategorias" rotulo="subcategorias" usado={currentSubcategoryCount} />
             </div>
         )}
 
@@ -328,7 +329,7 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
           </Button>
           <Button 
             type="submit" 
-            disabled={isLoading || (!!parentCategory && currentSubcategoryCount >= 5)} 
+            disabled={isLoading || subcategoriasNoLimite} 
             className="rounded-full h-12 px-10 font-bold shadow-xl shadow-primary/25 transition-all hover:scale-105 active:scale-95 bg-primary text-primary-foreground"
           >
             {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}

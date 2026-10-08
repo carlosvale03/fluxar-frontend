@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag } from "lucide-react"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { usePlan } from "@/hooks/use-plan"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -64,6 +66,14 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
   const [creatingSubcategoryFor, setCreatingSubcategoryFor] = useState<Category | null>(null)
+
+  // PERM-20: limites de categorias principais e de subcategorias por
+  // categoria-pai; o uso das subcategorias é contado aqui (só as ativas)
+  const { limite, limiteAtingido } = usePlan()
+  const limiteDeSubcategorias = limite("limite_subcategorias")?.limit ?? null
+  const subcategoriasAtivas = (parent: Category) =>
+    (categories.find((c) => c.id === parent.id) ?? parent).subcategories?.filter((s) => s.is_active !== false).length ?? 0
+  const subcategoriasNoLimite = (parent: Category) => limiteAtingido("limite_subcategorias", subcategoriasAtivas(parent))
 
   const CATEGORY_ICON_MAP: Record<string, string> = {
     "moradia": "Home",
@@ -303,7 +313,7 @@ export default function CategoriesPage() {
                                 </Badge>
                             )}
                             <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 ml-auto sm:ml-2">
-                                {parent.subcategories?.length || 0} / 5
+                                {subcategoriasAtivas(parent)}{limiteDeSubcategorias !== null && ` / ${limiteDeSubcategorias}`}
                             </span>
                         </div>
                     </TableCell>
@@ -323,7 +333,8 @@ export default function CategoriesPage() {
                                         variant="ghost" 
                                         size="icon" 
                                         className="h-9 w-9 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90" 
-                                        onClick={() => setCreatingSubcategoryFor(parent)} 
+                                        onClick={() => setCreatingSubcategoryFor(parent)}
+                                        disabled={subcategoriasNoLimite(parent)}
                                         title="Nova Subcategoria"
                                     >
                                         <PlusCircle className="h-4.5 w-4.5" />
@@ -350,7 +361,8 @@ export default function CategoriesPage() {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-9 w-9 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90" 
-                                    onClick={() => setCreatingSubcategoryFor(parent)} 
+                                    onClick={() => setCreatingSubcategoryFor(parent)}
+                                    disabled={subcategoriasNoLimite(parent)}
                                     title="Nova Subcategoria"
                                 >
                                     <PlusCircle className="h-4.5 w-4.5" />
@@ -456,7 +468,7 @@ export default function CategoriesPage() {
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-                <Button className="rounded-full px-6 h-12 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
+                <Button disabled={limiteAtingido("limite_categorias")} className="rounded-full px-6 h-12 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
                     <PlusCircle className="mr-2 h-5 w-5" />
                     Nova Categoria
                 </Button>
@@ -481,6 +493,11 @@ export default function CategoriesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+        </div>
+
+        {/* PERM-20: uso e limite de categorias principais do plano */}
+        <div className="mb-8">
+          <AvisoDeLimite chave="limite_categorias" rotulo="categorias" />
         </div>
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 bg-card/30 backdrop-blur-sm p-4 rounded-[32px] border border-border/40">
@@ -545,7 +562,7 @@ export default function CategoriesPage() {
                   {creatingSubcategoryFor && (
                       <CategoryForm 
                         parentCategory={creatingSubcategoryFor}
-                        currentSubcategoryCount={categories.find(c => c.id === creatingSubcategoryFor.id)?.subcategories?.length || 0}
+                        currentSubcategoryCount={subcategoriasAtivas(creatingSubcategoryFor)}
                         onSuccess={() => {
                             setCreatingSubcategoryFor(null)
                             refreshCategories()

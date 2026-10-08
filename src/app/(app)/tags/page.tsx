@@ -5,6 +5,7 @@ import { Tag as TagType } from "@/types/categories"
 import { getTags, deleteTag, getTagInsights } from "@/services/tags"
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, Pencil, Trash2, Tag as TagIcon, Search, BarChart3, Sparkles, Filter, Info, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -81,8 +82,10 @@ export default function TagsPage() {
 function TelaDeTags() {
   // PERM-19: a análise por tag só aparece com analise_por_tag aberto, e
   // /reports/charts/tag-insights/ não é chamado com a trava fechada
-  const { podeUsar } = usePlan()
+  const { podeUsar, limiteAtingido } = usePlan()
   const analisePorTag = podeUsar("analise_por_tag") === true
+  // PERM-20: no limite de tags do plano, a criação fica desabilitada
+  const tagsNoLimite = limiteAtingido("limite_tags")
   const [tags, setTags] = useState<TagType[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -195,7 +198,7 @@ function TelaDeTags() {
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-                <Button className="h-14 px-8 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group overflow-hidden relative">
+                <Button disabled={tagsNoLimite} className="h-14 px-8 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
                     <PlusCircle className="mr-2 h-5 w-5" />
                     <span className="font-black uppercase tracking-widest text-sm">Nova Tag Premium</span>
@@ -221,6 +224,11 @@ function TelaDeTags() {
                 </ScrollArea>
             </DialogContent>
         </Dialog>
+      </div>
+
+      {/* PERM-20: uso e limite de tags do plano */}
+      <div className="mb-8">
+        <AvisoDeLimite chave="limite_tags" rotulo="tags" />
       </div>
 
       {/* Filter/Search Premium Bar */}
@@ -282,8 +290,9 @@ function TelaDeTags() {
                   <p className="max-w-xs mx-auto mt-2 mb-8 text-sm text-muted-foreground/60 leading-relaxed">
                     Personalize sua experincia criando marcadores exclusivos para seu controle financeiro.
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
+                    disabled={tagsNoLimite}
                     onClick={() => setIsCreateOpen(true)}
                     className="rounded-full h-12 px-8 border-primary/20 hover:bg-primary/5 hover:border-primary/40 font-bold transition-all"
                   >
