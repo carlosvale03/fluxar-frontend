@@ -144,7 +144,7 @@ export default function ImportExportPage() {
           <Tabs value={guideActiveTab} onValueChange={setGuideActiveTab} className="mt-4">
             <TabsList className="grid w-full grid-cols-2 bg-muted/50 p-1 rounded-xl h-auto">
               <TabsTrigger value="ofx" className="font-bold rounded-lg py-1.5 data-[state=active]:bg-background">Padrão OFX</TabsTrigger>
-              <TabsTrigger value="spreadsheet" className="font-bold rounded-lg py-1.5 data-[state=active]:bg-background">Planilhas (CSV/XLS)</TabsTrigger>
+              <TabsTrigger value="spreadsheet" className="font-bold rounded-lg py-1.5 data-[state=active]:bg-background">Planilhas (CSV/XLSX)</TabsTrigger>
             </TabsList>
             
             <TabsContent value="ofx" className="pt-4 space-y-4">
@@ -166,7 +166,7 @@ export default function ImportExportPage() {
             <TabsContent value="spreadsheet" className="pt-4 space-y-4">
               <h4 className="font-bold text-sm text-blue-500 uppercase tracking-wider">Planilhas Personalizadas</h4>
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Se você usa controle manual em Excel ou Google Sheets, pode importar seus dados via <strong>CSV, XLS ou XLSX</strong>.
+                Se você usa controle manual em Excel ou Google Sheets, pode importar seus dados via <strong>CSV ou XLSX</strong>.
               </p>
               <div className="p-3 rounded-2xl bg-blue-500/5 border border-blue-500/10">
                 <p className="text-[10px] font-bold uppercase tracking-widest text-blue-500 mb-2">Estrutura mínima sugerida</p>
@@ -239,7 +239,7 @@ export default function ImportExportPage() {
               </CardContent>
             </Card>
 
-            {/* CSV/XLS Card */}
+            {/* Card de planilhas: só CSV e XLSX (IMPORT-03) */}
             <Card className="border-border/60 bg-card rounded-3xl shadow-sm hover:bg-muted/30 hover:border-blue-500/20 hover:shadow-md transition-all group">
               <CardHeader>
                 <div className="flex items-center gap-4">
@@ -247,7 +247,7 @@ export default function ImportExportPage() {
                     <TableIcon className="h-6 w-6" />
                   </div>
                 </div>
-                <CardTitle className="mt-4 font-black uppercase tracking-tight">Planilhas (CSV/XLS)</CardTitle>
+                <CardTitle className="mt-4 font-black uppercase tracking-tight">Planilhas (CSV/XLSX)</CardTitle>
                 <CardDescription className="text-xs font-medium">
                   Suporte flexível para planilhas personalizadas.
                 </CardDescription>

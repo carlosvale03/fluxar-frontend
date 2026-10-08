@@ -6,11 +6,22 @@ import type { FilterState } from "@/components/transactions/transaction-filters"
 // demais requisições ficam com os 30 segundos do apiClient
 export const TEMPO_MAXIMO_ARQUIVOS_MS = 120_000;
 
+// IMPORT-29, IMPORT-30 e IMPORT-45: o resumo de toda importação aceita (200).
+// `total` são as linhas lidas; cada rejeitada vem com o número dela no
+// arquivo e o motivo; `batch_id` leva à lista das sugeridas.
+export interface LinhaRejeitada {
+  line: number;
+  reason: string;
+}
+
 export interface ImportSummary {
   total: number;
   imported: number;
   ignored: number;
-  errors: number;
+  rejected: number;
+  suggested: number;
+  batch_id: string;
+  rejected_rows: LinhaRejeitada[];
 }
 
 export interface SpreadsheetMapping {
@@ -85,7 +96,7 @@ export const importExportService = {
   },
 
   /**
-   * Importa transações via planilha (CSV/XLS/XLSX)
+   * Importa transações via planilha (CSV ou XLSX, IMPORT-03)
    */
   importSpreadsheet: async (
     file: File,

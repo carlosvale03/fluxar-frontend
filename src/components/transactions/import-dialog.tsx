@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { 
   Dialog, 
   DialogContent, 
@@ -40,6 +41,44 @@ import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { tratarErro } from "@/lib/erros"
 
+// IMPORT-02 a IMPORT-04: as mesmas mensagens do backend. A conferência local
+// só evita o envio; um 400 do backend vai por tratarErro.
+export const FORMATO_NAO_SUPORTADO = "Formato não suportado. Envie um arquivo OFX, CSV ou XLSX."
+export const ARQUIVO_GRANDE_DEMAIS = "O arquivo passa do limite de 5 MB."
+const LIMITE_DE_BYTES = 5 * 1024 * 1024
+const EXTENSOES = { OFX: ["ofx"], SPREADSHEET: ["csv", "xlsx"] } as const
+const ACEITOS = { OFX: ".ofx", SPREADSHEET: ".csv,.xlsx" } as const
+
+// Colunas que cada tipo de importação lê (as mesmas do backend)
+const COLUNAS_DO_TIPO: Record<"INCOME_EXPENSE" | "TRANSFER", (keyof SpreadsheetMapping)[]> = {
+  INCOME_EXPENSE: [
+    "date_column", "description_column", "amount_column", "type_column", "status_column",
+    "category_column", "subcategory_column", "tags_column", "account_column",
+  ],
+  TRANSFER: ["date_column", "amount_column", "source_account_column", "dest_account_column", "tags_column"],
+}
+
+// IMPORT-06: o backend recusa coluna mapeada que não existe no arquivo, então
+// só vão as colunas do tipo que o usuário preencheu
+export function mapeamentoDoEnvio(
+  mapping: SpreadsheetMapping,
+  tipo: "INCOME_EXPENSE" | "TRANSFER",
+): SpreadsheetMapping {
+  const enviado: Partial<SpreadsheetMapping> = {}
+  for (const campo of COLUNAS_DO_TIPO[tipo]) {
+    const coluna = mapping[campo]?.trim()
+    if (coluna) enviado[campo] = coluna
+  }
+  return enviado as SpreadsheetMapping
+}
+
+// IMPORT-45: "1 linha com categoria sugerida" e "N linhas com categoria sugerida"
+export function textoDasSugeridas(quantidade: number): string {
+  return quantidade === 1
+    ? "1 linha com categoria sugerida"
+    : `${quantidade} linhas com categoria sugerida`
+}
+
 interface ImportDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -58,17 +97,18 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
   const [step, setStep] = useState<ImportStep>("CONFIG")
   const [importSubType, setImportSubType] = useState<ImportSubType>("INCOME_EXPENSE")
   
-  // Spreadsheet mapping state
+  // Spreadsheet mapping state: as obrigatórias com o nome usual e as
+  // opcionais vazias, enviadas só se o usuário preencher (IMPORT-06)
   const [mapping, setMapping] = useState<SpreadsheetMapping>({
     date_column: "Data",
     description_column: "Descrição",
     amount_column: "Valor",
     type_column: "",
-    status_column: "Situação",
-    category_column: "Categoria",
-    subcategory_column: "Subcategoria",
-    tags_column: "Tags",
-    account_column: "Conta",
+    status_column: "",
+    category_column: "",
+    subcategory_column: "",
+    tags_column: "",
+    account_column: "",
     source_account_column: "Conta origem",
     dest_account_column: "Conta destino"
   })
@@ -108,18 +148,19 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
     const selectedFile = e.target.files?.[0] || null
     if (!selectedFile) return
 
-    const extension = selectedFile.name.split('.').pop()?.toLowerCase()
-    const allowedExtensions = type === "OFX" ? ["ofx"] : ["csv", "xls", "xlsx"]
-    
-    if (!extension || !allowedExtensions.includes(extension)) {
-      toast.error(`Extensão .${extension} não permitida para importação ${type}.`)
+    // IMPORT-03: OFX aceita .ofx; planilha, só .csv e .xlsx
+    const extension = selectedFile.name.split('.').pop()?.toLowerCase() ?? ""
+    const allowedExtensions: readonly string[] = EXTENSOES[type]
+
+    if (!allowedExtensions.includes(extension)) {
+      toast.error(FORMATO_NAO_SUPORTADO)
       e.target.value = ""
       setFile(null)
       return
     }
 
-    if (selectedFile.size > 5 * 1024 * 1024) {
-      toast.error("Arquivo muito grande. O limite é 5MB.")
+    if (selectedFile.size > LIMITE_DE_BYTES) {
+      toast.error(ARQUIVO_GRANDE_DEMAIS)
       e.target.value = ""
       setFile(null)
       return
@@ -165,9 +206,14 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
     try {
       setIsLoading(true)
-      const result = await importExportService.preflightSpreadsheet(file, mapping, importSubType)
-      
-      if (result.accounts.length > 0) {
+      const result = await importExportService.preflightSpreadsheet(
+        file, mapeamentoDoEnvio(mapping, importSubType), importSubType
+      )
+
+      if (result.accounts.length === 0 && importSubType === "INCOME_EXPENSE" && selectedAccountId) {
+        // Sem coluna de conta: todas as linhas vão para a conta padrão
+        await handleImport()
+      } else if (result.accounts.length > 0) {
         setUniqueSpreadsheetAccounts(result.accounts)
         const initialMapping: Record<string, string> = {}
         result.accounts.forEach(acc => {
@@ -206,7 +252,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
         result = await importExportService.importSpreadsheet(
             file, 
             selectedAccountId, 
-            mapping, 
+            mapeamentoDoEnvio(mapping, importSubType),
             importSubType, 
             accountMapping
         )
@@ -281,10 +327,11 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
               )}
 
               <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Arquivo ({type === "OFX" ? ".ofx" : ".csv, .xls, .xlsx"})</Label>
-                <Input 
-                  type="file" 
-                  accept={type === "OFX" ? ".ofx" : ".csv, .xls, .xlsx"}
+                <Label htmlFor="arquivo-da-importacao" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Arquivo ({type === "OFX" ? ".ofx" : ".csv, .xlsx"})</Label>
+                <Input
+                  id="arquivo-da-importacao"
+                  type="file"
+                  accept={ACEITOS[type]}
                   className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold file:bg-primary file:text-primary-foreground file:font-black file:uppercase file:text-[10px] file:tracking-widest file:rounded-xl file:border-0 file:mr-4 file:px-4 file:h-full cursor-pointer p-0"
                   onChange={handleFileChange}
                 />
@@ -384,6 +431,23 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                     )}
                 </div>
 
+                {/* IMPORT-22: sem coluna de conta, as linhas vão para a conta padrão */}
+                {importSubType === "INCOME_EXPENSE" && (
+                    <div className="space-y-1.5">
+                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta padrão (linhas sem conta)</Label>
+                        <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                            <SelectTrigger className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                                <SelectValue placeholder="Selecione a conta" />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl">
+                                {accounts.map(acc => (
+                                    <SelectItem key={acc.id} value={acc.id} className="rounded-lg font-bold text-xs">{acc.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                )}
+
                 <div className="flex gap-3">
                     <Button variant="outline" className="flex-1 rounded-full font-black uppercase text-[10px] h-12" onClick={() => setStep("CONFIG")}>
                         <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
@@ -443,42 +507,56 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
              </div>
           )}
 
-          {/* STEP 4: SUMMARY */}
+          {/* STEP 4: SUMMARY: lidas, gravadas, ignoradas e rejeitadas (IMPORT-33) */}
           {step === "SUMMARY" && summary && (
              <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
                 <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 rounded-3xl bg-muted border border-border text-center space-y-1">
+                    <div className="h-5 flex items-center justify-center font-black opacity-30">Σ</div>
+                    <p className="text-2xl font-black text-foreground leading-none">{summary.total}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50">Lidas</p>
+                    </div>
                     <div className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-1">
                     <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto" />
                     <p className="text-2xl font-black text-emerald-600 leading-none">{summary.imported}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/70">Processados</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/70">Gravadas</p>
                     </div>
                     <div className="p-4 rounded-3xl bg-blue-500/10 border border-blue-500/20 text-center space-y-1">
                     <AlertCircle className="h-5 w-5 text-blue-500 mx-auto" />
                     <p className="text-2xl font-black text-blue-600 leading-none">{summary.ignored}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-600/70">Ignorados</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-600/70">Ignoradas</p>
                     </div>
                     <div className="p-4 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-1">
                     <XCircle className="h-5 w-5 text-rose-500 mx-auto" />
-                    <p className="text-2xl font-black text-rose-600 leading-none">{summary.errors}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500/70">Erros</p>
-                    </div>
-                    <div className="p-4 rounded-3xl bg-muted border border-border text-center space-y-1">
-                    <div className="h-5 flex items-center justify-center font-black opacity-30">Σ</div>
-                    <p className="text-2xl font-black text-foreground leading-none">{summary.total}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50">Total</p>
+                    <p className="text-2xl font-black text-rose-600 leading-none">{summary.rejected}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500/70">Rejeitadas</p>
                     </div>
                 </div>
 
-                {summary.errors > 0 && (
+                {/* IMPORT-45: as sugeridas, com o atalho para a lista filtrada */}
+                {summary.suggested > 0 && (
+                  <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10 flex items-center justify-between gap-3">
+                    <p className="text-xs font-bold text-primary">{textoDasSugeridas(summary.suggested)}</p>
+                    <Link
+                      href={`/transacoes?import_batch=${encodeURIComponent(summary.batch_id)}&suggested_category=true`}
+                      onClick={() => onOpenChange(false)}
+                      className="text-[10px] font-black uppercase tracking-widest text-primary underline-offset-4 hover:underline shrink-0"
+                    >
+                      Revisar sugeridas
+                    </Link>
+                  </div>
+                )}
+
+                {/* IMPORT-30: cada rejeitada com o número no arquivo e o motivo */}
+                {summary.rejected_rows.length > 0 && (
                   <div className="p-4 rounded-3xl bg-rose-500/5 border border-rose-500/10 space-y-2">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-rose-600 px-1">Detalhes dos Erros</h5>
+                    <h5 className="text-[10px] font-black uppercase tracking-widest text-rose-600 px-1">Linhas rejeitadas</h5>
                     <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
                         <ul className="space-y-1">
-                            {/* @ts-ignore - summary.errors pode vir como array do backend */}
-                            {(Array.isArray(summary.errors_list) ? summary.errors_list : []).map((err: string, i: number) => (
-                                <li key={i} className="text-[9px] font-medium text-rose-500/80 leading-tight flex gap-2">
+                            {summary.rejected_rows.map((linha) => (
+                                <li key={linha.line} className="text-[9px] font-medium text-rose-500/80 leading-tight flex gap-2">
                                     <span className="shrink-0">•</span>
-                                    <span>{err}</span>
+                                    <span>Linha {linha.line}: {linha.reason}</span>
                                 </li>
                             ))}
                         </ul>
