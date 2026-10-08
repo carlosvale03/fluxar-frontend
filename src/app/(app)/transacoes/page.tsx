@@ -1,11 +1,11 @@
 "use client"
 
 import { useEffect, useRef, useState, Fragment } from "react"
-import { useSearchParams } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { 
     Plus, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightCircle, ArrowRightLeft,
     CreditCard, AlertCircle, Edit, Trash, MoreHorizontal, Filter,
-    ChevronLeft, ChevronRight, Calendar, CheckCircle, Repeat, Wallet, Search
+    ChevronLeft, ChevronRight, Calendar, CheckCircle, Repeat, Wallet, Search, X
 } from "lucide-react"
 import { 
     startOfDay, endOfDay, isAfter, isBefore, parseISO,
@@ -46,6 +46,7 @@ import { CardExpenseFormDialog } from "@/components/transactions/card-expense-fo
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 import { TransactionDeleteDialog } from "@/components/transactions/transaction-delete-dialog"
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
+import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 import Link from "next/link"
 
 import { api } from "@/services/apiClient"
@@ -133,6 +134,28 @@ export default function TransactionsPage() {
   const yearParam = searchParams.get("year")
   const startDateParam = searchParams.get("startDate")
   const endDateParam = searchParams.get("endDate")
+  const router = useRouter()
+
+  // IMPORT-45: o atalho do resultado da importação abre a lista com o lote e
+  // só as sugeridas. Com o lote, o período não vale: o extrato pode ser de
+  // outros meses.
+  const loteParam = searchParams.get("import_batch")
+  const sugeridasParam = searchParams.get("suggested_category") === "true"
+  const [lote, setLote] = useState<string | null>(loteParam)
+  const [soSugeridas, setSoSugeridas] = useState(sugeridasParam)
+
+  useEffect(() => {
+      setLote(loteParam)
+      setSoSugeridas(sugeridasParam)
+      setPage(1)
+  }, [loteParam, sugeridasParam])
+
+  const limparFiltroDoLote = () => {
+      setLote(null)
+      setSoSugeridas(false)
+      setPage(1)
+      router.replace("/transacoes")
+  }
 
   // Determine initial date from URL or default to current month
   const getInitialDate = () => {
@@ -295,9 +318,14 @@ export default function TransactionsPage() {
       params.append('page', page.toString())
       params.append('page_size', pageSize.toString())
       
-      if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
-      if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
-      if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
+      if (lote) {
+          params.append('import_batch', lote)
+      } else {
+          if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
+          if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
+      }
+      if (soSugeridas) params.append('suggested_category', 'true')
+if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
       // CONTRATO-10 a CONTRATO-12: as categorias escolhidas vão repetidas
       // (categoryId=a&categoryId=b); o backend inclui as subcategorias
       filters.categoryIds.forEach(id => params.append('categoryId', id))
@@ -354,7 +382,7 @@ export default function TransactionsPage() {
   // CONTRATO-05 a CONTRATO-07: um efeito só busca as transações
   useEffect(() => {
     fetchTransactions()
-  }, [page, pageSize, filters, buscaComEspera])
+  }, [page, pageSize, filters, buscaComEspera, lote, soSugeridas])
 
   useEffect(() => () => buscaAtual.current?.abort(), [])
 
@@ -475,7 +503,21 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      <TransferFormDialog 
+      {/* IMPORT-45: o filtro do atalho da importação, com a opção de limpar */}
+      {(lote || soSugeridas) && (
+        <div role="status" className="flex items-center justify-between gap-3 mb-6 px-5 py-3 rounded-2xl bg-primary/5 border border-primary/15">
+            <span className="text-xs font-bold text-primary">
+                {soSugeridas
+                    ? (lote ? "Categorias sugeridas nesta importação" : "Categorias sugeridas pelo seu histórico")
+                    : "Transações desta importação"}
+            </span>
+            <Button variant="ghost" size="sm" onClick={limparFiltroDoLote} className="h-8 rounded-full text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 cursor-pointer">
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar filtro
+            </Button>
+        </div>
+      )}
+
+      <TransferFormDialog
         open={isTransferOpen}
         onOpenChange={(open) => {
             setIsTransferOpen(open)
@@ -659,6 +701,9 @@ export default function TransactionsPage() {
                                                     )}
                                                 </div>
                                             )}
+
+                                            {/* IMPORT-46 */}
+                                            {transaction.category_suggested && <SeloDeSugerida />}
                                         </div>
                                     </div>
 
@@ -883,6 +928,10 @@ export default function TransactionsPage() {
                                                     </div>
                                                 ) : (
                                                     <span className="text-muted-foreground/30 text-[10px] font-black uppercase tracking-widest">Geral</span>
+                                                )}
+                                                {/* IMPORT-46 */}
+                                                {transaction.category_suggested && (
+                                                    <div className="mt-1.5"><SeloDeSugerida /></div>
                                                 )}
                                             </TableCell>
                                             <TableCell className="hidden md:table-cell">

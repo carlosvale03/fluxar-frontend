@@ -55,6 +55,7 @@ import { MoneyInput } from "@/components/ui/money-input"
 import { maiorQueZero } from "@/lib/dinheiro"
 import { CategoryForm } from "@/components/categories/CategoryForm"
 import { tratarErro } from "@/lib/erros"
+import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
@@ -576,6 +577,10 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                 </div>
                                             </SelectContent>
                                         </Select>
+                                        {/* IMPORT-46: a categoria veio do histórico do usuário */}
+                                        {initialData?.category_suggested && field.value === initialData.category_detail?.id && (
+                                            <SeloDeSugerida />
+                                        )}
                                         <FormMessage className="text-[10px] font-bold" />
                                         </FormItem>
                                     )}
