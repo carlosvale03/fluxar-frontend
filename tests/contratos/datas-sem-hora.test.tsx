@@ -15,7 +15,8 @@ vi.mock("@/services/goals", () => ({
 }))
 
 vi.mock("@/hooks/use-auth", () => ({ useAuth: () => ({ user: { id: "u1" }, isLoading: false }) }))
-vi.mock("@/hooks/use-plan", () => ({ usePlan: () => ({ isPremiumPlus: true }) }))
+// PERM-18: o acesso do /auth/me com tudo liberado
+vi.mock("@/hooks/use-plan", () => ({ usePlan: () => ({ podeUsar: () => true }) }))
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 const META = {

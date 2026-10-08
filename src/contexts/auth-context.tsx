@@ -12,6 +12,8 @@ import { useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 
 import { anunciarFimDaSessao, aoFimDaSessao, renovarSessao } from "@/lib/sessao-entre-abas"
+import { registrarAcoesDePlano } from "@/lib/erros"
+import type { Acesso } from "@/types/planos"
 import {
   aoSessaoEncerrada,
   api,
@@ -45,6 +47,8 @@ export interface User {
   preferences: UserPreferences
   is_active?: boolean
   created_at: string
+  // PERM-17: o que o plano libera para este usuário, informado pelo /auth/me
+  access?: Acesso
 }
 
 interface AuthContextType {
@@ -139,6 +143,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       cancelarOutraAba()
     }
   }, [])
+
+  // PERM-11 e PERM-24: o acesso é relido quando a aba volta a ficar visível e
+  // quando a API recusa algo pelo plano (tratarErro), para a tela refletir a
+  // trava mudada no painel. Uma falha aqui não muda a sessão.
+  const temUsuario = !!user
+  useEffect(() => {
+    if (!temUsuario) return
+    const reler = () => {
+      api.get("/auth/me/").then(
+        (response) => setUser(response.data),
+        () => undefined,
+      )
+    }
+    const aoMudarVisibilidade = () => {
+      if (document.visibilityState === "visible") reler()
+    }
+    document.addEventListener("visibilitychange", aoMudarVisibilidade)
+    const cancelarAcoes = registrarAcoesDePlano({ reler, abrirPlanos: () => router.push("/planos") })
+    return () => {
+      document.removeEventListener("visibilitychange", aoMudarVisibilidade)
+      cancelarAcoes()
+    }
+  }, [temUsuario, router])
 
   // O token de renovação chega só no cookie httpOnly, e o de acesso fica na
   // memória da aba (SESSAO-01, SESSAO-02)

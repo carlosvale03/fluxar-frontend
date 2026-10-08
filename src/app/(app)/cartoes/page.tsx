@@ -34,12 +34,6 @@ import { CreditCard as ICreditCard } from "@/types/cards"
 import { usePlan } from "@/hooks/use-plan"
 import { cn } from "@/lib/utils"
 
-const CARD_LIMITS = {
-    common: 1,
-    premium: 3,
-    premium_plus: 10
-}
-
 export default function CardsPage() {
   const [cards, setCards] = useState<ICreditCard[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -51,13 +45,14 @@ export default function CardsPage() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([])
   
-  const { plan, isPremium, isPremiumPlus } = usePlan()
+  const { limite, nomeDoPlano: plan } = usePlan()
   
   // Extract unique institutions from registered cards
   const availableInstitutions = Array.from(new Set(cards.map(c => c.institution).filter(Boolean))) as string[]
 
-  const limitByPlan = isPremiumPlus ? CARD_LIMITS.premium_plus : (isPremium ? CARD_LIMITS.premium : CARD_LIMITS.common)
-  const hasReachedLimit = cards.length >= limitByPlan
+  // PERM-18: o limite vem do acesso do /auth/me
+  const limitByPlan = limite("limite_cartoes")?.limit ?? null
+  const hasReachedLimit = limitByPlan !== null && cards.length >= limitByPlan
 
   const filteredCards = cards.filter(card => {
       const matchesInstitution = selectedInstitutions.length === 0 || (card.institution && selectedInstitutions.includes(card.institution))

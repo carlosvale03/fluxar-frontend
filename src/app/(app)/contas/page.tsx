@@ -36,12 +36,6 @@ import { usePlan } from "@/hooks/use-plan"
 import { cn } from "@/lib/utils"
 import { lerValorDigitado, paraCentavos } from "@/lib/dinheiro"
 
-const PLAN_LIMITS = {
-    common: 2,
-    premium: 5,
-    premium_plus: 20
-}
-
 const quickFilterOptions = [
     { label: "Todas", value: "ALL" },
     { label: "Conta Corrente", value: AccountType.CHECKING },
@@ -67,14 +61,14 @@ export default function AccountsPage() {
   const [minBalance, setMinBalance] = useState("")
   const [maxBalance, setMaxBalance] = useState("")
 
-  const { plan, isPremium, isPremiumPlus } = usePlan()
+  const { limite } = usePlan()
   
   // Extract unique institutions from registered accounts
   const availableBanks = Array.from(new Set(accounts.map(a => a.institution).filter(Boolean))) as string[]
 
-  // Resolve numeric limit based on plan string
-  const limitByPlan = isPremiumPlus ? PLAN_LIMITS.premium_plus : (isPremium ? PLAN_LIMITS.premium : PLAN_LIMITS.common)
-  const hasReachedLimit = accounts.length >= limitByPlan
+  // PERM-18: o limite vem do acesso do /auth/me
+  const limitByPlan = limite("limite_contas")?.limit ?? null
+  const hasReachedLimit = limitByPlan !== null && accounts.length >= limitByPlan
 
   const fetchAccounts = async () => {
     try {

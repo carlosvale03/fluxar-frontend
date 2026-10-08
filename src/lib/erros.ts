@@ -44,6 +44,34 @@ function campoDoFormulario(campo: string, campos: OpcoesDeErro["campos"]): strin
   return (campos as Record<string, string>)[campo]
 }
 
+// PERM-15 e PERM-16: 403 de trava do plano. O auth-context registra como reler
+// o /auth/me e como abrir a página de planos.
+export const CODIGOS_DE_PLANO = ["plan_locked", "plan_limit_reached"] as const
+export const ROTULO_VER_PLANOS = "Ver planos"
+
+interface AcoesDePlano {
+  reler: () => void
+  abrirPlanos: () => void
+}
+
+let acoesDePlano: AcoesDePlano | null = null
+
+export function registrarAcoesDePlano(acoes: AcoesDePlano): () => void {
+  acoesDePlano = acoes
+  return () => {
+    if (acoesDePlano === acoes) acoesDePlano = null
+  }
+}
+
+function ehBloqueioDePlano(status: number | undefined, dados: Record<string, unknown> | undefined) {
+  return (
+    status === 403 &&
+    !!dados &&
+    typeof dados === "object" &&
+    (CODIGOS_DE_PLANO as readonly unknown[]).includes(dados.code)
+  )
+}
+
 export function tratarErro(erro: unknown, opcoes: OpcoesDeErro = {}): void {
   const { form, campos, tentarDeNovo, mensagemPadrao } = opcoes
 
@@ -61,6 +89,20 @@ export function tratarErro(erro: unknown, opcoes: OpcoesDeErro = {}): void {
   }
 
   const dados = resposta.data as Record<string, unknown> | undefined
+
+  // PERM-19 e PERM-20: o aviso da trava leva aos planos, e o acesso é relido
+  // para a tela mostrar o bloqueio
+  if (ehBloqueioDePlano(resposta.status, dados)) {
+    const acoes = acoesDePlano
+    toast.error(mensagemDeErro(erro), {
+      action: {
+        label: ROTULO_VER_PLANOS,
+        onClick: () => (acoes ? acoes.abrirPlanos() : window.location.assign("/planos")),
+      },
+    })
+    acoes?.reler()
+    return
+  }
 
   // CONTRATO-31: erro que não é de campo, inclusive o 403 (mostra o detail)
   if (dados && typeof dados === "object" && typeof dados.detail === "string") {

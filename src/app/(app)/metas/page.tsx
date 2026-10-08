@@ -58,7 +58,9 @@ import { tratarErro } from "@/lib/erros"
 
 export default function GoalsPage() {
   const { user, isLoading: isAuthLoading } = useAuth()
-  const { isPremiumPlus } = usePlan()
+  const { podeUsar } = usePlan()
+  // PERM-18: a trava vem do acesso do /auth/me; null enquanto carrega
+  const isPremiumPlus = podeUsar("metas")
   const [goals, setGoals] = useState<Goal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -71,7 +73,7 @@ export default function GoalsPage() {
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'ACTIVE' | 'COMPLETED'>('ALL')
 
   const fetchGoals = async () => {
-    if (isAuthLoading) return
+    if (isAuthLoading || isPremiumPlus === null) return
 
     if (!isPremiumPlus) {
       setIsLoading(false)
@@ -111,7 +113,7 @@ export default function GoalsPage() {
     }
   }
 
-  if (!isAuthLoading && !isPremiumPlus && !isLoading) {
+  if (isPremiumPlus === false) {
     return (
       <div className="container mx-auto py-20 px-4 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="flex flex-col items-center justify-center p-12 text-center space-y-6 bg-muted/20 rounded-[40px] border border-dashed border-border/40">

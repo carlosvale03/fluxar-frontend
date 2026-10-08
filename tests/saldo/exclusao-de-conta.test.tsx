@@ -15,7 +15,8 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
 }))
 
 vi.mock("@/hooks/use-plan", () => ({
-  usePlan: () => ({ plan: "PREMIUM_PLUS", isPremium: true, isPremiumPlus: true }),
+  // PERM-18: o acesso do /auth/me com tudo liberado e sem limite
+  usePlan: () => ({ podeUsar: () => true, limite: () => ({ limit: null, used: 0 }), limiteAtingido: () => false }),
 }))
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), info: vi.fn() } }))
