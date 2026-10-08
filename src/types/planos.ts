@@ -3,6 +3,9 @@
 
 export type Plano = "COMMON" | "PREMIUM" | "PREMIUM_PLUS"
 
+// Ordem das colunas do painel e da página de planos
+export const PLANOS: Plano[] = ["COMMON", "PREMIUM", "PREMIUM_PLUS"]
+
 export type ChaveDeRecurso =
   | "relatorios_avancados"
   | "comparacao_mensal"

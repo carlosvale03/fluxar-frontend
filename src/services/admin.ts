@@ -1,5 +1,6 @@
 import { api } from "./apiClient"
 import { User } from "@/contexts/auth-context"
+import type { Plano, TravaDoCatalogo } from "@/types/planos"
 
 // CONTRATO-02: formato único das listas paginadas
 export interface PaginatedResponse<T> {
@@ -134,4 +135,26 @@ export async function resetAdminUserPassword(userId: string, data: { admin_passw
 export async function clearAdminUserData(userId: string, adminPassword: string) {
     const response = await api.post<{ message: string }>(`/admin/users/${userId}/clear-data/`, { admin_password: adminPassword })
     return response.data
+}
+
+// PERM-10 a PERM-13 e PERM-24: travas dos planos e liberação para testes
+export interface ConfiguracaoDosPlanos {
+  testing_unlock: boolean
+  catalog: TravaDoCatalogo[]
+}
+
+export type MudancaDosPlanos =
+  | { testing_unlock: boolean }
+  | { key: string; plan: Plano; enabled: boolean }
+  | { key: string; plan: Plano; limit: number | null }
+
+export async function getAdminPlans() {
+  const response = await api.get<ConfiguracaoDosPlanos>("/admin/plans/")
+  return response.data
+}
+
+// Responde com a configuração inteira, já com a mudança
+export async function updateAdminPlans(mudanca: MudancaDosPlanos) {
+  const response = await api.patch<ConfiguracaoDosPlanos>("/admin/plans/", mudanca)
+  return response.data
 }
