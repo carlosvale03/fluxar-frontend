@@ -127,7 +127,7 @@ export default function GoalsPage() {
             </p>
           </div>
           <Button asChild className="rounded-2xl font-black uppercase tracking-widest text-xs px-10 h-14 bg-primary hover:bg-primary/90 border-0 shadow-lg shadow-primary/20 text-white transition-all hover:scale-105 active:scale-95">
-            <Link href="/perfil">Fazer Upgrade Agora</Link>
+            <Link href="/planos">Fazer Upgrade Agora</Link>
           </Button>
         </div>
       </div>

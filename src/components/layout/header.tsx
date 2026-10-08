@@ -9,7 +9,7 @@ import {
   User, Menu, LogOut, Loader2, MoreHorizontal, 
   LayoutDashboard, Wallet, CreditCard, ArrowRightLeft, 
   BarChart3, Calendar, Repeat, PieChart, ArrowUpDown, 
-  Layers, Tag, Target, Settings, ChevronDown, Users
+  Layers, Tag, Target, Settings, ChevronDown, Users, Sparkles
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -219,6 +219,16 @@ export function Header() {
                           <User className="h-4 w-4 text-muted-foreground" />
                        </div>
                        <span className="text-sm font-medium">Meu Perfil</span>
+                     </Link>
+                   </DropdownMenuItem>
+
+                   {/* PERM-27: a página de planos */}
+                   <DropdownMenuItem asChild>
+                     <Link href="/planos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-muted group">
+                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted-foreground/10 transition-colors">
+                          <Sparkles className="h-4 w-4 text-muted-foreground" />
+                       </div>
+                       <span className="text-sm font-medium">Planos</span>
                      </Link>
                    </DropdownMenuItem>
                    

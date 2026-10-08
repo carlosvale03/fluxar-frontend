@@ -290,7 +290,7 @@ export default function ImportExportPage() {
                 </p>
               </div>
               <Button asChild className="rounded-full font-black uppercase tracking-widest text-[10px] px-8 h-12 bg-amber-500 hover:bg-amber-600 border-0 shadow-lg shadow-amber-500/20 text-white">
-                <Link href="/perfil">Seja Premium Agora</Link>
+                <Link href="/planos">Seja Premium Agora</Link>
               </Button>
             </div>
           ) : (
