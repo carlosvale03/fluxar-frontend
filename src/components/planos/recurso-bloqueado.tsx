@@ -6,6 +6,7 @@ import { Lock, ShieldAlert } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { usePlan } from "@/hooks/use-plan"
+import { cn } from "@/lib/utils"
 import type { ChaveDeRecurso } from "@/types/planos"
 
 export const MENSAGEM_RECURSO_BLOQUEADO = "Este recurso não está disponível no seu plano."
@@ -17,26 +18,31 @@ interface RecursoBloqueadoProps {
   titulo?: string
   // Aviso de uma linha, para o lugar de um botão ou de uma opção
   compacto?: boolean
+  // Classes do aviso, para ocupar o lugar do conteúdo num grid
+  className?: string
 }
 
 // PERM-19: com o recurso fechado, mostra o aviso do plano e o link para os
 // planos no lugar do conteúdo; o conteúdo nem é montado, então as rotas dele
 // não são chamadas. Sem o acesso carregado, não mostra nada até saber.
-export function RecursoBloqueado({ chave, children, titulo, compacto = false }: RecursoBloqueadoProps) {
+export function RecursoBloqueado({ chave, children, titulo, compacto = false, className }: RecursoBloqueadoProps) {
   const { podeUsar } = usePlan()
   const liberado = podeUsar(chave)
 
   if (liberado === null) return null
   if (liberado) return <>{children}</>
 
-  return compacto ? <AvisoCompacto /> : <AvisoDoPlano titulo={titulo} />
+  return compacto ? <AvisoCompacto className={className} /> : <AvisoDoPlano titulo={titulo} className={className} />
 }
 
-export function AvisoCompacto() {
+export function AvisoCompacto({ className }: { className?: string }) {
   return (
     <div
       role="note"
-      className="flex items-center gap-2 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400"
+      className={cn(
+        "flex items-center gap-2 rounded-xl border border-dashed border-amber-500/30 bg-amber-500/5 px-3 py-2 text-xs text-amber-700 dark:text-amber-400",
+        className,
+      )}
     >
       <Lock className="h-3.5 w-3.5 shrink-0" />
       <span>{MENSAGEM_RECURSO_BLOQUEADO}</span>
@@ -47,11 +53,14 @@ export function AvisoCompacto() {
   )
 }
 
-export function AvisoDoPlano({ titulo }: { titulo?: string }) {
+export function AvisoDoPlano({ titulo, className }: { titulo?: string; className?: string }) {
   return (
     <div
       role="note"
-      className="flex flex-col items-center justify-center p-12 text-center space-y-6 bg-muted/20 rounded-[40px] border border-dashed border-border/40 animate-in fade-in duration-500"
+      className={cn(
+        "flex flex-col items-center justify-center p-12 text-center space-y-6 bg-muted/20 rounded-[40px] border border-dashed border-border/40 animate-in fade-in duration-500",
+        className,
+      )}
     >
       <div className="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/10">
         <ShieldAlert className="h-10 w-10" />

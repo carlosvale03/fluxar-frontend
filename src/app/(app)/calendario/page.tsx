@@ -10,8 +10,19 @@ import { MonthPicker } from "@/components/ui/month-picker"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 
+// PERM-19: com `calendario` fechado, a tela mostra o aviso do plano e o
+// calendário nem é montado, então /reports/calendar/ não é chamado
 export default function CalendarPage() {
+    return (
+        <RecursoBloqueado chave="calendario" titulo="Calendário" className="container mx-auto my-10 max-w-3xl">
+            <CalendarioDoMes />
+        </RecursoBloqueado>
+    )
+}
+
+function CalendarioDoMes() {
     const currentDate = new Date()
     const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1)
     const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear())

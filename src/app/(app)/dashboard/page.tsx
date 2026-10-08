@@ -9,6 +9,8 @@ import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { BudgetSummary } from "@/components/dashboard/BudgetSummary"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
 import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
@@ -36,7 +38,7 @@ import { MonthPicker } from "@/components/ui/month-picker"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { HelpInfo } from "@/components/ui/help-info"
-import { DashboardCustomizer, DashboardModuleConfig, getInitialConfig } from "@/components/dashboard/dashboard-customizer"
+import { DashboardCustomizer, DashboardModuleConfig, DEFAULT_CONFIG, getInitialConfig } from "@/components/dashboard/dashboard-customizer"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CreditCardItem } from "@/components/cards/credit-card-item"
@@ -130,6 +132,13 @@ export default function DashboardPage() {
 
     const [isCardFormOpen, setIsCardFormOpen] = useState(false)
 
+    // PERM-19 e PERM-26: comparação mensal, análise por tag e personalização
+    // seguem o acesso do /auth/me; a rota travada não é chamada
+    const { podeUsar } = usePlan()
+    const comparacaoMensal = podeUsar("comparacao_mensal")
+    const analisePorTag = podeUsar("analise_por_tag")
+    const personalizar = podeUsar("personalizar_dashboard")
+
     const handleOpenForm = (type: "INCOME" | "EXPENSE") => {
         setFormType(type)
         setIsFormOpen(true)
@@ -144,13 +153,15 @@ export default function DashboardPage() {
     }, [])
     
     const fetchData = async () => {
+        // Sem o acesso carregado, espera (PERM-18)
+        if (comparacaoMensal === null || analisePorTag === null) return
         try {
             setIsLoading(true)
             const [reportData, chartsData, comparisonData, tagDistributionData] = await Promise.all([
                 getDashboardSummary(selectedMonth, selectedYear),
                 getSimpleCharts(undefined, selectedMonth, selectedYear),
-                getMonthlyComparison(6, selectedMonth, selectedYear),
-                getTagDistribution(selectedMonth, selectedYear)
+                comparacaoMensal ? getMonthlyComparison(6, selectedMonth, selectedYear) : Promise.resolve([]),
+                analisePorTag ? getTagDistribution(selectedMonth, selectedYear) : Promise.resolve(null)
             ])
             
             const normalizedCharts = {
@@ -184,7 +195,7 @@ export default function DashboardPage() {
 
     useEffect(() => {
         fetchData()
-    }, [selectedMonth, selectedYear])
+    }, [selectedMonth, selectedYear, comparacaoMensal, analisePorTag])
 
     const handlePrevMonth = () => {
         if (selectedMonth === 1) {
@@ -315,14 +326,17 @@ export default function DashboardPage() {
                         </DropdownMenuContent>
                     </DropdownMenu>
 
+                    <RecursoBloqueado chave="personalizar_dashboard" compacto>
                     <Button 
                         variant="outline" 
                         size="icon"
+                        aria-label="Personalizar dashboard"
                         className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border-dashed border-2 bg-card border-border/60 hover:bg-muted/30 hover:border-primary/20 hover:text-primary transition-all duration-300 shadow-sm shrink-0"
                         onClick={() => setIsCustomizerOpen(true)}
                     >
                         <Settings2 className="h-5 w-5 sm:h-6 sm:w-6" />
                     </Button>
+                    </RecursoBloqueado>
                 </div>
             </div>
 
@@ -331,7 +345,7 @@ export default function DashboardPage() {
 
             {/* SEÇÃO DINÂMICA: Módulos Personalizáveis */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                {getAdaptiveLayout(layoutConfig.filter(m => m.visible)).map(({ module, span }) => {
+                {getAdaptiveLayout((personalizar === false ? DEFAULT_CONFIG : layoutConfig).filter(m => m.visible)).map(({ module, span }) => {
                     const spanClass = {
                         4: "md:col-span-6 lg:col-span-4",
                         6: "md:col-span-6",
@@ -354,8 +368,8 @@ export default function DashboardPage() {
                             )
                         case "MONTHLY_BALANCE":
                             return (
+                                <RecursoBloqueado key={module.id} chave="comparacao_mensal" titulo="Comparação mensal" className={spanClass}>
                                 <MonthlyComparisonChart 
-                                    key={module.id}
                                     data={monthlyComparison.length > 0 ? [monthlyComparison[monthlyComparison.length - 1]] : []} 
                                     title="Balanço Mensal"
                                     description="Resumo Ganhos vs Gastos"
@@ -363,11 +377,12 @@ export default function DashboardPage() {
                                     height="100%"
                                     className={cn(spanClass, "h-full border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}
                                 />
+                                </RecursoBloqueado>
                             )
                         case "BALANCE_EVOLUTION":
                             return (
+                                <RecursoBloqueado key={module.id} chave="comparacao_mensal" titulo="Comparação mensal" className={spanClass}>
                                 <MonthlyComparisonChart 
-                                    key={module.id}
                                     data={monthlyComparison} 
                                     title="Evolução de Saldo"
                                     description={`Acompanhamento dos ${monthlyComparison.length} meses`}
@@ -375,6 +390,7 @@ export default function DashboardPage() {
                                     height="100%"
                                     className={cn(spanClass, "h-full border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}
                                 />
+                                </RecursoBloqueado>
                             )
                         case "BUDGET_SUMMARY":
                             return (
@@ -414,8 +430,8 @@ export default function DashboardPage() {
                             )
                         case "TAG_EXPENSE_DISTRIBUTION":
                             return (
+                                <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por tag" className={spanClass}>
                                 <TagDistributionChart 
-                                    key={module.id}
                                     title="Despesas por Tag"
                                     description="Distribuição de gastos por etiqueta"
                                     data={tagCharts?.expense_by_tag || []}
@@ -426,11 +442,12 @@ export default function DashboardPage() {
                                     month={selectedMonth}
                                     year={selectedYear}
                                 />
+                                </RecursoBloqueado>
                             )
                         case "TAG_INCOME_SOURCE":
                             return (
+                                <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por tag" className={spanClass}>
                                 <TagDistributionChart 
-                                    key={module.id}
                                     title="Ganhos por Tag"
                                     description="Origem das receitas por etiqueta"
                                     data={tagCharts?.income_by_tag || []}
@@ -441,6 +458,7 @@ export default function DashboardPage() {
                                     month={selectedMonth}
                                     year={selectedYear}
                                 />
+                                </RecursoBloqueado>
                             )
 
                         case "CREDIT_MANAGEMENT":
@@ -569,12 +587,14 @@ export default function DashboardPage() {
                 </p>
             </div>
 
-            <DashboardCustomizer 
-                open={isCustomizerOpen}
-                onOpenChange={setIsCustomizerOpen}
-                config={layoutConfig}
-                onConfigChange={handleLayoutChange}
-            />
+            {personalizar && (
+                <DashboardCustomizer 
+                    open={isCustomizerOpen}
+                    onOpenChange={setIsCustomizerOpen}
+                    config={layoutConfig}
+                    onConfigChange={handleLayoutChange}
+                />
+            )}
 
             {/* Diálogos de Transação */}
             <TransactionFormDialog 

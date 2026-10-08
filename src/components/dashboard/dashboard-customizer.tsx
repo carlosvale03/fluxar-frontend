@@ -57,7 +57,8 @@ const COLORS = {
     amber: "#f59e0b",
 }
 
-const DEFAULT_CONFIG: DashboardModuleConfig[] = [
+// Exportado para o dashboard usar o layout padrão com personalizar_dashboard fechado (PERM-19)
+export const DEFAULT_CONFIG: DashboardModuleConfig[] = [
     { id: "DAILY_CASH_FLOW", label: "Fluxo de Caixa Diário", visible: true, icon: TrendingUp, color: COLORS.green },
     { id: "MONTHLY_BALANCE", label: "Balanço Mensal", visible: true, icon: BarChart3, color: COLORS.blue },
     { id: "BALANCE_EVOLUTION", label: "Evolução de Saldo", visible: true, icon: BarChart3, color: COLORS.indigo },

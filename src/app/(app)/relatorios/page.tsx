@@ -33,6 +33,8 @@ import { LucideIcon } from "@/components/ui/icon-picker"
 import { HelpInfo } from "@/components/ui/help-info"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 
 // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número, e
 // a conversão é só para plotar
@@ -58,11 +60,15 @@ export default function ReportsPage() {
     const [isAccountDialogOpen, setIsAccountDialogOpen] = useState(false)
     const [isSelectionModalOpen, setIsSelectionModalOpen] = useState(false)
 
-    // Fase de Testes: Todos têm acesso total aos relatórios
-    const isPremium = true
+    // PERM-19 e PERM-26: cada parte travada vem do acesso do /auth/me, e a
+    // rota dela só é chamada com a trava aberta (null enquanto carrega)
+    const { podeUsar } = usePlan()
+    const avancados = podeUsar("relatorios_avancados")
+    const comparacaoMensal = podeUsar("comparacao_mensal")
+    const analisePorTag = podeUsar("analise_por_tag")
 
     const fetchAdvanced = async () => {
-        if (!isPremium) return
+        if (avancados !== true) return
         setIsLoadingAdvanced(true)
         try {
             const data = await getAdvancedCharts(period)
@@ -99,6 +105,31 @@ export default function ReportsPage() {
             }
         }
         
+        const fetchSummary = async () => {
+            setIsLoadingSummary(true)
+            try {
+                let days: number | string | undefined = undefined;
+                if (period === "this_month") days = undefined; // Backend assumes current month if null
+                else if (period === "last_30_days") days = 30;
+                else if (period === "last_90_days") days = 90;
+                else if (period === "last_6_months") days = 180;
+                else if (period === "this_year") days = "year";
+
+                const data = await getDashboardSummary(undefined, undefined, days)
+                setSummaryData(data)
+            } catch (error) {
+                tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: fetchSummary })
+            } finally {
+                setIsLoadingSummary(false)
+            }
+        }
+
+        fetchSimple()
+        fetchSummary()
+    }, [period])
+
+    useEffect(() => {
+        if (comparacaoMensal !== true) return
         const fetchComparison = async () => {
             setIsLoadingComparison(true)
             try {
@@ -121,25 +152,11 @@ export default function ReportsPage() {
             }
         }
 
-        const fetchSummary = async () => {
-            setIsLoadingSummary(true)
-            try {
-                let days: number | string | undefined = undefined;
-                if (period === "this_month") days = undefined; // Backend assumes current month if null
-                else if (period === "last_30_days") days = 30;
-                else if (period === "last_90_days") days = 90;
-                else if (period === "last_6_months") days = 180;
-                else if (period === "this_year") days = "year";
+        fetchComparison()
+    }, [period, comparacaoMensal])
 
-                const data = await getDashboardSummary(undefined, undefined, days)
-                setSummaryData(data)
-            } catch (error) {
-                tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: fetchSummary })
-            } finally {
-                setIsLoadingSummary(false)
-            }
-        }
-
+    useEffect(() => {
+        if (analisePorTag !== true) return
         const fetchTagDistribution = async () => {
             try {
                 // Para relatórios, usamos o mapeamento de períodos para o backend
@@ -150,17 +167,14 @@ export default function ReportsPage() {
             }
         }
 
-        fetchSimple()
-        fetchComparison()
-        fetchSummary()
         fetchTagDistribution()
-    }, [period])
+    }, [period, analisePorTag])
 
     useEffect(() => {
         if (activeTab === 'advanced') {
             fetchAdvanced()
         }
-    }, [period, activeTab])
+    }, [period, activeTab, avancados])
 
     // Reset seletor diário quando os dados mudarem
     useEffect(() => {
@@ -239,7 +253,7 @@ export default function ReportsPage() {
                         Fundamentais
                     </TabsTrigger>
                     <TabsTrigger value="advanced" className="rounded-xl font-bold text-sm data-[state=active]:bg-background data-[state=active]:shadow-md transition-all flex items-center gap-2">
-                        Avançados {/* TODO: Reverter cadeado após testes - {!isPremium && <Lock className="h-3 w-3 opacity-50" />} */}
+                        Avançados {avancados === false && <Lock className="h-3 w-3 opacity-50" />}
                     </TabsTrigger>
                 </TabsList>
 
@@ -258,6 +272,7 @@ export default function ReportsPage() {
 
 
                         {/* Restoration: Monthly Comparison */}
+                        <RecursoBloqueado chave="comparacao_mensal" titulo="Comparação mensal" className="lg:col-span-2">
                         <MonthlyComparisonChart 
                             data={monthlyComparison} 
                             title="Balanço por Mês"
@@ -275,6 +290,7 @@ export default function ReportsPage() {
                             height={350}
                             className="lg:col-span-2"
                         />
+                        </RecursoBloqueado>
 
                         <CategoryDistributionChart 
                             title="Distribuição de Gastos"
@@ -298,6 +314,7 @@ export default function ReportsPage() {
                             endDate={advancedData?.period?.end_date}
                         />
 
+                        <RecursoBloqueado chave="analise_por_tag" titulo="Análise por tag" className="lg:col-span-2">
                         <TagDistributionChart 
                             title="Despesas por Tag"
                             description="Distribuição de gastos por etiqueta"
@@ -319,35 +336,12 @@ export default function ReportsPage() {
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />
+                        </RecursoBloqueado>
                     </div>
                 </TabsContent>
 
                 <TabsContent value="advanced" className="mt-8 space-y-8">
-                    {/* TODO: Reverter condicional de bloqueio após os testes */}
-                    {false && !isPremium ? (
-                        <Card className="border-none shadow-2xl rounded-[40px] overflow-hidden bg-gradient-to-br from-indigo-600 via-blue-600 to-violet-600 text-white">
-                            <CardContent className="p-12 sm:p-20 text-center flex flex-col items-center gap-8">
-                                <div className="w-24 h-24 rounded-[32px] bg-white/20 backdrop-blur-md flex items-center justify-center animate-pulse">
-                                    <Sparkles className="h-12 w-12 text-amber-300" />
-                                </div>
-                                <div className="space-y-3 max-w-xl">
-                                    <h2 className="text-4xl font-black tracking-tight">Desbloqueie o Poder dos Dados</h2>
-                                    <p className="text-indigo-100 text-lg">
-                                        Gráficos de evolução de patrimônio, análise de frequência e tendências avançadas estão disponíveis apenas para assinantes **Premium**.
-                                    </p>
-                                </div>
-                                <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                                    <Button className="h-14 px-10 rounded-2xl bg-white text-indigo-600 hover:bg-white/90 font-black text-lg shadow-xl shadow-black/20 transition-all hover:scale-105 active:scale-95">
-                                        Assinar Premium Agora
-                                    </Button>
-                                    <Button variant="ghost" className="h-14 px-8 rounded-2xl text-white hover:bg-white/10 font-bold border border-white/20">
-                                        Ver Benefícios
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-indigo-200 mt-2 opacity-70">Cancele quando quiser. Planos a partir de R$ 19,90/mês.</p>
-                            </CardContent>
-                        </Card>
-                    ) : (
+                    <RecursoBloqueado chave="relatorios_avancados" titulo="Relatórios avançados">
                         <div className="space-y-8">
                             {/* ELITE KPI ROW */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -656,6 +650,7 @@ export default function ReportsPage() {
                             {/* CUSTOM MONITORING GRID */}
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                                 <div className="space-y-8">
+                                    <RecursoBloqueado chave="monitor_de_foco" titulo="Monitor de foco">
                                     <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
                                         <CardHeader className="p-8">
                                             <div className="flex items-center justify-between">
@@ -762,6 +757,7 @@ export default function ReportsPage() {
                                             </Button>
                                         </CardContent>
                                     </Card>
+                                    </RecursoBloqueado>
 
                                 </div>
 
@@ -1074,14 +1070,16 @@ export default function ReportsPage() {
                                 Nenhuma informação constitui recomendação direta de investimento.
                             </div>
                         </div>
-                    )}
+                    </RecursoBloqueado>
                 </TabsContent>
             </Tabs>
+            <RecursoBloqueado chave="monitor_de_foco">
             <FocusSelectionModal 
                 open={isSelectionModalOpen} 
                 onOpenChange={setIsSelectionModalOpen}
                 onSuccess={fetchAdvanced}
             />
+            </RecursoBloqueado>
         </div>
     )
 }
