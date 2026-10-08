@@ -244,4 +244,40 @@ describe("Formulários", () => {
     render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" />)
     expect(screen.getByText("Tags Interativas")).toBeInTheDocument()
   })
+
+  // PERM-21: editar a transação é essencial; com `tags` fechada o corpo da
+  // edição vai sem o campo `tags`, para o backend manter as que ela já tem
+  const comTags = {
+    id: "t2",
+    description: "Padaria",
+    amount: "12.34",
+    date: "2026-10-05",
+    type: "EXPENSE",
+    category: "cat-1",
+    account: "conta-1",
+    tags: [{ id: "tag-1", name: "Viagem" }],
+  } as unknown as Transaction
+
+  async function salvarEdicao() {
+    const put = vi.mocked(api.put)
+    put.mockResolvedValue({ data: {} })
+    render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" initialData={comTags} />)
+    await userEvent.click(screen.getByRole("button", { name: "Salvar Lançamento" }))
+    await vi.waitFor(() => expect(put).toHaveBeenCalled())
+    return put.mock.calls[0]
+  }
+
+  it("tags fechado: editar a transação não envia o campo tags", async () => {
+    comAcesso(["tags"])
+    const [url, corpo] = await salvarEdicao()
+    expect(url).toBe("/transactions/t2/")
+    expect(corpo).not.toHaveProperty("tags")
+    expect(corpo).toMatchObject({ description: "Padaria", category: "cat-1", account: "conta-1" })
+  })
+
+  it("tags aberto: editar a transação envia as tags dela", async () => {
+    comAcesso()
+    const [, corpo] = await salvarEdicao()
+    expect(corpo).toMatchObject({ tags: ["tag-1"] })
+  })
 })

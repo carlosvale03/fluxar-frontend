@@ -167,7 +167,12 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
       }
       delete (finalPayload as any).account_id
       delete (finalPayload as any).category_id
- 
+      // PERM-21: com `tags` fechada, editar a transação segue liberado; o
+      // campo some do corpo para manter as tags que ela já tem
+      if (isEdit && !tagsLiberadas) {
+          Reflect.deleteProperty(finalPayload, "tags")
+      }
+
       let response;
       if (isEdit) {
           if (updateScope === 'ALL' && initialData.recurring_source) {
