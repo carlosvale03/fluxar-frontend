@@ -33,14 +33,9 @@ import { BalanceAdjustmentDialog } from "@/components/accounts/balance-adjustmen
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { Account, AccountType } from "@/types/accounts"
 import { usePlan } from "@/hooks/use-plan"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { cn } from "@/lib/utils"
 import { lerValorDigitado, paraCentavos } from "@/lib/dinheiro"
-
-const PLAN_LIMITS = {
-    common: 2,
-    premium: 5,
-    premium_plus: 20
-}
 
 const quickFilterOptions = [
     { label: "Todas", value: "ALL" },
@@ -67,14 +62,13 @@ export default function AccountsPage() {
   const [minBalance, setMinBalance] = useState("")
   const [maxBalance, setMaxBalance] = useState("")
 
-  const { plan, isPremium, isPremiumPlus } = usePlan()
+  const { limiteAtingido, atualizarUso } = usePlan()
   
   // Extract unique institutions from registered accounts
   const availableBanks = Array.from(new Set(accounts.map(a => a.institution).filter(Boolean))) as string[]
 
-  // Resolve numeric limit based on plan string
-  const limitByPlan = isPremiumPlus ? PLAN_LIMITS.premium_plus : (isPremium ? PLAN_LIMITS.premium : PLAN_LIMITS.common)
-  const hasReachedLimit = accounts.length >= limitByPlan
+  // PERM-18 e PERM-20: o limite e o uso vêm do acesso do /auth/me
+  const hasReachedLimit = limiteAtingido("limite_contas")
 
   const fetchAccounts = async () => {
     try {
@@ -148,6 +142,8 @@ export default function AccountsPage() {
     try {
       await api.delete(`/accounts/${deleteId}/`)
       toast.success("Conta excluída com sucesso.")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       setDeleteId(null)
       fetchAccounts() // Refresh list
     } catch (error) {
@@ -200,20 +196,10 @@ export default function AccountsPage() {
         </div>
       </div>
 
-      {/* Premium Banner for Limits */}
-      {!isLoading && hasReachedLimit && (
-        <div className="mb-8 p-4 rounded-3xl bg-amber-500/5 border border-amber-500/20 text-amber-700 dark:text-amber-400 animate-in slide-in-from-top-2 duration-700 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                <AlertCircle className="h-5 w-5" />
-            </div>
-            <div className="flex flex-col gap-1">
-                <h4 className="font-bold text-sm">Limite do Plano Atingido</h4>
-                <p className="text-xs leading-relaxed max-w-2xl">
-                    Seu plano atual permite até <strong>{limitByPlan}</strong> contas. Para adicionar mais, considere fazer um upgrade ou desativar contas que não utiliza mais.
-                </p>
-            </div>
-        </div>
-      )}
+      {/* PERM-20: uso e limite de contas do plano */}
+      <div className="mb-8">
+        <AvisoDeLimite chave="limite_contas" rotulo="contas" />
+      </div>
 
       {/* Filter System */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8">

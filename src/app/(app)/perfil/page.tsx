@@ -1,6 +1,8 @@
 "use client"
 
 import { useAuth } from "@/hooks/use-auth"
+import { usePlan } from "@/hooks/use-plan"
+import Link from "next/link"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -49,15 +51,6 @@ const formatPhone = (value: string) => {
     .replace(/(-\d{4})\d+?$/, '$1')
 }
 
-const formatPlanName = (plan?: string) => {
-    switch(plan) {
-        case 'COMMON': return 'Plano Gratuito'
-        case 'PREMIUM': return 'Premium'
-        case 'PREMIUM_PLUS': return 'Premium Plus'
-        default: return 'Plano Gratuito'
-    }
-}
-
 
 import { cn, getAbsoluteUrl } from "@/lib/utils"
 import Cropper, { Area } from "react-easy-crop"
@@ -66,6 +59,7 @@ import { getCroppedImg } from "@/lib/image-utils"
 
 export default function ProfilePage() {
   const { user, refreshUser } = useAuth()
+  const { nomeDoPlano, liberacaoDeTestes } = usePlan()
   const [isProfileLoading, setIsLoading] = useState(false)
   const [avatarDialogOpen, setAvatarDialogOpen] = useState(false)
   
@@ -345,6 +339,19 @@ export default function ProfilePage() {
                 </Badge>
               )}
             </div>
+
+            {/* PERM-25: o plano real do usuário e, com a liberação ligada, o aviso */}
+            {nomeDoPlano && (
+              <div className="mt-6 w-full space-y-2 rounded-2xl border border-border/40 bg-muted/20 p-4">
+                <p className="text-sm font-black uppercase tracking-wider text-primary">Plano {nomeDoPlano}</p>
+                {liberacaoDeTestes && (
+                  <p className="text-xs text-muted-foreground">Todos os recursos estão liberados durante a fase de testes.</p>
+                )}
+                <Link href="/planos" className="inline-block text-xs font-bold text-primary underline underline-offset-2">
+                  Ver planos
+                </Link>
+              </div>
+            )}
           </CardContent>
         </Card>
 

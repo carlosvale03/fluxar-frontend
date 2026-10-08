@@ -51,6 +51,7 @@ import { accountsService } from "@/services/accounts"
 import { BANKS } from "@/data/banks"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
 
 const goalSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
@@ -80,6 +81,8 @@ interface GoalFormProps {
 
 export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  // PERM-20: criar ou excluir muda o uso dos limites do /auth/me
+  const { atualizarUso } = usePlan()
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [cofrinhoType, setCofrinhoType] = useState<"new" | "existing">("new")
   const [piggyBanks, setPiggyBanks] = useState<Account[]>([])
@@ -204,6 +207,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       } else {
         await goalsService.createGoal(data)
         toast.success("Meta criada com sucesso!")
+        void atualizarUso()
       }
 
       onSuccess()

@@ -7,13 +7,12 @@ import {
   Upload, 
   FileText, 
   Table as TableIcon,
-  ShieldAlert,
   HelpCircle,
   History,
   Info,
   Loader2
 } from "lucide-react"
-import { useAuth } from "@/contexts/auth-context"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { 
   Card, 
@@ -25,7 +24,6 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import Link from "next/link"
 
 import { ImportDialog } from "@/components/transactions/import-dialog"
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
@@ -36,7 +34,6 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 
 export default function ImportExportPage() {
-  const { user } = useAuth()
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("import")
 
@@ -67,7 +64,8 @@ export default function ImportExportPage() {
     tagIds: []
   })
   
-  const isPremium = user?.plan === 'PREMIUM' || user?.plan === 'PREMIUM_PLUS'
+  // PERM-19 e PERM-26: cada importação e exportação segue a trava dela no
+  // acesso do /auth/me; com a trava fechada, o botão dá lugar ao aviso
 
   const handleOpenImport = (type: "OFX" | "SPREADSHEET") => {
     setImportType(type)
@@ -230,12 +228,14 @@ export default function ImportExportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button 
+                <RecursoBloqueado chave="importacao_ofx" compacto>
+                <Button
                     className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 shadow-md shadow-primary/20"
                     onClick={() => handleOpenImport("OFX")}
                 >
                   Configurar Importação OFX
                 </Button>
+                </RecursoBloqueado>
               </CardContent>
             </Card>
 
@@ -253,13 +253,15 @@ export default function ImportExportPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
-                <Button 
-                    variant="outline" 
+                <RecursoBloqueado chave="importacao_planilha" compacto>
+                <Button
+                    variant="outline"
                     className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 border-blue-500/20 hover:bg-blue-500/10 text-blue-500"
                     onClick={() => handleOpenImport("SPREADSHEET")}
                 >
                   Mapear Colunas e Importar
                 </Button>
+                </RecursoBloqueado>
               </CardContent>
             </Card>
           </div>
@@ -278,22 +280,6 @@ export default function ImportExportPage() {
         </TabsContent>
 
         <TabsContent value="export" className="animate-in fade-in slide-in-from-right-2 duration-300">
-          {!isPremium ? (
-            <div className="flex flex-col items-center justify-center p-12 text-center space-y-6 bg-muted/20 rounded-[40px] border border-dashed border-border/40">
-              <div className="w-20 h-20 bg-amber-500/10 text-amber-500 rounded-full flex items-center justify-center shadow-lg shadow-amber-500/10 animate-pulse">
-                <ShieldAlert className="h-10 w-10" />
-              </div>
-              <div className="max-w-md space-y-2">
-                <h3 className="text-2xl font-black uppercase tracking-tight">Recurso Exclusivo</h3>
-                <p className="text-sm font-medium text-muted-foreground">
-                  A exportação detalhada de dados em PDF e XLS está disponível apenas para assinantes **Premium** e **Premium Plus**.
-                </p>
-              </div>
-              <Button asChild className="rounded-full font-black uppercase tracking-widest text-[10px] px-8 h-12 bg-amber-500 hover:bg-amber-600 border-0 shadow-lg shadow-amber-500/20 text-white">
-                <Link href="/perfil">Seja Premium Agora</Link>
-              </Button>
-            </div>
-          ) : (
             <div className="space-y-6">
               <Card className="border-border/60 bg-card shadow-sm md:rounded-[40px]">
                 <CardHeader className="flex flex-row items-center justify-between pb-8">
@@ -318,13 +304,15 @@ export default function ImportExportPage() {
                         <h4 className="font-black uppercase tracking-tight">Relatório em PDF</h4>
                         <p className="text-xs text-muted-foreground mt-1">Ideal para impressão e conferência visual.</p>
                      </div>
-                     <Button 
+                     <RecursoBloqueado chave="exportacao_pdf" compacto>
+                     <Button
                         className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12"
                         onClick={() => handleExport('PDF')}
                         disabled={isExporting}
                      >
                         {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Gerar PDF"}
                      </Button>
+                     </RecursoBloqueado>
                   </div>
 
                   <div className="p-6 rounded-[32px] bg-muted/20 border border-border/40 space-y-6 hover:border-blue-500/20 hover:bg-muted/30 transition-all group">
@@ -338,14 +326,16 @@ export default function ImportExportPage() {
                         <h4 className="font-black uppercase tracking-tight">Dados em Excel (XLS)</h4>
                         <p className="text-xs text-muted-foreground mt-1">Ideal para análise profunda e manipulação.</p>
                      </div>
-                     <Button 
-                        variant="outline" 
+                     <RecursoBloqueado chave="exportacao_xlsx" compacto>
+                     <Button
+                        variant="outline"
                         className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 border-blue-500/20 hover:bg-blue-500/10 text-blue-500"
                         onClick={() => handleExport('XLS')}
                         disabled={isExporting}
                      >
                         {isExporting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Gerar XLS"}
                      </Button>
+                     </RecursoBloqueado>
                   </div>
                 </CardContent>
               </Card>
@@ -362,7 +352,6 @@ export default function ImportExportPage() {
                 </div>
               </Alert>
             </div>
-          )}
         </TabsContent>
       </Tabs>
       

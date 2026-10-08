@@ -3,6 +3,9 @@
 import { useState, useEffect } from "react"
 import { Tag as TagType } from "@/types/categories"
 import { getTags, deleteTag, getTagInsights } from "@/services/tags"
+import { usePlan } from "@/hooks/use-plan"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { Button } from "@/components/ui/button"
 import { PlusCircle, Pencil, Trash2, Tag as TagIcon, Search, BarChart3, Sparkles, Filter, Info, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -67,7 +70,22 @@ function ExpandableText({ text }: { text: string }) {
     );
 }
 
+// PERM-19: com `tags` fechado, a tela mostra o aviso do plano e /tags/ não é chamado
 export default function TagsPage() {
+  return (
+    <RecursoBloqueado chave="tags" titulo="Tags" className="container mx-auto my-10 max-w-3xl">
+      <TelaDeTags />
+    </RecursoBloqueado>
+  )
+}
+
+function TelaDeTags() {
+  // PERM-19: a análise por tag só aparece com analise_por_tag aberto, e
+  // /reports/charts/tag-insights/ não é chamado com a trava fechada
+  const { podeUsar, limiteAtingido, atualizarUso } = usePlan()
+  const analisePorTag = podeUsar("analise_por_tag") === true
+  // PERM-20: no limite de tags do plano, a criação fica desabilitada
+  const tagsNoLimite = limiteAtingido("limite_tags")
   const [tags, setTags] = useState<TagType[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -133,6 +151,8 @@ export default function TagsPage() {
     try {
       await deleteTag(deletingTag.id)
       toast.success("Tag excluída com sucesso")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       refreshTags()
     } catch (error) {
        console.error(error)
@@ -180,7 +200,7 @@ export default function TagsPage() {
 
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-                <Button className="h-14 px-8 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group overflow-hidden relative">
+                <Button disabled={tagsNoLimite} className="h-14 px-8 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group overflow-hidden relative">
                     <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
                     <PlusCircle className="mr-2 h-5 w-5" />
                     <span className="font-black uppercase tracking-widest text-sm">Nova Tag Premium</span>
@@ -206,6 +226,11 @@ export default function TagsPage() {
                 </ScrollArea>
             </DialogContent>
         </Dialog>
+      </div>
+
+      {/* PERM-20: uso e limite de tags do plano */}
+      <div className="mb-8">
+        <AvisoDeLimite chave="limite_tags" rotulo="tags" />
       </div>
 
       {/* Filter/Search Premium Bar */}
@@ -267,8 +292,9 @@ export default function TagsPage() {
                   <p className="max-w-xs mx-auto mt-2 mb-8 text-sm text-muted-foreground/60 leading-relaxed">
                     Personalize sua experincia criando marcadores exclusivos para seu controle financeiro.
                   </p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
+                    disabled={tagsNoLimite}
                     onClick={() => setIsCreateOpen(true)}
                     className="rounded-full h-12 px-8 border-primary/20 hover:bg-primary/5 hover:border-primary/40 font-bold transition-all"
                   >
@@ -308,9 +334,11 @@ export default function TagsPage() {
                  
                  {/* FAB Interno (Regra #5) */}
                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 absolute top-3 right-3 p-1.5 rounded-2xl bg-background/90 backdrop-blur-md shadow-2xl border border-border/60 translate-y-2 group-hover:translate-y-0">
+                    {analisePorTag && (
                     <Button 
                         variant="ghost" 
                         size="icon" 
+                        aria-label={`Análise da tag ${tag.name}`}
                         className="h-8 w-8 rounded-xl hover:bg-primary/10 text-primary transition-all"
                         onClick={(e) => {
                             e.stopPropagation();
@@ -319,6 +347,7 @@ export default function TagsPage() {
                     >
                         <BarChart3 className="h-4 w-4" />
                     </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 text-primary transition-all" onClick={() => setEditingTag(tag)}>
                         <Pencil className="h-4 w-4" />
                     </Button>

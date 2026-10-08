@@ -29,6 +29,9 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn() }) }))
 
+// PERM-18: o acesso do /auth/me com tudo liberado
+vi.mock("@/hooks/use-plan", () => ({ usePlan: () => ({ podeUsar: () => true }) }))
+
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
   usePathname: () => "/dashboard",

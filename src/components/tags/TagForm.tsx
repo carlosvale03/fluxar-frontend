@@ -20,6 +20,7 @@ import { Tag as TagType, TagInput } from "@/types/categories"
 import { createTag, updateTag } from "@/services/tags"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
 import { cn } from "@/lib/utils"
 
 const PRESET_COLORS = [
@@ -54,6 +55,8 @@ interface TagFormProps {
 
 export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  // PERM-20: criar ou excluir muda o uso dos limites do /auth/me
+  const { atualizarUso } = usePlan()
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,6 +77,7 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
       } else {
         await createTag(values as TagInput)
         toast.success("Tag criada com sucesso!")
+        void atualizarUso()
       }
       onSuccess()
     } catch (error) {

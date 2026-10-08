@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, CreditCard, AlertCircle, Filter, X, RotateCcw, Trash2 } from "lucide-react"
+import { Plus, CreditCard, Filter, X, RotateCcw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -32,15 +32,94 @@ import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog
 import { api } from "@/services/apiClient"
 import { CreditCard as ICreditCard } from "@/types/cards"
 import { usePlan } from "@/hooks/use-plan"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { cn } from "@/lib/utils"
+import { tratarErro } from "@/lib/erros"
+import { AvisoDoPlano } from "@/components/planos/recurso-bloqueado"
+import { InvoiceList } from "@/components/cards/invoice-list"
+import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
+import { Invoice } from "@/types/cards"
 
-const CARD_LIMITS = {
-    common: 1,
-    premium: 3,
-    premium_plus: 10
+// PERM-19 e PERM-22: com `cartoes` fechado, a tela mostra o aviso do plano no
+// lugar dos cartões (sem "Novo cartão") e, abaixo, as faturas dos cartões que
+// já existem, que continuam podendo ser pagas e estornadas
+export default function CardsPage() {
+  const { podeUsar } = usePlan()
+  const cartoes = podeUsar("cartoes")
+  if (cartoes === null) return null
+  return cartoes ? <TelaDeCartoes /> : <FaturasComCartoesTravados />
 }
 
-export default function CardsPage() {
+// SPEC_DEVIATION: a spec lista /credit-cards/ entre as rotas da trava `cartoes`.
+// Reason: PERM-22 exige pagar e estornar as faturas existentes; por isso a
+// leitura dos cartões e das faturas segue liberada (decisão do design.md).
+function FaturasComCartoesTravados() {
+  const [cards, setCards] = useState<ICreditCard[]>([])
+  const [faturaParaPagar, setFaturaParaPagar] = useState<Invoice | null>(null)
+  // Recria as listas de faturas depois de pagar ou estornar
+  const [versao, setVersao] = useState(0)
+
+  const carregarCartoes = async () => {
+    try {
+      const response = await api.get("/credit-cards/")
+      setCards(response.data || [])
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar cartões.", tentarDeNovo: carregarCartoes })
+    }
+  }
+
+  useEffect(() => {
+    carregarCartoes()
+  }, [])
+
+  const estornar = async (invoice: Invoice) => {
+    try {
+      await api.post(`/invoices/${invoice.id}/unpay/`)
+      toast.success("Pagamento desfeito com sucesso!")
+      setVersao((v) => v + 1)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao desfazer pagamento." })
+    }
+  }
+
+  return (
+    <div className="container mx-auto py-12 px-6 max-w-7xl space-y-12 animate-in fade-in duration-700">
+      <AvisoDoPlano titulo="Cartões" />
+
+      {cards.length > 0 && (
+        <div className="space-y-8">
+          <div className="space-y-1 pl-2">
+            <h2 className="text-xl font-bold tracking-tight">Faturas dos seus cartões</h2>
+            <p className="text-sm text-muted-foreground">
+              Você continua podendo pagar e estornar as faturas dos cartões que já tem.
+            </p>
+          </div>
+          {cards.map((card) => (
+            <section key={`${card.id}-${versao}`} aria-label={`Faturas do ${card.name}`} className="space-y-3">
+              <h3 className="font-black pl-2">{card.name}</h3>
+              <InvoiceList cardId={card.id} onPayInvoice={setFaturaParaPagar} onUnpayInvoice={estornar} />
+            </section>
+          ))}
+        </div>
+      )}
+
+      <InvoicePaymentDialog
+        open={!!faturaParaPagar}
+        onOpenChange={(aberto) => {
+          if (!aberto) setFaturaParaPagar(null)
+        }}
+        invoiceId={faturaParaPagar?.id}
+        initialAmount={faturaParaPagar?.total_amount}
+        onSuccess={() => {
+          setFaturaParaPagar(null)
+          setVersao((v) => v + 1)
+        }}
+      />
+    </div>
+  )
+}
+
+function TelaDeCartoes() {
   const [cards, setCards] = useState<ICreditCard[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCard, setSelectedCard] = useState<ICreditCard | undefined>(undefined)
@@ -51,13 +130,13 @@ export default function CardsPage() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([])
   
-  const { plan, isPremium, isPremiumPlus } = usePlan()
+  const { limiteAtingido, atualizarUso } = usePlan()
   
   // Extract unique institutions from registered cards
   const availableInstitutions = Array.from(new Set(cards.map(c => c.institution).filter(Boolean))) as string[]
 
-  const limitByPlan = isPremiumPlus ? CARD_LIMITS.premium_plus : (isPremium ? CARD_LIMITS.premium : CARD_LIMITS.common)
-  const hasReachedLimit = cards.length >= limitByPlan
+  // PERM-18 e PERM-20: o limite e o uso vêm do acesso do /auth/me
+  const hasReachedLimit = limiteAtingido("limite_cartoes")
 
   const filteredCards = cards.filter(card => {
       const matchesInstitution = selectedInstitutions.length === 0 || (card.institution && selectedInstitutions.includes(card.institution))
@@ -99,6 +178,8 @@ export default function CardsPage() {
     try {
       await api.delete(`/credit-cards/${deleteId}/`)
       toast.success("Cartão excluído com sucesso.")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       setDeleteId(null)
       fetchCards()
     } catch (error) {
@@ -243,20 +324,10 @@ export default function CardsPage() {
         </div>
       </div>
 
-      {/* Banner de Aviso de Limite */}
-      {!isLoading && hasReachedLimit && (
-        <div className="mb-10 p-5 rounded-[32px] bg-amber-500/5 border border-amber-500/10 text-amber-600 dark:text-amber-500/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
-                <AlertCircle className="h-5 w-5" />
-            </div>
-            <div>
-                <h4 className="font-bold text-sm">Limite de Cartões Atingido</h4>
-                <p className="text-xs leading-relaxed opacity-80 mt-1 max-w-2xl">
-                    Seu plano atual ({plan}) permite até {limitByPlan} cartões ativos. Para adicionar novos cartões, considere fazer o upgrade do seu plano ou remover um cartão existente.
-                </p>
-            </div>
-        </div>
-      )}
+      {/* PERM-20: uso e limite de cartões do plano */}
+      <div className="mb-10">
+        <AvisoDeLimite chave="limite_cartoes" rotulo="cartões" />
+      </div>
 
       {isLoading ? (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">

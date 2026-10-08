@@ -49,6 +49,8 @@ import { CreditCard as CreditCardType } from "@/types/cards"
 import { Transaction } from "@/types/transactions"
 
 import { TagSelector } from "@/components/tags/TagSelector"
+import { usePlan } from "@/hooks/use-plan"
+import { AvisoCompacto } from "@/components/planos/recurso-bloqueado"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { MoneyInput } from "@/components/ui/money-input"
 import { maiorQueZero } from "@/lib/dinheiro"
@@ -81,6 +83,13 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
   const [cards, setCards] = useState<CreditCardType[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false)
+
+  // PERM-19: compra nova no cartão depende de `cartoes`; parcelar acima de 1x,
+  // de `compras_parceladas`; o campo de tags, de `tags`
+  const { podeUsar } = usePlan()
+  const compraBloqueada = !initialData && podeUsar("cartoes") === false
+  const parceladasLiberadas = podeUsar("compras_parceladas") === true
+  const tagsLiberadas = podeUsar("tags") === true
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema) as any,
@@ -196,7 +205,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
       } else {
           // Create - Installments matters here
           // Re-add installments for Create
-           (finalPayload as any).installments = data.installments
+           (finalPayload as any).installments = parceladasLiberadas ? data.installments : 1
 
           await api.post("/transactions/credit-card-expense/", finalPayload)
           toast.success("Despesa registrada com sucesso!")
@@ -250,10 +259,13 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               </div>
             </div>
           </DialogHeader>
-          
+
+          {compraBloqueada ? (
+            <AvisoCompacto />
+          ) : (
           <Form {...form}>
-            <form 
-                onSubmit={form.handleSubmit(onSubmit, (err) => console.error("Card Expense Validation Errors:", err))} 
+            <form
+                onSubmit={form.handleSubmit(onSubmit, (err) => console.error("Card Expense Validation Errors:", err))}  
                 className="space-y-6"
             >
               
@@ -276,21 +288,23 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                   )}
                 />
 
+                {tagsLiberadas && (
                 <FormField
                     control={form.control}
                     name="tags"
                     render={({ field }) => (
                         <FormItem className="space-y-2 !mb-2">
                         <FormControl>
-                            <TagSelector 
-                                selectedTagIds={field.value} 
-                                onChange={field.onChange} 
+                            <TagSelector
+                                selectedTagIds={field.value}
+                                onChange={field.onChange}
                             />
                         </FormControl>
                         <FormMessage className="ml-1 text-[11px]" />
                         </FormItem>
                     )}
                 />
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                     <FormField
@@ -503,15 +517,18 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                 <FormItem className="col-span-2">
                                 <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Parcelas</FormLabel>
                                 <FormControl>
-                                    <Input 
-                                        type="number" 
-                                        min="1" 
-                                        max="99" 
-                                        placeholder="1" 
-                                        {...field} 
+                                    <Input
+                                        type="number"
+                                        min="1"
+                                        max="99"
+                                        placeholder="1"
+                                        {...field}
+                                        value={parceladasLiberadas ? field.value : 1}
+                                        disabled={!parceladasLiberadas}
                                         className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base"
                                     />
                                 </FormControl>
+                                {!parceladasLiberadas && <AvisoCompacto className="mt-2" />}
                                 <FormMessage className="ml-1 text-[11px]" />
                                 </FormItem>
                             )}
@@ -569,6 +586,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               </DialogFooter>
             </form>
           </Form>
+          )}
         </div>
       </DialogContent>
 

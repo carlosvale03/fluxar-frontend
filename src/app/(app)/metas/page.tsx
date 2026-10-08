@@ -13,7 +13,6 @@ import {
   Trash,
   PiggyBank,
   History,
-  ShieldAlert,
   Loader2,
   CheckCircle2,
   DollarSign,
@@ -25,6 +24,8 @@ import {
   Sparkles
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
+import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { usePlan } from "@/hooks/use-plan"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -39,7 +40,6 @@ import {
 import { toast } from "sonner"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import Link from "next/link"
 
 import { Goal } from "@/types/goals"
 import { goalsService } from "@/services/goals"
@@ -56,9 +56,20 @@ import { PageHelp } from "@/components/ui/page-help"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
 
+// PERM-19: com `metas` fechado, a tela mostra o aviso do plano e /goals/ não é chamado
 export default function GoalsPage() {
+  return (
+    <RecursoBloqueado chave="metas" titulo="Metas" className="container mx-auto my-10 max-w-3xl">
+      <TelaDeMetas />
+    </RecursoBloqueado>
+  )
+}
+
+function TelaDeMetas() {
   const { user, isLoading: isAuthLoading } = useAuth()
-  const { isPremiumPlus } = usePlan()
+  // PERM-20: no limite de metas do plano, a criação fica desabilitada
+  const { limiteAtingido, atualizarUso } = usePlan()
+  const metasNoLimite = limiteAtingido("limite_metas")
   const [goals, setGoals] = useState<Goal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -72,11 +83,6 @@ export default function GoalsPage() {
 
   const fetchGoals = async () => {
     if (isAuthLoading) return
-
-    if (!isPremiumPlus) {
-      setIsLoading(false)
-      return
-    }
     
     try {
       setIsLoading(true)
@@ -91,7 +97,7 @@ export default function GoalsPage() {
 
   useEffect(() => {
     fetchGoals()
-  }, [isPremiumPlus, isAuthLoading])
+  }, [isAuthLoading])
 
   const handleDelete = async (goal: Goal) => {
     if (paraCentavos(goal.current_amount) !== 0) {
@@ -104,32 +110,13 @@ export default function GoalsPage() {
     try {
       await goalsService.deleteGoal(goal.id)
       toast.success("Meta excluída com sucesso!")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       fetchGoals()
     } catch (error) {
       // CONTRATO-31: a API não usa mais a chave error; o detail vai ao Sonner
       tratarErro(error, { mensagemPadrao: "Erro ao excluir meta." })
     }
-  }
-
-  if (!isAuthLoading && !isPremiumPlus && !isLoading) {
-    return (
-      <div className="container mx-auto py-20 px-4 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="flex flex-col items-center justify-center p-12 text-center space-y-6 bg-muted/20 rounded-[40px] border border-dashed border-border/40">
-          <div className="w-24 h-24 bg-primary/10 text-primary rounded-full flex items-center justify-center shadow-lg shadow-primary/10 animate-pulse">
-            <ShieldAlert className="h-12 w-12" />
-          </div>
-          <div className="max-w-md space-y-2">
-            <h3 className="text-3xl font-black uppercase tracking-tight">Recurso Exclusivo</h3>
-            <p className="text-sm font-medium text-muted-foreground leading-relaxed">
-              O módulo de **Metas Financeiras** e projeções automáticas está disponível apenas para assinantes do plano **Premium Plus**.
-            </p>
-          </div>
-          <Button asChild className="rounded-2xl font-black uppercase tracking-widest text-xs px-10 h-14 bg-primary hover:bg-primary/90 border-0 shadow-lg shadow-primary/20 text-white transition-all hover:scale-105 active:scale-95">
-            <Link href="/perfil">Fazer Upgrade Agora</Link>
-          </Button>
-        </div>
-      </div>
-    )
   }
 
   return (
@@ -175,8 +162,9 @@ export default function GoalsPage() {
           </p>
         </div>
         
-        <Button 
+        <Button
           className="rounded-2xl font-black uppercase tracking-widest text-[10px] px-6 h-11 transition-all hover:scale-105 active:scale-95 shadow-lg shadow-primary/20"
+          disabled={metasNoLimite}
           onClick={() => {
             setSelectedGoal(null)
             setIsFormOpen(true)
@@ -186,7 +174,11 @@ export default function GoalsPage() {
         </Button>
       </div>
 
-      {isPremiumPlus && <SpareChangeBank goals={goals} onSuccess={fetchGoals} />}
+      <div className="mb-8">
+        <AvisoDeLimite chave="limite_metas" rotulo="metas" />
+      </div>
+
+      <SpareChangeBank goals={goals} onSuccess={fetchGoals} />
 
       {/* Resumo Geral - Desktop: 3 colunas, Mobile: Horizontal scroll ou stacked */}
       {!isLoading && goals.length > 0 && (
@@ -308,9 +300,10 @@ export default function GoalsPage() {
             <p className="font-bold text-lg">Nenhuma meta criada ainda.</p>
             <p className="text-sm text-muted-foreground max-w-xs mx-auto">Comece definindo um objetivo para o seu dinheiro e acompanhe seu progresso.</p>
           </div>
-          <Button 
+          <Button
             variant="outline"
             className="rounded-xl font-bold text-xs"
+            disabled={metasNoLimite}
             onClick={() => setIsFormOpen(true)}
           >
             Criar minha primeira meta

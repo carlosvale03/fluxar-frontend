@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Activity, Server, FileText, AlertTriangle, RefreshCw, Loader2, Database, Globe } from "lucide-react"
+import { Activity, Server, FileText, AlertTriangle, RefreshCw, Loader2, Database, Globe, FlaskConical, Layers } from "lucide-react"
 import { toast } from "sonner"
-import { getAdminStats, getSystemLogs, updateSystemSettings, getSystemSettings, AdminStats, SystemLog } from "@/services/admin"
+import { getAdminStats, getSystemLogs, updateSystemSettings, getSystemSettings, AdminStats, SystemLog, getAdminPlans, updateAdminPlans, ConfiguracaoDosPlanos, MudancaDosPlanos } from "@/services/admin"
+import { TabelaDeTravas } from "@/components/planos/tabela-de-travas"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
 
@@ -26,6 +27,40 @@ export default function AdminSettingsPage() {
   const [logsCount, setLogsCount] = useState(0)
   const [logsTotalPages, setLogsTotalPages] = useState(1)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
+  // PERM-10 e PERM-24: travas dos planos e liberação para testes
+  const [planos, setPlanos] = useState<ConfiguracaoDosPlanos | null>(null)
+  const [isSavingUnlock, setIsSavingUnlock] = useState(false)
+
+  const loadPlans = async () => {
+      try {
+          setPlanos(await getAdminPlans())
+      } catch (error) {
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar as travas dos planos.", tentarDeNovo: loadPlans })
+      }
+  }
+
+  useEffect(() => {
+    loadPlans()
+  }, [])
+
+  // PERM-11: a resposta do PATCH já traz a configuração inteira
+  const mudarPlanos = async (mudanca: MudancaDosPlanos) => {
+      setPlanos(await updateAdminPlans(mudanca))
+  }
+
+  const handleTestingUnlockToggle = async (checked: boolean) => {
+      try {
+          setIsSavingUnlock(true)
+          await mudarPlanos({ testing_unlock: checked })
+          toast.success(checked
+              ? "Liberação para testes ligada: todos os recursos estão liberados."
+              : "Liberação para testes desligada: valem as travas configuradas.")
+      } catch (error) {
+          tratarErro(error, { mensagemPadrao: "Erro ao atualizar a liberação para testes." })
+      } finally {
+          setIsSavingUnlock(false)
+      }
+  }
 
   const loadLogs = async () => {
       try {
@@ -124,12 +159,15 @@ export default function AdminSettingsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:w-[400px] p-1 bg-muted/30 backdrop-blur-sm rounded-xl border border-white/10">
+        <TabsList className="grid w-full grid-cols-3 lg:w-[600px] p-1 bg-muted/30 backdrop-blur-sm rounded-xl border border-white/10">
           <TabsTrigger value="system" className="rounded-lg font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
             <Server className="h-4 w-4 mr-2" /> Sistema
           </TabsTrigger>
           <TabsTrigger value="logs" className="rounded-lg font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
             <FileText className="h-4 w-4 mr-2" /> Logs
+          </TabsTrigger>
+          <TabsTrigger value="plans" className="rounded-lg font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
+            <Layers className="h-4 w-4 mr-2" /> Planos e travas
           </TabsTrigger>
         </TabsList>
 
@@ -226,6 +264,36 @@ export default function AdminSettingsPage() {
                     </CardContent>
                 </Card>
 
+                {/* PERM-24: liberação para testes, junto da manutenção */}
+                <Card className={`lg:col-span-2 border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${planos?.testing_unlock ? 'border-amber-500/40 bg-amber-500/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                    <CardHeader>
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500">
+                                <FlaskConical className="h-6 w-6" />
+                            </div>
+                            <div>
+                                <CardTitle className="text-xl font-bold">Liberação para testes</CardTitle>
+                                <CardDescription>Libera todos os recursos para todos os usuários, sem limites e sem mudar o plano de ninguém.</CardDescription>
+                            </div>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="flex items-center justify-between p-8 pt-2">
+                        <div className="space-y-2">
+                            <div className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Status Atual</div>
+                            <Badge className={`px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-full ${planos?.testing_unlock ? "bg-amber-500 text-white hover:bg-amber-500" : "bg-muted text-muted-foreground hover:bg-muted"}`}>
+                                {planos?.testing_unlock ? "Tudo liberado" : "Valem as travas dos planos"}
+                            </Badge>
+                        </div>
+                        <Switch
+                            aria-label="Liberação para testes"
+                            checked={planos?.testing_unlock ?? false}
+                            onCheckedChange={handleTestingUnlockToggle}
+                            disabled={!planos || isSavingUnlock}
+                            className="data-[state=checked]:bg-amber-500"
+                        />
+                    </CardContent>
+                </Card>
+
                 {/* Cache Control */}
                 <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] flex flex-col justify-between">
                     <CardHeader>
@@ -247,6 +315,28 @@ export default function AdminSettingsPage() {
                 </Card>
             </div>
 
+        </TabsContent>
+
+        {/* --- PLANOS E TRAVAS (PERM-10 a PERM-13) --- */}
+        <TabsContent value="plans" className="mt-8 animate-in fade-in slide-in-from-right-4 duration-500">
+            <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden">
+                <CardHeader className="border-b border-border/40 bg-muted/20">
+                    <CardTitle className="text-xl font-bold">Planos e travas</CardTitle>
+                    <CardDescription>
+                        O que cada plano libera. As mudanças valem para os usuários do plano em até 30 segundos
+                        {planos?.testing_unlock ? ", depois que a liberação para testes for desligada" : ""}.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="p-6">
+                    {planos ? (
+                        <TabelaDeTravas catalogo={planos.catalog} aoMudar={mudarPlanos} />
+                    ) : (
+                        <div className="p-12 flex justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
         </TabsContent>
 
         {/* --- LOGS TAB --- */}
