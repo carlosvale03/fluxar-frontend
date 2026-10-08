@@ -62,7 +62,7 @@ export default function AccountsPage() {
   const [minBalance, setMinBalance] = useState("")
   const [maxBalance, setMaxBalance] = useState("")
 
-  const { limiteAtingido } = usePlan()
+  const { limiteAtingido, atualizarUso } = usePlan()
   
   // Extract unique institutions from registered accounts
   const availableBanks = Array.from(new Set(accounts.map(a => a.institution).filter(Boolean))) as string[]
@@ -142,6 +142,8 @@ export default function AccountsPage() {
     try {
       await api.delete(`/accounts/${deleteId}/`)
       toast.success("Conta excluída com sucesso.")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       setDeleteId(null)
       fetchAccounts() // Refresh list
     } catch (error) {

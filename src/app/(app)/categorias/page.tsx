@@ -69,7 +69,7 @@ export default function CategoriesPage() {
 
   // PERM-20: limites de categorias principais e de subcategorias por
   // categoria-pai; o uso das subcategorias é contado aqui (só as ativas)
-  const { limite, limiteAtingido } = usePlan()
+  const { limite, limiteAtingido, atualizarUso } = usePlan()
   const limiteDeSubcategorias = limite("limite_subcategorias")?.limit ?? null
   const subcategoriasAtivas = (parent: Category) =>
     (categories.find((c) => c.id === parent.id) ?? parent).subcategories?.filter((s) => s.is_active !== false).length ?? 0
@@ -134,6 +134,8 @@ export default function CategoriesPage() {
     try {
       await deleteCategory(deletingCategory.id)
       toast.success("Categoria excluída com sucesso")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       refreshCategories()
     } catch (error) {
        console.error(error)

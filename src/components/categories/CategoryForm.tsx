@@ -71,7 +71,7 @@ interface CategoryFormProps {
 
 export function CategoryForm({ category, parentCategory, currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
   // PERM-18 e PERM-20: o limite de subcategorias vem do /auth/me; o uso é o da categoria-pai
-  const { limite, limiteAtingido } = usePlan()
+  const { limite, limiteAtingido, atualizarUso } = usePlan()
   const limiteDeSubcategorias = limite("limite_subcategorias")?.limit ?? null
   const subcategoriasNoLimite = !!parentCategory && limiteAtingido("limite_subcategorias", currentSubcategoryCount)
   const [isLoading, setIsLoading] = useState(false)
@@ -111,6 +111,8 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
       } else {
         await createCategory(payload)
         toast.success("Categoria criada com sucesso!")
+        // PERM-20: a categoria nova conta no limite do /auth/me
+        void atualizarUso()
       }
       onSuccess()
     } catch (error) {

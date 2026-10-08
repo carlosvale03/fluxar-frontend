@@ -38,6 +38,7 @@ import { BANKS } from "@/data/banks"
 import { cn } from "@/lib/utils"
 import { deCentavos, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
 
 const PRESET_COLORS = [
   "#6366f1", // Indigo
@@ -91,6 +92,8 @@ export function AccountFormDialog({
 }: AccountFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  // PERM-20: criar ou excluir muda o uso dos limites do /auth/me
+  const { atualizarUso } = usePlan()
   const [isVisualOpen, setIsVisualOpen] = useState(true)
   
   const isControlled = controlledOpen !== undefined
@@ -173,6 +176,7 @@ export function AccountFormDialog({
       } else {
         await api.post("/accounts/", payload)
         toast.success("Conta criada com sucesso!")
+        void atualizarUso()
       }
       
       setOpen?.(false)

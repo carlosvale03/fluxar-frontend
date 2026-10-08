@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Check, Plus, Tag as TagIcon, X, Search, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
 
 interface TagSelectorProps {
   selectedTagIds: string[]
@@ -21,6 +22,8 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [isLoading, setIsLoading] = useState(true)
   const [isCreating, setIsCreating] = useState(false)
+  // PERM-20: criar ou excluir muda o uso dos limites do /auth/me
+  const { atualizarUso } = usePlan()
   const [isOpen, setIsOpen] = useState(false)
 
   const fetchTags = async () => {
@@ -63,6 +66,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
         color: "#6366f1" // Cor indigo padrão para novas tags
       })
       setAvailableTags(prev => [...prev, newTag])
+      void atualizarUso()
       onChange([...selectedTagIds, newTag.id])
       setSearchTerm("")
     } catch (error) {

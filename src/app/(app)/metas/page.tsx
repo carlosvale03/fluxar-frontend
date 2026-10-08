@@ -68,7 +68,8 @@ export default function GoalsPage() {
 function TelaDeMetas() {
   const { user, isLoading: isAuthLoading } = useAuth()
   // PERM-20: no limite de metas do plano, a criação fica desabilitada
-  const metasNoLimite = usePlan().limiteAtingido("limite_metas")
+  const { limiteAtingido, atualizarUso } = usePlan()
+  const metasNoLimite = limiteAtingido("limite_metas")
   const [goals, setGoals] = useState<Goal[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -109,6 +110,8 @@ function TelaDeMetas() {
     try {
       await goalsService.deleteGoal(goal.id)
       toast.success("Meta excluída com sucesso!")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       fetchGoals()
     } catch (error) {
       // CONTRATO-31: a API não usa mais a chave error; o detail vai ao Sonner

@@ -130,7 +130,7 @@ function TelaDeCartoes() {
   const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false)
   const [selectedInstitutions, setSelectedInstitutions] = useState<string[]>([])
   
-  const { limiteAtingido } = usePlan()
+  const { limiteAtingido, atualizarUso } = usePlan()
   
   // Extract unique institutions from registered cards
   const availableInstitutions = Array.from(new Set(cards.map(c => c.institution).filter(Boolean))) as string[]
@@ -178,6 +178,8 @@ function TelaDeCartoes() {
     try {
       await api.delete(`/credit-cards/${deleteId}/`)
       toast.success("Cartão excluído com sucesso.")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       setDeleteId(null)
       fetchCards()
     } catch (error) {

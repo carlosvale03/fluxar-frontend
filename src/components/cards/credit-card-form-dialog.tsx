@@ -45,6 +45,7 @@ import { CreditCard } from "@/types/cards"
 import { BANKS } from "@/data/banks"
 import { Account, AccountType } from "@/types/accounts"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
 
 // ...
 
@@ -86,6 +87,8 @@ export function CreditCardFormDialog({
 }: CreditCardFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  // PERM-20: criar ou excluir muda o uso dos limites do /auth/me
+  const { atualizarUso } = usePlan()
   const [accounts, setAccounts] = useState<Account[]>([])
   const [isVisualOpen, setIsVisualOpen] = useState(true)
   
@@ -178,6 +181,7 @@ export function CreditCardFormDialog({
       } else {
         await api.post("/credit-cards/", payload)
         toast.success("Cartão criado!")
+        void atualizarUso()
       }
       
       if (setOpen) setOpen(false)

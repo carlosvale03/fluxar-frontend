@@ -82,7 +82,7 @@ export default function TagsPage() {
 function TelaDeTags() {
   // PERM-19: a análise por tag só aparece com analise_por_tag aberto, e
   // /reports/charts/tag-insights/ não é chamado com a trava fechada
-  const { podeUsar, limiteAtingido } = usePlan()
+  const { podeUsar, limiteAtingido, atualizarUso } = usePlan()
   const analisePorTag = podeUsar("analise_por_tag") === true
   // PERM-20: no limite de tags do plano, a criação fica desabilitada
   const tagsNoLimite = limiteAtingido("limite_tags")
@@ -151,6 +151,8 @@ function TelaDeTags() {
     try {
       await deleteTag(deletingTag.id)
       toast.success("Tag excluída com sucesso")
+      // PERM-20: o item excluído sai do uso dos limites do /auth/me
+      void atualizarUso()
       refreshTags()
     } catch (error) {
        console.error(error)
