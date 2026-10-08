@@ -28,11 +28,22 @@ import { Invoice } from "@/types/cards"
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
+import { usePlan } from "@/hooks/use-plan"
+import { AvisoDoPlano } from "@/components/planos/recurso-bloqueado"
 
 export default function CardDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
+  // PERM-19 e PERM-22: com `cartoes` fechado, o detalhe mostra o aviso do
+  // plano e some com o que cria ou edita (editar o cartão); ver o cartão e
+  // as faturas, pagar e estornar continuam liberados.
+  // SPEC_DEVIATION: a spec lista /credit-cards/ entre as rotas da trava.
+  // Reason: PERM-22 exige pagar e estornar as faturas existentes; por isso a
+  // leitura do cartão e das faturas segue liberada (decisão do design.md).
+  const { podeUsar } = usePlan()
+  const cartoesLiberados = podeUsar("cartoes") === true
+  const cartoesTravados = podeUsar("cartoes") === false
   
   const [card, setCard] = useState<CreditCard | null>(null)
   const [account, setAccount] = useState<Account | null>(null)
@@ -166,15 +177,24 @@ export default function CardDetailsPage() {
         </div>
         
         <div className="flex items-center gap-2">
-            <Button 
-                variant="outline" 
-                onClick={() => setIsEditOpen(true)}
-                className="rounded-full shadow-sm hover:shadow-md transition-all border-border/60"
-            >
-                <Edit className="mr-2 h-4 w-4" /> Editar Cartão
-            </Button>
+            {cartoesLiberados && (
+                <Button 
+                    variant="outline" 
+                    onClick={() => setIsEditOpen(true)}
+                    className="rounded-full shadow-sm hover:shadow-md transition-all border-border/60"
+                >
+                    <Edit className="mr-2 h-4 w-4" /> Editar Cartão
+                </Button>
+            )}
         </div>
       </div>
+
+      {cartoesTravados && (
+        <AvisoDoPlano
+          titulo="Cartões"
+          className="mb-8 p-8"
+        />
+      )}
 
       {/* Informativo Banner */}
       <div className="mb-8 p-4 rounded-3xl bg-primary/5 border border-primary/10 text-primary/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-4">
@@ -299,12 +319,14 @@ export default function CardDetailsPage() {
           <InvoiceList cardId={id} onPayInvoice={handlePayInvoice} onUnpayInvoice={handleUnpayInvoice} />
       </div>
       
-      <CreditCardFormDialog 
-        open={isEditOpen} 
-        onOpenChange={setIsEditOpen} 
-        card={card} 
-        onSuccess={fetchCard} 
-      />
+      {cartoesLiberados && (
+        <CreditCardFormDialog 
+          open={isEditOpen} 
+          onOpenChange={setIsEditOpen} 
+          card={card} 
+          onSuccess={fetchCard} 
+        />
+      )}
       
       <InvoicePaymentDialog 
         open={isPaymentOpen}

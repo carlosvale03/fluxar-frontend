@@ -2,6 +2,7 @@ import { render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+import CardDetailsPage from "@/app/(app)/cartoes/[id]/page"
 import CardsPage from "@/app/(app)/cartoes/page"
 import GoalsPage from "@/app/(app)/metas/page"
 import BudgetsPage from "@/app/(app)/orcamentos/page"
@@ -39,11 +40,14 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
   api: { get: vi.fn(), post: vi.fn(), put: vi.fn(), patch: vi.fn(), delete: vi.fn() },
 }))
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { success: vi.fn(), error: vi.fn(), info: vi.fn() }) }))
+// O mesmo router em toda renderização, como no Next (o detalhe do cartão
+// recarrega quando o router muda)
+const router = vi.hoisted(() => ({ push: () => {}, replace: () => {} }))
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => router,
   usePathname: () => "/",
   useSearchParams: () => new URLSearchParams(),
-  useParams: () => ({}),
+  useParams: () => ({ id: "cartao-1" }),
 }))
 
 const get = vi.mocked(api.get)
@@ -158,6 +162,33 @@ describe("Cartões travados (PERM-22)", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Pagar Fatura" }))
 
     await vi.waitFor(() => expect(urlsChamadas()).toContain("/invoices/f-aberta/"))
+  })
+
+  it("detalhe do cartão: mostra o aviso, sem \"Editar Cartão\", e as faturas com pagar e estornar", async () => {
+    comAcesso(["cartoes"])
+    render(<CardDetailsPage />)
+
+    expect(await screen.findByRole("heading", { name: "Cartão Roxo" })).toBeInTheDocument()
+    expect(screen.getByText(AVISO)).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
+    expect(screen.queryByRole("button", { name: /Editar Cartão/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Excluir/ })).not.toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Pagar Fatura" })).toBeInTheDocument()
+
+    post.mockResolvedValue({ data: {} })
+    const recarregar = vi.fn()
+    vi.stubGlobal("location", { ...window.location, reload: recarregar })
+    await userEvent.click(screen.getByRole("button", { name: "Estornar" }))
+    expect(post).toHaveBeenCalledWith("/invoices/f-paga/unpay/")
+    vi.unstubAllGlobals()
+  })
+
+  it("detalhe do cartão: com cartoes aberto, \"Editar Cartão\" aparece, sem o aviso", async () => {
+    comAcesso()
+    render(<CardDetailsPage />)
+
+    expect(await screen.findByRole("button", { name: /Editar Cartão/ })).toBeInTheDocument()
+    expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
   })
 
   it("a compra nova no cartão mostra o aviso no lugar do formulário", () => {
