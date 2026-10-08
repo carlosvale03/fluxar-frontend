@@ -1,6 +1,6 @@
 import { api } from "./apiClient";
 import { paraApi } from "@/lib/datas";
-import { Cofrinho, CreateGoalData, Goal, GoalDepositData, GoalTransaction } from "@/types/goals";
+import { Cofrinho, CreateGoalData, Goal, GoalDepositData, GoalTransaction, GoalWithdrawData } from "@/types/goals";
 
 export const goalsService = {
   getGoals: async () => {
@@ -74,7 +74,7 @@ export const goalsService = {
     return response.data;
   },
   
-  withdraw: async (id: string, data: any) => {
+  withdraw: async (id: string, data: GoalWithdrawData) => {
     const response = await api.post<GoalTransaction>(`/goals/${id}/withdraw/`, data);
     return response.data;
   },

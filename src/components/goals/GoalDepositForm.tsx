@@ -32,13 +32,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Goal } from "@/types/goals"
+import { Cofrinho, Goal, GoalDepositData, SALDO_LIVRE } from "@/types/goals"
 import { Account } from "@/types/accounts"
 import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
 import { formatCurrency } from "@/lib/utils"
-import { maiorQueZero } from "@/lib/dinheiro"
+import { formatarMoeda, maiorQueZero } from "@/lib/dinheiro"
 import { hojeNaApi } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
 
@@ -55,12 +55,14 @@ type DepositFormValues = z.infer<typeof depositSchema>
 
 interface GoalDepositFormProps {
   goal: Goal | null
+  // META-13: o cofrinho da meta, com o saldo livre
+  cofrinho?: Cofrinho | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
 }
 
-export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDepositFormProps) {
+export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess }: GoalDepositFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [accounts, setAccounts] = useState<Account[]>([])
 
@@ -82,7 +84,9 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
   const fetchAccounts = async () => {
     try {
       const data = await accountsService.getAccounts()
-      setAccounts(data)
+      // META-13 e SALDO-17: o próprio cofrinho não é origem; o dinheiro dele
+      // entra pelo saldo livre
+      setAccounts(data.filter((acc: Account) => acc.id !== goal?.account && acc.is_active !== false))
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
       tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
@@ -94,12 +98,15 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
 
     try {
       setIsLoading(true)
-      await goalsService.deposit(goal.id, {
-        amount: values.amount,
-        account_from: values.account_from,
-        // CONTRATO-25: a data do aporte vai sem hora, no calendário do usuário
-        date: hojeNaApi(),
-      })
+      // CONTRATO-25: a data do aporte vai sem hora, no calendário do usuário
+      const dados: GoalDepositData = { amount: values.amount, date: hojeNaApi() }
+      if (values.account_from === SALDO_LIVRE) {
+        // META-13: do saldo livre do cofrinho, sem transferência
+        dados.from_free_balance = true
+      } else {
+        dados.account_from = values.account_from
+      }
+      await goalsService.deposit(goal.id, dados)
 
       toast.success("Aporte realizado com sucesso!")
       onSuccess()
@@ -147,6 +154,13 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl">
+                        <SelectItem value={SALDO_LIVRE} className="rounded-xl">
+                          <span className="font-bold">
+                            {cofrinho
+                              ? `Saldo livre do cofrinho (${formatarMoeda(cofrinho.free_balance)})`
+                              : "Saldo livre do cofrinho"}
+                          </span>
+                        </SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id} className="rounded-xl">
                             <div className="flex flex-col">
@@ -191,7 +205,9 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
                   <div className="text-center flex-1">
                     <p className="text-[9px] font-bold uppercase opacity-30">Origem</p>
                     <p className="text-xs font-black truncate max-w-[100px] mx-auto">
-                      {accounts.find(a => a.id === form.watch('account_from'))?.name || "Conta"}
+                      {form.watch('account_from') === SALDO_LIVRE
+                        ? "Saldo livre"
+                        : accounts.find(a => a.id === form.watch('account_from'))?.name || "Conta"}
                     </p>
                   </div>
                   <ArrowRight className="h-4 w-4 text-primary opacity-20" />
@@ -201,7 +217,9 @@ export function GoalDepositForm({ goal, open, onOpenChange, onSuccess }: GoalDep
                   </div>
                 </div>
                 <p className="text-[9px] text-center opacity-40 font-medium">
-                  Este valor será movido como uma **transferência** interna.
+                  {form.watch('account_from') === SALDO_LIVRE
+                    ? "O valor sai do saldo livre do cofrinho, sem transferência."
+                    : "Este valor será movido como uma transferência interna."}
                 </p>
               </div>
 

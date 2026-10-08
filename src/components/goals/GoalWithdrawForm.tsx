@@ -29,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Goal } from "@/types/goals"
+import { Cofrinho, Goal, GoalWithdrawData, SALDO_LIVRE } from "@/types/goals"
 import { Account, AccountType } from "@/types/accounts"
 import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
@@ -62,12 +62,14 @@ type WithdrawFormValues = {
 
 interface GoalWithdrawFormProps {
   goal: Goal | null
+  // META-18: o cofrinho da meta, com o saldo dele
+  cofrinho?: Cofrinho | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
 }
 
-export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWithdrawFormProps) {
+export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess }: GoalWithdrawFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [accounts, setAccounts] = useState<Account[]>([])
 
@@ -92,7 +94,7 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
     try {
       const data = await accountsService.getAccounts()
       // Filtramos para não mostrar o próprio cofrinho da meta como destino (opcional, mas evita confusão)
-      const filtered = data.filter((acc: Account) => acc.id !== goal?.account)
+      const filtered = data.filter((acc: Account) => acc.id !== goal?.account && acc.is_active !== false)
       setAccounts(filtered)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
@@ -112,12 +114,15 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
 
     try {
       setIsLoading(true)
-      await goalsService.withdraw(goal.id, {
-        amount: values.amount,
-        account_to: values.account_to,
-        // CONTRATO-25: a data do resgate vai sem hora, no calendário do usuário
-        date: hojeNaApi(),
-      })
+      // CONTRATO-25: a data do resgate vai sem hora, no calendário do usuário
+      const dados: GoalWithdrawData = { amount: values.amount, date: hojeNaApi() }
+      if (values.account_to === SALDO_LIVRE) {
+        // META-16: para o saldo livre do cofrinho, sem transferência
+        dados.to_free_balance = true
+      } else {
+        dados.account_to = values.account_to
+      }
+      await goalsService.withdraw(goal.id, dados)
 
       toast.success("Resgate realizado com sucesso!")
       onSuccess()
@@ -167,6 +172,9 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl">
+                        <SelectItem value={SALDO_LIVRE} className="rounded-xl transition-colors focus:bg-primary focus:text-primary-foreground">
+                          <span className="font-bold">Saldo livre do cofrinho</span>
+                        </SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id} className="rounded-xl transition-colors focus:bg-primary focus:text-primary-foreground">
                             <div className="flex flex-col py-1">
@@ -190,9 +198,15 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
                     <div className="flex justify-between items-end px-1">
                         <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Valor do Resgate</FormLabel>
                         <div className="flex flex-col items-end gap-1.5">
+                            {/* META-17 e META-18: o resgate vai até o valor da meta e, para outra conta, até o saldo do cofrinho */}
                             <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-muted/30 text-muted-foreground/60 border border-border/20">
-                                Disponível: {formatCurrency(goal?.current_amount || 0)}
+                                {`Na meta: ${formatarMoeda(goal?.current_amount || "0.00")}`}
                             </span>
+                            {cofrinho && (
+                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-muted/30 text-muted-foreground/60 border border-border/20">
+                                  {`No cofrinho: ${formatarMoeda(cofrinho.balance)}`}
+                              </span>
+                            )}
                             <Button 
                               type="button" 
                               variant="link" 
@@ -241,7 +255,9 @@ export function GoalWithdrawForm({ goal, open, onOpenChange, onSuccess }: GoalWi
                     <p className="text-[8px] font-black uppercase opacity-20 mb-1">Conta Destino</p>
                     <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 shadow-sm transition-transform group-hover/resumo:-translate-y-1 duration-500">
                         <p className="text-xs font-black truncate text-orange-600">
-                            {accounts.find(a => a.id === form.watch('account_to'))?.name || "Escolha..."}
+                            {form.watch('account_to') === SALDO_LIVRE
+                              ? "Saldo livre"
+                              : accounts.find(a => a.id === form.watch('account_to'))?.name || "Escolha..."}
                         </p>
                     </div>
                   </div>

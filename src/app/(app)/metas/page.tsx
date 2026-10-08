@@ -642,6 +642,7 @@ function TelaDeMetas() {
         open={isDepositOpen}
         onOpenChange={setIsDepositOpen}
         goal={selectedGoal}
+        cofrinho={cofrinhos.find((c) => c.account_id === selectedGoal?.account) ?? null}
         onSuccess={fetchGoals}
       />
 
@@ -683,6 +684,7 @@ function TelaDeMetas() {
         open={isWithdrawOpen}
         onOpenChange={setIsWithdrawOpen}
         goal={selectedGoal}
+        cofrinho={cofrinhos.find((c) => c.account_id === selectedGoal?.account) ?? null}
         onSuccess={fetchGoals}
       />
     </div>

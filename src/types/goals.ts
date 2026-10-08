@@ -54,10 +54,24 @@ export interface CreateGoalData {
   color?: string;
 }
 
+// META-12 e META-13: a conta de origem ou o saldo livre do cofrinho
 export interface GoalDepositData {
-  account_from: string;
+  account_from?: string;
+  from_free_balance?: true;
   amount: string;
   // CONTRATO-25: AAAA-MM-DD; sem ela, a API usa hoje
   date?: string;
   description?: string;
 }
+
+// META-15 e META-16: a conta de destino ou o saldo livre do cofrinho
+export interface GoalWithdrawData {
+  account_to?: string;
+  to_free_balance?: true;
+  amount: string;
+  // CONTRATO-25: AAAA-MM-DD; sem ela, a API usa hoje
+  date?: string;
+}
+
+// Valor do Select de origem ou destino que indica o saldo livre do cofrinho
+export const SALDO_LIVRE = "saldo-livre";
