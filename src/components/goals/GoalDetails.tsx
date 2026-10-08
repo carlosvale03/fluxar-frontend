@@ -58,6 +58,8 @@ interface GoalDetailsProps {
   onOpenDeposit: () => void
   onOpenSimulator: () => void
   onOpenWithdraw: () => void
+  // META-11: depois de o usuário confirmar o aviso da correção
+  onCorrectionDismissed?: () => void
 }
 
 export function GoalDetails({ 
@@ -67,13 +69,31 @@ export function GoalDetails({
   onOpenHistory, 
   onOpenDeposit, 
   onOpenSimulator,
-  onOpenWithdraw
+  onOpenWithdraw,
+  onCorrectionDismissed
 }: GoalDetailsProps) {
   const [history, setHistory] = useState<GoalTransaction[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [isChartReady, setIsChartReady] = useState(false)
   const [authError, setAuthError] = useState(false)
+  // META-11: o aviso da correção some depois do "Entendi"
+  const [correcaoVista, setCorrecaoVista] = useState(false)
   const { user } = useAuth()
+
+  useEffect(() => {
+    setCorrecaoVista(false)
+  }, [goal?.id])
+
+  const confirmarCorrecao = async () => {
+    if (!goal) return
+    try {
+      await goalsService.dismissCorrection(goal.id)
+      setCorrecaoVista(true)
+      onCorrectionDismissed?.()
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao confirmar o aviso da correção." })
+    }
+  }
 
   useEffect(() => {
     if (open && goal && user) {
@@ -94,8 +114,9 @@ export function GoalDetails({
     try {
       setIsLoading(true)
       setAuthError(false)
-      const data = await goalsService.getHistory(goal.id)
-      setHistory(data)
+      // O gráfico usa a maior página do histórico (CONTRATO-03)
+      const data = await goalsService.getHistory(goal.id, 1, 100)
+      setHistory(data.results)
     } catch (error) {
       if ((error as { response?: { status?: number } }).response?.status === 401) {
         setAuthError(true)
@@ -113,7 +134,7 @@ export function GoalDetails({
 
     // 1. Definir Intervalo: Desde a criação ou primeira transação até hoje
     // CONTRATO-24: a data do aporte não tem hora; lida no dia gravado
-    const historyDates = history.map(tx => lerData(tx.datetime).getTime())
+    const historyDates = history.map(tx => lerData(tx.date).getTime())
     const firstTxDate = historyDates.length > 0 ? new Date(Math.min(...historyDates)) : new Date()
     const goalCreationDate = new Date(goal.created_at)
     
@@ -128,7 +149,7 @@ export function GoalDetails({
     // os valores chegam como texto)
     const txByDate: Record<string, number> = {}
     history.forEach(tx => {
-      const dateStr = format(lerData(tx.datetime), 'yyyy-MM-dd')
+      const dateStr = format(lerData(tx.date), 'yyyy-MM-dd')
       const amount = paraCentavos(tx.amount) * (tx.type === 'WITHDRAWAL' ? -1 : 1)
       txByDate[dateStr] = (txByDate[dateStr] || 0) + amount
     })
@@ -246,6 +267,20 @@ export function GoalDetails({
                   </DialogDescription>
                 </div>
               </DialogHeader>
+
+              {goal.correction && !correcaoVista && (
+                <div role="status" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[24px] border border-orange-500/20 bg-orange-500/5">
+                  <div className="flex items-center gap-3 text-orange-600">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <p className="text-xs font-bold">
+                      {`O valor desta meta foi corrigido de ${formatarMoeda(goal.correction.before)} para ${formatarMoeda(goal.correction.after)}.`}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest" onClick={confirmarCorrecao}>
+                    Entendi
+                  </Button>
+                </div>
+              )}
 
               {/* Stats Cards */}
               <div className="grid grid-cols-2 gap-4">

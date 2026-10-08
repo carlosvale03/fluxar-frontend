@@ -1,4 +1,5 @@
 import { api } from "./apiClient";
+import type { PaginatedResponse } from "./admin";
 import { paraApi } from "@/lib/datas";
 import { Cofrinho, CreateGoalData, Goal, GoalDepositData, GoalTransaction, GoalWithdrawData } from "@/types/goals";
 
@@ -81,8 +82,16 @@ export const goalsService = {
     return response.data;
   },
 
-  getHistory: async (id: string) => {
-    const response = await api.get<GoalTransaction[]>(`/goals/${id}/history/`);
+  // META-32: histórico paginado (CONTRATO-02), do mais recente ao mais antigo
+  getHistory: async (id: string, page = 1, pageSize?: number) => {
+    const params = pageSize ? { page, page_size: pageSize } : { page };
+    const response = await api.get<PaginatedResponse<GoalTransaction>>(`/goals/${id}/history/`, { params });
+    return response.data;
+  },
+
+  // META-11: o usuário viu o aviso da correção do valor
+  dismissCorrection: async (id: string) => {
+    const response = await api.post<Goal>(`/goals/${id}/dismiss-correction/`);
     return response.data;
   },
 };

@@ -38,10 +38,18 @@ const META = {
   updated_at: "2026-01-01T12:00:00Z",
 } as unknown as Goal
 
-const HISTORICO = [
-  { id: "a1", goal: "meta-1", account: "conta-1", account_name: "Banco", amount: "100.00", type: "DEPOSIT", datetime: "2026-12-31" },
-  { id: "a2", goal: "meta-1", account: "conta-1", account_name: "Banco", amount: "50.00", type: "DEPOSIT", datetime: "2028-02-29" },
-]
+// META-32: o histórico vem paginado (CONTRATO-02), com a data em `date`
+const HISTORICO = {
+  count: 2,
+  total_pages: 1,
+  current_page: 1,
+  next: null,
+  previous: null,
+  results: [
+    { id: "a1", goal: "meta-1", account: "conta-1", account_name: "Banco", amount: "100.00", type: "DEPOSIT", date: "2026-12-31" },
+    { id: "a2", goal: "meta-1", account: "conta-1", account_name: "Banco", amount: "50.00", type: "DEPOSIT", date: "2028-02-29" },
+  ],
+}
 
 describe.each(["America/Sao_Paulo", "Europe/Lisbon"])("Datas sem hora no fuso %s", (fuso) => {
   beforeAll(() => {

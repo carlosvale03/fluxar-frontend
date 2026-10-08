@@ -39,7 +39,12 @@ export interface GoalTransaction {
   amount: string;
   type: 'DEPOSIT' | 'WITHDRAWAL';
   description?: string;
-  datetime: string;
+  // CONTRATO-24: data sem hora
+  date: string;
+  // META-32: o transfer_id da transferência, ou nulo sem transferência
+  transaction: string | null;
+  // META-11: registro de correção do valor da meta
+  is_correction: boolean;
 }
 
 export interface CreateGoalData {

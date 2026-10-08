@@ -691,6 +691,7 @@ function TelaDeMetas() {
           setIsDetailsOpen(false)
           setTimeout(() => setIsWithdrawOpen(true), 300)
         }}
+        onCorrectionDismissed={fetchGoals}
       />
 
       <GoalWithdrawForm 
