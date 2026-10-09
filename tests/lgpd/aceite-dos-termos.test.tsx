@@ -106,6 +106,24 @@ describe("Aceite da versão nova dos termos", () => {
     expect(sessionStorage.getItem(CHAVE_DA_VOLTA_DOS_TERMOS)).toBe("/transacoes?page=2")
   })
 
+  it("o 403 terms_acceptance_required não mostra toast de erro antes de ir à tela de aceite", async () => {
+    const { toast } = await import("sonner")
+    const { tratarErro } = await import("@/lib/erros")
+    vi.mocked(toast.error).mockClear()
+    const config = {} as InternalAxiosRequestConfig
+    const resposta = {
+      data: { detail: "Aceite a versão nova dos termos.", code: "terms_acceptance_required", version: "2.0" },
+      status: 403,
+      statusText: "",
+      headers: {},
+      config,
+    } as AxiosResponse
+
+    tratarErro(new AxiosError("erro", AxiosError.ERR_BAD_REQUEST, config, null, resposta))
+
+    expect(toast.error).not.toHaveBeenCalled()
+  })
+
   it("outro 403 não leva à tela de aceite", async () => {
     Object.defineProperty(window, "location", {
       configurable: true,
