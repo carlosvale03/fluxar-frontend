@@ -36,6 +36,7 @@ import { tratarErro } from "@/lib/erros"
 import { formatarTaxa, percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { ErroDoBloco } from "@/components/reports/erro-do-bloco"
 
 // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número, e
 // a conversão é só para plotar
@@ -68,106 +69,125 @@ export default function ReportsPage() {
     const comparacaoMensal = podeUsar("comparacao_mensal")
     const analisePorTag = podeUsar("analise_por_tag")
 
+    // REL-24: cada bloco carrega com o próprio estado (carregando, erro,
+    // dados). A falha de um bloco não tira os outros da tela, e o "Tentar de
+    // novo" do bloco chama só a rota dele. O aviso continua indo ao Sonner
+    // pelo tratarErro (CONTRATO-33).
+    const [erroSimple, setErroSimple] = useState(false)
+    const [erroSummary, setErroSummary] = useState(false)
+    const [erroComparison, setErroComparison] = useState(false)
+    const [erroTags, setErroTags] = useState(false)
+    const [erroAdvanced, setErroAdvanced] = useState(false)
+    const [isLoadingTags, setIsLoadingTags] = useState(true)
+
     const fetchAdvanced = async () => {
         if (avancados !== true) return
         setIsLoadingAdvanced(true)
+        setErroAdvanced(false)
         try {
             const data = await getAdvancedCharts(period)
             setAdvancedData(data)
         } catch (error) {
-            // CONTRATO-33: nenhuma falha silenciosa
+            setErroAdvanced(true)
             tratarErro(error, { mensagemPadrao: "Erro ao carregar os relatórios avançados.", tentarDeNovo: fetchAdvanced })
         } finally {
             setIsLoadingAdvanced(false)
         }
     }
 
-    // Depois de criar uma conta de investimento, recarrega os avançados e o
-    // resumo; uma falha mostra o aviso com "Tentar de novo" (CONTRATO-33)
-    const recarregarInvestimentos = () => {
-        fetchAdvanced()
-        getDashboardSummary(new Date().getMonth() + 1, new Date().getFullYear())
-            .then(setSummaryData)
-            .catch((error) => tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: recarregarInvestimentos }))
+    const fetchSimple = async () => {
+        setIsLoadingSimple(true)
+        setErroSimple(false)
+        try {
+            const data = await getSimpleCharts(period)
+            setSimpleData(data)
+        } catch (error) {
+            setErroSimple(true)
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar os gráficos.", tentarDeNovo: fetchSimple })
+        } finally {
+            setIsLoadingSimple(false)
+        }
     }
 
-    // Fetch simple data on mount
+    const fetchSummary = async () => {
+        setIsLoadingSummary(true)
+        setErroSummary(false)
+        try {
+            let days: number | string | undefined = undefined;
+            if (period === "this_month") days = undefined; // Backend assumes current month if null
+            else if (period === "last_30_days") days = 30;
+            else if (period === "last_90_days") days = 90;
+            else if (period === "last_6_months") days = 180;
+            else if (period === "this_year") days = "year";
+
+            const data = await getDashboardSummary(undefined, undefined, days)
+            setSummaryData(data)
+        } catch (error) {
+            setErroSummary(true)
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: fetchSummary })
+        } finally {
+            setIsLoadingSummary(false)
+        }
+    }
+
+    const fetchComparison = async () => {
+        if (comparacaoMensal !== true) return
+        setIsLoadingComparison(true)
+        setErroComparison(false)
+        try {
+            let months = 6;
+            if (period === "this_month") months = 1;
+            else if (period === "last_30_days") months = 1;
+            else if (period === "last_90_days") months = 3;
+            else if (period === "last_6_months") months = 6;
+            else if (period === "this_year") months = new Date().getMonth() + 1;
+            
+            // Garantir no mínimo 3 meses para ter contexto histórico na evolução
+            const monthsToFetch = Math.max(3, months);
+            
+            const data = await getMonthlyComparison(monthsToFetch)
+            setMonthlyComparison(data)
+        } catch (error) {
+            setErroComparison(true)
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar a comparação mensal.", tentarDeNovo: fetchComparison })
+        } finally {
+            setIsLoadingComparison(false)
+        }
+    }
+
+    const fetchTagDistribution = async () => {
+        if (analisePorTag !== true) return
+        setIsLoadingTags(true)
+        setErroTags(false)
+        try {
+            // Para relatórios, usamos o mapeamento de períodos para o backend
+            const data = await getTagDistribution(undefined, undefined, period)
+            setTagData(data)
+        } catch (error) {
+            setErroTags(true)
+            tratarErro(error, { mensagemPadrao: "Erro ao carregar a distribuição por tags.", tentarDeNovo: fetchTagDistribution })
+        } finally {
+            setIsLoadingTags(false)
+        }
+    }
+
+    // Depois de criar uma conta de investimento, recarrega os avançados e o
+    // resumo, cada um no seu bloco
+    const recarregarInvestimentos = () => {
+        fetchAdvanced()
+        fetchSummary()
+    }
 
     useEffect(() => {
-        const fetchSimple = async () => {
-            setIsLoadingSimple(true)
-            try {
-                const data = await getSimpleCharts(period)
-                setSimpleData(data)
-            } catch (error) {
-                tratarErro(error, { mensagemPadrao: "Erro ao carregar os gráficos.", tentarDeNovo: fetchSimple })
-            } finally {
-                setIsLoadingSimple(false)
-            }
-        }
-        
-        const fetchSummary = async () => {
-            setIsLoadingSummary(true)
-            try {
-                let days: number | string | undefined = undefined;
-                if (period === "this_month") days = undefined; // Backend assumes current month if null
-                else if (period === "last_30_days") days = 30;
-                else if (period === "last_90_days") days = 90;
-                else if (period === "last_6_months") days = 180;
-                else if (period === "this_year") days = "year";
-
-                const data = await getDashboardSummary(undefined, undefined, days)
-                setSummaryData(data)
-            } catch (error) {
-                tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: fetchSummary })
-            } finally {
-                setIsLoadingSummary(false)
-            }
-        }
-
         fetchSimple()
         fetchSummary()
     }, [period])
 
     useEffect(() => {
-        if (comparacaoMensal !== true) return
-        const fetchComparison = async () => {
-            setIsLoadingComparison(true)
-            try {
-                let months = 6;
-                if (period === "this_month") months = 1;
-                else if (period === "last_30_days") months = 1;
-                else if (period === "last_90_days") months = 3;
-                else if (period === "last_6_months") months = 6;
-                else if (period === "this_year") months = new Date().getMonth() + 1;
-                
-                // Garantir no mínimo 3 meses para ter contexto histórico na evolução
-                const monthsToFetch = Math.max(3, months);
-                
-                const data = await getMonthlyComparison(monthsToFetch)
-                setMonthlyComparison(data)
-            } catch (error) {
-                tratarErro(error, { mensagemPadrao: "Erro ao carregar a comparação mensal.", tentarDeNovo: fetchComparison })
-            } finally {
-                setIsLoadingComparison(false)
-            }
-        }
-
         fetchComparison()
     }, [period, comparacaoMensal])
 
     useEffect(() => {
-        if (analisePorTag !== true) return
-        const fetchTagDistribution = async () => {
-            try {
-                // Para relatórios, usamos o mapeamento de períodos para o backend
-                const data = await getTagDistribution(undefined, undefined, period)
-                setTagData(data)
-            } catch (error) {
-                tratarErro(error, { mensagemPadrao: "Erro ao carregar a distribuição por tags.", tentarDeNovo: fetchTagDistribution })
-            }
-        }
-
         fetchTagDistribution()
     }, [period, analisePorTag])
 
@@ -261,6 +281,9 @@ export default function ReportsPage() {
                 <TabsContent value="simple" className="mt-8 space-y-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         {/* Restore Daily Cash Flow */}
+                        {erroSimple ? (
+                            <ErroDoBloco titulo="Fluxo e categorias" onTentarDeNovo={fetchSimple} />
+                        ) : (
                         <DailyCashFlowChart 
                             data={simpleData?.income_vs_expense || []}
                             isLoading={isLoadingSimple}
@@ -269,11 +292,21 @@ export default function ReportsPage() {
                             activeMonthStr={selectedDailyMonth}
                             onMonthChange={setSelectedDailyMonth}
                         />
+                        )}
 
 
 
                         {/* Restoration: Monthly Comparison */}
                         <RecursoBloqueado chave="comparacao_mensal" titulo="Comparação mensal" className="lg:col-span-2">
+                        {erroComparison ? (
+                            <ErroDoBloco titulo="Comparação mensal" onTentarDeNovo={fetchComparison} />
+                        ) : isLoadingComparison ? (
+                            <>
+                                <Skeleton className="h-[350px] w-full rounded-[32px]" />
+                                <Skeleton className="h-[350px] w-full rounded-[32px] lg:col-span-2" />
+                            </>
+                        ) : (
+                        <>
                         <MonthlyComparisonChart 
                             data={monthlyComparison} 
                             title="Balanço por Mês"
@@ -291,8 +324,12 @@ export default function ReportsPage() {
                             height={350}
                             className="lg:col-span-2"
                         />
+                        </>
+                        )}
                         </RecursoBloqueado>
 
+                        {!erroSimple && (
+                        <>
                         <CategoryDistributionChart 
                             title="Distribuição de Gastos"
                             description="Percentual por categoria"
@@ -314,13 +351,19 @@ export default function ReportsPage() {
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />
+                        </>
+                        )}
 
                         <RecursoBloqueado chave="analise_por_tag" titulo="Análise por tag" className="lg:col-span-2">
+                        {erroTags ? (
+                            <ErroDoBloco titulo="Análise por tag" onTentarDeNovo={fetchTagDistribution} className="lg:col-span-2" />
+                        ) : (
+                        <>
                         <TagDistributionChart 
                             title="Despesas por Tag"
                             description="Distribuição de gastos por etiqueta"
                             data={tagData?.expense_by_tag || []}
-                            isLoading={isLoadingSimple}
+                            isLoading={isLoadingTags}
                             icon={TagIcon}
                             iconColor="text-rose-500"
                             startDate={advancedData?.period?.start_date}
@@ -331,12 +374,14 @@ export default function ReportsPage() {
                             title="Ganhos por Tag"
                             description="Origem das receitas por etiqueta"
                             data={tagData?.income_by_tag || []}
-                            isLoading={isLoadingSimple}
+                            isLoading={isLoadingTags}
                             icon={TagIcon}
                             iconColor="text-emerald-500"
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />
+                        </>
+                        )}
                         </RecursoBloqueado>
                     </div>
                 </TabsContent>
@@ -346,6 +391,10 @@ export default function ReportsPage() {
                         <div className="space-y-8">
                             {/* ELITE KPI ROW */}
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                {erroSummary ? (
+                                    <ErroDoBloco titulo="Saúde financeira" onTentarDeNovo={fetchSummary} className="lg:col-span-3" />
+                                ) : (
+                                <>
                                 <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
                                     <div>
                                         <div className="flex items-center gap-1.5 mb-2">
@@ -406,6 +455,8 @@ export default function ReportsPage() {
                                         </span>
                                     </div>
                                 </div>
+                                </>
+                                )}
 
                                 <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
                                     <div>
@@ -430,6 +481,10 @@ export default function ReportsPage() {
                                 </div>
                             </div>
 
+                            {erroAdvanced ? (
+                                <ErroDoBloco titulo="Relatórios avançados" onTentarDeNovo={fetchAdvanced} />
+                            ) : (
+                            <>
                             {/* INVESTMENTS SECTION */}
                             <div className="grid grid-cols-1 gap-8 pt-4">
                                 <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
@@ -1069,6 +1124,8 @@ export default function ReportsPage() {
                                     </div>
                                 </div>
                             </div>
+                            </>
+                            )}
                             
                             <div className="flex items-center justify-center p-4 bg-muted/10 rounded-2xl border border-border/10 text-[10px] text-muted-foreground font-medium italic">
                                 Os dados técnicos acima são baseados em projeções de mercado e análise de fluxo histórico. 
