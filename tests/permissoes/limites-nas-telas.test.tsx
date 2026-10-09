@@ -27,7 +27,9 @@ const estadoDoAuth = () => ({ user: auth.user, isLoading: false })
 
 vi.mock("@/contexts/auth-context", () => ({ useAuth: () => estadoDoAuth() }))
 vi.mock("@/hooks/use-auth", () => ({ useAuth: () => estadoDoAuth() }))
-vi.mock("@/services/goals", () => ({ goalsService: { getGoals: vi.fn(), deleteGoal: vi.fn() } }))
+vi.mock("@/services/goals", () => ({
+  goalsService: { getGoals: vi.fn(), getPiggyBanks: vi.fn().mockResolvedValue([]), deleteGoal: vi.fn() },
+}))
 vi.mock("@/services/tags", () => ({ getTags: vi.fn(), deleteTag: vi.fn(), getTagInsights: vi.fn(), createTag: vi.fn() }))
 vi.mock("@/services/categories", () => ({ getCategories: vi.fn(), deleteCategory: vi.fn() }))
 vi.mock("@/services/apiClient", async (importOriginal) => ({

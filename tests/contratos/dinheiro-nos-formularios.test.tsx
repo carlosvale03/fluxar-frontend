@@ -25,7 +25,9 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
   api: { get: vi.fn(), post: vi.fn() },
 }))
 
-vi.mock("@/services/goals", () => ({ goalsService: { deposit: vi.fn(), withdraw: vi.fn() } }))
+vi.mock("@/services/goals", () => ({
+  goalsService: { deposit: vi.fn(), withdraw: vi.fn(), getSpareChange: vi.fn(), depositSpareChange: vi.fn() },
+}))
 vi.mock("@/services/accounts", () => ({ accountsService: { getAccounts: vi.fn() } }))
 vi.mock("@/services/budgets", () => ({ createBudget: vi.fn(), updateBudget: vi.fn() }))
 vi.mock("@/services/categories", () => ({
@@ -148,29 +150,23 @@ describe("Formulários enviam dinheiro em texto", () => {
     expect(vi.mocked(orcamentos.updateBudget).mock.calls[0][1]).toMatchObject({ amount_limit: "1500.00" })
   })
 
-  it('o cofrinho soma os trocos em centavos: 0.10 + 0.20 envia "0.30"', async () => {
-    // Trocos de 10.90 e 20.80 até o próximo real: 0.10 e 0.20
-    vi.mocked(api.get).mockResolvedValue({
-      data: {
-        count: 2,
-        total_pages: 1,
-        current_page: 1,
-        next: null,
-        previous: null,
-        results: [
-          { id: "t1", description: "Padaria", amount: "10.90", type: "EXPENSE", account: "conta-1" },
-          { id: "t2", description: "Farmácia", amount: "20.80", type: "EXPENSE", account: "conta-1" },
-        ],
-      },
+  it('o cofrinho mostra o total dos trocos que vem da API em texto: "0.30" é R$ 0,30', async () => {
+    // META-37: os trocos de 10.90 e 20.80 (0.10 e 0.20) são somados pelo
+    // backend; a tela não calcula troco nem envia valor (FE-10)
+    vi.mocked(goalsService.getSpareChange).mockResolvedValue({
+      active: true, goal: "meta-1", paused: false, pending_total: "0.30", pending_count: 2,
     })
-    vi.mocked(goalsService.deposit).mockResolvedValue({} as never)
+    vi.mocked(goalsService.depositSpareChange).mockResolvedValue({
+      deposits: [{ account_id: "conta-1", amount: "0.30" }], discarded: 0,
+    })
     render(<SpareChangeBank goals={[META]} onSuccess={vi.fn()} />)
 
     expect(await screen.findByText(/^R\$\s0,30$/, { selector: "p" })).toBeInTheDocument()
-    await escolher(/viagem/i)
-    await userEvent.click(screen.getByRole("button", { name: /investir trocos/i }))
+    await userEvent.click(screen.getByRole("button", { name: /depositar trocos/i }))
 
-    await vi.waitFor(() => expect(goalsService.deposit).toHaveBeenCalledTimes(1))
-    expect(vi.mocked(goalsService.deposit).mock.calls[0][1]).toMatchObject({ amount: "0.30", account_from: "conta-1" })
+    await vi.waitFor(() => expect(goalsService.depositSpareChange).toHaveBeenCalledTimes(1))
+    expect(vi.mocked(goalsService.depositSpareChange).mock.calls[0]).toEqual([])
+    expect(goalsService.deposit).not.toHaveBeenCalled()
+    expect(api.get).not.toHaveBeenCalled()
   })
 })

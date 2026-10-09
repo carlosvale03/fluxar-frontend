@@ -1,11 +1,27 @@
 import { api } from "./apiClient";
+import type { PaginatedResponse } from "./admin";
 import { paraApi } from "@/lib/datas";
-import { CreateGoalData, Goal, GoalDepositData, GoalTransaction } from "@/types/goals";
+import {
+  Cofrinho,
+  ConfiguracaoDeTrocos,
+  CreateGoalData,
+  DepositoDeTrocos,
+  Goal,
+  GoalDepositData,
+  GoalTransaction,
+  GoalWithdrawData,
+} from "@/types/goals";
 
 export const goalsService = {
   getGoals: async () => {
     // CONTRATO-01: coleção completa, como array
     const response = await api.get<Goal[]>("/goals/");
+    return response.data;
+  },
+
+  // META-04: saldo, soma das metas e saldo livre de cada cofrinho
+  getPiggyBanks: async () => {
+    const response = await api.get<Cofrinho[]>("/goals/piggy-banks/");
     return response.data;
   },
 
@@ -59,8 +75,10 @@ export const goalsService = {
     return response.data;
   },
 
+  // META-30: diz se o cofrinho ficou sem metas e com saldo zero
   deleteGoal: async (id: string) => {
-    await api.delete(`/goals/${id}/`);
+    const response = await api.delete<{ piggy_bank_empty: boolean }>(`/goals/${id}/`);
+    return response.data;
   },
 
   deposit: async (id: string, data: GoalDepositData) => {
@@ -68,13 +86,39 @@ export const goalsService = {
     return response.data;
   },
   
-  withdraw: async (id: string, data: any) => {
+  withdraw: async (id: string, data: GoalWithdrawData) => {
     const response = await api.post<GoalTransaction>(`/goals/${id}/withdraw/`, data);
     return response.data;
   },
 
-  getHistory: async (id: string) => {
-    const response = await api.get<GoalTransaction[]>(`/goals/${id}/history/`);
+  // META-32: histórico paginado (CONTRATO-02), do mais recente ao mais antigo
+  getHistory: async (id: string, page = 1, pageSize?: number) => {
+    const params = pageSize ? { page, page_size: pageSize } : { page };
+    const response = await api.get<PaginatedResponse<GoalTransaction>>(`/goals/${id}/history/`, { params });
+    return response.data;
+  },
+
+  // META-35 e META-37: configuração e trocos pendentes
+  getSpareChange: async () => {
+    const response = await api.get<ConfiguracaoDeTrocos>("/goals/spare-change/");
+    return response.data;
+  },
+
+  // META-35, META-44 e META-45: ativar, escolher a meta ou desativar
+  updateSpareChange: async (data: { active: boolean; goal?: string }) => {
+    const response = await api.put<ConfiguracaoDeTrocos>("/goals/spare-change/", data);
+    return response.data;
+  },
+
+  // META-38 a META-40 e META-43: deposita os trocos pendentes uma vez só
+  depositSpareChange: async () => {
+    const response = await api.post<DepositoDeTrocos>("/goals/spare-change/deposit/");
+    return response.data;
+  },
+
+  // META-11: o usuário viu o aviso da correção do valor
+  dismissCorrection: async (id: string) => {
+    const response = await api.post<Goal>(`/goals/${id}/dismiss-correction/`);
     return response.data;
   },
 };

@@ -12,4 +12,8 @@ export const accountsService = {
     const response = await api.get<Account>(`/accounts/${id}/`);
     return response.data;
   },
+
+  deleteAccount: async (id: string) => {
+    await api.delete(`/accounts/${id}/`);
+  },
 };

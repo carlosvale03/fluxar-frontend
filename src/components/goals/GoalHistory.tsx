@@ -15,6 +15,7 @@ import {
   DialogDescription
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Paginacao } from "@/components/ui/paginacao"
 import { Goal, GoalTransaction } from "@/types/goals"
 import { goalsService } from "@/services/goals"
 import { formatCurrency } from "@/lib/utils"
@@ -29,22 +30,29 @@ interface GoalHistoryProps {
 export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [history, setHistory] = useState<GoalTransaction[]>([])
+  // META-32: página atual, total de páginas e de registros (CONTRATO-05)
+  const [pagina, setPagina] = useState(1)
+  const [totalDePaginas, setTotalDePaginas] = useState(1)
+  const [total, setTotal] = useState(0)
 
   useEffect(() => {
     if (open && goal) {
-      fetchHistory()
+      fetchHistory(1)
     }
   }, [open, goal])
 
-  const fetchHistory = async () => {
+  const fetchHistory = async (numero = pagina) => {
     if (!goal) return
     try {
       setIsLoading(true)
-      const data = await goalsService.getHistory(goal.id)
-      setHistory(data)
+      const data = await goalsService.getHistory(goal.id, numero)
+      setHistory(data.results)
+      setPagina(data.current_page)
+      setTotalDePaginas(data.total_pages)
+      setTotal(data.count)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: fetchHistory })
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: () => fetchHistory(numero) })
     } finally {
       setIsLoading(false)
     }
@@ -93,7 +101,9 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
                         {isWithdrawal ? <ArrowUpCircle className="h-5 w-5" /> : <ArrowDownCircle className="h-5 w-5" />}
                       </div>
                       <div className="space-y-0.5">
-                        <p className="text-sm font-bold">{isWithdrawal ? "Resgate" : "Aporte"}</p>
+                        <p className="text-sm font-bold">
+                          {transaction.is_correction ? "Correção" : isWithdrawal ? "Resgate" : "Aporte"}
+                        </p>
                         {transaction.description && (
                           <p className="text-[10px] font-bold text-muted-foreground/80 -mt-1 line-clamp-1 max-w-[150px]">
                             {transaction.description}
@@ -101,7 +111,7 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
                         )}
                         <p className="text-[10px] font-medium text-muted-foreground">
                           {/* CONTRATO-24: data sem hora, no dia gravado */}
-                          {format(lerData(transaction.datetime), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                          {format(lerData(transaction.date), "dd 'de' MMM, yyyy", { locale: ptBR })}
                         </p>
                       </div>
                     </div>
@@ -120,6 +130,17 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
                 );
               })}
             </div>
+          )}
+
+          {total > 0 && (
+            <Paginacao
+              pagina={pagina}
+              totalDePaginas={totalDePaginas}
+              total={total}
+              rotulo="registros"
+              carregando={isLoading}
+              onMudarPagina={(numero) => fetchHistory(numero)}
+            />
           )}
 
           <div className="pt-4 border-t border-border/10 mt-6">
