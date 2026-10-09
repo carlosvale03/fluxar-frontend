@@ -33,6 +33,7 @@ import { LucideIcon } from "@/components/ui/icon-picker"
 import { HelpInfo } from "@/components/ui/help-info"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
+import { formatarTaxa, percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 
@@ -353,7 +354,7 @@ export default function ReportsPage() {
                                         </div>
                                         <div className="flex items-baseline gap-2">
                                             <h3 className="text-2xl font-black">
-                                                {isLoadingSummary ? "..." : `${summaryData?.summary.savings_rate ?? 0}%`}
+                                                {isLoadingSummary ? "..." : formatarTaxa(summaryData?.summary.savings_rate)}
                                             </h3>
                                             <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-900/50 rounded-full text-[10px] font-black uppercase tracking-widest px-2 h-auto py-0.5">Saudável</Badge>
                                         </div>
@@ -672,7 +673,10 @@ export default function ReportsPage() {
                                             </div>
                                         </CardHeader>
                                         <CardContent className="p-8 pt-0 space-y-6">
-                                            {advancedData?.custom_monitoring?.map((monitor, i) => (
+                                            {advancedData?.custom_monitoring?.map((monitor, i) => {
+                                                // REL-23: média zero não vira porcentagem
+                                                const percentual = percentualDaMedia(monitor.current_month, monitor.average_month)
+                                                return (
                                                 <div key={i} className="p-6 rounded-2xl bg-card border border-border/60 shadow-sm space-y-4 group transition-all hover:shadow-md">
                                                     <div className="flex items-center justify-between">
                                                         <div className="flex items-center gap-3">
@@ -734,20 +738,21 @@ export default function ReportsPage() {
                                                     <div className="relative pt-2">
                                                         <div className="flex items-center justify-between text-[10px] font-black uppercase mb-1.5 px-1">
                                                             <span>Progressão</span>
-                                                            <span>{Math.round((paraCentavos(monitor.current_month) / paraCentavos(monitor.average_month)) * 100)}%</span>
+                                                            <span>{percentual === null ? SEM_HISTORICO : `${Math.round(percentual)}%`}</span>
                                                         </div>
                                                         <div className="w-full bg-muted/40 h-2.5 rounded-full overflow-hidden">
-                                                            <div 
+                                                            <div
                                                                 className={cn(
                                                                     "h-full transition-all duration-1000",
                                                                     monitor.status === 'success' ? "bg-emerald-500" : monitor.status === 'warning' ? "bg-amber-500" : "bg-destructive"
-                                                                )} 
-                                                                style={{ width: `${Math.min((paraCentavos(monitor.current_month) / paraCentavos(monitor.average_month)) * 100, 100)}%` }} 
+                                                                )}
+                                                                style={{ width: `${percentual === null ? 0 : Math.min(percentual, 100)}%` }}
                                                             />
                                                         </div>
                                                     </div>
                                                 </div>
-                                            ))}
+                                                )
+                                            })}
                                             <Button 
                                                 variant="outline" 
                                                 className="w-full h-14 rounded-2xl border-dashed border-2 hover:bg-muted/30 font-black text-sm"
@@ -798,7 +803,7 @@ export default function ReportsPage() {
                                                     </div>
                                                     <div className="bg-background/20 p-4 rounded-2xl border border-border/5">
                                                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Poder de Aporte</p>
-                                                        <p className="text-lg font-black mt-1 text-emerald-500">{summaryData?.summary?.savings_rate || 0}%</p>
+                                                        <p className="text-lg font-black mt-1 text-emerald-500">{formatarTaxa(summaryData?.summary?.savings_rate)}</p>
                                                     </div>
                                                 </div>
                                             </div>

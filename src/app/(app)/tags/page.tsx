@@ -13,6 +13,7 @@ import { TagForm } from "@/components/tags/TagForm"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn, formatCurrency } from "@/lib/utils"
 import { formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import { percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
 import { 
   LineChart, 
   Line, 
@@ -665,7 +666,7 @@ function TelaDeTags() {
                                                        insightsData.focus_monitor.status === 'error' && "bg-rose-500"
                                                    )} 
                                                    style={{ 
-                                                       width: `${Math.min(100, (paraCentavos(insightsData.focus_monitor.current_month) / (paraCentavos(insightsData.focus_monitor.average_month) || 1)) * 100)}%` 
+                                                       width: `${Math.min(100, percentualDaMedia(insightsData.focus_monitor.current_month, insightsData.focus_monitor.average_month) ?? 0)}%`
                                                    }}
                                                />
                                            </div>
@@ -675,7 +676,11 @@ function TelaDeTags() {
                                                insightsData.focus_monitor.status === 'warning' && "text-amber-600",
                                                insightsData.focus_monitor.status === 'error' && "text-rose-600"
                                            )}>
-                                               {Math.round((paraCentavos(insightsData.focus_monitor.current_month) / (paraCentavos(insightsData.focus_monitor.average_month) || 1)) * 100)}%
+                                               {/* REL-23: média zero não vira porcentagem */}
+                                               {(() => {
+                                                   const percentual = percentualDaMedia(insightsData.focus_monitor.current_month, insightsData.focus_monitor.average_month)
+                                                   return percentual === null ? SEM_HISTORICO : `${Math.round(percentual)}%`
+                                               })()}
                                            </span>
                                        </div>
                                    </div>
