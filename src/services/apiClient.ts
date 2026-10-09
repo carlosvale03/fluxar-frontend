@@ -38,6 +38,11 @@ export const ROTAS_PUBLICAS = [
 // manutenção volta para ela quando a manutenção acaba (SESSAO-22)
 export const CHAVE_DA_VOLTA_DA_MANUTENCAO = "fluxar.voltar_da_manutencao"
 
+// LGPD-28 e LGPD-29: página em que o usuário estava quando o backend pediu o
+// aceite da versão nova dos termos; a tela de aceite volta para ela
+export const CHAVE_DA_VOLTA_DOS_TERMOS = "fluxar.voltar_dos_termos"
+const PAGINA_DE_ACEITE_DOS_TERMOS = "/termos/aceite"
+
 // O token de acesso fica só na memória da aba (SESSAO-02)
 let tokenDeAcesso: string | null = null
 
@@ -125,6 +130,16 @@ api.interceptors.response.use(
                 sessionStorage.setItem(CHAVE_DA_VOLTA_DA_MANUTENCAO, window.location.pathname + window.location.search)
                 window.location.href = "/manutencao"
             }
+        }
+        return Promise.reject(error)
+    }
+
+    // LGPD-29: sem o aceite da versão vigente, o backend recusa com 403, e a
+    // tela de aceite aparece (LGPD-28)
+    if (error.response?.status === 403 && error.response?.data?.code === "terms_acceptance_required") {
+        if (typeof window !== "undefined" && window.location.pathname !== PAGINA_DE_ACEITE_DOS_TERMOS) {
+            sessionStorage.setItem(CHAVE_DA_VOLTA_DOS_TERMOS, window.location.pathname + window.location.search)
+            window.location.href = PAGINA_DE_ACEITE_DOS_TERMOS
         }
         return Promise.reject(error)
     }
