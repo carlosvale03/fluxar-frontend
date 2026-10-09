@@ -1,12 +1,36 @@
 "use client"
 
-import { AuthShell } from "@/components/auth/auth-shell"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChevronLeft, ShieldCheck, FileText, Lock, Database, Trash2, Download } from "lucide-react"
-import Link from "next/link"
+import { useEffect, useState } from "react"
+import { ShieldCheck, FileText, Lock, Database, Trash2, Download, Target, Server, Sparkles } from "lucide-react"
 import { motion } from "framer-motion"
+import { format } from "date-fns"
+import { ptBR } from "date-fns/locale"
+
+import { lerData } from "@/lib/datas"
+import { tratarErro } from "@/lib/erros"
+import { termosService, type TermosVigentes } from "@/services/termos"
+
+// LGPD-31: as finalidades do uso dos dados
+const FINALIDADES = [
+  "Prestar o serviço: guardar e mostrar as suas contas, cartões, transações, metas e orçamentos.",
+  "Criar e proteger a sua conta: identificar você no login e enviar e-mails de verificação, de recuperação de senha e de avisos sobre a conta.",
+  "Liberar os recursos do seu plano.",
+  "Dar suporte quando você pedir.",
+]
 
 export default function TermsPage() {
+  const [termos, setTermos] = useState<TermosVigentes | null>(null)
+
+  // LGPD-28 e LGPD-31: versão, data e serviços vêm da API, publicados junto com este texto
+  useEffect(() => {
+    const carregar = () => {
+      termosService.obter().then(setTermos, (error: unknown) => {
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar a versão dos termos.", tentarDeNovo: carregar })
+      })
+    }
+    carregar()
+  }, [])
+
   const containerVariants = {
     hidden: { opacity: 0 },
     show: {
@@ -30,7 +54,11 @@ export default function TermsPage() {
         className="max-w-3xl w-full mb-8"
       >
         <h1 className="text-4xl font-black tracking-tight uppercase mb-2">Termos & Privacidade</h1>
-        <p className="text-muted-foreground font-medium">Última atualização: 26 de Abril de 2026</p>
+        <p className="text-muted-foreground font-medium">
+          {termos
+            ? `Versão ${termos.version}, em vigor desde ${format(lerData(termos.effective_date), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}`
+            : "Carregando a versão vigente..."}
+        </p>
       </motion.div>
 
       <motion.div 
@@ -78,21 +106,69 @@ export default function TermsPage() {
           </div>
         </motion.div>
 
+        {/* Finalidades (LGPD-31) */}
+        <motion.div variants={itemVariants} className="p-8 rounded-[32px] bg-card border border-border/60 shadow-xl shadow-black/5">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-indigo-500">
+              <Target className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-black uppercase tracking-tight">2. Para que usamos os dados</h2>
+          </div>
+          <ul className="text-sm space-y-2 text-muted-foreground font-medium list-disc list-inside mb-4">
+            {FINALIDADES.map((finalidade) => (
+              <li key={finalidade}>{finalidade}</li>
+            ))}
+          </ul>
+          <div className="p-4 rounded-2xl bg-indigo-500/5 border border-indigo-500/10">
+            <h3 className="text-[10px] font-black uppercase tracking-widest text-foreground mb-2 flex items-center gap-2">
+              <Sparkles className="h-3 w-3" /> Opcional: melhoria do produto
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Só com o seu consentimento, dado no cadastro ou nas configurações, usamos os seus dados anonimizados para
+              melhorar o produto e treinar modelos de previsão e de categorização. Os dados anonimizados não trazem nome,
+              e-mail, CPF, identificadores nem nomes de contas e cartões. O consentimento é opcional, vem desmarcado e pode
+              ser retirado a qualquer momento nas configurações; a partir daí, os seus dados ficam fora dos conjuntos novos.
+            </p>
+          </div>
+        </motion.div>
+
+        {/* Serviços que tratam os dados (LGPD-31) */}
+        <motion.div variants={itemVariants} className="p-8 rounded-[32px] bg-card border border-border/60 shadow-xl shadow-black/5">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-12 h-12 rounded-xl bg-sky-500/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-sky-500">
+              <Server className="h-6 w-6" />
+            </div>
+            <h2 className="text-xl font-black uppercase tracking-tight">3. Serviços que tratam os dados</h2>
+          </div>
+          {termos ? (
+            <ul className="space-y-2">
+              {termos.services.map((servico) => (
+                <li key={servico.name} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 p-3 rounded-2xl bg-muted/30 border border-border/40">
+                  <span className="text-sm font-bold">{servico.name}</span>
+                  <span className="text-xs text-muted-foreground">{servico.purpose}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-sm text-muted-foreground">Carregando a lista de serviços...</p>
+          )}
+        </motion.div>
+
         {/* Uso e Segurança */}
         <motion.div variants={itemVariants} className="p-8 rounded-[32px] bg-card border border-border/60 shadow-xl shadow-black/5">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-amber-500">
               <Lock className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">2. Segurança</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight">4. Segurança</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium mb-4">
-            Utilizamos criptografia de ponta a ponta para proteger suas credenciais e armazenamento seguro em banco de dados isolado. 
-            Suas imagens são processadas via Cloudinary com protocolos de segurança industriais.
+            A conexão entre o seu navegador e o Fluxar é criptografada (HTTPS). CPF, telefone, data de nascimento e renda
+            ficam criptografados no banco de dados.
           </p>
           <div className="flex gap-2">
-            <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 text-[9px] font-black uppercase tracking-wider rounded-full px-3">Criptografia SSL</Badge>
-            <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 text-[9px] font-black uppercase tracking-wider rounded-full px-3">LGPD Compliance</Badge>
+            <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 text-[9px] font-black uppercase tracking-wider rounded-full px-3">Conexão HTTPS</Badge>
+            <Badge className="bg-amber-500/10 text-amber-600 border-amber-200 text-[9px] font-black uppercase tracking-wider rounded-full px-3">Dados pessoais criptografados</Badge>
           </div>
         </motion.div>
 
@@ -102,21 +178,18 @@ export default function TermsPage() {
             <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-green-500">
               <FileText className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">3. Seus Direitos</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight">5. Seus Direitos</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 rounded-2xl bg-green-500/5 border border-green-500/10 flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <Download className="h-5 w-5 text-green-600" />
-                <Badge className="bg-green-500/20 text-green-700 border-green-200 text-[8px] font-black uppercase tracking-wider rounded-full px-2">Premium</Badge>
-              </div>
-              <h4 className="font-bold text-sm">Exportação</h4>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">Assinantes dos planos <strong>Premium</strong> ou superiores podem exportar relatórios detalhados em PDF e Excel a qualquer momento.</p>
+              <Download className="h-5 w-5 text-green-600" />
+              <h4 className="font-bold text-sm">Download dos seus dados</h4>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">Em qualquer plano, você baixa os seus dados financeiros em uma planilha (XLSX) em Configurações, na aba Privacidade, inclusive antes de excluir a conta.</p>
             </div>
             <div className="p-4 rounded-2xl bg-destructive/5 border border-destructive/10 flex flex-col gap-2">
               <Trash2 className="h-5 w-5 text-destructive" />
               <h4 className="font-bold text-sm">Exclusão</h4>
-              <p className="text-[11px] text-muted-foreground leading-relaxed">Você pode solicitar a exclusão da sua conta e de todos os dados financeiros vinculados permanentemente.</p>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">Você pode excluir a sua conta pelo app, em Configurações, na aba Privacidade, confirmando a senha. A conta é desativada na hora e, depois de 30 dias, ela e todos os dados são apagados definitivamente. Até lá, basta entrar de novo para desistir.</p>
             </div>
           </div>
         </motion.div>
@@ -127,10 +200,10 @@ export default function TermsPage() {
             <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-purple-500">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">4. Planos e Uso</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight">6. Planos e Uso</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium mb-4">
-            O Fluxar oferece diferentes níveis de acesso. Enquanto funcionalidades de organização básica são gratuitas, recursos avançados de análise, automação e exportação de dados são exclusivos para planos pagos.
+            O Fluxar oferece diferentes níveis de acesso. Enquanto funcionalidades de organização básica são gratuitas, recursos avançados de análise, automação e exportação de relatórios são exclusivos para planos pagos.
           </p>
           <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/10">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-700 mb-2">Responsabilidade do Usuário:</h4>
@@ -146,7 +219,7 @@ export default function TermsPage() {
             <div className="w-12 h-12 rounded-xl bg-cyan-500/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-cyan-500">
               <Lock className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">5. Cookies</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight">7. Cookies</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium">
             Utilizamos apenas cookies essenciais e tecnologias de armazenamento local para manter sua sessão ativa e salvar suas preferências de interface (como o modo escuro). Não utilizamos cookies de rastreamento para fins publicitários de terceiros.
@@ -159,10 +232,10 @@ export default function TermsPage() {
             <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 text-muted-foreground">
               <FileText className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">6. Alterações</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight">8. Alterações</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium">
-            Podemos atualizar estes termos periodicamente. Alterações significativas serão notificadas através do e-mail cadastrado ou por avisos destacados dentro da plataforma Fluxar.
+            Cada versão destes termos tem número e data de vigência. Quando uma versão nova passa a valer, o Fluxar mostra o que mudou e pede o seu aceite no próximo acesso, antes de liberar as outras telas.
           </p>
         </motion.div>
 
