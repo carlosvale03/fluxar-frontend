@@ -2,6 +2,10 @@ import { api } from "./apiClient"
 import { User } from "@/contexts/auth-context"
 import type { Plano, TravaDoCatalogo } from "@/types/planos"
 
+// LGPD-19: no painel, o CPF e o telefone chegam mascarados, só com os últimos
+// dígitos ("***.***.***-12"), e a data de nascimento e a renda não chegam
+export type UsuarioNoPainel = Omit<User, "date_of_birth" | "monthly_income">
+
 // CONTRATO-02: formato único das listas paginadas
 export interface PaginatedResponse<T> {
   count: number
@@ -104,7 +108,7 @@ export async function getSystemSettings(): Promise<Record<string, any>> {
 // User Details
 export async function getAdminUser(userId: string) {
     // O erro sobe para a tela, sem usuário de mentira
-    const response = await api.get<User>(`/admin/users/${userId}/`)
+    const response = await api.get<UsuarioNoPainel>(`/admin/users/${userId}/`)
     return response.data
 }
 

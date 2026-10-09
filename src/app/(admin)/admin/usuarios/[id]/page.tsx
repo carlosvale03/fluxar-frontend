@@ -41,10 +41,10 @@ import {
     hardDeleteAdminUser,
     deleteAdminUser,
     resetAdminUserPassword,
-    clearAdminUserData
+    clearAdminUserData,
+    type UsuarioNoPainel,
 } from "@/services/admin"
 import { toast } from "sonner"
-import { User } from "@/contexts/auth-context"
 import { getAbsoluteUrl } from "@/lib/utils"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
@@ -57,7 +57,8 @@ export default function UserDetailsPage() {
 
   const [activeTab, setActiveTab] = useState("overview")
   const [isLoading, setIsLoading] = useState(true)
-  const [user, setUser] = useState<User | null>(null)
+  // LGPD-19: CPF e telefone mascarados como vêm da API, sem nascimento nem renda
+  const [user, setUser] = useState<UsuarioNoPainel | null>(null)
   const [financialStats, setFinancialStats] = useState<UserFinancialStats | null>(null)
   const [logs, setLogs] = useState<SystemLog[]>([])
   // CONTRATO-02 e CONTRATO-05: os logs do usuário vêm paginados
@@ -187,12 +188,18 @@ export default function UserDetailsPage() {
     try {
       setIsSubmitting(true)
       await hardDeleteAdminUser(user.id, adminPassword)
+      // A resposta não traz o nome; vale o que a tela já tem (LGPD-21)
       toast.success(`Usuário ${user.name} excluído permanentemente.`)
       setIsHardDeleteModalOpen(false)
       router.push("/admin/usuarios")
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao excluir usuário permanentemente"
-      toast.error(msg)
+    } catch (error) {
+      // LGPD-12: com o Cloudinary fora, nada foi apagado e o backend explica (503 deletion_failed)
+      const dados = (error as { response?: { data?: { code?: unknown; detail?: unknown } } }).response?.data
+      if (dados?.code === "deletion_failed" && typeof dados.detail === "string") {
+        toast.error(dados.detail)
+      } else {
+        tratarErro(error, { mensagemPadrao: "Erro ao excluir usuário permanentemente" })
+      }
     } finally {
       setIsSubmitting(false)
     }
