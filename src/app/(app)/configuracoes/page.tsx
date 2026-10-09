@@ -18,6 +18,7 @@ import { Settings, Lock, Globe, Bell } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { tratarErro } from "@/lib/erros"
 import { ExcluirConta } from "@/components/privacidade/excluir-conta"
+import { ConsentimentoDeMelhoria } from "@/components/privacidade/consentimento"
 
 // --- Settings Form Schema ---
 const settingsSchema = z.object({
@@ -369,9 +370,10 @@ export default function SettingsPage() {
           </Card>
       </TabsContent>
 
-      {/* --- PRIVACIDADE (LGPD-01 a LGPD-04) --- */}
+      {/* --- PRIVACIDADE (LGPD-01 a LGPD-04, LGPD-34) --- */}
       <TabsContent value="privacy" className="mt-8 animate-in slide-in-from-bottom-2 duration-500">
           <div className="max-w-2xl space-y-8">
+              <ConsentimentoDeMelhoria />
               <ExcluirConta />
           </div>
       </TabsContent>

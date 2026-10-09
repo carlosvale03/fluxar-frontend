@@ -9,7 +9,25 @@ export interface PedidoDeExclusao {
   email_sent: boolean
 }
 
+// LGPD-34 e LGPD-35: o consentimento para o uso de dados anonimizados
+export interface Consentimento {
+  consent: boolean
+  // Data e hora ISO da última decisão, ou null se nunca decidiu
+  decided_at: string | null
+  policy_version: string | null
+}
+
 export const privacidadeService = {
+  obterConsentimento: async (): Promise<Consentimento> => {
+    const response = await api.get("/users/me/consent/")
+    return response.data
+  },
+
+  definirConsentimento: async (consent: boolean): Promise<Consentimento> => {
+    const response = await api.put("/users/me/consent/", { consent })
+    return response.data
+  },
+
   // LGPD-02: os dados financeiros em XLSX, liberado em todos os planos
   baixarMeusDados: async (): Promise<Blob> => {
     const response = await api.get("/users/me/export/", {
