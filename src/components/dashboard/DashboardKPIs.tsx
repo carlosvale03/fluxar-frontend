@@ -4,7 +4,7 @@ import * as React from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
-import { Wallet, TrendingUp, TrendingDown, CircleDollarSign, CreditCard } from "lucide-react"
+import { Wallet, TrendingUp, TrendingDown, CircleDollarSign, CreditCard, Clock } from "lucide-react"
 import { HelpInfo } from "@/components/ui/help-info"
 import { HelpTopic } from "@/constants/help-texts"
 
@@ -22,7 +22,7 @@ function KPICard({ title, value, icon, colorClass, bgClass, style, helpTopic }: 
     const formattedValue = formatarMoeda(value)
 
     return (
-        <Card className="group relative flex flex-col p-5 rounded-[32px] border transition-all cursor-pointer overflow-hidden border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 hover:shadow-md">
+        <Card role="group" aria-label={title} className="group relative flex flex-col p-5 rounded-[32px] border transition-all cursor-pointer overflow-hidden border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 hover:shadow-md">
             <CardContent className="p-0">
                 <div className="flex items-center justify-between">
                     <div className="flex flex-col gap-1.5 min-w-0">
@@ -66,6 +66,7 @@ interface DashboardKPIsProps {
         net_result: string
         total_credit_limit: string
         total_current_invoices: string
+        payable?: string
     }
 }
 
@@ -73,7 +74,7 @@ export function DashboardKPIs({ data }: DashboardKPIsProps) {
     const isPositive = paraCentavos(data?.net_result) >= 0;
 
     return (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-6">
             <KPICard 
                 title="Saldo em Contas" 
                 value={data?.total_liquid_balance ?? data?.total_balance ?? "0.00"} 
@@ -96,8 +97,16 @@ export function DashboardKPIs({ data }: DashboardKPIsProps) {
                 colorClass=""
                 bgClass="var(--finance-expense-light)"
             />
-            <KPICard 
-                title="Resultado Líquido" 
+            {/* REL-04: despesas pendentes, à parte das despesas do mês */}
+            <KPICard
+                title="A pagar"
+                value={data?.payable ?? "0.00"}
+                icon={<Clock className="h-7 w-7 text-rose-500" />}
+                colorClass="text-rose-500"
+                bgClass="bg-rose-500/10"
+            />
+            <KPICard
+                title="Resultado Líquido"
                 value={data?.net_result ?? "0.00"} 
                 icon={<CircleDollarSign className="h-7 w-7 text-orange-500" />}
                 colorClass=""
@@ -105,8 +114,9 @@ export function DashboardKPIs({ data }: DashboardKPIsProps) {
                 helpTopic="NET_RESULT"
                 {...({ style: { color: isPositive ? 'var(--finance-income)' : 'var(--finance-expense)' } } as any)}
             />
-            <KPICard 
-                title="Gasto em Cartões" 
+            {/* REL-18: valor em aberto das faturas que vencem no mês */}
+            <KPICard
+                title="Faturas do Mês"
                 value={data?.total_current_invoices ?? "0.00"} 
                 icon={<CreditCard className="h-7 w-7 text-amber-500" />}
                 colorClass="text-amber-500"

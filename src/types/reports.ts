@@ -1,5 +1,13 @@
 import { Category } from "./categories"
 
+// REL-15: disponível, reservas (cofrinhos), investimentos e faturas em aberto
+export interface NetWorthBreakdown {
+    available: string
+    reserves: string
+    investments: string
+    open_invoices: string
+}
+
 export interface DashboardReport {
     summary: {
         total_balance: string
@@ -7,9 +15,16 @@ export interface DashboardReport {
         monthly_expense: string
         net_result: string
         total_credit_limit: string
+        // Faturas que vencem no mês, pelo valor em aberto (REL-18)
         total_current_invoices: string
+        // Despesas pendentes do período (REL-04)
+        payable: string
+        // Contas ativas menos as compras não pagas dos cartões (REL-13, REL-15)
         net_worth: string
-        savings_rate: number
+        net_worth_breakdown: NetWorthBreakdown
+        // null quando não há receitas no mês (REL-22)
+        savings_rate: number | null
+        saved_this_month: string
         total_liquid_balance: string
         total_investment_balance: string
         liquidity_ratio: number

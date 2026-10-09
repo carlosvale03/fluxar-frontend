@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { getDashboardSummary, getSimpleCharts, getMonthlyComparison, getTagDistribution } from "@/services/reports"
 import { DashboardReport, SimpleChartsReport, MonthlyComparisonData, TagDistributionReport } from "@/types/reports"
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs"
+import { NetWorthBreakdown } from "@/components/dashboard/NetWorthBreakdown"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
 import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { BudgetSummary } from "@/components/dashboard/BudgetSummary"
@@ -342,6 +343,9 @@ export default function DashboardPage() {
 
             {/* KPIs de Balanço */}
             <DashboardKPIs data={report.summary} />
+
+            {/* Patrimônio separado em disponível, reservas, investimentos e faturas (REL-15) */}
+            <NetWorthBreakdown total={report.summary.net_worth} partes={report.summary.net_worth_breakdown} />
 
             {/* SEÇÃO DINÂMICA: Módulos Personalizáveis */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
