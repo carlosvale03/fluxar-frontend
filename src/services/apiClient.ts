@@ -30,6 +30,8 @@ export const ROTAS_PUBLICAS = [
   "/auth/reset-password/",
   "/auth/refresh/",
   "/auth/logout/",
+  // LGPD-08: quem vale é o token de cancelamento devolvido pelo login
+  "/auth/cancel-deletion/",
 ]
 
 // Página em que o usuário estava quando a manutenção começou; a página de

@@ -4,7 +4,6 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { format } from "date-fns"
 import { toast } from "sonner"
 import { Download, Trash2 } from "lucide-react"
 
@@ -20,6 +19,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { PasswordInput } from "@/components/ui/password-input"
+import { dataDaExclusao } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
 import { cn } from "@/lib/utils"
 import { privacidadeService, salvarArquivo } from "@/services/privacidade"
@@ -28,11 +28,6 @@ const confirmacaoSchema = z.object({
   password: z.string().min(1, "Informe a sua senha atual"),
 })
 type Confirmacao = z.infer<typeof confirmacaoSchema>
-
-// "2026-11-08T12:00:00-03:00" vira 08/11/2026 no fuso do usuário
-export function dataDaExclusao(iso: string) {
-  return format(new Date(iso), "dd/MM/yyyy")
-}
 
 // LGPD-01 a LGPD-05: o usuário baixa os dados, confirma com a senha e a
 // sessão termina; a conta fica 30 dias desativada antes da exclusão definitiva
