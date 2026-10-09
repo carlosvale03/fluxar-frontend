@@ -36,6 +36,8 @@ const registerSchema = z.object({
   termsAccepted: z.boolean().refine(val => val === true, {
     message: "Você deve aceitar os termos para continuar",
   }),
+  // LGPD-33: opcional e desmarcado; o cadastro não depende dele
+  productImprovementConsent: z.boolean(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "As senhas não conferem",
   path: ["confirmPassword"],
@@ -53,6 +55,7 @@ const CAMPOS_DO_BACKEND: Record<string, keyof RegisterForm> = {
   password: "password",
   password_confirm: "confirmPassword",
   terms_accepted: "termsAccepted",
+  product_improvement_consent: "productImprovementConsent",
 }
 
 const itemVariants = {
@@ -69,6 +72,7 @@ export default function RegisterPage() {
     resolver: zodResolver(registerSchema),
     defaultValues: {
       termsAccepted: false,
+      productImprovementConsent: false,
     }
   })
 
@@ -81,7 +85,8 @@ export default function RegisterPage() {
         email: data.email,
         password: data.password,
         password_confirm: data.confirmPassword,
-        terms_accepted: data.termsAccepted
+        terms_accepted: data.termsAccepted,
+        product_improvement_consent: data.productImprovementConsent,
       }
       
       const response = await api.post("/auth/register/", payload)
@@ -247,7 +252,7 @@ export default function RegisterPage() {
                   Eu li e concordo com os <Link href="/termos" target="_blank" className="text-primary hover:underline underline-offset-4 decoration-2">Termos de Uso e Política de Privacidade</Link>.
                 </label>
                 <p className="text-[10px] text-muted-foreground font-medium">
-                  Seus dados financeiros são criptografados e protegidos.
+                  A conexão com o Fluxar é criptografada, e CPF, telefone, data de nascimento e renda ficam criptografados no banco.
                 </p>
               </div>
             </div>
@@ -256,6 +261,32 @@ export default function RegisterPage() {
                 {errors.termsAccepted.message}
               </p>
             )}
+
+            <div className="flex items-start gap-3 p-4 rounded-[24px] bg-muted/5 border border-border/40 hover:bg-muted/10 transition-colors cursor-pointer group relative">
+              <Controller
+                control={control}
+                name="productImprovementConsent"
+                render={({ field }) => (
+                  <Checkbox
+                    id="productImprovementConsent"
+                    checked={field.value}
+                    onCheckedChange={(marcado) => field.onChange(marcado === true)}
+                    className="mt-1 h-5 w-5 rounded-lg border-2 border-primary/40 data-[state=checked]:border-primary"
+                  />
+                )}
+              />
+              <div className="space-y-1 select-none flex-1">
+                <label
+                  htmlFor="productImprovementConsent"
+                  className="text-xs font-bold text-foreground/80 leading-tight cursor-pointer block"
+                >
+                  Aceito que meus dados, anonimizados, sejam usados para melhorar o produto e treinar modelos de previsão e de categorização.
+                </label>
+                <p className="text-[10px] text-muted-foreground font-medium">
+                  Opcional. Você pode retirar o consentimento a qualquer momento nas configurações.
+                </p>
+              </div>
+            </div>
           </motion.div>
 
           <motion.div variants={itemVariants} className="pt-4">

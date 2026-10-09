@@ -36,7 +36,7 @@ async function preencherEEnviar() {
   await userEvent.type(screen.getByLabelText("Melhor E-mail"), "ana@x.com")
   await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
   await userEvent.type(screen.getByLabelText("Confirmar"), "cofre-forte-2026")
-  await userEvent.click(screen.getByRole("checkbox"))
+  await userEvent.click(screen.getByRole("checkbox", { name: /termos de uso/i }))
   await userEvent.click(screen.getByRole("button", { name: /criar minha conta/i }))
 }
 
