@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
 import { EtapasDoPlano } from "@/components/salario/EtapasDoPlano"
-import { ReceitasDoSalario } from "@/components/salario/ReceitasDoSalario"
+import { ReceitasDoSalario, type PainelDeReceitas } from "@/components/salario/ReceitasDoSalario"
 import { ResumoDoPlano } from "@/components/salario/ResumoDoPlano"
 import { ComprometidoNoMes, SeuHistorico } from "@/components/salario/ReferenciasDoMes"
 import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
@@ -72,7 +72,7 @@ export function GestaoDoSalario() {
   const [valorSimulado, setValorSimulado] = useState("")
   const [recebidoAnterior, setRecebidoAnterior] = useState<string | undefined>(undefined)
   const ultimoParam = useRef<string | null>(null)
-  const painelDeReceitas = useRef<HTMLElement>(null)
+  const painelDeReceitas = useRef<PainelDeReceitas>(null)
   const secaoDoPlano = useRef<HTMLElement>(null)
 
   const valorRecebido = pendentes?.reduce<RecebimentoDoSalario | null>(
@@ -166,14 +166,8 @@ export function GestaoDoSalario() {
   }, [])
 
   // Do aviso de nenhum salário a dividir para o painel Receitas de salário,
-  // com o foco na primeira categoria
-  const irParaReceitas = () => {
-    const painel = painelDeReceitas.current
-    if (!painel) return
-    mostrar(painel)
-    const alvo = painel.querySelector<HTMLElement>('[role="checkbox"]') ?? painel
-    alvo.focus({ preventScroll: true })
-  }
+  // aberto e com o foco na primeira categoria
+  const irParaReceitas = () => painelDeReceitas.current?.abrir()
 
   // SALARIO-21 e SALARIO-22: com plano, abre a revisão; sem plano, abre antes
   // a escolha do modelo
@@ -327,6 +321,7 @@ export function GestaoDoSalario() {
             ref={painelDeReceitas}
             categorias={categorias}
             salvas={plano?.salary_categories ?? null}
+            temSalarioADividir={pendentes === null ? null : pendentes.length > 0}
             onSalvas={categoriasSalvas}
           />
           <ComprometidoNoMes referencias={referencias} />
