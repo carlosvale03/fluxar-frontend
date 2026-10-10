@@ -180,6 +180,39 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
     expect(within(janela).getByRole("link", { name: "Dividir agora" })).toHaveAttribute("href", "/salario?dividir=rec-pendente")
   })
 
+  it("a edição que efetiva uma receita pendente de Salário abre o aviso; a que não efetiva, não", async () => {
+    const put = vi.mocked(api.put)
+    const editar = async (inicial: Record<string, unknown>, devolvida: Record<string, unknown>) => {
+      put.mockImplementation((() => resposta(devolvida)) as typeof api.put)
+      function TelaDeEdicao() {
+        const { conferirSalario, avisoDoSalario } = useAvisoDoSalario()
+        return (
+          <>
+            <TransactionFormDialog open onOpenChange={vi.fn()} type="INCOME" initialData={inicial} onSuccess={(t) => void conferirSalario(t)} />
+            {avisoDoSalario}
+          </>
+        )
+      }
+      const tela = render(<TelaDeEdicao />)
+      await userEvent.click(await screen.findByRole("button", { name: "Salvar Lançamento" }))
+      await vi.waitFor(() => expect(put).toHaveBeenCalledWith(`/transactions/${inicial.id}/`, expect.anything()))
+      return tela
+    }
+
+    // Já efetivada antes da edição: não abre
+    const primeira = await editar(receita({ id: "rec-ja" }), receita({ id: "rec-ja" }))
+    await new Promise((r) => setTimeout(r, 20))
+    expect(chamadasDoPlano()).toHaveLength(0)
+    expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument()
+    primeira.unmount()
+
+    // Pendente que volta efetivada: abre com o valor e o id dela
+    await editar(receita({ id: "rec-pendente", status: "PENDING" }), receita({ id: "rec-pendente", status: "COMPLETED" }))
+    const janela = await aviso()
+    expect(janela).toHaveTextContent("Você recebeu R$ 3.000,00")
+    expect(within(janela).getByRole("link", { name: "Dividir agora" })).toHaveAttribute("href", "/salario?dividir=rec-pendente")
+  })
+
   it("efetivar uma despesa não abre o aviso nem lê o plano", async () => {
     const despesa = receita({ id: "desp-1", type: "EXPENSE", status: "PENDING", description: "Aluguel", category: "cat-x", category_detail: null, recurring_source: "serie-2" })
     servidor([despesa])

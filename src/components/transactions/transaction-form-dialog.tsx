@@ -85,8 +85,9 @@ type FormValues = z.infer<typeof formSchema>
 interface TransactionFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  // A transação criada (na edição, nada): o aviso do salário confere se é um
-  // salário recebido (SALARIO-19)
+  // A transação criada, ou a editada que passou de pendente a efetivada (nas
+  // demais edições, nada): o aviso do salário confere se é um salário
+  // recebido (SALARIO-19)
   onSuccess: (criada?: Transaction) => void
   type: "INCOME" | "EXPENSE"
   initialData?: any 
@@ -190,8 +191,13 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                response = await api.patch('/transactions/bulk-update/', bulkPayload)
                toast.success("Série recorrente atualizada!")
           } else {
-               response = await api.put(endpoint, finalPayload)
+               response = await api.put<Transaction>(endpoint, finalPayload)
                toast.success(`${type === "INCOME" ? "Receita" : "Despesa"} atualizada!`)
+               // SALARIO-19: a receita pendente que voltou efetivada da edição
+               // também vai ao aviso do salário
+               if (initialData.status === "PENDING" && response.data?.status === "COMPLETED") {
+                   criada = response.data
+               }
           }
       } else {
           response = await api.post<Transaction>(endpoint, finalPayload)
