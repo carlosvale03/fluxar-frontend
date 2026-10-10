@@ -19,6 +19,8 @@ interface ResumoDoPlanoProps {
   partes: ParteDoPlano[]
   referencias: ReferenciasDoSalario | null
   onEditar: () => void
+  // Abre o editor com o foco no destino da parte nessa posição
+  onEscolherDestino: (indice: number) => void
   // O valor do campo da simulação, que a página guarda para o editor também
   valorSimulado: string
   onValorSimulado: (valor: string) => void
@@ -50,7 +52,15 @@ const enviada = (parte: ParteDoPlano): ParteEnviada => ({
 // como uma barra de proporção e a legenda com destino, regra, histórico e o
 // pedido da meta. O valor de cada parte é calculado na hora pela regra de
 // SALARIO-26 sobre a base da prévia; "Simular" pede a divisão ao backend.
-export function ResumoDoPlano({ partes, referencias, onEditar, valorSimulado, onValorSimulado, valorRecebido }: ResumoDoPlanoProps) {
+export function ResumoDoPlano({
+  partes,
+  referencias,
+  onEditar,
+  onEscolherDestino,
+  valorSimulado,
+  onValorSimulado,
+  valorRecebido,
+}: ResumoDoPlanoProps) {
   const [simulacao, setSimulacao] = useState<Simulacao | null>(null)
   const [simulando, setSimulando] = useState(false)
 
@@ -123,9 +133,14 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSimulado, on
               <div className="min-w-0 flex-1 space-y-0.5">
                 <p className="text-sm font-medium">{parte.name}</p>
                 {destino.falta ? (
-                  <p className="flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
-                    <AlertTriangle aria-hidden className="h-3.5 w-3.5" /> Sem destino
-                  </p>
+                  <Button
+                    variant="ghost"
+                    className="-my-1.5 -ml-2 h-10 gap-1.5 rounded-xl px-2 text-xs font-medium text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                    aria-label={`Escolher destino de ${parte.name}`}
+                    onClick={() => onEscolherDestino(indice)}
+                  >
+                    <AlertTriangle aria-hidden className="h-3.5 w-3.5" /> Escolher destino
+                  </Button>
                 ) : (
                   <p className="text-xs text-muted-foreground">{destino.texto}</p>
                 )}
@@ -144,16 +159,21 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSimulado, on
             </li>
           )
         })}
-        {barra.livre > 0 && (
-          <li aria-label="Livre" className="flex items-start gap-3 py-3">
+        {(barra.livreEmCentavos !== null ? barra.livreEmCentavos > 0 : barra.livre > 0) && (
+          <li aria-label="Livre na conta do salário" className="flex items-start gap-3 py-3">
             <PontoDaCor className={`mt-1.5 ${COR_DO_LIVRE}`} />
             <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="text-sm font-medium">Livre</p>
+              <p className="text-sm font-medium">Livre na conta do salário</p>
               <p className="text-xs text-muted-foreground">Não vai para nenhuma parte</p>
             </div>
-            <p className="shrink-0 text-sm font-semibold tabular-nums">
-              {barra.livreEmCentavos !== null ? formatarMoeda(deCentavos(barra.livreEmCentavos)) : textoDoPercentual(barra.livre)}
-            </p>
+            <div className="shrink-0 text-right">
+              <p className="text-sm font-semibold tabular-nums">
+                {barra.livreEmCentavos !== null ? formatarMoeda(deCentavos(barra.livreEmCentavos)) : textoDoPercentual(barra.livre)}
+              </p>
+              {barra.livreEmCentavos !== null && barra.livre > 0 && (
+                <p className="text-xs text-muted-foreground tabular-nums">{textoDoPercentual(barra.livre)}</p>
+              )}
+            </div>
           </li>
         )}
       </ul>

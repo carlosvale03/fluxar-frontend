@@ -115,21 +115,39 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     expect(legenda("Guardar")).toHaveTextContent("Meta: Viagem")
     expect(legenda("Guardar")).toHaveTextContent("20%")
     // Tudo dividido: não sobra livre
-    expect(within(partes()).queryByRole("listitem", { name: "Livre" })).not.toBeInTheDocument()
+    expect(within(partes()).queryByRole("listitem", { name: "Livre na conta do salário" })).not.toBeInTheDocument()
     // Fora da edição, nenhum campo das partes
     expect(screen.queryByLabelText("Percentual de Guardar")).not.toBeInTheDocument()
   })
 
-  it("o que não vai para nenhuma parte aparece como Livre, e a parte sem destino é avisada", async () => {
+  it("o que não vai para nenhuma parte aparece como Livre na conta do salário, e a parte sem destino é avisada", async () => {
     comPlano(PLANO_COM_LIVRE)
     render(<SalarioPage />)
     await regiaoDoPlano()
 
     expect(barra()).toHaveAccessibleName("Divisão do salário: Essenciais 45%, Guardar 27%, Reserva 10%, Livre 18%")
-    expect(legenda("Livre")).toHaveTextContent("R$ 540,00")
-    expect(legenda("Guardar")).toHaveTextContent("Sem destino")
+    const livre = legenda("Livre na conta do salário")
+    expect(livre).toHaveTextContent("R$ 540,00")
+    expect(livre).toHaveTextContent("18%")
+    // O livre fica por último, com o ponto cinza
+    expect(within(partes()).getAllByRole("listitem").at(-1)).toBe(livre)
+    expect(livre.querySelector(".bg-muted-foreground\\/30")).not.toBeNull()
+    expect(within(legenda("Guardar")).getByRole("button", { name: "Escolher destino de Guardar" })).toBeInTheDocument()
+    expect(within(legenda("Essenciais")).queryByRole("button", { name: /Escolher destino/ })).not.toBeInTheDocument()
     expect(legenda("Reserva")).toHaveTextContent("R$ 300,00")
     expect(screen.getByText("Plano ativo: 3 partes")).toBeInTheDocument()
+  })
+
+  it("\"Escolher destino\" abre o editor com o foco no destino da parte", async () => {
+    comPlano(PLANO_COM_LIVRE)
+    render(<SalarioPage />)
+    await regiaoDoPlano()
+
+    await userEvent.click(within(legenda("Guardar")).getByRole("button", { name: "Escolher destino de Guardar" }))
+
+    const destino = await screen.findByLabelText("Destino de Guardar")
+    expect(screen.getByRole("button", { name: "Salvar plano" })).toBeInTheDocument()
+    await vi.waitFor(() => expect(document.activeElement).toBe(destino))
   })
 
   it("com uma parte fixa, as prévias tiram o fixo antes e aplicam os percentuais sobre o que sobra", async () => {
@@ -151,7 +169,7 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     expect(legenda("Guardar")).toHaveTextContent("R$ 500,00")
     expect(legenda("Aluguel")).toHaveTextContent("R$ 500,00")
     expect(screen.getByText(/^Com o salário de R\$\s3\.000,00/)).toHaveTextContent("Os percentuais valem sobre o que sobra")
-    expect(within(partes()).queryByRole("listitem", { name: "Livre" })).not.toBeInTheDocument()
+    expect(within(partes()).queryByRole("listitem", { name: "Livre na conta do salário" })).not.toBeInTheDocument()
 
     // O valor digitado muda as prévias antes de simular
     const campo = screen.getByLabelText("Valor do salário")

@@ -57,6 +57,8 @@ export function GestaoDoSalario() {
   const [partesDoEditor, setPartesDoEditor] = useState<ParteInicial[]>([])
   // Troca a cada modelo escolhido ou plano salvo, para o editor recomeçar
   const [versaoDoEditor, setVersaoDoEditor] = useState(0)
+  // Posição da parte cujo destino recebe o foco ao abrir o editor
+  const [destinoEmFoco, setDestinoEmFoco] = useState<number | null>(null)
   // Recebimento na revisão da divisão
   const [revisando, setRevisando] = useState<string | null>(null)
   // SALARIO-22: recebimento que espera o plano ser salvo para ir à revisão
@@ -209,10 +211,12 @@ export function GestaoDoSalario() {
     void carregarPendentes()
   }
 
-  // O plano salvo vai para o editor, no mesmo lugar do resumo
-  const editarPlano = () => {
+  // O plano salvo vai para o editor, no mesmo lugar do resumo; de "Escolher
+  // destino", com o foco no destino da parte
+  const editarPlano = (focarDestino: number | null = null) => {
     if (!plano) return
     setPartesDoEditor(plano.parts)
+    setDestinoEmFoco(focarDestino)
     setTelaDoPlano("editor")
     setVersaoDoEditor((v) => v + 1)
   }
@@ -221,6 +225,7 @@ export function GestaoDoSalario() {
   // o plano só muda ao salvar
   const escolherModelo = (modelo: ModeloDeDivisao) => {
     setPartesDoEditor(modelo.parts)
+    setDestinoEmFoco(null)
     setTelaDoPlano("editor")
     setVersaoDoEditor((v) => v + 1)
   }
@@ -285,7 +290,8 @@ export function GestaoDoSalario() {
             <ResumoDoPlano
               partes={plano.parts}
               referencias={referencias}
-              onEditar={editarPlano}
+              onEditar={() => editarPlano()}
+              onEscolherDestino={editarPlano}
               valorSimulado={valorSimulado}
               onValorSimulado={setValorSimulado}
               valorRecebido={valorRecebido}
@@ -301,6 +307,7 @@ export function GestaoDoSalario() {
             <EditorDoPlano
               key={versaoDoEditor}
               partesIniciais={partesDoEditor}
+              focarDestino={destinoEmFoco}
               categoriasDoSalario={plano.salary_categories}
               contas={contas}
               metas={metas}

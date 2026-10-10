@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { format } from "date-fns"
 import { ArrowDown, ArrowUp, Plus, Save, Shuffle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -145,6 +145,8 @@ interface EditorDoPlanoProps {
   onTrocarModelo: () => void
   // Com plano salvo: volta ao plano como estava
   onCancelar?: () => void
+  // Posição da parte cujo destino recebe o foco ao abrir
+  focarDestino?: number | null
 }
 
 // SALARIO-04 a SALARIO-07, SALARIO-12, SALARIO-54, SALARIO-55 e SALARIO-63:
@@ -163,12 +165,22 @@ export function EditorDoPlano({
   onSalvo,
   onTrocarModelo,
   onCancelar,
+  focarDestino = null,
 }: EditorDoPlanoProps) {
   const [partes, setPartes] = useState<Rascunho[]>(() => partesIniciais.map(rascunhoDe))
   const [assinaturaInicial] = useState(() => assinatura(partesIniciais.map(rascunhoDe)))
   const [erros, setErros] = useState<Record<string, ErrosDaParte>>({})
   const [salvando, setSalvando] = useState(false)
   const [confirmarTroca, setConfirmarTroca] = useState(false)
+  const listaDePartes = useRef<HTMLOListElement>(null)
+
+  // Vindo de "Escolher destino" no resumo: o foco vai ao destino da parte
+  useEffect(() => {
+    if (focarDestino === null || focarDestino === undefined) return
+    const alvo = listaDePartes.current?.querySelector<HTMLElement>(`[data-destino="${focarDestino}"]`)
+    alvo?.scrollIntoView?.({ block: "center" })
+    alvo?.focus()
+  }, [focarDestino])
 
   // SALARIO-05: contas ativas que não são cofrinho e metas ativas
   const contasDeDestino = useMemo(
@@ -346,7 +358,7 @@ export function EditorDoPlano({
           Nenhuma parte ainda. Adicione a primeira parte do seu plano.
         </p>
       ) : (
-        <ol className="divide-y divide-border border-y border-border" aria-label="Partes do plano">
+        <ol ref={listaDePartes} className="divide-y divide-border border-y border-border" aria-label="Partes do plano">
           {partes.map((parte, indice) => {
             const rotulo = parte.name.trim() || `parte ${indice + 1}`
             const historico = porcentagemNoHistorico(parte.reference, referencias)
@@ -440,7 +452,7 @@ export function EditorDoPlano({
                     </div>
 
                     <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
-                      <SelectTrigger aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-xl">
+                      <SelectTrigger data-destino={indice} aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-xl">
                         <SelectValue placeholder="Escolha o destino" />
                       </SelectTrigger>
                       <SelectContent className="rounded-xl">
