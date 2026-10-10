@@ -8,8 +8,9 @@ export async function abrirLimpeza() {
   return screen.findByRole("dialog")
 }
 
-export async function confirmarLimpeza(_email: string, senha: string) {
+export async function confirmarLimpeza(email: string, senha: string) {
   const dialogo = screen.getByRole("dialog")
+  await userEvent.type(within(dialogo).getByLabelText("Digite o e-mail do usuário para confirmar"), email)
   await userEvent.type(within(dialogo).getByPlaceholderText("Sua senha de acesso admin"), senha)
   await userEvent.click(within(dialogo).getByRole("button", { name: /limpar dados/i }))
 }

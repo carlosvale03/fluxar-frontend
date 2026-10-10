@@ -32,7 +32,6 @@ import {
   Trash2,
   Edit2,
   Eye,
-  EyeOff,
   AlertTriangle,
   Archive,
   RotateCcw,
@@ -66,6 +65,9 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { getAbsoluteUrl, cn } from "@/lib/utils"
+import { tratarErro } from "@/lib/erros"
+import { CampoDaSenhaDoAdmin, tratarErroDaAcao } from "@/app/(admin)/admin/_componentes/confirmacoes"
+import type { Plano } from "@/types/planos"
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([])
@@ -95,7 +97,8 @@ export default function UserManagementPage() {
   
   // Inputs dos diálogos
   const [adminPassword, setAdminPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  // ADMIN-18: a recusa da senha aparece no campo
+  const [erroSenha, setErroSenha] = useState("")
   const [newPlan, setNewPlan] = useState<string>("COMMON")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -133,28 +136,39 @@ export default function UserManagementPage() {
     loadUsers()
   }, [page, debouncedSearch, viewArchived, filterRole, filterPlan])
 
+  // Cada confirmação começa com a senha vazia e sem erro
+  const limparSenha = () => {
+    setAdminPassword("")
+    setErroSenha("")
+  }
+
+  const mudarSenha = (valor: string) => {
+    setAdminPassword(valor)
+    setErroSenha("")
+  }
+
   const handleToggleRole = (user: User) => {
     setSelectedUser(user)
     setPendingRole(user.role === "ADMIN" ? "USER" : "ADMIN")
-    setAdminPassword("")
+    limparSenha()
     setIsChangeRoleModalOpen(true)
   }
 
+  // ADMIN-17: mudar o papel pede a senha
   const confirmChangeRole = async () => {
     if (!selectedUser || !adminPassword) return
 
     try {
       setIsSubmitting(true)
-      await updateAdminUser(selectedUser.id, { 
+      await updateAdminUser(selectedUser.id, {
         role: pendingRole as 'ADMIN' | 'USER',
-        admin_password: adminPassword 
+        admin_password: adminPassword
       })
       toast.success(`Cargo de ${selectedUser.name} alterado para ${pendingRole}.`)
       setIsChangeRoleModalOpen(false)
       loadUsers()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao alterar cargo"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao alterar cargo" })
     } finally {
       setIsSubmitting(false)
     }
@@ -162,48 +176,44 @@ export default function UserManagementPage() {
 
   const handleArchiveUser = async (user: User) => {
     setSelectedUser(user)
-    setAdminPassword("")
+    limparSenha()
     setIsDeleteModalOpen(true)
   }
 
   const handleRestoreUser = async (user: User) => {
     setSelectedUser(user)
-    setAdminPassword("")
     setIsRestoreModalOpen(true)
   }
 
+  // ADMIN-17: arquivar pede a senha
   const confirmArchive = async () => {
     if (!selectedUser || !adminPassword) return
-    
+
     try {
       setIsSubmitting(true)
       await deleteAdminUser(selectedUser.id, adminPassword)
       toast.success(`Usuário ${selectedUser.name} arquivado com sucesso.`)
       setIsDeleteModalOpen(false)
       loadUsers()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao arquivar usuário"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuário" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  // Reativar não pede a senha: ela vale só para desativar (ADMIN-17)
   const confirmRestore = async () => {
-    if (!selectedUser || !adminPassword) return
+    if (!selectedUser) return
 
     try {
       setIsSubmitting(true)
-      await updateAdminUser(selectedUser.id, { 
-        is_active: true,
-        admin_password: adminPassword 
-      })
+      await updateAdminUser(selectedUser.id, { is_active: true })
       toast.success(`Usuário ${selectedUser.name} restaurado com sucesso.`)
       setIsRestoreModalOpen(false)
       loadUsers()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao restaurar usuário"
-      toast.error(msg)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao restaurar usuário" })
     } finally {
       setIsSubmitting(false)
     }
@@ -212,25 +222,21 @@ export default function UserManagementPage() {
   const handleChangePlan = (user: User) => {
     setSelectedUser(user)
     setNewPlan(user.plan)
-    setAdminPassword("")
     setIsChangePlanModalOpen(true)
   }
 
+  // ADMIN-19: mudar o plano não pede a senha
   const confirmChangePlan = async () => {
-    if (!selectedUser || !newPlan || !adminPassword) return
+    if (!selectedUser || !newPlan) return
 
     try {
       setIsSubmitting(true)
-      await updateAdminUser(selectedUser.id, { 
-        plan: newPlan as any,
-        admin_password: adminPassword 
-      })
+      await updateAdminUser(selectedUser.id, { plan: newPlan as Plano })
       toast.success(`Plano de ${selectedUser.name} alterado para ${newPlan}.`)
       setIsChangePlanModalOpen(false)
       loadUsers()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao alterar plano"
-      toast.error(msg)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao alterar plano" })
     } finally {
       setIsSubmitting(false)
     }
@@ -251,7 +257,7 @@ export default function UserManagementPage() {
   }
 
   const handleBulkArchive = () => {
-    setAdminPassword("")
+    limparSenha()
     setIsBulkDeleteModalOpen(true)
   }
 
@@ -266,9 +272,8 @@ export default function UserManagementPage() {
       setSelectedIds([])
       setIsSelectionMode(false)
       loadUsers()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao arquivar usuários"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuários" })
     } finally {
       setIsSubmitting(false)
     }
@@ -586,7 +591,7 @@ export default function UserManagementPage() {
         </div>
       )}
 
-      {/* Modal de Alteração de Plano */}
+      {/* Modal de Alteração de Plano (ADMIN-19: sem senha) */}
       <Dialog open={isChangePlanModalOpen} onOpenChange={setIsChangePlanModalOpen}>
         <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
           <DialogHeader>
@@ -595,12 +600,12 @@ export default function UserManagementPage() {
               Selecione o novo nível de acesso para <strong>{selectedUser?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4 space-y-4">
             <div className="space-y-2">
               <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Novo Plano</Label>
               <Select value={newPlan} onValueChange={setNewPlan}>
-                <SelectTrigger className="rounded-xl border-border/40 bg-muted/20">
+                <SelectTrigger aria-label="Novo plano" className="rounded-xl border-border/40 bg-muted/20">
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/40">
@@ -610,37 +615,14 @@ export default function UserManagementPage() {
                 </SelectContent>
               </Select>
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-              <div className="relative">
-                <Input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha para confirmar"
-                  className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  type="button"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button 
-                onClick={confirmChangePlan} 
+            <Button
+                onClick={confirmChangePlan}
                 className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
-                disabled={isSubmitting}
+                disabled={isSubmitting || newPlan === selectedUser?.plan}
             >
               {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
               Confirmar Alteração
@@ -649,7 +631,7 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Alteração de Cargo */}
+      {/* Modal de Alteração de Cargo (ADMIN-17: com senha) */}
       <Dialog open={isChangeRoleModalOpen} onOpenChange={setIsChangeRoleModalOpen}>
         <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
           <DialogHeader>
@@ -658,30 +640,9 @@ export default function UserManagementPage() {
               Você está alterando o cargo de <strong>{selectedUser?.name}</strong> para <strong>{pendingRole}</strong>.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-              <div className="relative">
-                <Input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha para confirmar"
-                  className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                  onClick={() => setShowPassword(!showPassword)}
-                  type="button"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
 
             {selectedUser?.id === currentUser?.id && pendingRole !== 'ADMIN' && (
               <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 flex gap-3 animate-pulse">
@@ -695,8 +656,8 @@ export default function UserManagementPage() {
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setIsChangeRoleModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button 
-                onClick={confirmChangeRole} 
+            <Button
+                onClick={confirmChangeRole}
                 className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
                 disabled={!adminPassword || isSubmitting}
             >
@@ -707,7 +668,7 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Arquivamento Seguro */}
+      {/* Modal de Arquivamento Seguro (ADMIN-17: com senha) */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
         <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
           <DialogHeader>
@@ -716,24 +677,9 @@ export default function UserManagementPage() {
               O usuário <strong>{selectedUser?.name}</strong> perderá o acesso, mas os dados serão preservados.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Sua Senha de Administrador</Label>
-              <div className="relative">
-                <Input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha para confirmar"
-                  className="rounded-xl border-border/40 bg-rose-500/5 focus:ring-rose-500/20 pr-10"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3" onClick={() => setShowPassword(!showPassword)} type="button">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="bg-rose-500/5 focus:ring-rose-500/20" />
             {selectedUser?.id === currentUser?.id && (
               <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 flex gap-3 animate-pulse">
                 <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
@@ -754,7 +700,7 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Restauração */}
+      {/* Modal de Restauração (reativar não pede a senha) */}
       <Dialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
         <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
           <DialogHeader>
@@ -763,27 +709,9 @@ export default function UserManagementPage() {
               Você está devolvendo o acesso à plataforma para <strong>{selectedUser?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
-          <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-              <div className="relative">
-                <Input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha para confirmar"
-                  className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3" onClick={() => setShowPassword(!showPassword)} type="button">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setIsRestoreModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button onClick={confirmRestore} className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90" disabled={!adminPassword || isSubmitting}>
+            <Button onClick={confirmRestore} className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
               Confirmar Restauração
             </Button>
@@ -791,7 +719,7 @@ export default function UserManagementPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal de Arquivamento em Massa */}
+      {/* Modal de Arquivamento em Massa (ADMIN-17: com senha) */}
       <Dialog open={isBulkDeleteModalOpen} onOpenChange={setIsBulkDeleteModalOpen}>
         <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
           <DialogHeader>
@@ -800,31 +728,16 @@ export default function UserManagementPage() {
               Você está prestes a arquivar <strong>{selectedIds.length} usuários</strong>. O acesso será removido, mas os dados preservados.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4 space-y-4">
-            <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Sua Senha de Administrador</Label>
-              <div className="relative">
-                <Input 
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Digite sua senha para confirmar"
-                  className="rounded-xl border-border/40 bg-rose-500/5 focus:ring-rose-500/20 pr-10"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  autoComplete="new-password"
-                />
-                <Button variant="ghost" size="icon" className="absolute right-0 top-0 h-full px-3" onClick={() => setShowPassword(!showPassword)} type="button">
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="bg-rose-500/5 focus:ring-rose-500/20" />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setIsBulkDeleteModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button 
-                variant="destructive" 
-                onClick={confirmBulkArchive} 
+            <Button
+                variant="destructive"
+                onClick={confirmBulkArchive}
                 className="rounded-xl font-black uppercase tracking-widest text-[10px]"
                 disabled={!adminPassword || isSubmitting || selectedIds.includes(currentUser?.id || "")}
             >

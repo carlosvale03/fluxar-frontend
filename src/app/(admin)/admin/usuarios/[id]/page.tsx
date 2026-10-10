@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
-    Users, CreditCard, ShieldCheck, Activity, Loader2, 
-    ArrowLeft, Mail, Phone, Calendar, MapPin, 
-    TrendingUp, TrendingDown, Wallet, Clock, AlertCircle, CheckCircle2,
-    Edit2, Eye, EyeOff, AlertTriangle, Trash2, ShieldAlert, Archive, Eraser
+import {
+    ShieldCheck, Activity, Loader2,
+    ArrowLeft, Mail, Phone, Calendar, MapPin,
+    Wallet, Clock, AlertCircle, CheckCircle2,
+    AlertTriangle, Trash2, ShieldAlert, Archive, Eraser
 } from "lucide-react"
 import { 
     Dialog, 
@@ -50,6 +50,16 @@ import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
 import { formatarMoeda } from "@/lib/dinheiro"
 import { ValoresDoLog, rotuloDaAcao } from "@/app/(admin)/admin/_componentes/log-de-auditoria"
+import {
+    APAGADO_NA_EXCLUSAO,
+    APAGADO_NA_LIMPEZA,
+    CampoDaSenhaDoAdmin,
+    CampoDoEmailDeConfirmacao,
+    MANTIDO_NA_LIMPEZA,
+    emailConfere,
+    tratarErroDaAcao,
+} from "@/app/(admin)/admin/_componentes/confirmacoes"
+import type { Plano } from "@/types/planos"
 
 const NOMES_DOS_PLANOS: Record<string, string> = {
   COMMON: "Gratuito",
@@ -78,7 +88,10 @@ export default function UserDetailsPage() {
   const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false)
   const [newPlan, setNewPlan] = useState<string>("COMMON")
   const [adminPassword, setAdminPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  // ADMIN-18: a recusa da senha aparece no campo
+  const [erroSenha, setErroSenha] = useState("")
+  // ADMIN-20: limpar e excluir pedem o e-mail do usuário digitado
+  const [emailDigitado, setEmailDigitado] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Modais de Exclusão/Arquivamento
@@ -89,6 +102,15 @@ export default function UserDetailsPage() {
   // Modal Reset Senha
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
   const [newPassword, setNewPassword] = useState("")
+
+  // Cada confirmação começa com os campos vazios
+  const abrir = (abrirDialogo: (aberto: boolean) => void) => {
+    setAdminPassword("")
+    setErroSenha("")
+    setEmailDigitado("")
+    setNewPassword("")
+    abrirDialogo(true)
+  }
 
   const loadLogs = async () => {
     if (!userId) return
@@ -141,7 +163,7 @@ export default function UserDetailsPage() {
           <Button
             variant="outline"
             className="font-bold border-primary/20 hover:bg-primary/10"
-            onClick={() => setIsResetModalOpen(true)}
+            onClick={() => abrir(setIsResetModalOpen)}
             disabled={!habilitados}
           >
               Resetar Senha
@@ -149,7 +171,7 @@ export default function UserDetailsPage() {
           <Button
             variant="outline"
             className="font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
-            onClick={() => setIsClearDataModalOpen(true)}
+            onClick={() => abrir(setIsClearDataModalOpen)}
             disabled={!habilitados}
           >
               <Eraser className="mr-2 h-4 w-4" /> Limpar Dados
@@ -157,7 +179,7 @@ export default function UserDetailsPage() {
           <Button
             variant="secondary"
             className="font-bold bg-muted/50 hover:bg-muted text-foreground"
-            onClick={() => setIsArchiveModalOpen(true)}
+            onClick={() => abrir(setIsArchiveModalOpen)}
             disabled={!habilitados}
           >
               <Archive className="mr-2 h-4 w-4" /> Arquivar Conta
@@ -165,7 +187,7 @@ export default function UserDetailsPage() {
           <Button
             variant="destructive"
             className="font-bold shadow-lg shadow-red-500/20"
-            onClick={() => setIsHardDeleteModalOpen(true)}
+            onClick={() => abrir(setIsHardDeleteModalOpen)}
             disabled={!habilitados}
           >
               <Trash2 className="mr-2 h-4 w-4" /> Excluir Permanente
@@ -221,58 +243,42 @@ export default function UserDetailsPage() {
       )
   }
 
+  // ADMIN-19: mudar o plano não pede a senha
   const confirmChangePlan = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
-
     try {
       setIsSubmitting(true)
-      const updatedUser = await updateAdminUser(user.id, { 
-        plan: newPlan as any,
-        admin_password: adminPassword 
-      })
+      const updatedUser = await updateAdminUser(user.id, { plan: newPlan as Plano })
       setUser(updatedUser)
-      toast.success(`Plano de ${user.name} alterado para ${newPlan}.`)
+      toast.success(`Plano de ${user.name} alterado para ${NOMES_DOS_PLANOS[newPlan] ?? newPlan}.`)
       setIsChangePlanModalOpen(false)
-      setAdminPassword("")
       loadLogs()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao alterar plano"
-      toast.error(msg)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao alterar plano" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmArchive = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
+    if (!adminPassword) return
 
     try {
       setIsSubmitting(true)
       await deleteAdminUser(user.id, adminPassword)
       toast.success(`Usuário ${user.name} arquivado com sucesso.`)
       setIsArchiveModalOpen(false)
-      // Atualizar o estado local ou recarregar
+      setAdminPassword("")
       setUser({ ...user, is_active: false })
       loadLogs()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao arquivar usuário"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuário" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmHardDelete = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
+    if (!adminPassword || !emailConfere(user.email, emailDigitado)) return
 
     try {
       setIsSubmitting(true)
@@ -283,22 +289,14 @@ export default function UserDetailsPage() {
       router.push("/admin/usuarios")
     } catch (error) {
       // LGPD-12: com o Cloudinary fora, nada foi apagado e o backend explica (503 deletion_failed)
-      const dados = (error as { response?: { data?: { code?: unknown; detail?: unknown } } }).response?.data
-      if (dados?.code === "deletion_failed" && typeof dados.detail === "string") {
-        toast.error(dados.detail)
-      } else {
-        tratarErro(error, { mensagemPadrao: "Erro ao excluir usuário permanentemente" })
-      }
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao excluir usuário permanentemente" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmClearData = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
+    if (!adminPassword || !emailConfere(user.email, emailDigitado)) return
 
     try {
       setIsSubmitting(true)
@@ -306,40 +304,42 @@ export default function UserDetailsPage() {
       toast.success(`Todos os dados de ${user.name} foram excluídos. O login foi mantido.`)
       setIsClearDataModalOpen(false)
       setAdminPassword("")
+      setEmailDigitado("")
       loadLogs()
       // As estatísticas do cadastro novo, calculadas pela API
       setFinancialStats(resposta.financial_stats)
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao limpar dados do usuário"
-      toast.error(msg)
+    } catch (error) {
+      // 503 clear_failed: nada foi apagado; 400 own_account: o detail do backend
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao limpar dados do usuário" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmResetPassword = async () => {
-    if (!newPassword || !adminPassword) {
-        toast.error("Nova senha e senha de administrador são requeridas.")
-        return
-    }
+    if (!newPassword || !adminPassword) return
 
     try {
       setIsSubmitting(true)
-      await resetAdminUserPassword(user.id, { 
+      await resetAdminUserPassword(user.id, {
         new_password: newPassword,
-        admin_password: adminPassword 
+        admin_password: adminPassword
       })
       toast.success(`Senha de ${user.name} redefinida com sucesso.`)
       setIsResetModalOpen(false)
       setNewPassword("")
       setAdminPassword("")
       loadLogs()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao resetar senha"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao resetar senha" })
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const mudarSenha = (valor: string) => {
+    setAdminPassword(valor)
+    setErroSenha("")
   }
 
   return (
@@ -511,7 +511,7 @@ export default function UserDetailsPage() {
          </TabsContent>
 
 
-         {/* Modal de Alteração de Plano */}
+         {/* Modal de Alteração de Plano (ADMIN-19: sem senha) */}
          <Dialog open={isChangePlanModalOpen} onOpenChange={setIsChangePlanModalOpen}>
             <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
             <DialogHeader>
@@ -520,12 +520,12 @@ export default function UserDetailsPage() {
                 Selecione o novo nível de acesso para <strong>{user.name}</strong>.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Novo Plano</Label>
                 <Select value={newPlan} onValueChange={setNewPlan}>
-                    <SelectTrigger className="rounded-xl border-border/40 bg-muted/20">
+                    <SelectTrigger aria-label="Novo plano" className="rounded-xl border-border/40 bg-muted/20">
                     <SelectValue placeholder="Selecione um plano" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/40">
@@ -535,37 +535,14 @@ export default function UserDetailsPage() {
                     </SelectContent>
                 </Select>
                 </div>
-
-                <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-                <div className="relative">
-                    <Input 
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Digite sua senha para confirmar"
-                    className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    autoComplete="new-password"
-                    />
-                    <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                    type="button"
-                    >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                </div>
-                </div>
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-                <Button 
-                    onClick={confirmChangePlan} 
+                <Button
+                    onClick={confirmChangePlan}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || newPlan === user.plan}
                 >
                 {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
                 Confirmar Alteração
@@ -588,7 +565,7 @@ export default function UserDetailsPage() {
                     Ao arquivar <strong>{user.name}</strong>, o acesso ao sistema será bloqueado, mas os dados serão preservados.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4">
                 <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
                     <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
@@ -601,33 +578,12 @@ export default function UserDetailsPage() {
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
-                    <div className="relative">
-                        <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Sua senha de acesso admin"
-                            className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
-                <Button 
-                    onClick={confirmArchive} 
+                <Button
+                    onClick={confirmArchive}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={isSubmitting || !adminPassword}
                 >
@@ -639,9 +595,9 @@ export default function UserDetailsPage() {
             </DialogContent>
         </Dialog>
 
-        {/* Modal de Exclusão Permanente (IRREVERSÍVEL) */}
+        {/* Modal de Exclusão Permanente (IRREVERSÍVEL, ADMIN-20) */}
         <Dialog open={isHardDeleteModalOpen} onOpenChange={setIsHardDeleteModalOpen}>
-            <DialogContent className="rounded-[32px] border-red-500/20 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogContent className="rounded-[32px] border-red-500/20 bg-background/95 backdrop-blur-xl max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -653,59 +609,33 @@ export default function UserDetailsPage() {
                     Você está prestes a excluir permanentemente a conta de <strong>{user.name}</strong> e todos os dados associados.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-6">
                 <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 space-y-3">
                     <h4 className="text-xs font-black uppercase tracking-widest text-red-600">O que será removido:</h4>
                     <ul className="space-y-2">
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                            <span>TODAS as transações, contas bancárias e cartões.</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                            <span>Metas, categorias personalizadas e tags.</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                            <span>Dados de perfil, avatar e configurações de acesso.</span>
-                        </li>
+                        {APAGADO_NA_EXCLUSAO.map((item) => (
+                            <li key={item} className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                                <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                                <span>{item}</span>
+                            </li>
+                        ))}
                     </ul>
                     <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter mt-4 text-center">
                         ESTA AÇÃO NÃO PODE SER DESFEITA EM NENHUMA HIPÓTESE.
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
-                    <div className="relative">
-                        <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Sua senha de acesso admin"
-                            className="rounded-xl border-red-500/20 bg-red-500/5 focus:ring-red-500/20 pr-10"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
+                <CampoDoEmailDeConfirmacao email={user.email} valor={emailDigitado} onChange={setEmailDigitado} />
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="border-red-500/20 bg-red-500/5" />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
-                <Button 
-                    onClick={confirmHardDelete} 
+                <Button
+                    onClick={confirmHardDelete}
                     variant="destructive"
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-red-500/20"
-                    disabled={isSubmitting || !adminPassword}
+                    disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
                     {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Trash2 className="h-3 w-3 mr-2" />}
                     EXCLUIR PERMANENTEMENTE
@@ -729,50 +659,28 @@ export default function UserDetailsPage() {
                 Defina uma nova senha de acesso para <strong>{user.name}</strong>.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Nova Senha do Usuário</Label>
-                <div className="relative">
-                    <Input 
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 8 caracteres"
-                        className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        autoComplete="new-password"
-                    />
-                </div>
+                <Label htmlFor="nova-senha-do-usuario" className="text-[10px] font-black uppercase tracking-widest opacity-50">Nova Senha do Usuário</Label>
+                <Input
+                    id="nova-senha-do-usuario"
+                    type="password"
+                    placeholder="Mínimo 8 caracteres"
+                    className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                />
                 </div>
 
-                <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-                <div className="relative">
-                    <Input 
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Confirme sua identidade"
-                        className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        autoComplete="new-password"
-                    />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                        type="button"
-                    >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                </div>
-                </div>
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="ghost" onClick={() => setIsResetModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-                <Button 
-                    onClick={confirmResetPassword} 
+                <Button
+                    onClick={confirmResetPassword}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
                     disabled={isSubmitting || !newPassword || !adminPassword}
                 >
@@ -783,9 +691,9 @@ export default function UserDetailsPage() {
             </DialogContent>
         </Dialog>
 
-        {/* Modal de Limpar Dados (Clear Data) */}
+        {/* Modal de Limpar Dados (ADMIN-20 a ADMIN-23) */}
         <Dialog open={isClearDataModalOpen} onOpenChange={setIsClearDataModalOpen}>
-            <DialogContent className="rounded-[32px] border-amber-500/30 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogContent className="rounded-[32px] border-amber-500/30 bg-background/95 backdrop-blur-xl max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
@@ -794,21 +702,23 @@ export default function UserDetailsPage() {
                     <DialogTitle className="font-black text-xl uppercase tracking-tight text-amber-600">Limpar Dados do Usuário</DialogTitle>
                 </div>
                 <DialogDescription className="text-sm font-medium text-foreground">
-                    Você está prestes a excluir todos os registros de <strong>{user.name}</strong>, mas manterá o acesso dele ao sistema.
+                    Você está prestes a excluir todos os registros de <strong>{user.name}</strong>, mas manterá o acesso dele ao sistema. Ele fica como um cadastro novo.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-6">
                 <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">O que vai acontecer:</h4>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">O que será apagado:</h4>
                     <ul className="space-y-2">
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
-                            <span>Transações, contas bancárias, cartões, metas e orçamentos serão <strong>excluídos permanentemente</strong>.</span>
-                        </li>
+                        {APAGADO_NA_LIMPEZA.map((item) => (
+                            <li key={item} className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                                <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                                <span>{item}</span>
+                            </li>
+                        ))}
                         <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
                             <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
-                            <span>O login, a senha, os dados do perfil e a assinatura <strong>serão mantidos</strong>.</span>
+                            <span>Ficam: {MANTIDO_NA_LIMPEZA}</span>
                         </li>
                     </ul>
                     <p className="text-[10px] font-black text-amber-600 uppercase tracking-tighter mt-4 text-center">
@@ -816,35 +726,15 @@ export default function UserDetailsPage() {
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
-                    <div className="relative">
-                        <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Sua senha de acesso admin"
-                            className="rounded-xl border-amber-500/20 bg-amber-500/5 focus:ring-amber-500/20 pr-10"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
+                <CampoDoEmailDeConfirmacao email={user.email} valor={emailDigitado} onChange={setEmailDigitado} />
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="border-amber-500/20 bg-amber-500/5" />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
-                <Button 
-                    onClick={confirmClearData} 
+                <Button
+                    onClick={confirmClearData}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-amber-500/20 bg-amber-500 hover:bg-amber-600 text-white"
-                    disabled={isSubmitting || !adminPassword}
+                    disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
                     {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Eraser className="h-3 w-3 mr-2" />}
                     LIMPAR DADOS

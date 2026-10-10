@@ -93,6 +93,8 @@ describe("Painel admin com dados pessoais mascarados", () => {
     render(<UserDetailsPage />)
 
     await userEvent.click(await screen.findByRole("button", { name: /excluir permanente/i }))
+    // ADMIN-20: a exclusão só confirma com o e-mail do usuário digitado
+    await userEvent.type(screen.getByLabelText("Digite o e-mail do usuário para confirmar"), "ana@x.com")
     await userEvent.type(screen.getByPlaceholderText("Sua senha de acesso admin"), "senha-admin")
     await userEvent.click(screen.getByRole("button", { name: /excluir permanentemente/i }))
 
@@ -108,6 +110,8 @@ describe("Painel admin com dados pessoais mascarados", () => {
     render(<UserDetailsPage />)
 
     await userEvent.click(await screen.findByRole("button", { name: /excluir permanente/i }))
+    // ADMIN-20: a exclusão só confirma com o e-mail do usuário digitado
+    await userEvent.type(screen.getByLabelText("Digite o e-mail do usuário para confirmar"), "ana@x.com")
     await userEvent.type(screen.getByPlaceholderText("Sua senha de acesso admin"), "senha-admin")
     await userEvent.click(screen.getByRole("button", { name: /excluir permanentemente/i }))
 
