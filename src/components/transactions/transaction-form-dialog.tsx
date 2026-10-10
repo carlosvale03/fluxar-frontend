@@ -45,7 +45,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 import { api } from "@/services/apiClient"
-import { TransactionType } from "@/types/transactions"
+import { Transaction, TransactionType } from "@/types/transactions"
 import { Category } from "@/types/categories"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
@@ -85,7 +85,10 @@ type FormValues = z.infer<typeof formSchema>
 interface TransactionFormDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  // A transação criada, ou a editada que passou de pendente a efetivada (nas
+  // demais edições, nada): o aviso do salário confere se é um salário
+  // recebido (SALARIO-19)
+  onSuccess: (criada?: Transaction) => void
   type: "INCOME" | "EXPENSE"
   initialData?: any 
 }
@@ -174,6 +177,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
       }
 
       let response;
+      let criada: Transaction | undefined
       if (isEdit) {
           if (updateScope === 'ALL' && initialData.recurring_source) {
                const bulkPayload = {
@@ -187,15 +191,21 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                response = await api.patch('/transactions/bulk-update/', bulkPayload)
                toast.success("Série recorrente atualizada!")
           } else {
-               response = await api.put(endpoint, finalPayload)
+               response = await api.put<Transaction>(endpoint, finalPayload)
                toast.success(`${type === "INCOME" ? "Receita" : "Despesa"} atualizada!`)
+               // SALARIO-19: a receita pendente que voltou efetivada da edição
+               // também vai ao aviso do salário
+               if (initialData.status === "PENDING" && response.data?.status === "COMPLETED") {
+                   criada = response.data
+               }
           }
       } else {
-          response = await api.post(endpoint, finalPayload)
+          response = await api.post<Transaction>(endpoint, finalPayload)
+          criada = response.data
           toast.success(`${type === "INCOME" ? "Receita" : "Despesa"} registrada!`)
       }
 
-      onSuccess()
+      onSuccess(criada)
       onOpenChange(false)
     } catch (error) {
       // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner

@@ -9,7 +9,7 @@ import {
   User, Menu, LogOut, Loader2, MoreHorizontal, 
   LayoutDashboard, Wallet, CreditCard, ArrowRightLeft, 
   BarChart3, Calendar, Repeat, PieChart, ArrowUpDown, 
-  Layers, Tag, Target, Settings, ChevronDown, Users, Sparkles
+  Layers, Tag, Target, Settings, ChevronDown, Users, Sparkles, Banknote
 } from "lucide-react"
 import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -55,6 +55,8 @@ export function Header() {
 
   const secondaryNavItems = [
     { name: "Metas", href: "/metas", icon: Target },
+    // SALARIO-15: a gestão do salário fica acessível pelo menu
+    { name: "Gestão do salário", href: "/salario", icon: Banknote },
     { name: "Calendário", href: "/calendario", icon: Calendar },
     { name: "Orçamentos", href: "/orcamentos", icon: PieChart },
     { name: "Importar & Exportar", href: "/importar", icon: ArrowUpDown },
@@ -136,7 +138,7 @@ export function Header() {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-9 w-9 p-0 rounded-lg hover:bg-muted/50 ml-1">
+              <Button variant="ghost" size="sm" aria-label="Recursos adicionais" className="h-9 w-9 p-0 rounded-lg hover:bg-muted/50 ml-1">
                  <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>

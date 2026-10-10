@@ -53,6 +53,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { TransactionFormDialog } from "@/components/transactions/transaction-form-dialog"
+import { useAvisoDoSalario } from "@/components/salario/AvisoDoSalario"
 import { TransferFormDialog } from "@/components/transactions/transfer-form-dialog"
 import { CardExpenseFormDialog } from "@/components/transactions/card-expense-form-dialog"
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
@@ -149,6 +150,9 @@ export default function DashboardPage() {
     const handleFormSuccess = () => {
         fetchData()
     }
+
+    // SALARIO-19: lançar um salário recebido abre o aviso da divisão
+    const { conferirSalario, avisoDoSalario } = useAvisoDoSalario()
 
     useEffect(() => {
         setLayoutConfig(getInitialConfig())
@@ -620,8 +624,12 @@ export default function DashboardPage() {
                 open={isFormOpen} 
                 onOpenChange={setIsFormOpen}
                 type={formType}
-                onSuccess={handleFormSuccess}
+                onSuccess={(criada) => {
+                    handleFormSuccess()
+                    void conferirSalario(criada)
+                }}
             />
+            {avisoDoSalario}
 
             <TransferFormDialog 
                 open={isTransferOpen}
