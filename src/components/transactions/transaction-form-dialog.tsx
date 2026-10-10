@@ -45,7 +45,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 
 import { api } from "@/services/apiClient"
-import { Transaction, TransactionType } from "@/types/transactions"
+import { PrincipalDoVinculo, Transaction, TransactionType } from "@/types/transactions"
+import { textoDaPrincipal } from "@/services/vinculos"
 import { Category } from "@/types/categories"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
@@ -91,9 +92,13 @@ interface TransactionFormDialogProps {
   onSuccess: (criada?: Transaction) => void
   type: "INCOME" | "EXPENSE"
   initialData?: any 
+  // VINCULO-01: o gasto relacionado nasce já como dependente desta principal
+  principal?: PrincipalDoVinculo | null
 }
 
-export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, initialData }: TransactionFormDialogProps) {
+export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, initialData, principal }: TransactionFormDialogProps) {
+  // A principal só vale na criação de uma despesa
+  const principalDoNovo = !initialData && type === "EXPENSE" ? principal ?? null : null
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -167,6 +172,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
           account: payload.account_id,
           category: payload.category_id,
           tags: payload.tags,
+          ...(principalDoNovo ? { principal: principalDoNovo.id } : {}),
       }
       delete (finalPayload as any).account_id
       delete (finalPayload as any).category_id
@@ -346,6 +352,13 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                     </div>
                 </DialogHeader>
                 
+                {/* VINCULO-01 */}
+                {principalDoNovo && (
+                    <div role="note" className="mb-6 px-4 py-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs font-bold text-primary">
+                        {textoDaPrincipal(principalDoNovo)}
+                    </div>
+                )}
+
                 <Form {...form}>
                     <form onSubmit={form.handleSubmit(onSubmit, (errors) => console.error("Form Validation Errors:", errors))} className="space-y-8">
                         

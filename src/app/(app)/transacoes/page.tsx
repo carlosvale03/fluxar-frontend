@@ -48,10 +48,14 @@ import { TransactionDeleteDialog } from "@/components/transactions/transaction-d
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
 import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 import { useAvisoDoSalario } from "@/components/salario/AvisoDoSalario"
+import { MarcaDoVinculo } from "@/components/transactions/marca-do-vinculo"
+import { AcoesDoVinculo, TipoDoGastoRelacionado, VincularTransacaoDialog } from "@/components/transactions/vincular-transacao"
+import { usePlan } from "@/hooks/use-plan"
+import { urlDaPrincipal } from "@/services/vinculos"
 import Link from "next/link"
 
 import { api } from "@/services/apiClient"
-import { Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
+import { PrincipalDoVinculo, Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
 import { Account } from "@/types/accounts"
 import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
@@ -111,6 +115,22 @@ export default function TransactionsPage() {
       }
   }
 
+  // VINCULO-01 e VINCULO-02: o gasto relacionado nasce com a principal; a
+  // transação existente é ligada pela busca
+  const [principalDoNovo, setPrincipalDoNovo] = useState<PrincipalDoVinculo | null>(null)
+  const [transacaoAVincular, setTransacaoAVincular] = useState<Transaction | null>(null)
+
+  const lancarRelacionado = (principal: Transaction, tipo: TipoDoGastoRelacionado) => {
+      setTransactionToEdit(null)
+      setPrincipalDoNovo({ id: principal.id, description: principal.description, date: principal.purchase_date || principal.date })
+      if (tipo === "EXPENSE") {
+          setFormType("EXPENSE")
+          setIsFormOpen(true)
+      } else {
+          setIsCardExpenseOpen(true)
+      }
+  }
+
   const handleDelete = (transaction: Transaction) => {
       setTransactionToDelete(transaction)
   }
@@ -153,6 +173,27 @@ export default function TransactionsPage() {
       setSoSugeridas(sugeridasParam)
       setPage(1)
   }, [loteParam, sugeridasParam])
+
+  // VINCULO-31: o custo total de uma principal abre a lista com a principal
+  // e as dependentes. As dependentes podem ter outra data: com a principal,
+  // o período não vale.
+  const principalParam = searchParams.get("principalId")
+  const [principalId, setPrincipalId] = useState<string | null>(principalParam)
+
+  useEffect(() => {
+      setPrincipalId(principalParam)
+      setPage(1)
+  }, [principalParam])
+
+  // VINCULO-20: com o recurso travado, o filtro da principal não abre
+  const vinculosLiberados = usePlan().podeUsar("vinculos") === true
+  const abrirPrincipal = (id: string) => router.push(urlDaPrincipal(id))
+
+  const limparFiltroDaPrincipal = () => {
+      setPrincipalId(null)
+      setPage(1)
+      router.replace("/transacoes")
+  }
 
   const limparFiltroDoLote = () => {
       setLote(null)
@@ -327,6 +368,8 @@ export default function TransactionsPage() {
       
       if (lote) {
           params.append('import_batch', lote)
+      } else if (principalId) {
+          params.append('principalId', principalId)
       } else {
           if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
           if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
@@ -339,6 +382,8 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
       // CLASSE-34 e CLASSE-35: as classes vão repetidas, com sem_classe
       for (const id of filters.classIds ?? []) params.append('classId', id)
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
+      // VINCULO-30: só as principais e as dependentes
+      if (filters.linked) params.append('linked', 'true')
       
       if (filters.tagIds && filters.tagIds.length > 0) {
         filters.tagIds.forEach(tagId => {
@@ -391,7 +436,7 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
   // CONTRATO-05 a CONTRATO-07: um efeito só busca as transações
   useEffect(() => {
     fetchTransactions()
-  }, [page, pageSize, filters, buscaComEspera, lote, soSugeridas])
+  }, [page, pageSize, filters, buscaComEspera, lote, soSugeridas, principalId])
 
   useEffect(() => () => buscaAtual.current?.abort(), [])
 
@@ -526,6 +571,18 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         </div>
       )}
 
+      {/* VINCULO-31: a lista da principal, com a opção de limpar */}
+      {principalId && !lote && (
+        <div role="status" className="flex items-center justify-between gap-3 mb-6 px-5 py-3 rounded-2xl bg-primary/5 border border-primary/15">
+            <span className="text-xs font-bold text-primary">
+                Gasto principal e os gastos relacionados
+            </span>
+            <Button variant="ghost" size="sm" onClick={limparFiltroDaPrincipal} className="h-8 rounded-full text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 cursor-pointer">
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar filtro
+            </Button>
+        </div>
+      )}
+
       <TransferFormDialog
         open={isTransferOpen}
         onOpenChange={(open) => {
@@ -539,10 +596,14 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         open={isCardExpenseOpen}
         onOpenChange={(open) => {
             setIsCardExpenseOpen(open)
-            if (!open) setTransactionToEdit(null)
+            if (!open) {
+                setTransactionToEdit(null)
+                setPrincipalDoNovo(null)
+            }
         }}
         onSuccess={handleFormSuccess}
         initialData={transactionToEdit}
+        principal={principalDoNovo}
       />
       <InvoicePaymentDialog 
         open={isInvoicePaymentOpen}
@@ -561,7 +622,10 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         open={isFormOpen}
         onOpenChange={(open) => {
             setIsFormOpen(open)
-            if (!open) setTransactionToEdit(null) // Clear edit state on close
+            if (!open) {
+                setTransactionToEdit(null) // Clear edit state on close
+                setPrincipalDoNovo(null)
+            }
         }}
         onSuccess={(criada) => {
             handleFormSuccess()
@@ -569,8 +633,15 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         }}
         type={formType}
         initialData={transactionToEdit}
+        principal={principalDoNovo}
       />
       {avisoDoSalario}
+
+      <VincularTransacaoDialog
+        transacao={transacaoAVincular}
+        onOpenChange={(open) => !open && setTransacaoAVincular(null)}
+        onVinculada={handleFormSuccess}
+      />
 
       {/* Mobile-Friendly Transaction List */}
       <div className="md:hidden space-y-6">
@@ -718,6 +789,13 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                             {/* IMPORT-46 */}
                                             {transaction.category_suggested && <SeloDeSugerida />}
                                         </div>
+
+                                        {/* VINCULO-24 e VINCULO-25 */}
+                                        <MarcaDoVinculo
+                                            transacao={transaction}
+                                            onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
+                                            className="mt-1"
+                                        />
                                     </div>
 
                                     <div className={cn(
@@ -727,6 +805,16 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                         {isNegative ? "- " : "+ "}
                                         {formatarMoeda(transaction.amount)}
                                     </div>
+
+                                    {/* VINCULO-01 a VINCULO-04 */}
+                                    <AcoesDoVinculo
+                                        transacao={transaction}
+                                        liberado={vinculosLiberados}
+                                        onLancarRelacionado={lancarRelacionado}
+                                        onVincular={setTransacaoAVincular}
+                                        onAlterado={handleFormSuccess}
+                                        className="-mr-1 shrink-0"
+                                    />
                                 </div>
                             )
                         })}
@@ -914,6 +1002,11 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                                                 ))}
                                                             </div>
                                                         )}
+                                                        {/* VINCULO-24 e VINCULO-25 */}
+                                                        <MarcaDoVinculo
+                                                            transacao={transaction}
+                                                            onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
+                                                        />
                                                     </div>
                                                 </div>
                                             </TableCell>
@@ -983,6 +1076,14 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                                 {/* Floating Action Button (FAB) - Hover Only */}
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto">
                                                     <div className="flex items-center gap-1.5 p-1.5 bg-background shadow-xl border border-border/40 rounded-2xl">
+                                                        {/* VINCULO-01 a VINCULO-04 */}
+                                                        <AcoesDoVinculo
+                                                            transacao={transaction}
+                                                            liberado={vinculosLiberados}
+                                                            onLancarRelacionado={lancarRelacionado}
+                                                            onVincular={setTransacaoAVincular}
+                                                            onAlterado={handleFormSuccess}
+                                                        />
                                                         {isPending && transaction.recurring_source && (
                                                             <Button 
                                                                 variant="ghost" 

@@ -52,6 +52,9 @@ export function paramsDaExportacao(filtros: FilterState): URLSearchParams {
   (filtros.tagIds ?? []).forEach((id) => params.append("tagIds", id));
   // CLASSE-39: o filtro de classe com o mesmo significado da lista
   (filtros.classIds ?? []).forEach((id) => params.append("classId", id));
+  // VINCULO-33: o filtro de vínculo com o mesmo significado da lista; o
+  // arquivo não leva o vínculo
+  if (filtros.linked) params.append("linked", "true");
   return params;
 }
 
