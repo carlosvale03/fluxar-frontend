@@ -1,7 +1,7 @@
 import { format } from "date-fns"
 
 import { lerData } from "@/lib/datas"
-import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { api } from "@/services/apiClient"
 import type { GastosPuxadosReport } from "@/types/reports"
 import type { PrincipalDoVinculo, Transaction } from "@/types/transactions"
@@ -55,9 +55,10 @@ export interface BuscaDeGasto {
 }
 
 // VINCULO-03: a principal é procurada pela descrição, data ou valor entre as
-// despesas e compras no cartão do usuário (type=EXPENSE traz as duas). A API
-// não filtra por valor: o valor é conferido em centavos nas transações da
-// busca. A própria transação fica de fora.
+// despesas e compras no cartão do usuário (type=EXPENSE traz as duas). Os
+// três filtros vão para a API; o valor vai no `amount` ("50.00"), e a API
+// traz também as compras parceladas cujo total é esse valor. A própria
+// transação fica de fora.
 export async function buscarGastos(busca: BuscaDeGasto, excluir: string): Promise<Transaction[]> {
   const params = new URLSearchParams()
   params.append("type", "EXPENSE")
@@ -68,12 +69,11 @@ export async function buscarGastos(busca: BuscaDeGasto, excluir: string): Promis
     params.append("startDate", busca.data)
     params.append("endDate", busca.data)
   }
+  const centavos = busca.valor ? paraCentavos(busca.valor) : NaN
+  if (centavos > 0) params.append("amount", deCentavos(centavos))
   const resposta = await api.get(`/transactions/?${params.toString()}`)
   const resultados: Transaction[] = resposta.data?.results ?? []
-  const valor = busca.valor ? paraCentavos(busca.valor) : null
-  return resultados.filter(
-    (t) => t.id !== excluir && podeTerVinculo(t) && (valor === null || paraCentavos(t.amount) === valor),
-  )
+  return resultados.filter((t) => t.id !== excluir && podeTerVinculo(t))
 }
 
 // VINCULO-34 e VINCULO-35: o relatório de gastos puxados, com o período dos

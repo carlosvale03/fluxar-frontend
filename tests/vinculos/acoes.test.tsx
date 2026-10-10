@@ -57,7 +57,6 @@ const JANTAR_NO_CARTAO = transacao({
   date: "2026-10-05",
   purchase_date: "2026-09-12",
 })
-const CINEMA_DE_OUTRO_DIA = transacao({ id: "t-cine2", description: "Cinema", amount: "30.00", date: "2026-09-20" })
 
 function servidor(lista: unknown[], busca: unknown[] = []) {
   get.mockImplementation(((url: string) => {
@@ -184,8 +183,18 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
     )
   })
 
-  it("a busca pela data e pelo valor envia o dia e mostra só o gasto com o valor", async () => {
-    servidor([PADARIA], [CINEMA, CINEMA_DE_OUTRO_DIA])
+  it("a busca pela data e pelo valor envia o dia e o valor à API e mostra o que ela devolve", async () => {
+    // A API filtra o valor: uma compra parcelada vem pelo total, com a parcela de outro valor
+    const SHOW_PARCELADO = transacao({
+      id: "t-show",
+      description: "Show (1/2)",
+      type: "CREDIT_CARD",
+      amount: "25.00",
+      is_installment: true,
+      installment_number: 1,
+      installment_total: 2,
+    })
+    servidor([PADARIA], [CINEMA, SHOW_PARCELADO, PADARIA])
     render(<TransactionsPage />)
     await screen.findAllByText("Padaria")
 
@@ -200,9 +209,27 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
     const enviada = buscas().at(-1)!
     expect(enviada.get("startDate")).toBe("2026-09-12")
     expect(enviada.get("endDate")).toBe("2026-09-12")
+    expect(enviada.get("amount")).toBe("50.00")
+    expect(enviada.get("page_size")).toBe("100")
+    // Sem conferir o valor no cliente; a própria transação continua fora
     const itens = within(achados).getAllByRole("listitem")
-    expect(itens).toHaveLength(1)
+    expect(itens.map((li) => li.querySelector("p")!.textContent)).toEqual(["Cinema", "Show (1/2)"])
     expect(itens[0]).toHaveTextContent("R$ 50,00")
+  })
+
+  it("a busca sem valor não envia o amount", async () => {
+    servidor([PADARIA], [CINEMA])
+    render(<TransactionsPage />)
+    await screen.findAllByText("Padaria")
+
+    const menu = await abrirMenu("Padaria")
+    await userEvent.click(within(menu).getByRole("menuitem", { name: /Vincular a um gasto/ }))
+    const janela = await screen.findByRole("dialog", { name: "Vincular a um gasto" })
+    await userEvent.type(within(janela).getByLabelText("Descrição"), "Cine")
+    await userEvent.click(within(janela).getByRole("button", { name: /Buscar/ }))
+
+    await within(janela).findByRole("list", { name: "Gastos encontrados" })
+    expect(buscas().at(-1)!.has("amount")).toBe(false)
   })
 
   it("o 400 do vínculo aparece no toast e a janela continua aberta", async () => {
