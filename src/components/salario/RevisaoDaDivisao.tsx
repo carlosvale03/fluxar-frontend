@@ -350,6 +350,12 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               <span className="block text-[11px] font-medium text-muted-foreground">Transferir</span>{" "}
               <span className="font-black text-sm tabular-nums">{formatarMoeda(item.transfer ?? item.amount)}</span>
             </p>
+          ) : gasto > 0 ? (
+            // Parte que fica na conta e já teve gastos: mostra o que ainda resta dela
+            <p className="text-right whitespace-nowrap">
+              <span className="block text-[11px] font-medium text-muted-foreground">Resta</span>{" "}
+              <span className="font-black text-sm tabular-nums">{formatarMoeda(item.transfer ?? item.amount)}</span>
+            </p>
           ) : (
             <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(item.amount)}</p>
           )}
@@ -415,7 +421,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               <>
                 <section aria-labelledby="saidas-desde-o-salario" className="space-y-2">
                   <div className="space-y-0.5">
-                    <h3 id="saidas-desde-o-salario" className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                    <h3 id="saidas-desde-o-salario" className="text-sm font-semibold text-foreground">
                       Saídas desde o salário
                     </h3>
                     <p className="text-xs text-muted-foreground font-medium">
@@ -444,7 +450,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                 </section>
 
                 <div className="space-y-2">
-                  <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                  <h3 className="text-sm font-semibold text-foreground">
                     Transações que serão criadas
                   </h3>
                   {transacoes.length ? (
@@ -458,7 +464,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
 
                 {ficam.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Ficam na conta do salário</h3>
+                    <h3 className="text-sm font-semibold text-foreground">Ficam na conta do salário</h3>
                     <ul className="space-y-2" aria-label="Partes que ficam na conta do salário">
                       {ficam.map((item) => linhaDoItem(item, false))}
                     </ul>

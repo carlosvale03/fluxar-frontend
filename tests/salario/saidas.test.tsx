@@ -172,6 +172,14 @@ beforeEach(() => {
 
 // A página inteira é pesada no jsdom quando a suíte roda em paralelo
 describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
+  it("a parte que fica na conta mostra o que ainda resta depois dos gastos", async () => {
+    const janela = await abrirRevisao()
+
+    const essenciais = parteNaRevisao(janela, "Essenciais")
+    await vi.waitFor(() => expect(essenciais).toHaveTextContent("Já gasto R$ 130,00"))
+    expect(essenciais).toHaveTextContent(/Resta\s*R\$\s*1\.370,00/)
+  })
+
   it("pede a prévia sem saídas, aplica as sugestões e pede de novo já descontando", async () => {
     const janela = await abrirRevisao()
 
