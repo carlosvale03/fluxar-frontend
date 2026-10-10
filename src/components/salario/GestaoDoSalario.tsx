@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
 import { ReferenciasDoMes } from "@/components/salario/ReferenciasDoMes"
+import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
 import { RevisaoDaDivisao } from "@/components/salario/RevisaoDaDivisao"
 import { SalariosADividir } from "@/components/salario/SalariosADividir"
 import { tratarErro } from "@/lib/erros"
@@ -48,7 +49,8 @@ export function GestaoDoSalario() {
   const [revisando, setRevisando] = useState<string | null>(null)
   // SALARIO-22: recebimento que espera o plano ser salvo para ir à revisão
   const [dividirDepois, setDividirDepois] = useState<string | null>(null)
-  const [, setParaDesfazer] = useState<DivisaoDoSalario | null>(null)
+  // SALARIO-45: divisão na confirmação do desfazer
+  const [paraDesfazer, setParaDesfazer] = useState<DivisaoDoSalario | null>(null)
   const ultimoParam = useRef<string | null>(null)
 
   async function carregarPendentes() {
@@ -195,6 +197,17 @@ export function GestaoDoSalario() {
         onOpenChange={fecharRevisao}
         onGerada={() => void carregarPendentes()}
         onDesfazer={setParaDesfazer}
+      />
+
+      <DesfazerDivisao
+        divisao={paraDesfazer}
+        onOpenChange={(aberta) => !aberta && setParaDesfazer(null)}
+        onDesfeita={() => {
+          // SALARIO-47: o salário volta à lista de salários a dividir
+          setParaDesfazer(null)
+          fecharRevisao(false)
+          void carregarPendentes()
+        }}
       />
     </div>
   )
