@@ -34,6 +34,11 @@ export interface Category {
     parent?: string | null
     parent_name?: string | null
     subcategories?: Category[]
+    // Só nas categorias de despesa (CLASSE-17, CLASSE-18): a classe própria,
+    // a efetiva (própria ou da mãe) e se a efetiva vem da mãe
+    expense_class?: string | null
+    effective_class?: EffectiveClass | null
+    class_inherited?: boolean
 }
 
 export interface CategoryInput {
@@ -43,6 +48,8 @@ export interface CategoryInput {
     color?: string
     is_active?: boolean
     parent?: string | null
+    // null: sem classe própria (a subcategoria herda a da mãe)
+    expense_class?: string | null
 }
 
 export interface Tag {

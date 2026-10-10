@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { useForm } from "react-hook-form"
+import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Loader2, PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag, Info, ChevronRight } from "lucide-react"
@@ -26,7 +26,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Category, CategoryInput } from "@/types/categories"
+import { Category, CategoryInput, ExpenseClass } from "@/types/categories"
+import { COR_SEM_CLASSE, ROTULO_SEM_CLASSE } from "@/lib/classes"
 import { createCategory, updateCategory } from "@/services/categories"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
@@ -58,18 +59,26 @@ const formSchema = z.object({
   icon: z.string().optional(),
   color: z.string().optional(),
   parent: z.string().optional().nullable(),
+  expense_class: z.string().optional(),
 })
+
+// Opção sem classe própria: na subcategoria, herda a da mãe (CLASSE-16, CLASSE-20)
+const SEM_CLASSE_PROPRIA = "__sem_classe_propria__"
 
 interface CategoryFormProps {
   category?: Category
-  parentCategory?: Category 
+  parentCategory?: Category
+  // Categoria-mãe de uma subcategoria em edição, para mostrar a classe herdada
+  categoriaMae?: Category
+  // Classes do usuário para a seleção (CLASSE-17)
+  classes?: ExpenseClass[]
   currentSubcategoryCount?: number
   defaultType?: "INCOME" | "EXPENSE"
   onSuccess: () => void
   onCancel?: () => void
 }
 
-export function CategoryForm({ category, parentCategory, currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
+export function CategoryForm({ category, parentCategory, categoriaMae, classes = [], currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
   // PERM-18 e PERM-20: o limite de subcategorias vem do /auth/me; o uso é o da categoria-pai
   const { limite, limiteAtingido, atualizarUso } = usePlan()
   const limiteDeSubcategorias = limite("limite_subcategorias")?.limit ?? null
@@ -84,15 +93,35 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
       icon: category?.icon || parentCategory?.icon || "",
       color: category?.color || parentCategory?.color || "",
       parent: category?.parent || parentCategory?.id || null,
+      expense_class: category?.expense_class || SEM_CLASSE_PROPRIA,
     },
   })
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  // CLASSE-21: categoria de receita não tem classe, e a seleção some
+  const tipo = useWatch({ control: form.control, name: "type" })
+  const ehSubcategoria = !!parentCategory || !!category?.parent
+  const mae = parentCategory ?? categoriaMae
+  // CLASSE-20: a classe que a subcategoria herda (a efetiva da mãe)
+  const classeDaMae = mae
+    ? mae.effective_class ?? null
+    : category?.class_inherited
+      ? category.effective_class ?? null
+      : null
+  const rotuloSemClassePropria = ehSubcategoria
+    ? `Herdar da categoria-mãe (${classeDaMae?.name ?? ROTULO_SEM_CLASSE})`
+    : ROTULO_SEM_CLASSE
+
+  async function onSubmit({ expense_class, ...values }: z.infer<typeof formSchema>) {
     setIsLoading(true)
     try {
       let payload: CategoryInput = {
         ...values,
         is_active: true,
+      }
+
+      // CLASSE-17: uma classe do usuário ou nenhuma (null)
+      if (values.type === "EXPENSE") {
+        payload.expense_class = !expense_class || expense_class === SEM_CLASSE_PROPRIA ? null : expense_class
       }
 
       if (parentCategory) {
@@ -119,7 +148,7 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
       // CONTRATO-30: o erro de cada campo vai para o campo; o resto, ao Sonner
       tratarErro(error, {
         form,
-        campos: ["name", "type", "icon", "color", "parent"],
+        campos: ["name", "type", "icon", "color", "parent", "expense_class"],
         mensagemPadrao: "Erro ao salvar categoria",
       })
     } finally {
@@ -221,6 +250,48 @@ export function CategoryForm({ category, parentCategory, currentSubcategoryCount
                     />
                 )}
             </div>
+
+            {/* CLASSE-17 e CLASSE-20: classe da despesa; a subcategoria começa herdando a da mãe */}
+            {tipo === "EXPENSE" && (
+                <div className="p-5 bg-muted/5 rounded-[24px] border border-border/40">
+                    <FormField
+                    control={form.control}
+                    name="expense_class"
+                    render={({ field }) => (
+                        <FormItem>
+                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Classe da Despesa</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value}>
+                            <FormControl>
+                            <SelectTrigger className="bg-card border-border/40 h-11 rounded-xl focus:ring-primary/20">
+                                <SelectValue placeholder="Selecione a classe" />
+                            </SelectTrigger>
+                            </FormControl>
+                            <SelectContent className="rounded-xl border-border/40 shadow-xl overflow-hidden">
+                                <SelectItem value={SEM_CLASSE_PROPRIA}>
+                                    <div className="flex items-center gap-2">
+                                        <span
+                                            className="w-2.5 h-2.5 rounded-full shrink-0"
+                                            style={{ backgroundColor: classeDaMae && ehSubcategoria ? classeDaMae.color : COR_SEM_CLASSE }}
+                                        />
+                                        {rotuloSemClassePropria}
+                                    </div>
+                                </SelectItem>
+                                {classes.map((classe) => (
+                                    <SelectItem key={classe.id} value={classe.id}>
+                                        <div className="flex items-center gap-2">
+                                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: classe.color }} />
+                                            {classe.name}
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+                </div>
+            )}
         </div>
 
         {/* Seção 2: Identidade Visual */}
