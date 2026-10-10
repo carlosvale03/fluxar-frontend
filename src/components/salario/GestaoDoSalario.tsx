@@ -7,6 +7,7 @@ import { Info, Wallet } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
+import { EtapasDoPlano } from "@/components/salario/EtapasDoPlano"
 import { ReceitasDoSalario } from "@/components/salario/ReceitasDoSalario"
 import { ResumoDoPlano } from "@/components/salario/ResumoDoPlano"
 import { ComprometidoNoMes, SeuHistorico } from "@/components/salario/ReferenciasDoMes"
@@ -252,6 +253,15 @@ export function GestaoDoSalario() {
               <Info aria-hidden className="h-4 w-4 shrink-0 text-primary" />
               Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
             </p>
+          )}
+
+          {plano && !plano.has_plan && telaDoPlano !== "resumo" && (
+            <EtapasDoPlano
+              etapa={telaDoPlano === "escolha" ? 2 : 3}
+              categoriasDoSalario={plano.salary_categories}
+              categorias={categorias}
+              onEscolherReceitas={irParaReceitas}
+            />
           )}
 
           {plano === null ? (

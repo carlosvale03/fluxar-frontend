@@ -86,6 +86,37 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     expect(cartoes[1]).toHaveTextContent("62,0% no seu histórico")
   })
 
+  it("sem plano, o guia mostra as etapas e cada modelo com a proporção das partes", async () => {
+    render(<SalarioPage />)
+
+    const modelos = await screen.findByRole("list", { name: "Modelos" })
+    const etapas = screen.getByRole("list", { name: "Etapas do plano" })
+    const itens = within(etapas).getAllByRole("listitem")
+    expect(itens).toHaveLength(3)
+    expect(itens[0]).toHaveTextContent("Etapa 1: Receitas de salário")
+    expect(itens[1]).toHaveTextContent("Etapa 2: Modelo")
+    expect(itens[2]).toHaveTextContent("Etapa 3: Partes")
+    expect(within(etapas).getAllByRole("listitem")[1]).toHaveAttribute("aria-current", "step")
+    expect(await screen.findByText("Contam como salário: Salário.")).toBeInTheDocument()
+
+    const linha = (nome: string) => within(modelos).getByRole("listitem", { name: nome })
+    expect(within(linha("50/30/20")).getByRole("img")).toHaveAccessibleName(
+      "Divisão do salário: Essenciais 50%, Dispensáveis 30%, Guardar 20%",
+    )
+    expect(within(linha("Pague-se primeiro")).getByRole("img")).toHaveAccessibleName("Divisão do salário: Guardar 10%, Livre 90%")
+    expect(linha("Personalizado")).toHaveTextContent("Comece do zero")
+    expect(within(linha("Personalizado")).queryByRole("img")).not.toBeInTheDocument()
+
+    await usarModelo("Seis potes")
+    expect(within(screen.getByRole("list", { name: "Etapas do plano" })).getAllByRole("listitem")[2]).toHaveAttribute("aria-current", "step")
+
+    // "Alterar" leva às receitas de salário, com o foco na primeira categoria
+    await userEvent.click(screen.getByRole("button", { name: "Alterar" }))
+    expect(document.activeElement).toBe(
+      within(screen.getByRole("region", { name: "Receitas de salário" })).getByRole("checkbox", { name: "Salário" }),
+    )
+  })
+
   it("o 50/30/20 enche o editor, e subir uma parte muda a ordem enviada", async () => {
     render(<SalarioPage />)
     await usarModelo("50/30/20")
