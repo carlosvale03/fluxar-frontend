@@ -7,7 +7,6 @@ import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { MoneyInput } from "@/components/ui/money-input"
 import {
@@ -26,7 +25,6 @@ import { percentualParaCampo, porcentagemNoHistorico } from "@/lib/salario"
 import { cn } from "@/lib/utils"
 import { salarioService } from "@/services/salario"
 import { AccountType, type Account } from "@/types/accounts"
-import type { Category } from "@/types/categories"
 import type { Goal } from "@/types/goals"
 import type {
   ParteEnviada,
@@ -119,31 +117,29 @@ function pedidoDaMeta(parte: Rascunho, metas: Goal[]): { mensal: string; data: s
 
 interface EditorDoPlanoProps {
   partesIniciais: ParteInicial[]
-  categoriasIniciais: string[]
+  // SALARIO-14: as categorias de salário salvas, reenviadas como estão; a
+  // escolha delas fica no painel Receitas de salário
+  categoriasDoSalario: string[]
   contas: Account[]
   metas: Goal[]
-  // Categorias de receita, raízes com as subcategorias
-  categorias: Category[]
   referencias: ReferenciasDoSalario | null
   onSalvo: (plano: PlanoDoSalario) => void
   onTrocarModelo: () => void
 }
 
 // SALARIO-04 a SALARIO-07, SALARIO-12 a SALARIO-14, SALARIO-54 e SALARIO-55:
-// as partes em ordem de prioridade, com regra, valor e destino; as categorias
-// que contam como salário; a simulação com um valor digitado.
+// as partes em ordem de prioridade, com regra, valor e destino; a simulação
+// com um valor digitado.
 export function EditorDoPlano({
   partesIniciais,
-  categoriasIniciais,
+  categoriasDoSalario,
   contas,
   metas,
-  categorias,
   referencias,
   onSalvo,
   onTrocarModelo,
 }: EditorDoPlanoProps) {
   const [partes, setPartes] = useState<Rascunho[]>(() => partesIniciais.map(rascunhoDe))
-  const [categoriasDoSalario, setCategoriasDoSalario] = useState<string[]>(categoriasIniciais)
   const [erros, setErros] = useState<Record<string, ErrosDaParte>>({})
   const [salvando, setSalvando] = useState(false)
   const [valorSimulado, setValorSimulado] = useState("")
@@ -195,10 +191,6 @@ export function EditorDoPlano({
       { chave: novaChave(), name: "", rule_type: "PERCENT", valor: "", destino: "", reference: "", inicial: null },
     ])
     setSimulacao(null)
-  }
-
-  const alternarCategoria = (id: string, marcada: boolean) => {
-    setCategoriasDoSalario((atuais) => (marcada ? [...atuais, id] : atuais.filter((c) => c !== id)))
   }
 
   // As partes no formato da API; com algum campo vazio, marca os erros e
@@ -485,34 +477,6 @@ export function EditorDoPlano({
               Soma dos percentuais: {percentualParaCampo(deCentavos(somaDosPercentuais))}%
             </p>
           </div>
-        </CardContent>
-      </Card>
-
-      <Card className="border-border/40 bg-card/50 backdrop-blur-sm rounded-[32px] overflow-hidden">
-        <CardContent className="p-6 space-y-3">
-          <div>
-            <h3 className="text-base font-black tracking-tight">Categorias de salário</h3>
-            <p className="text-xs text-muted-foreground font-medium">
-              As receitas nessas categorias contam como salário e podem ser divididas.
-            </p>
-          </div>
-          <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2" aria-label="Categorias de salário">
-            {categorias.flatMap((categoria) => [categoria, ...(categoria.subcategories ?? [])]).map((categoria) => {
-              const id = `categoria-do-salario-${categoria.id}`
-              return (
-                <li key={categoria.id} className={cn("flex items-center gap-2", categoria.parent && "pl-5")}>
-                  <Checkbox
-                    id={id}
-                    checked={categoriasDoSalario.includes(categoria.id)}
-                    onCheckedChange={(marcada) => alternarCategoria(categoria.id, marcada === true)}
-                  />
-                  <label htmlFor={id} className="text-sm font-medium cursor-pointer">
-                    {categoria.name}
-                  </label>
-                </li>
-              )
-            })}
-          </ul>
         </CardContent>
       </Card>
 

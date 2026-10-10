@@ -7,6 +7,7 @@ import { Info } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
+import { ReceitasDoSalario } from "@/components/salario/ReceitasDoSalario"
 import { ReferenciasDoMes } from "@/components/salario/ReferenciasDoMes"
 import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
 import { DivisoesRecentes } from "@/components/salario/DivisoesRecentes"
@@ -41,7 +42,7 @@ export function GestaoDoSalario() {
   const [modelos, setModelos] = useState<ModeloDeDivisao[] | null>(null)
   const [contas, setContas] = useState<Account[]>([])
   const [metas, setMetas] = useState<Goal[]>([])
-  const [categorias, setCategorias] = useState<Category[]>([])
+  const [categorias, setCategorias] = useState<Category[] | null>(null)
   const [telaDoPlano, setTelaDoPlano] = useState<TelaDoPlano>("escolha")
   const [partesDoEditor, setPartesDoEditor] = useState<ParteInicial[]>([])
   // Troca a cada modelo escolhido ou plano salvo, para o editor recomeçar
@@ -120,6 +121,7 @@ export function GestaoDoSalario() {
       setMetas(listaDeMetas)
       setCategorias(listaDeCategorias.filter((c) => c.type === "INCOME" && c.is_active !== false))
     } catch (erro) {
+      setCategorias((atuais) => atuais ?? [])
       tratarErro(erro, { mensagemPadrao: "Erro ao carregar contas, metas e categorias.", tentarDeNovo: carregarOpcoes })
     }
   }
@@ -162,6 +164,13 @@ export function GestaoDoSalario() {
     if (paramDividir) router.replace("/salario")
   }
 
+  // SALARIO-14: as categorias de salário mudaram; o plano fica como está e
+  // os salários a dividir são relidos com as novas categorias
+  const categoriasSalvas = (salvo: PlanoDoSalario) => {
+    setPlano((atual) => (atual ? { ...atual, salary_categories: salvo.salary_categories } : salvo))
+    void carregarPendentes()
+  }
+
   // SALARIO-02, SALARIO-03 e SALARIO-06: o modelo monta as partes no editor;
   // o plano só muda ao salvar
   const escolherModelo = (modelo: ModeloDeDivisao) => {
@@ -173,6 +182,7 @@ export function GestaoDoSalario() {
   return (
     <div className="space-y-6">
       <SalariosADividir recebimentos={pendentes} onDividir={dividir} />
+      <ReceitasDoSalario categorias={categorias} salvas={plano?.salary_categories ?? null} onSalvas={categoriasSalvas} />
       <DivisoesRecentes divisoes={recentes} onDesfazer={setParaDesfazer} />
       <ReferenciasDoMes referencias={referencias} />
 
@@ -196,10 +206,9 @@ export function GestaoDoSalario() {
         <EditorDoPlano
           key={versaoDoEditor}
           partesIniciais={partesDoEditor}
-          categoriasIniciais={plano.salary_categories}
+          categoriasDoSalario={plano.salary_categories}
           contas={contas}
           metas={metas}
-          categorias={categorias}
           referencias={referencias}
           onSalvo={planoSalvo}
           onTrocarModelo={() => setTelaDoPlano("escolha")}

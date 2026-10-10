@@ -33,6 +33,13 @@ export const salarioService = {
     return response.data
   },
 
+  // SALARIO-14: grava só as categorias de receita que contam como salário,
+  // sem mexer nas partes; devolve o plano como o GET
+  salvarCategorias: async (ids: string[]) => {
+    const response = await api.put<PlanoDoSalario>("/salary/categories/", { salary_categories: ids })
+    return response.data
+  },
+
   // SALARIO-13: sem `parts`, usa o plano salvo; nada é gravado
   simular: async (amount: string, parts?: ParteEnviada[]) => {
     const response = await api.post<Simulacao>("/salary/simulate/", parts ? { amount, parts } : { amount })

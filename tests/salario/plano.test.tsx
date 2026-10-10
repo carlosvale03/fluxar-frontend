@@ -230,17 +230,18 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     ])
   })
 
+  // As categorias saíram do editor: o painel Receitas de salário grava só elas
   it("desmarcar e marcar categorias de salário muda as categorias enviadas", async () => {
     comPlano(PLANO_SALVO)
     render(<SalarioPage />)
-    await vi.waitFor(() => parteNoEditor("Guardar"))
+    const painel = await screen.findByRole("region", { name: "Receitas de salário" })
 
-    expect(screen.getByRole("checkbox", { name: "Salário" })).toBeChecked()
-    expect(screen.getByRole("checkbox", { name: "Freelance" })).not.toBeChecked()
-    await userEvent.click(screen.getByRole("checkbox", { name: "Freelance" }))
-    await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
+    expect(await within(painel).findByRole("checkbox", { name: "Salário" })).toBeChecked()
+    expect(within(painel).getByRole("checkbox", { name: "Freelance" })).not.toBeChecked()
+    await userEvent.click(within(painel).getByRole("checkbox", { name: "Freelance" }))
+    await userEvent.click(within(painel).getByRole("button", { name: "Salvar" }))
 
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
-    expect(corpoDoPut().salary_categories).toEqual(["cat-salario", "cat-freela"])
+    expect(put).toHaveBeenCalledWith("/salary/categories/", { salary_categories: ["cat-salario", "cat-freela"] })
   })
 })
