@@ -46,7 +46,8 @@ import { lerData } from "@/lib/datas"
 import { Category } from "@/types/categories"
 import { CreditCard as CreditCardType } from "@/types/cards"
 
-import { Transaction } from "@/types/transactions"
+import { PrincipalDoVinculo, Transaction } from "@/types/transactions"
+import { textoDaPrincipal } from "@/services/vinculos"
 
 import { TagSelector } from "@/components/tags/TagSelector"
 import { usePlan } from "@/hooks/use-plan"
@@ -76,9 +77,13 @@ interface CardExpenseFormDialogProps {
   onOpenChange: (open: boolean) => void
   onSuccess: () => void
   initialData?: Transaction | null
+  // VINCULO-01: a compra relacionada nasce já como dependente desta principal
+  principal?: PrincipalDoVinculo | null
 }
 
-export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialData }: CardExpenseFormDialogProps) {
+export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialData, principal }: CardExpenseFormDialogProps) {
+  // A principal só vale na criação
+  const principalDoNovo = !initialData ? principal ?? null : null
   const [categories, setCategories] = useState<Category[]>([])
   const [cards, setCards] = useState<CreditCardType[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -206,6 +211,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           // Create - Installments matters here
           // Re-add installments for Create
            (finalPayload as any).installments = parceladasLiberadas ? data.installments : 1
+           if (principalDoNovo) Object.assign(finalPayload, { principal: principalDoNovo.id })
 
           await api.post("/transactions/credit-card-expense/", finalPayload)
           toast.success("Despesa registrada com sucesso!")
@@ -259,6 +265,13 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               </div>
             </div>
           </DialogHeader>
+
+          {/* VINCULO-01 */}
+          {principalDoNovo && !compraBloqueada && (
+            <div role="note" className="mb-6 px-4 py-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs font-bold text-primary">
+              {textoDaPrincipal(principalDoNovo)}
+            </div>
+          )}
 
           {compraBloqueada ? (
             <AvisoCompacto />

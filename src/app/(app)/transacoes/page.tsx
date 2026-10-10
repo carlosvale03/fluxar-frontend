@@ -49,12 +49,13 @@ import { TransactionFilters, FilterState } from "@/components/transactions/trans
 import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 import { useAvisoDoSalario } from "@/components/salario/AvisoDoSalario"
 import { MarcaDoVinculo } from "@/components/transactions/marca-do-vinculo"
+import { AcoesDoVinculo, TipoDoGastoRelacionado, VincularTransacaoDialog } from "@/components/transactions/vincular-transacao"
 import { usePlan } from "@/hooks/use-plan"
 import { urlDaPrincipal } from "@/services/vinculos"
 import Link from "next/link"
 
 import { api } from "@/services/apiClient"
-import { Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
+import { PrincipalDoVinculo, Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
 import { Account } from "@/types/accounts"
 import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
@@ -111,6 +112,22 @@ export default function TransactionsPage() {
           setIsCardExpenseOpen(true)
       } else {
           toast.info("Edição para este tipo de transação via tabela será implementada em breve.")
+      }
+  }
+
+  // VINCULO-01 e VINCULO-02: o gasto relacionado nasce com a principal; a
+  // transação existente é ligada pela busca
+  const [principalDoNovo, setPrincipalDoNovo] = useState<PrincipalDoVinculo | null>(null)
+  const [transacaoAVincular, setTransacaoAVincular] = useState<Transaction | null>(null)
+
+  const lancarRelacionado = (principal: Transaction, tipo: TipoDoGastoRelacionado) => {
+      setTransactionToEdit(null)
+      setPrincipalDoNovo({ id: principal.id, description: principal.description, date: principal.purchase_date || principal.date })
+      if (tipo === "EXPENSE") {
+          setFormType("EXPENSE")
+          setIsFormOpen(true)
+      } else {
+          setIsCardExpenseOpen(true)
       }
   }
 
@@ -577,10 +594,14 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         open={isCardExpenseOpen}
         onOpenChange={(open) => {
             setIsCardExpenseOpen(open)
-            if (!open) setTransactionToEdit(null)
+            if (!open) {
+                setTransactionToEdit(null)
+                setPrincipalDoNovo(null)
+            }
         }}
         onSuccess={handleFormSuccess}
         initialData={transactionToEdit}
+        principal={principalDoNovo}
       />
       <InvoicePaymentDialog 
         open={isInvoicePaymentOpen}
@@ -599,7 +620,10 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         open={isFormOpen}
         onOpenChange={(open) => {
             setIsFormOpen(open)
-            if (!open) setTransactionToEdit(null) // Clear edit state on close
+            if (!open) {
+                setTransactionToEdit(null) // Clear edit state on close
+                setPrincipalDoNovo(null)
+            }
         }}
         onSuccess={(criada) => {
             handleFormSuccess()
@@ -607,8 +631,15 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         }}
         type={formType}
         initialData={transactionToEdit}
+        principal={principalDoNovo}
       />
       {avisoDoSalario}
+
+      <VincularTransacaoDialog
+        transacao={transacaoAVincular}
+        onOpenChange={(open) => !open && setTransacaoAVincular(null)}
+        onVinculada={handleFormSuccess}
+      />
 
       {/* Mobile-Friendly Transaction List */}
       <div className="md:hidden space-y-6">
@@ -772,6 +803,16 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                         {isNegative ? "- " : "+ "}
                                         {formatarMoeda(transaction.amount)}
                                     </div>
+
+                                    {/* VINCULO-01 a VINCULO-04 */}
+                                    <AcoesDoVinculo
+                                        transacao={transaction}
+                                        liberado={vinculosLiberados}
+                                        onLancarRelacionado={lancarRelacionado}
+                                        onVincular={setTransacaoAVincular}
+                                        onAlterado={handleFormSuccess}
+                                        className="-mr-1 shrink-0"
+                                    />
                                 </div>
                             )
                         })}
@@ -1033,6 +1074,14 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                                 {/* Floating Action Button (FAB) - Hover Only */}
                                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto">
                                                     <div className="flex items-center gap-1.5 p-1.5 bg-background shadow-xl border border-border/40 rounded-2xl">
+                                                        {/* VINCULO-01 a VINCULO-04 */}
+                                                        <AcoesDoVinculo
+                                                            transacao={transaction}
+                                                            liberado={vinculosLiberados}
+                                                            onLancarRelacionado={lancarRelacionado}
+                                                            onVincular={setTransacaoAVincular}
+                                                            onAlterado={handleFormSuccess}
+                                                        />
                                                         {isPending && transaction.recurring_source && (
                                                             <Button 
                                                                 variant="ghost" 
