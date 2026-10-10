@@ -6,6 +6,7 @@ import { ArrowLeft, Loader2, Table as TableIcon } from "lucide-react"
 import { PassoArquivo } from "@/components/importacao/PassoArquivo"
 import { mesclarPlano } from "@/components/importacao/plano"
 import { RevisaoDeAbas } from "@/components/importacao/RevisaoDeAbas"
+import { RevisaoDeLinhas } from "@/components/importacao/RevisaoDeLinhas"
 import { CAMPOS_DA_CONTA, campoDoErroDaConta, RevisaoDeContas } from "@/components/importacao/RevisaoDeContas"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -221,7 +222,9 @@ function ConteudoDoAssistente() {
             <TabsContent value="contas" className="pt-2">
               <RevisaoDeContas plano={plano} contasAtivas={contasAtivas} erros={errosDasContas} onAlterar={alterarPlano} />
             </TabsContent>
-            <TabsContent value="linhas" className="pt-2">{null}</TabsContent>
+            <TabsContent value="linhas" className="pt-2">
+              <RevisaoDeLinhas linhas={analise.linhas} plano={plano} onAlterar={alterarPlano} />
+            </TabsContent>
           </Tabs>
 
           <div className="flex flex-col-reverse sm:flex-row items-center gap-3 pt-2">
