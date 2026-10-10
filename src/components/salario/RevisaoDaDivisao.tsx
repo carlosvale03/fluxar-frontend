@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MoneyInput } from "@/components/ui/money-input"
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { lerData } from "@/lib/datas"
@@ -266,7 +265,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
       <li key={saida.id} aria-label={descricao} className="p-3 space-y-2 sm:flex sm:items-center sm:gap-3 sm:space-y-0">
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-bold text-sm truncate">{descricao}</p>
+            <p className="font-bold text-sm truncate" title={descricao}>{descricao}</p>
             <p className="text-xs text-muted-foreground font-medium tabular-nums">
               {format(lerData(saida.date), "dd/MM")} · {tipoDaSaida(saida, revisao?.items ?? [])}
             </p>
@@ -387,19 +386,20 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px] bg-background">
-        <ScrollArea className="max-h-[90vh]">
+      <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px] bg-background">
+        {/* Rolagem nativa: o ScrollArea do Radix põe o conteúdo num display: table, que cresce até o texto mais longo e corta a janela */}
+        <div className="max-h-[90vh] overflow-y-auto overflow-x-hidden">
           <div className="p-8 space-y-6">
             <DialogHeader>
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 rounded-[20px] flex items-center justify-center bg-primary text-primary-foreground shadow-xl shadow-primary/20 shrink-0">
                   {resultado ? <CheckCircle2 className="h-7 w-7" /> : <Scissors className="h-7 w-7" />}
                 </div>
-                <div className="space-y-0.5 text-left">
+                <div className="min-w-0 space-y-0.5 text-left">
                   <DialogTitle className="text-2xl font-black tracking-tight">
                     {resultado ? "Divisão gerada" : "Revisar a divisão"}
                   </DialogTitle>
-                  <DialogDescription className="font-medium">
+                  <DialogDescription className="font-medium [overflow-wrap:anywhere]">
                     {resultado
                       ? `${resultado.receipt.description ?? "Salário"} de ${formatarMoeda(resultado.receipt.amount)}`
                       : revisao
@@ -517,7 +517,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               </>
             )}
           </div>
-        </ScrollArea>
+        </div>
       </DialogContent>
     </Dialog>
   )
