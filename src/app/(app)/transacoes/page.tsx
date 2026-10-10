@@ -48,6 +48,9 @@ import { TransactionDeleteDialog } from "@/components/transactions/transaction-d
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
 import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 import { useAvisoDoSalario } from "@/components/salario/AvisoDoSalario"
+import { MarcaDoVinculo } from "@/components/transactions/marca-do-vinculo"
+import { usePlan } from "@/hooks/use-plan"
+import { urlDaPrincipal } from "@/services/vinculos"
 import Link from "next/link"
 
 import { api } from "@/services/apiClient"
@@ -153,6 +156,27 @@ export default function TransactionsPage() {
       setSoSugeridas(sugeridasParam)
       setPage(1)
   }, [loteParam, sugeridasParam])
+
+  // VINCULO-31: o custo total de uma principal abre a lista com a principal
+  // e as dependentes. As dependentes podem ter outra data: com a principal,
+  // o período não vale.
+  const principalParam = searchParams.get("principalId")
+  const [principalId, setPrincipalId] = useState<string | null>(principalParam)
+
+  useEffect(() => {
+      setPrincipalId(principalParam)
+      setPage(1)
+  }, [principalParam])
+
+  // VINCULO-20: com o recurso travado, o filtro da principal não abre
+  const vinculosLiberados = usePlan().podeUsar("vinculos") === true
+  const abrirPrincipal = (id: string) => router.push(urlDaPrincipal(id))
+
+  const limparFiltroDaPrincipal = () => {
+      setPrincipalId(null)
+      setPage(1)
+      router.replace("/transacoes")
+  }
 
   const limparFiltroDoLote = () => {
       setLote(null)
@@ -327,6 +351,8 @@ export default function TransactionsPage() {
       
       if (lote) {
           params.append('import_batch', lote)
+      } else if (principalId) {
+          params.append('principalId', principalId)
       } else {
           if (filters.startDate) params.append('startDate', format(filters.startDate, 'yyyy-MM-dd'))
           if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
@@ -391,7 +417,7 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
   // CONTRATO-05 a CONTRATO-07: um efeito só busca as transações
   useEffect(() => {
     fetchTransactions()
-  }, [page, pageSize, filters, buscaComEspera, lote, soSugeridas])
+  }, [page, pageSize, filters, buscaComEspera, lote, soSugeridas, principalId])
 
   useEffect(() => () => buscaAtual.current?.abort(), [])
 
@@ -521,6 +547,18 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                     : "Transações desta importação"}
             </span>
             <Button variant="ghost" size="sm" onClick={limparFiltroDoLote} className="h-8 rounded-full text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 cursor-pointer">
+                <X className="h-3.5 w-3.5 mr-1" /> Limpar filtro
+            </Button>
+        </div>
+      )}
+
+      {/* VINCULO-31: a lista da principal, com a opção de limpar */}
+      {principalId && !lote && (
+        <div role="status" className="flex items-center justify-between gap-3 mb-6 px-5 py-3 rounded-2xl bg-primary/5 border border-primary/15">
+            <span className="text-xs font-bold text-primary">
+                Gasto principal e os gastos relacionados
+            </span>
+            <Button variant="ghost" size="sm" onClick={limparFiltroDaPrincipal} className="h-8 rounded-full text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 cursor-pointer">
                 <X className="h-3.5 w-3.5 mr-1" /> Limpar filtro
             </Button>
         </div>
@@ -718,6 +756,13 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                             {/* IMPORT-46 */}
                                             {transaction.category_suggested && <SeloDeSugerida />}
                                         </div>
+
+                                        {/* VINCULO-24 e VINCULO-25 */}
+                                        <MarcaDoVinculo
+                                            transacao={transaction}
+                                            onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
+                                            className="mt-1"
+                                        />
                                     </div>
 
                                     <div className={cn(
@@ -914,6 +959,11 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                                                                 ))}
                                                             </div>
                                                         )}
+                                                        {/* VINCULO-24 e VINCULO-25 */}
+                                                        <MarcaDoVinculo
+                                                            transacao={transaction}
+                                                            onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
+                                                        />
                                                     </div>
                                                 </div>
                                             </TableCell>

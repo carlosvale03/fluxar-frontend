@@ -50,6 +50,13 @@ export interface Transaction {
     import_batch?: string | null
     category_suggested?: boolean
 
+    // Vínculo entre transações (VINCULO-26): numa parcela, os quatro vêm da
+    // primeira parcela da compra
+    principal?: string | null
+    principal_detail?: PrincipalDoVinculo | null
+    dependents_count?: number
+    // Valor da principal mais o das dependentes ("95.00"); nulo sem dependentes
+    total_cost?: string | null
 
     // Transfer Logic
     transfer_id?: string
@@ -80,6 +87,13 @@ export interface CreateTransactionDTO {
     // Recurrence
     is_recurring?: boolean
     frequency?: "DAILY" | "WEEKLY" | "MONTHLY" | "YEARLY"
+}
+
+// A principal de uma dependente; `date` é a data da compra num cartão
+export interface PrincipalDoVinculo {
+    id: string
+    description: string
+    date: string
 }
 
 export interface Tag {
