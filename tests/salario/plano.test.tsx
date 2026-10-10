@@ -229,20 +229,22 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     expect(parteNoEditor("Essenciais")).not.toHaveTextContent("O percentual deve")
   })
 
-  it("a soma acima de 100% mostra a mensagem do backend no toast", async () => {
+  // SALARIO-60: acima de 100% o editor não deixa salvar; o erro geral do
+  // backend continua indo para o toast
+  it("o erro geral do backend aparece no toast", async () => {
     comPlano(PLANO_SALVO)
-    put.mockRejectedValue({ response: { status: 400, data: { detail: "A soma dos percentuais passa de 100%." } } })
+    put.mockRejectedValue({ response: { status: 400, data: { detail: "Não foi possível salvar o plano agora." } } })
     render(<SalarioPage />)
     await userEvent.click(await screen.findByRole("button", { name: "Editar plano" }))
 
     const percentual = screen.getByLabelText("Percentual de Guardar")
     await userEvent.clear(percentual)
-    await userEvent.type(percentual, "60")
-    expect(screen.getByText(/^Soma: 140%/)).toBeInTheDocument()
+    await userEvent.type(percentual, "40")
+    expect(screen.getByText(/^Soma: 100%/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
-    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("A soma dos percentuais passa de 100%."))
-    expect((put.mock.calls[0][1] as { parts: { value: string }[] }).parts[2].value).toBe("60.00")
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("Não foi possível salvar o plano agora."))
+    expect((put.mock.calls[0][1] as { parts: { value: string }[] }).parts[2].value).toBe("40.00")
   })
 
   it("o Personalizado começa sem partes; adicionar, nomear e escolher valor fixo monta a parte", async () => {

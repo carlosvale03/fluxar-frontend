@@ -180,6 +180,23 @@ export function montarBarra(partes: ParteDaBarra[], baseEmCentavos: number | nul
   return { fatias, livre: restante, livreEmCentavos: null, somaDosPercentuais, somaDosFixos, fixasForaDaBarra }
 }
 
+// SALARIO-58: reparte um total, em centésimos de ponto percentual, entre as
+// partes na proporção dos valores atuais de cada uma (todas zeradas, em partes
+// iguais). Cada parte fica com duas casas, arredondada para baixo, e a sobra
+// do arredondamento vai para a maior, para a soma dar o total exato. Total
+// negativo vira zero.
+export function repartirPercentual(atuais: number[], total: number): number[] {
+  if (atuais.length === 0) return []
+  const alvo = Math.max(0, Math.round(total))
+  const pesos = atuais.map((valor) => Math.max(0, valor))
+  const soma = pesos.reduce((s, p) => s + p, 0)
+  const novos = pesos.map((peso) => (soma > 0 ? Math.floor((alvo * peso) / soma) : Math.floor(alvo / pesos.length)))
+  const sobra = alvo - novos.reduce((s, v) => s + v, 0)
+  const maior = novos.reduce((indiceDoMaior, valor, i) => (valor > novos[indiceDoMaior] ? i : indiceDoMaior), 0)
+  novos[maior] += sobra
+  return novos
+}
+
 export type OrigemDaBase = "simulado" | "recebido" | "media"
 
 // SALARIO-63: a base das prévias é o valor da simulação, quando preenchido;

@@ -201,6 +201,9 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
   it("editar muda a barra na hora, e Cancelar volta ao plano salvo sem gravar", async () => {
     render(<SalarioPage />)
     await userEvent.click(await screen.findByRole("button", { name: "Editar plano" }))
+    // Com as outras travadas, baixar Guardar deixa o resto livre
+    await userEvent.click(screen.getByRole("button", { name: "Travar Essenciais" }))
+    await userEvent.click(screen.getByRole("button", { name: "Travar Dispensáveis" }))
 
     const percentual = screen.getByLabelText("Percentual de Guardar")
     await userEvent.clear(percentual)
@@ -218,15 +221,18 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     expect(put).not.toHaveBeenCalled()
   })
 
-  it("a soma acima de 100% fica em vermelho", async () => {
+  it("a soma acima de 100% fica em vermelho, com o aviso", async () => {
     render(<SalarioPage />)
     await userEvent.click(await screen.findByRole("button", { name: "Editar plano" }))
+    await userEvent.click(screen.getByRole("button", { name: "Travar Essenciais" }))
+    await userEvent.click(screen.getByRole("button", { name: "Travar Dispensáveis" }))
 
     const percentual = screen.getByLabelText("Percentual de Guardar")
     await userEvent.clear(percentual)
     await userEvent.type(percentual, "60")
 
-    expect(screen.getByText("Soma: 140% · Passa de 100%")).toHaveClass("text-destructive")
+    expect(screen.getByText("Soma: 140%")).toHaveClass("text-destructive")
+    expect(screen.getByRole("alert")).toHaveTextContent("A soma dos percentuais passa de 100%.")
   })
 
   it("trocar de modelo a partir do resumo mantém o plano salvo até o novo ser salvo", async () => {

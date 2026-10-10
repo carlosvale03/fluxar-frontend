@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import { format } from "date-fns"
-import { ArrowDown, ArrowUp, Plus, Save, Shuffle, Trash2 } from "lucide-react"
+import { AlertTriangle, ArrowDown, ArrowUp, Lock, LockOpen, Plus, Save, Shuffle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { BarraDaDivisao, PontoDaCor, corDaParte } from "@/components/salario/BarraDaDivisao"
@@ -30,9 +30,17 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { lerData } from "@/lib/datas"
-import { deCentavos, formatarMoeda, lerValorDigitado, maiorQueZero } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, lerValorDigitado, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { baseDaPrevia, montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDaBase, textoDoPercentual } from "@/lib/salario"
+import {
+  baseDaPrevia,
+  montarBarra,
+  percentualParaCampo,
+  porcentagemNoHistorico,
+  repartirPercentual,
+  textoDaBase,
+  textoDoPercentual,
+} from "@/lib/salario"
 import { cn } from "@/lib/utils"
 import { salarioService } from "@/services/salario"
 import { AccountType, type Account } from "@/types/accounts"
@@ -114,6 +122,22 @@ function valorEnviado(parte: Rascunho): string | null {
   return parte.valor ? parte.valor : null
 }
 
+// O percentual da parte em centésimos de ponto (5000 = 50%); vazio vale zero
+function centesimosDe(parte: Rascunho): number {
+  const valor = lerValorDigitado(parte.valor)
+  return valor === null ? 0 : paraCentavos(valor)
+}
+
+interface EdicaoDoPercentual {
+  chave: string
+  // Soma dos percentuais antes da edição
+  total: number
+  // Soma das outras partes travadas
+  travadas: number
+  // As outras partes não travadas, com o percentual de antes da edição
+  livres: { chave: string; centesimos: number }[]
+}
+
 // SALARIO-55: quanto a meta pede por mês para chegar na data
 function pedidoDaMeta(parte: Rascunho, metas: Goal[]): { mensal: string; data: string } | null {
   if (!parte.destino.startsWith("GOAL:")) return null
@@ -177,6 +201,11 @@ export function EditorDoPlano({
   const [salvando, setSalvando] = useState(false)
   const [confirmarTroca, setConfirmarTroca] = useState(false)
   const listaDePartes = useRef<HTMLOListElement>(null)
+  // SALARIO-59: partes percentuais travadas, fora dos ajustes
+  const [travadas, setTravadas] = useState<Set<string>>(() => new Set())
+  // SALARIO-58: a edição de percentual em curso, com as partes como estavam
+  // quando ela começou; recomeça ao sair do campo ou mudar outra coisa
+  const edicao = useRef<EdicaoDoPercentual | null>(null)
 
   // Vindo de "Escolher destino" no resumo: o foco vai ao destino da parte
   useEffect(() => {
@@ -203,18 +232,65 @@ export function EditorDoPlano({
   const temFixas = partes.some((p) => p.rule_type === "FIXED")
   const alterado = assinatura(partes) !== assinaturaInicial
 
-  const alterar = (chave: string, mudanca: Partial<Rascunho>) => {
-    setPartes((atuais) => atuais.map((p) => (p.chave === chave ? { ...p, ...mudanca } : p)))
+  const limparErros = (chave: string) =>
     setErros((atuais) => {
       if (!atuais[chave]) return atuais
       const { [chave]: _removido, ...resto } = atuais
       void _removido
       return resto
     })
+
+  const alterar = (chave: string, mudanca: Partial<Rascunho>) => {
+    edicao.current = null
+    setPartes((atuais) => atuais.map((p) => (p.chave === chave ? { ...p, ...mudanca } : p)))
+    limparErros(chave)
+  }
+
+  // SALARIO-58 e SALARIO-59: ao mudar o percentual de uma parte, as outras
+  // partes percentuais não travadas são ajustadas na proporção de cada uma,
+  // para a soma dos percentuais ficar como era antes da edição. A proporção
+  // vem das partes como estavam quando a edição começou, para os ajustes de
+  // cada tecla não se acumularem; o campo editado nunca é mudado.
+  const mudarPercentual = (chave: string, texto: string) => {
+    let atual = edicao.current
+    if (!atual || atual.chave !== chave) {
+      const percentuais = partes.filter((p) => p.rule_type === "PERCENT")
+      const outras = percentuais.filter((p) => p.chave !== chave)
+      atual = {
+        chave,
+        total: percentuais.reduce((soma, p) => soma + centesimosDe(p), 0),
+        travadas: outras.filter((p) => travadas.has(p.chave)).reduce((soma, p) => soma + centesimosDe(p), 0),
+        livres: outras.filter((p) => !travadas.has(p.chave)).map((p) => ({ chave: p.chave, centesimos: centesimosDe(p) })),
+      }
+      edicao.current = atual
+    }
+    const novos: Record<string, string> = { [chave]: texto }
+    const valor = lerValorDigitado(texto)
+    if (valor !== null && atual.livres.length > 0) {
+      const repartidos = repartirPercentual(
+        atual.livres.map((p) => p.centesimos),
+        atual.total - paraCentavos(valor) - atual.travadas,
+      )
+      atual.livres.forEach((p, i) => (novos[p.chave] = percentualParaCampo(deCentavos(repartidos[i]))))
+    }
+    setPartes((atuais) => atuais.map((p) => (p.chave in novos ? { ...p, valor: novos[p.chave] } : p)))
+    limparErros(chave)
+  }
+
+  // SALARIO-59: a trava só existe na tela; não vai para o plano
+  const alternarTrava = (chave: string) => {
+    edicao.current = null
+    setTravadas((atuais) => {
+      const novas = new Set(atuais)
+      if (novas.has(chave)) novas.delete(chave)
+      else novas.add(chave)
+      return novas
+    })
   }
 
   // SALARIO-07: a ordem define quais partes são atendidas primeiro
   const mover = (indice: number, direcao: -1 | 1) => {
+    edicao.current = null
     setPartes((atuais) => {
       const destino = indice + direcao
       if (destino < 0 || destino >= atuais.length) return atuais
@@ -224,13 +300,18 @@ export function EditorDoPlano({
     })
   }
 
-  const remover = (chave: string) => setPartes((atuais) => atuais.filter((p) => p.chave !== chave))
+  const remover = (chave: string) => {
+    edicao.current = null
+    setPartes((atuais) => atuais.filter((p) => p.chave !== chave))
+  }
 
-  const adicionar = () =>
+  const adicionar = () => {
+    edicao.current = null
     setPartes((atuais) => [
       ...atuais,
       { chave: novaChave(), name: "", rule_type: "PERCENT", valor: "", destino: "", reference: "", inicial: null },
     ])
+  }
 
   // Trocar de modelo descarta as mudanças: com alguma, pede confirmação
   const pedirTroca = () => (alterado ? setConfirmarTroca(true) : onTrocarModelo())
@@ -315,9 +396,8 @@ export function EditorDoPlano({
 
   // "Soma: 80% · Livre: 20%"; com partes fixas, a soma em R$ entra junto
   const fixos = barra.somaDosFixos > 0 ? ` + ${formatarMoeda(deCentavos(barra.somaDosFixos))}` : ""
-  const resumoDaSoma = acimaDe100
-    ? `Soma: ${textoDoPercentual(barra.somaDosPercentuais)}${fixos} · Passa de 100%`
-    : temFixas && !base
+  const resumoDaSoma =
+    acimaDe100 || (temFixas && !base)
       ? `Soma: ${textoDoPercentual(barra.somaDosPercentuais)}${fixos}`
       : `Soma: ${textoDoPercentual(barra.somaDosPercentuais)}${fixos} · Livre: ${textoDoPercentual(barra.livre)}`
 
@@ -370,6 +450,7 @@ export function EditorDoPlano({
             const errosDaParte = erros[parte.chave] ?? {}
             const destino = opcoesDeDestino(parte)
             const fatia = barra.fatias[indice]
+            const travada = parte.rule_type === "PERCENT" && travadas.has(parte.chave)
             return (
               <li key={parte.chave} aria-label={rotulo} className="flex gap-2 py-3">
                 <div className="flex shrink-0 flex-col">
@@ -437,14 +518,32 @@ export function EditorDoPlano({
                         ))}
                       </div>
                       {parte.rule_type === "PERCENT" ? (
-                        <Input
-                          aria-label={`Percentual de ${rotulo}`}
-                          inputMode="decimal"
-                          value={parte.valor}
-                          placeholder="0"
-                          className="h-10 w-24 rounded-xl tabular-nums"
-                          onChange={(e) => alterar(parte.chave, { valor: e.target.value.replace(/[^\d,.]/g, "") })}
-                        />
+                        <>
+                          <Input
+                            aria-label={`Percentual de ${rotulo}`}
+                            inputMode="decimal"
+                            value={parte.valor}
+                            placeholder="0"
+                            className="h-10 w-24 rounded-xl tabular-nums"
+                            onChange={(e) => mudarPercentual(parte.chave, e.target.value.replace(/[^\d,.]/g, ""))}
+                            onBlur={() => (edicao.current = null)}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={cn(
+                              "h-10 w-10 shrink-0 rounded-xl",
+                              travada ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground",
+                            )}
+                            aria-pressed={travada}
+                            aria-label={travada ? `Destravar ${rotulo}` : `Travar ${rotulo}`}
+                            title={travada ? "Percentual travado: fica fora dos ajustes" : "Travar o percentual"}
+                            onClick={() => alternarTrava(parte.chave)}
+                          >
+                            {travada ? <Lock aria-hidden /> : <LockOpen aria-hidden />}
+                          </Button>
+                        </>
                       ) : (
                         <MoneyInput
                           aria-label={`Valor de ${rotulo}`}
@@ -524,9 +623,18 @@ export function EditorDoPlano({
         <Button variant="outline" className="h-10 rounded-xl px-4" onClick={adicionar}>
           <Plus aria-hidden /> Adicionar parte
         </Button>
-        <p aria-live="polite" className={cn("text-sm tabular-nums", acimaDe100 ? "font-medium text-destructive" : "text-muted-foreground")}>
-          {resumoDaSoma}
-        </p>
+        <div className="space-y-1 text-right">
+          <p aria-live="polite" className={cn("text-sm tabular-nums", acimaDe100 ? "font-medium text-destructive" : "text-muted-foreground")}>
+            {resumoDaSoma}
+          </p>
+          {/* SALARIO-60: com a soma acima de 100%, avisa e não deixa salvar */}
+          {acimaDe100 && (
+            <p role="alert" className="flex items-center justify-end gap-1.5 text-sm font-medium text-destructive">
+              <AlertTriangle aria-hidden className="h-4 w-4 shrink-0" />
+              A soma dos percentuais passa de 100%.
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
@@ -535,7 +643,7 @@ export function EditorDoPlano({
             Cancelar
           </Button>
         )}
-        <Button className="h-10 rounded-xl px-5 font-semibold" onClick={salvar} loading={salvando}>
+        <Button className="h-10 rounded-xl px-5 font-semibold" onClick={salvar} loading={salvando} disabled={acimaDe100}>
           {!salvando && <Save aria-hidden />}
           Salvar plano
         </Button>
