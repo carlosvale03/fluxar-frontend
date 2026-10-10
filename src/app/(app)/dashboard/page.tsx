@@ -14,6 +14,7 @@ import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
+import { ClassDistributionChart } from "@/components/dashboard/ClassDistributionChart"
 import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
 import { 
     AlertCircle, 
@@ -58,7 +59,7 @@ import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 
 const LARGE_MODULES = ["DAILY_CASH_FLOW", "BALANCE_EVOLUTION", "CREDIT_MANAGEMENT", "GOALS_JOURNEY"]
-const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "INCOME_SOURCE", "TAG_EXPENSE_DISTRIBUTION", "TAG_INCOME_SOURCE"]
+const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "CLASS_DISTRIBUTION", "INCOME_SOURCE", "TAG_EXPENSE_DISTRIBUTION", "TAG_INCOME_SOURCE"]
 const SMALL_MODULES = ["MONTHLY_BALANCE", "BUDGET_SUMMARY"]
 
 function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
@@ -168,7 +169,9 @@ export default function DashboardPage() {
             const normalizedCharts = {
                 income_vs_expense: chartsData?.income_vs_expense || [],
                 expense_by_category: chartsData?.expense_by_category || [],
-                income_by_category: chartsData?.income_by_category || []
+                income_by_category: chartsData?.income_by_category || [],
+                expense_by_class: chartsData?.expense_by_class || [],
+                period: chartsData?.period
             }
             
             setReport(reportData)
@@ -415,6 +418,18 @@ export default function DashboardPage() {
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
+                                />
+                            )
+                        case "CLASS_DISTRIBUTION":
+                            // CLASSE-31 a CLASSE-33: o clique leva o período dos gráficos
+                            return (
+                                <ClassDistributionChart
+                                    key={module.id}
+                                    data={charts?.expense_by_class || []}
+                                    isLoading={isLoading}
+                                    className={spanClass}
+                                    startDate={charts?.period?.start_date}
+                                    endDate={charts?.period?.end_date}
                                 />
                             )
                         case "INCOME_SOURCE":

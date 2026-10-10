@@ -69,7 +69,10 @@ export const getSimpleCharts = async (period?: string, month?: number, year?: nu
         income_by_category: (data.income_by_category || []).map((item: any) => ({
             ...item,
             id: item.category_id || item.id || item.categoryId || item.category || (item.category && item.category.id)
-        }))
+        })),
+        // CLASSE-28 e CLASSE-33: divisão por classe e o período dos gráficos
+        expense_by_class: data.expense_by_class || [],
+        period: data.period
     }
 }
 

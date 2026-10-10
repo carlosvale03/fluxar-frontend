@@ -50,6 +50,8 @@ export function paramsDaExportacao(filtros: FilterState): URLSearchParams {
   filtros.categoryIds.filter((id) => id !== "ALL").forEach((id) => params.append("categoryId", id));
   if (filtros.accountId && filtros.accountId !== "ALL") params.append("accountId", filtros.accountId);
   (filtros.tagIds ?? []).forEach((id) => params.append("tagIds", id));
+  // CLASSE-39: o filtro de classe com o mesmo significado da lista
+  (filtros.classIds ?? []).forEach((id) => params.append("classId", id));
   return params;
 }
 

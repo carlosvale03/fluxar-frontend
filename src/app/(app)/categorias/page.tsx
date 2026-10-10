@@ -1,13 +1,16 @@
 "use client"
 
 import { useState, useEffect, useMemo, Fragment } from "react"
-import { Category } from "@/types/categories"
+import { Category, ExpenseClass } from "@/types/categories"
 import { getCategories, deleteCategory } from "@/services/categories"
+import { getExpenseClasses } from "@/services/expense-classes"
+import { COR_SEM_CLASSE, ROTULO_SEM_CLASSE } from "@/lib/classes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag } from "lucide-react"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { GerenciarClasses } from "@/components/categories/GerenciarClasses"
 import { usePlan } from "@/hooks/use-plan"
 import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { LucideIcon } from "@/components/ui/icon-picker"
@@ -57,6 +60,22 @@ import { tratarErro } from "@/lib/erros"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
+// CLASSE-19: a classe efetiva com a cor dela, e "(herdada)" quando vem da mãe
+function ClasseDaCategoria({ categoria }: { categoria: Category }) {
+  const classe = categoria.effective_class
+  const cor = classe?.color ?? COR_SEM_CLASSE
+  const texto = classe ? `${classe.name}${categoria.class_inherited ? " (herdada)" : ""}` : ROTULO_SEM_CLASSE
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wide whitespace-nowrap"
+      style={{ backgroundColor: `${cor}1A`, color: cor }}
+    >
+      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cor }} />
+      {texto}
+    </span>
+  )
+}
+
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -66,6 +85,8 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null)
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null)
   const [creatingSubcategoryFor, setCreatingSubcategoryFor] = useState<Category | null>(null)
+  // CLASSE-17: as classes do usuário para o formulário das despesas
+  const [classes, setClasses] = useState<ExpenseClass[]>([])
 
   // PERM-20: limites de categorias principais e de subcategorias por
   // categoria-pai; o uso das subcategorias é contado aqui (só as ativas)
@@ -102,8 +123,18 @@ export default function CategoriesPage() {
     return CATEGORY_ICON_MAP[category.name.toLowerCase()] || "Tag"
   }
 
+  const fetchClasses = async () => {
+    try {
+      const data = await getExpenseClasses()
+      setClasses(Array.isArray(data) ? data : [])
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar as classes.", tentarDeNovo: fetchClasses })
+    }
+  }
+
   useEffect(() => {
     fetchCategories()
+    fetchClasses()
   }, [])
 
   const fetchCategories = async () => {
@@ -158,7 +189,7 @@ export default function CategoriesPage() {
   const incomeCategories = filteredCategories.filter((cat) => cat.type === "INCOME")
   const expenseCategories = filteredCategories.filter((cat) => cat.type === "EXPENSE")
 
-  const CategoryMobileList = ({ data }: { data: Category[] }) => {
+  const CategoryMobileList = ({ data, mostrarClasse = false }: { data: Category[]; mostrarClasse?: boolean }) => {
     if (data.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
@@ -189,6 +220,11 @@ export default function CategoriesPage() {
                         
                         <div className="flex-1 min-w-0">
                             <h3 className="font-black text-base text-foreground tracking-tight">{category.name}</h3>
+                            {mostrarClasse && (
+                                <div className="mt-1">
+                                    <ClasseDaCategoria categoria={category} />
+                                </div>
+                            )}
                             {category.subcategories && category.subcategories.length > 0 && (
                                 <div className="flex items-center gap-1.5 mt-1">
                                     <div className="w-1 h-1 rounded-full bg-primary" />
@@ -241,7 +277,10 @@ export default function CategoriesPage() {
                                     />
                                 </div>
                                 
-                                <span className="flex-1 text-sm font-bold text-foreground/60 tracking-tight truncate">{child.name}</span>
+                                <div className="flex-1 min-w-0 flex flex-col items-start gap-1">
+                                    <span className="text-sm font-bold text-foreground/60 tracking-tight truncate max-w-full">{child.name}</span>
+                                    {mostrarClasse && <ClasseDaCategoria categoria={child} />}
+                                </div>
                                 
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
@@ -269,7 +308,7 @@ export default function CategoriesPage() {
     )
   }
 
-  const CategoryTable = ({ data }: { data: Category[] }) => {
+  const CategoryTable = ({ data, mostrarClasse = false }: { data: Category[]; mostrarClasse?: boolean }) => {
     return (
     <div className="hidden sm:block sm:rounded-[32px] rounded-none border border-border/40 max-sm:border-x-0 bg-card overflow-hidden shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-700 max-sm:-mx-4">
       <Table>
@@ -277,6 +316,9 @@ export default function CategoriesPage() {
           <TableRow className="hover:bg-transparent border-b border-border/80">
             <TableHead className="w-[100px] text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px] pl-6">Ícone</TableHead>
             <TableHead className="text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px]">Nome</TableHead>
+            {mostrarClasse && (
+              <TableHead className="text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px]">Classe</TableHead>
+            )}
             <TableHead className="text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px]">Cor</TableHead>
             <TableHead className="text-right text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px] pr-6">Ações</TableHead>
           </TableRow>
@@ -284,7 +326,7 @@ export default function CategoriesPage() {
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="h-32 text-center text-muted-foreground font-medium italic">
+              <TableCell colSpan={mostrarClasse ? 5 : 4} className="h-32 text-center text-muted-foreground font-medium italic">
                 Nenhuma categoria encontrada.
               </TableCell>
             </TableRow>
@@ -319,6 +361,11 @@ export default function CategoriesPage() {
                             </span>
                         </div>
                     </TableCell>
+                    {mostrarClasse && (
+                        <TableCell>
+                            <ClasseDaCategoria categoria={parent} />
+                        </TableCell>
+                    )}
                     <TableCell>
                         <div className="flex items-center gap-2">
                             <div 
@@ -407,6 +454,11 @@ export default function CategoriesPage() {
                                     {child.name}
                                 </span>
                             </TableCell>
+                            {mostrarClasse && (
+                                <TableCell>
+                                    <ClasseDaCategoria categoria={child} />
+                                </TableCell>
+                            )}
                             <TableCell>
                                 <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
                                     <div 
@@ -468,6 +520,15 @@ export default function CategoriesPage() {
             </div>
         </div>
 
+        <div className="flex flex-col sm:flex-row gap-3">
+        {/* CLASSE-03 a CLASSE-09: classes de despesa, ao lado de Nova Categoria */}
+        <GerenciarClasses
+          onAlterar={() => {
+            refreshCategories()
+            fetchClasses()
+          }}
+        />
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
                 <Button disabled={limiteAtingido("limite_categorias")} className="rounded-full px-6 h-12 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
@@ -485,6 +546,7 @@ export default function CategoriesPage() {
                     </DialogDescription>
                   </DialogHeader>
                   <CategoryForm 
+                    classes={classes}
                     onSuccess={() => {
                         setIsCreateOpen(false)
                         refreshCategories()
@@ -495,6 +557,7 @@ export default function CategoriesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+        </div>
         </div>
 
         {/* PERM-20: uso e limite de categorias principais do plano */}
@@ -540,8 +603,8 @@ export default function CategoriesPage() {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             
             <TabsContent value="expenses" className="mt-0 space-y-4">
-              <CategoryTable data={expenseCategories} />
-              <CategoryMobileList data={expenseCategories} />
+              <CategoryTable data={expenseCategories} mostrarClasse />
+              <CategoryMobileList data={expenseCategories} mostrarClasse />
             </TabsContent>
             <TabsContent value="incomes" className="mt-0 space-y-4">
               <CategoryTable data={incomeCategories} />
@@ -564,6 +627,7 @@ export default function CategoriesPage() {
                   {creatingSubcategoryFor && (
                       <CategoryForm 
                         parentCategory={creatingSubcategoryFor}
+                        classes={classes}
                         currentSubcategoryCount={subcategoriasAtivas(creatingSubcategoryFor)}
                         onSuccess={() => {
                             setCreatingSubcategoryFor(null)
@@ -592,6 +656,8 @@ export default function CategoriesPage() {
                   {editingCategory && (
                       <CategoryForm 
                         category={editingCategory}
+                        categoriaMae={categories.find((c) => c.id === editingCategory.parent)}
+                        classes={classes}
                         onSuccess={() => {
                             setEditingCategory(null)
                             refreshCategories()

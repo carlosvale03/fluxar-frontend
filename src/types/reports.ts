@@ -101,6 +101,21 @@ export interface SimpleChartsReport {
         color: string
         percentage: number
     }[]
+    // CLASSE-28: despesas do período por classe efetiva, com "Sem classe"
+    // (class_id null), pelas mesmas transações de expense_by_category
+    expense_by_class?: ExpenseByClass[]
+    // Período dos gráficos, usado no clique para a lista (CLASSE-33)
+    period?: {
+        start_date: string
+        end_date: string
+    }
+}
+
+export interface ExpenseByClass {
+    class_id: string | null
+    class_name: string
+    color: string
+    amount: string
 }
 
 export interface AdvancedChartsReport {

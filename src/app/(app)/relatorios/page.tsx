@@ -13,6 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
+import { ClassDistributionChart } from "@/components/dashboard/ClassDistributionChart"
 import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
@@ -341,13 +342,24 @@ export default function ReportsPage() {
                             endDate={advancedData?.period?.end_date}
                         />
 
-                        <CategoryDistributionChart 
+                        {/* CLASSE-31 a CLASSE-33: ao lado das despesas por categoria; o
+                            clique usa o período dos próprios gráficos simples, que
+                            existem sem os relatórios avançados */}
+                        <ClassDistributionChart
+                            data={simpleData?.expense_by_class || []}
+                            isLoading={isLoadingSimple}
+                            startDate={simpleData?.period?.start_date}
+                            endDate={simpleData?.period?.end_date}
+                        />
+
+                        <CategoryDistributionChart
                             title="Distribuição de Ganhos"
                             description="Origem das receitas por categoria"
                             data={simpleData?.income_by_category || []}
                             isLoading={isLoadingSimple}
                             icon={Sparkles}
                             iconColor="text-emerald-500"
+                            className="lg:col-span-2"
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />

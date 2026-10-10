@@ -181,7 +181,9 @@ export default function TransactionsPage() {
       endDate: endDateParam ? parseISO(endDateParam) : endOfMonth(initialDate),
       type: "ALL",
       categoryIds: categoryParam ? [categoryParam] : [],
-      accountId: "ALL"
+      accountId: "ALL",
+      // CLASSE-33: o clique no gráfico por classe abre a lista com classId
+      classIds: searchParams.getAll("classId")
   })
 
   // Period View State
@@ -329,6 +331,8 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
       // CONTRATO-10 a CONTRATO-12: as categorias escolhidas vão repetidas
       // (categoryId=a&categoryId=b); o backend inclui as subcategorias
       filters.categoryIds.forEach(id => params.append('categoryId', id))
+      // CLASSE-34 e CLASSE-35: as classes vão repetidas, com sem_classe
+      for (const id of filters.classIds ?? []) params.append('classId', id)
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
       
       if (filters.tagIds && filters.tagIds.length > 0) {

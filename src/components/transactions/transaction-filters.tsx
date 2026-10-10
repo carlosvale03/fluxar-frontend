@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowDownCircle, ArrowUpCircle, CalendarIcon, Filter, Layers, Tag as TagIcon, Wallet, X } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, CalendarIcon, Filter, Layers, Shapes, Tag as TagIcon, Wallet, X } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -35,7 +35,8 @@ import { Separator } from "@/components/ui/separator"
 import { Checkbox } from "@/components/ui/checkbox"
 
 import { api } from "@/services/apiClient"
-import { Category } from "@/types/categories"
+import { Category, ExpenseClass } from "@/types/categories"
+import { COR_SEM_CLASSE, ROTULO_SEM_CLASSE, VALOR_SEM_CLASSE } from "@/lib/classes"
 import { Account, AccountTypeLabels } from "@/types/accounts"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { TagSelector } from "@/components/tags/TagSelector"
@@ -55,6 +56,9 @@ export interface FilterState {
   categoryIds: string[]
   accountId: string
   tagIds?: string[]
+  // CLASSE-34 e CLASSE-35: classes de despesa e `sem_classe`, enviadas como
+  // classId repetido
+  classIds?: string[]
 }
 
 export function TransactionFilters({ onApplyFilters, currentFilters }: TransactionFiltersProps) {
@@ -69,10 +73,22 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   const [categoryIds, setCategoryIds] = useState<string[]>(currentFilters.categoryIds)
   const [accountId, setAccountId] = useState<string>(currentFilters.accountId)
   const [tagIds, setTagIds] = useState<string[]>(currentFilters.tagIds || [])
+  const [classIds, setClassIds] = useState<string[]>(currentFilters.classIds || [])
 
   // Dependencies
   const [categories, setCategories] = useState<Category[]>([])
   const [accounts, setAccounts] = useState<Account[]>([])
+  const [classes, setClasses] = useState<ExpenseClass[]>([])
+
+  // As classes vêm à parte: uma falha aqui não tira os outros filtros
+  const fetchClasses = async () => {
+    try {
+        const resposta = await api.get("/expense-classes/")
+        setClasses(Array.isArray(resposta?.data) ? resposta.data : [])
+    } catch (error) {
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar as classes.", tentarDeNovo: fetchClasses })
+    }
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -83,8 +99,10 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         setCategoryIds(currentFilters.categoryIds)
         setAccountId(currentFilters.accountId)
         setTagIds(currentFilters.tagIds || [])
+        setClassIds(currentFilters.classIds || [])
 
         fetchDependencies()
+        fetchClasses()
     }
   }, [isOpen, currentFilters])
 
@@ -126,7 +144,8 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
           type,
           categoryIds,
           accountId,
-          tagIds
+          tagIds,
+          classIds
       })
       setIsOpen(false)
   }
@@ -135,6 +154,16 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       setCategoryIds(prev => marcada ? [...prev, id] : prev.filter(c => c !== id))
   }
 
+  const alternarClasse = (id: string, marcada: boolean) => {
+      setClassIds(prev => marcada ? [...prev, id] : prev.filter(c => c !== id))
+  }
+
+  // CLASSE-35: "Sem classe" é sempre uma opção, em cinza
+  const opcoesDeClasse = [
+      ...classes.map(c => ({ id: c.id, nome: c.name, cor: c.color })),
+      { id: VALOR_SEM_CLASSE, nome: ROTULO_SEM_CLASSE, cor: COR_SEM_CLASSE },
+  ]
+
   const handleClear = () => {
       setStartDate(undefined)
       setEndDate(undefined)
@@ -142,6 +171,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       setCategoryIds([])
       setAccountId("ALL")
       setTagIds([])
+      setClassIds([])
   }
 
   const activeFilterCount = [
@@ -149,7 +179,8 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       type !== "ALL",
       categoryIds.length > 0,
       accountId !== "ALL",
-      tagIds.length > 0
+      tagIds.length > 0,
+      classIds.length > 0
   ].filter(Boolean).length
 
   return (
@@ -334,6 +365,36 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                                 )}>
                                     {cat.name}
                                 </span>
+                            </label>
+                        )
+                    })}
+                </div>
+            </div>
+
+            {/* CLASSE-34 e CLASSE-35: várias classes e "Sem classe"; só despesas e compras no cartão */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <Shapes className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Classe da Despesa</Label>
+                </div>
+                <div className="rounded-[24px] border border-border/40 bg-muted/20 p-2 space-y-1">
+                    {opcoesDeClasse.map((classe) => {
+                        const marcada = classIds.includes(classe.id)
+                        return (
+                            <label
+                                key={classe.id}
+                                className={cn(
+                                    "flex items-center gap-2 rounded-xl px-2 py-1.5 cursor-pointer transition-colors hover:bg-muted/40",
+                                    marcada && "bg-primary/5"
+                                )}
+                            >
+                                <Checkbox
+                                    checked={marcada}
+                                    onCheckedChange={(valor) => alternarClasse(classe.id, valor === true)}
+                                    aria-label={`Classe ${classe.nome}`}
+                                />
+                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: classe.cor }} />
+                                <span className="font-bold text-xs">{classe.nome}</span>
                             </label>
                         )
                     })}
