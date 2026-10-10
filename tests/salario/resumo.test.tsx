@@ -8,7 +8,7 @@ import { api } from "@/services/apiClient"
 import type { PlanoDoSalario } from "@/types/salario"
 
 import { usuario } from "../permissoes/acesso"
-import { CATEGORIAS_DE_RECEITA, CONTAS, METAS, MODELOS, PLANO_SALVO, SEM_PLANO, parte, referencias, resposta } from "./dados"
+import { CATEGORIAS_DE_RECEITA, CONTAS, METAS, MODELOS, PLANO_SALVO, SEM_PLANO, parte, recebimento, referencias, resposta } from "./dados"
 
 // O plano salvo aparece como uma barra de 100% com a legenda das partes e o
 // livre; "Editar plano" abre o editor no mesmo lugar, "Cancelar" volta ao
@@ -37,9 +37,9 @@ Element.prototype.scrollIntoView ??= () => {}
 const get = vi.mocked(api.get)
 const put = vi.mocked(api.put)
 
-function comPlano(plano: PlanoDoSalario) {
+function comPlano(plano: PlanoDoSalario, pendentes: unknown[] = []) {
   const dados: Record<string, unknown> = {
-    "/salary/pending/": [],
+    "/salary/pending/": pendentes,
     "/salary/references/": referencias(),
     "/salary/plan/": plano,
     "/salary/models/": MODELOS,
@@ -76,6 +76,23 @@ beforeEach(() => {
 
 // A página inteira é pesada no jsdom quando a suíte roda em paralelo
 describe("Resumo e edição do plano", { timeout: 15000 }, () => {
+  it("o campo da simulação já vem com o valor do salário recebido mais recente", async () => {
+    comPlano(PLANO_SALVO, [recebimento({ amount: "4200.00" })])
+    render(<SalarioPage />)
+
+    const campo = await screen.findByLabelText("Valor do salário")
+
+    await vi.waitFor(() => expect((campo as HTMLInputElement).value).toMatch(/4\.200,00/))
+  })
+
+  it("sem salário recebido, o campo da simulação começa vazio", async () => {
+    render(<SalarioPage />)
+
+    const campo = await screen.findByLabelText("Valor do salário")
+
+    expect((campo as HTMLInputElement).value).toBe("")
+  })
+
   it("o cabeçalho diz qual é o plano ativo, ou que ainda não há plano", async () => {
     const { unmount } = render(<SalarioPage />)
     expect(await screen.findByText("Plano ativo: 50/30/20")).toBeInTheDocument()

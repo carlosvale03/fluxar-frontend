@@ -19,6 +19,8 @@ interface ResumoDoPlanoProps {
   partes: ParteDoPlano[]
   referencias: ReferenciasDoSalario | null
   onEditar: () => void
+  // Valor que já vem no campo da simulação: o salário recebido mais recente
+  valorSugerido?: string
 }
 
 function destinoDaParte(parte: ParteDoPlano): { texto: string; falta: boolean } {
@@ -44,8 +46,15 @@ const enviada = (parte: ParteDoPlano): ParteEnviada => ({
 // SALARIO-12, SALARIO-13, SALARIO-54 e SALARIO-55: o plano salvo como uma
 // barra de proporção e a legenda com destino, regra, histórico e o pedido da
 // meta. A simulação põe o valor de cada parte na própria legenda.
-export function ResumoDoPlano({ partes, referencias, onEditar }: ResumoDoPlanoProps) {
-  const [valorSimulado, setValorSimulado] = useState("")
+export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: ResumoDoPlanoProps) {
+  const [valorSimulado, setValorSimulado] = useState(valorSugerido ?? "")
+  const [sugeridoAnterior, setSugeridoAnterior] = useState(valorSugerido)
+  // O salário recebido pode chegar depois do plano: preenche o campo se o
+  // usuário ainda não digitou nada
+  if (valorSugerido !== sugeridoAnterior) {
+    setSugeridoAnterior(valorSugerido)
+    if (!valorSimulado && valorSugerido) setValorSimulado(valorSugerido)
+  }
   const [simulacao, setSimulacao] = useState<Simulacao | null>(null)
   const [simulando, setSimulando] = useState(false)
 

@@ -267,7 +267,12 @@ export function GestaoDoSalario() {
           {plano === null ? (
             <Skeleton className="h-64 w-full rounded-xl" />
           ) : telaDoPlano === "resumo" ? (
-            <ResumoDoPlano partes={plano.parts} referencias={referencias} onEditar={editarPlano} />
+            <ResumoDoPlano
+              partes={plano.parts}
+              referencias={referencias}
+              onEditar={editarPlano}
+              valorSugerido={pendentes?.[0]?.amount}
+            />
           ) : telaDoPlano === "escolha" ? (
             <EscolhaDoModelo
               modelos={modelos}

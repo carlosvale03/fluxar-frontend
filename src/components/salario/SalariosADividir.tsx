@@ -88,7 +88,7 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
                   </div>
                 </div>
                 <Button
-                  className="h-11 rounded-xl px-5 text-sm font-semibold self-start sm:self-auto"
+                  className="h-11 w-full rounded-xl px-5 text-sm font-semibold sm:w-auto"
                   onClick={() => onDividir(recebimento)}
                   aria-label={`Dividir ${recebimento.description} de ${formatarMoeda(recebimento.amount)}`}
                 >
