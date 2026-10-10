@@ -5,6 +5,7 @@ import { ArrowLeft, Loader2, Table as TableIcon } from "lucide-react"
 
 import { PassoArquivo } from "@/components/importacao/PassoArquivo"
 import { mesclarPlano } from "@/components/importacao/plano"
+import { RevisaoDeAbas } from "@/components/importacao/RevisaoDeAbas"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -153,10 +154,6 @@ function ConteudoDoAssistente() {
   }
 
   const emRevisao = !!arquivo && !!analise
-  // Usados pelas abas da revisão
-  void plano
-  void alterarPlano
-
   return (
     <div className="p-6 overflow-y-auto max-h-[95vh] custom-scrollbar">
       <DialogHeader className="mb-4">
@@ -185,7 +182,9 @@ function ConteudoDoAssistente() {
               <TabsTrigger value="contas" className="rounded-xl font-bold text-xs">Contas</TabsTrigger>
               <TabsTrigger value="linhas" className="rounded-xl font-bold text-xs">Linhas</TabsTrigger>
             </TabsList>
-            <TabsContent value="abas" className="pt-2">{null}</TabsContent>
+            <TabsContent value="abas" className="pt-2">
+              <RevisaoDeAbas plano={plano} onAlterar={alterarPlano} />
+            </TabsContent>
             <TabsContent value="contas" className="pt-2">{null}</TabsContent>
             <TabsContent value="linhas" className="pt-2">{null}</TabsContent>
           </Tabs>
