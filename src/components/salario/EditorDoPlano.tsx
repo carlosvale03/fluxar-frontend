@@ -29,9 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { lerData } from "@/lib/datas"
-import { deCentavos, formatarMoeda, lerValorDigitado, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, lerValorDigitado, maiorQueZero } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDoPercentual } from "@/lib/salario"
+import { baseDaPrevia, montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDaBase, textoDoPercentual } from "@/lib/salario"
 import { cn } from "@/lib/utils"
 import { salarioService } from "@/services/salario"
 import { AccountType, type Account } from "@/types/accounts"
@@ -136,21 +136,30 @@ interface EditorDoPlanoProps {
   contas: Account[]
   metas: Goal[]
   referencias: ReferenciasDoSalario | null
+  // SALARIO-63: o campo da simulação, o mesmo do resumo
+  valorSimulado: string
+  onValorSimulado: (valor: string) => void
+  // O salário recebido mais recente, base das prévias sem valor simulado
+  valorRecebido?: string
   onSalvo: (plano: PlanoDoSalario) => void
   onTrocarModelo: () => void
   // Com plano salvo: volta ao plano como estava
   onCancelar?: () => void
 }
 
-// SALARIO-04 a SALARIO-07, SALARIO-12, SALARIO-54 e SALARIO-55: as partes em
-// ordem de prioridade, com regra, valor e destino, e a barra da divisão
-// mudando enquanto o plano é editado. Nada muda antes de salvar.
+// SALARIO-04 a SALARIO-07, SALARIO-12, SALARIO-54, SALARIO-55 e SALARIO-63:
+// as partes em ordem de prioridade, com regra, valor e destino, e a barra da
+// divisão e o valor de cada parte mudando enquanto o plano é editado. Nada
+// muda antes de salvar.
 export function EditorDoPlano({
   partesIniciais,
   categoriasDoSalario,
   contas,
   metas,
   referencias,
+  valorSimulado,
+  onValorSimulado,
+  valorRecebido,
   onSalvo,
   onTrocarModelo,
   onCancelar,
@@ -168,8 +177,8 @@ export function EditorDoPlano({
   )
   const metasDeDestino = useMemo(() => metas.filter((m) => m.is_active !== false), [metas])
 
-  const mediaDoSalario = referencias ? paraCentavos(referencias.history.salary_average) : 0
-  const base = mediaDoSalario > 0 ? mediaDoSalario : null
+  const baseDaBarra = baseDaPrevia(valorSimulado, valorRecebido, referencias?.history.salary_average)
+  const base = baseDaBarra?.centavos ?? null
   const barra = montarBarra(
     partes.map((p) => ({ nome: p.name.trim(), regra: p.rule_type, valor: valorEnviado(p) })),
     base,
@@ -309,13 +318,27 @@ export function EditorDoPlano({
 
       <div className="space-y-2">
         <BarraDaDivisao barra={barra} />
-        {temFixas && base ? (
+        {baseDaBarra ? (
           <p className="text-xs text-muted-foreground tabular-nums">
-            Partes em R$ comparadas à sua média de salário, {formatarMoeda(deCentavos(base))}
+            {textoDaBase(baseDaBarra)}
+            {temFixas && ". Os percentuais valem sobre o que sobra depois das partes em R$."}
           </p>
         ) : barra.fixasForaDaBarra > 0 ? (
-          <p className="text-xs text-muted-foreground">Partes em R$ ficam fora da barra até haver uma média de salário.</p>
+          <p className="text-xs text-muted-foreground">Partes em R$ entram na barra quando você simula um valor.</p>
         ) : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <label htmlFor="valor-simulado-no-editor" className="text-sm text-muted-foreground">
+            Simular com
+          </label>
+          <MoneyInput
+            id="valor-simulado-no-editor"
+            aria-label="Valor do salário"
+            value={valorSimulado}
+            placeholder="R$ 0,00"
+            className="h-10 w-40 rounded-xl tabular-nums"
+            onValueChange={(valor) => onValorSimulado(valor ?? "")}
+          />
+        </div>
       </div>
 
       {partes.length === 0 ? (
@@ -330,6 +353,7 @@ export function EditorDoPlano({
             const pedido = pedidoDaMeta(parte, metas)
             const errosDaParte = erros[parte.chave] ?? {}
             const destino = opcoesDeDestino(parte)
+            const fatia = barra.fatias[indice]
             return (
               <li key={parte.chave} aria-label={rotulo} className="flex gap-2 py-3">
                 <div className="flex shrink-0 flex-col">
@@ -451,6 +475,14 @@ export function EditorDoPlano({
                   </div>
 
                   <div className="space-y-0.5 pl-[18px] text-xs empty:hidden">
+                    {fatia?.centavos != null &&
+                      (fatia.reduzida ? (
+                        <p className="font-medium text-amber-700 dark:text-amber-400 tabular-nums">
+                          Reduzida para {formatarMoeda(deCentavos(fatia.centavos))}
+                        </p>
+                      ) : parte.rule_type === "PERCENT" ? (
+                        <p className="font-medium text-foreground tabular-nums">Recebe {formatarMoeda(deCentavos(fatia.centavos))}</p>
+                      ) : null)}
                     {errosDaParte.name && <p className="font-medium text-destructive">{errosDaParte.name}</p>}
                     {errosDaParte.value && <p className="font-medium text-destructive">{errosDaParte.value}</p>}
                     {errosDaParte.destination && <p className="font-medium text-destructive">{errosDaParte.destination}</p>}

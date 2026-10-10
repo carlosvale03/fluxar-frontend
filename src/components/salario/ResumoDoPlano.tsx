@@ -11,7 +11,7 @@ import { MoneyInput } from "@/components/ui/money-input"
 import { lerData } from "@/lib/datas"
 import { deCentavos, formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDoPercentual } from "@/lib/salario"
+import { baseDaPrevia, montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDaBase, textoDoPercentual } from "@/lib/salario"
 import { salarioService } from "@/services/salario"
 import type { ParteDoPlano, ParteEnviada, ReferenciasDoSalario, Simulacao } from "@/types/salario"
 
@@ -19,8 +19,11 @@ interface ResumoDoPlanoProps {
   partes: ParteDoPlano[]
   referencias: ReferenciasDoSalario | null
   onEditar: () => void
-  // Valor que já vem no campo da simulação: o salário recebido mais recente
-  valorSugerido?: string
+  // O valor do campo da simulação, que a página guarda para o editor também
+  valorSimulado: string
+  onValorSimulado: (valor: string) => void
+  // O salário recebido mais recente, base das prévias sem valor simulado
+  valorRecebido?: string
 }
 
 function destinoDaParte(parte: ParteDoPlano): { texto: string; falta: boolean } {
@@ -43,37 +46,28 @@ const enviada = (parte: ParteDoPlano): ParteEnviada => ({
   reference: parte.reference,
 })
 
-// SALARIO-12, SALARIO-13, SALARIO-54 e SALARIO-55: o plano salvo como uma
-// barra de proporção e a legenda com destino, regra, histórico e o pedido da
-// meta. A simulação põe o valor de cada parte na própria legenda.
-export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: ResumoDoPlanoProps) {
-  const [valorSimulado, setValorSimulado] = useState(valorSugerido ?? "")
-  const [sugeridoAnterior, setSugeridoAnterior] = useState(valorSugerido)
-  // O salário recebido pode chegar depois do plano: preenche o campo se o
-  // usuário ainda não digitou nada
-  if (valorSugerido !== sugeridoAnterior) {
-    setSugeridoAnterior(valorSugerido)
-    if (!valorSimulado && valorSugerido) setValorSimulado(valorSugerido)
-  }
+// SALARIO-12, SALARIO-13, SALARIO-54, SALARIO-55 e SALARIO-63: o plano salvo
+// como uma barra de proporção e a legenda com destino, regra, histórico e o
+// pedido da meta. O valor de cada parte é calculado na hora pela regra de
+// SALARIO-26 sobre a base da prévia; "Simular" pede a divisão ao backend.
+export function ResumoDoPlano({ partes, referencias, onEditar, valorSimulado, onValorSimulado, valorRecebido }: ResumoDoPlanoProps) {
   const [simulacao, setSimulacao] = useState<Simulacao | null>(null)
   const [simulando, setSimulando] = useState(false)
 
-  const mediaDoSalario = referencias ? paraCentavos(referencias.history.salary_average) : 0
-  const base = simulacao ? paraCentavos(simulacao.amount) : mediaDoSalario > 0 ? mediaDoSalario : null
+  const base = simulacao
+    ? { centavos: paraCentavos(simulacao.amount), origem: "simulado" as const }
+    : baseDaPrevia(valorSimulado, valorRecebido, referencias?.history.salary_average)
   // Com a simulação, a barra mostra o que cada parte recebeu de fato
   const barra = simulacao
     ? montarBarra(
         simulacao.items.map((item) => ({ nome: item.name, regra: "FIXED" as const, valor: item.amount })),
-        base,
+        base?.centavos ?? null,
       )
     : montarBarra(
         partes.map((p) => ({ nome: p.name, regra: p.rule_type, valor: p.value })),
-        base,
+        base?.centavos ?? null,
       )
   const temFixas = partes.some((p) => p.rule_type === "FIXED")
-  const livreEmReais = simulacao
-    ? paraCentavos(simulacao.amount) - simulacao.items.reduce((soma, item) => soma + paraCentavos(item.amount), 0)
-    : 0
 
   // SALARIO-13: quanto vai para cada parte e quanto fica livre, sem gravar nada
   const simular = async (evento: FormEvent) => {
@@ -105,11 +99,10 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: 
 
       <div className="space-y-2">
         <BarraDaDivisao barra={barra} />
-        {simulacao ? (
-          <p className="text-xs text-muted-foreground tabular-nums">Com um salário de {formatarMoeda(simulacao.amount)}</p>
-        ) : temFixas && base ? (
+        {base ? (
           <p className="text-xs text-muted-foreground tabular-nums">
-            Partes em R$ comparadas à sua média de salário, {formatarMoeda(deCentavos(base))}
+            {textoDaBase(base)}
+            {temFixas && ". Os percentuais valem sobre o que sobra depois das partes em R$."}
           </p>
         ) : barra.fixasForaDaBarra > 0 ? (
           <p className="text-xs text-muted-foreground">Partes em R$ entram na barra quando você simula um valor.</p>
@@ -121,6 +114,9 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: 
           const destino = destinoDaParte(parte)
           const historico = porcentagemNoHistorico(parte.reference, referencias)
           const item = simulacao?.items[indice]
+          const fatia = barra.fatias[indice]
+          const valor = item ? item.amount : fatia?.centavos != null ? deCentavos(fatia.centavos) : null
+          const reduzida = item ? item.reduced : (fatia?.reduzida ?? false)
           return (
             <li key={parte.id} aria-label={parte.name} className="flex items-start gap-3 py-3">
               <PontoDaCor className={`mt-1.5 ${corDaParte(indice)}`} />
@@ -141,14 +137,14 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: 
                 )}
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold tabular-nums">{item ? formatarMoeda(item.amount) : regraDaParte(parte)}</p>
-                {item && <p className="text-xs text-muted-foreground tabular-nums">{regraDaParte(parte)}</p>}
-                {item?.reduced && <p className="text-xs font-medium text-amber-700 dark:text-amber-400">reduzida</p>}
+                <p className="text-sm font-semibold tabular-nums">{valor !== null ? formatarMoeda(valor) : regraDaParte(parte)}</p>
+                {valor !== null && <p className="text-xs text-muted-foreground tabular-nums">{regraDaParte(parte)}</p>}
+                {reduzida && <p className="text-xs font-medium text-amber-700 dark:text-amber-400">reduzida</p>}
               </div>
             </li>
           )
         })}
-        {(simulacao ? livreEmReais > 0 : barra.livre > 0) && (
+        {barra.livre > 0 && (
           <li aria-label="Livre" className="flex items-start gap-3 py-3">
             <PontoDaCor className={`mt-1.5 ${COR_DO_LIVRE}`} />
             <div className="min-w-0 flex-1 space-y-0.5">
@@ -156,7 +152,7 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: 
               <p className="text-xs text-muted-foreground">Não vai para nenhuma parte</p>
             </div>
             <p className="shrink-0 text-sm font-semibold tabular-nums">
-              {simulacao ? formatarMoeda(deCentavos(livreEmReais)) : textoDoPercentual(barra.livre)}
+              {barra.livreEmCentavos !== null ? formatarMoeda(deCentavos(barra.livreEmCentavos)) : textoDoPercentual(barra.livre)}
             </p>
           </li>
         )}
@@ -186,7 +182,7 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: 
           placeholder="R$ 0,00"
           className="h-10 w-40 rounded-xl tabular-nums"
           onValueChange={(valor) => {
-            setValorSimulado(valor ?? "")
+            onValorSimulado(valor ?? "")
             setSimulacao(null)
           }}
         />
@@ -200,7 +196,7 @@ export function ResumoDoPlano({ partes, referencias, onEditar, valorSugerido }: 
             className="h-10 rounded-xl px-3"
             onClick={() => {
               setSimulacao(null)
-              setValorSimulado("")
+              onValorSimulado("")
             }}
           >
             Limpar

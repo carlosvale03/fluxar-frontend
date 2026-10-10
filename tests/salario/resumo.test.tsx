@@ -51,7 +51,8 @@ function comPlano(plano: PlanoDoSalario, pendentes: unknown[] = []) {
 }
 
 // 50% na conta do salário, 30% sem destino e R$ 300,00 na Reserva: sobre a
-// média de R$ 3.000,00, o fixo é 10% e ficam 10% livres
+// média de R$ 3.000,00, o fixo sai antes (10%) e os percentuais valem sobre
+// R$ 2.700,00 (R$ 1.350,00 e R$ 810,00), com R$ 540,00 (18%) livres
 const PLANO_COM_LIVRE: PlanoDoSalario = {
   has_plan: true,
   parts: [
@@ -124,11 +125,59 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     render(<SalarioPage />)
     await regiaoDoPlano()
 
-    expect(barra()).toHaveAccessibleName("Divisão do salário: Essenciais 50%, Guardar 30%, Reserva 10%, Livre 10%")
-    expect(legenda("Livre")).toHaveTextContent("10%")
+    expect(barra()).toHaveAccessibleName("Divisão do salário: Essenciais 45%, Guardar 27%, Reserva 10%, Livre 18%")
+    expect(legenda("Livre")).toHaveTextContent("R$ 540,00")
     expect(legenda("Guardar")).toHaveTextContent("Sem destino")
     expect(legenda("Reserva")).toHaveTextContent("R$ 300,00")
     expect(screen.getByText("Plano ativo: 3 partes")).toBeInTheDocument()
+  })
+
+  it("com uma parte fixa, as prévias tiram o fixo antes e aplicam os percentuais sobre o que sobra", async () => {
+    // R$ 500,00 fixos e 50/30/20 com o salário recebido de R$ 3.000,00
+    const comFixa: PlanoDoSalario = {
+      ...PLANO_SALVO,
+      parts: [
+        parte({ id: "p-alu", name: "Aluguel", rule_type: "FIXED", value: "500.00", destination_type: "ACCOUNT", destination_name: "Reserva", account: "conta-reserva" }),
+        ...PLANO_SALVO.parts,
+      ],
+    }
+    comPlano(comFixa, [recebimento()])
+    render(<SalarioPage />)
+    await regiaoDoPlano()
+
+    await vi.waitFor(() => expect(legenda("Essenciais")).toHaveTextContent("R$ 1.250,00"))
+    expect(legenda("Essenciais")).toHaveTextContent("50%")
+    expect(legenda("Dispensáveis")).toHaveTextContent("R$ 750,00")
+    expect(legenda("Guardar")).toHaveTextContent("R$ 500,00")
+    expect(legenda("Aluguel")).toHaveTextContent("R$ 500,00")
+    expect(screen.getByText(/^Com o salário de R\$\s3\.000,00/)).toHaveTextContent("Os percentuais valem sobre o que sobra")
+    expect(within(partes()).queryByRole("listitem", { name: "Livre" })).not.toBeInTheDocument()
+
+    // O valor digitado muda as prévias antes de simular
+    const campo = screen.getByLabelText("Valor do salário")
+    await userEvent.clear(campo)
+    await userEvent.type(campo, "1500")
+    expect(legenda("Essenciais")).toHaveTextContent("R$ 500,00")
+    expect(legenda("Guardar")).toHaveTextContent("R$ 200,00")
+
+    // No editor, o mesmo valor e o quanto cada parte recebe, antes de salvar
+    await userEvent.click(screen.getByRole("button", { name: "Editar plano" }))
+    expect((screen.getByLabelText("Valor do salário") as HTMLInputElement).value).toMatch(/1\.500,00/)
+    expect(within(partes()).getByRole("listitem", { name: "Essenciais" })).toHaveTextContent("Recebe R$ 500,00")
+    await userEvent.clear(screen.getByLabelText("Valor do salário"))
+    await userEvent.type(screen.getByLabelText("Valor do salário"), "3000")
+    expect(within(partes()).getByRole("listitem", { name: "Essenciais" })).toHaveTextContent("Recebe R$ 1.250,00")
+    expect(within(partes()).getByRole("listitem", { name: "Dispensáveis" })).toHaveTextContent("Recebe R$ 750,00")
+    expect(put).not.toHaveBeenCalled()
+    expect(vi.mocked(api.post)).not.toHaveBeenCalled()
+  })
+
+  it("sem salário recebido nem simulado, as prévias usam a média do histórico e dizem isso", async () => {
+    render(<SalarioPage />)
+    await regiaoDoPlano()
+
+    expect(await screen.findByText(/^Com a média do seu salário \(R\$\s3\.000,00\)/)).toBeInTheDocument()
+    expect(legenda("Essenciais")).toHaveTextContent("R$ 1.500,00")
   })
 
   it("editar muda a barra na hora, e Cancelar volta ao plano salvo sem gravar", async () => {

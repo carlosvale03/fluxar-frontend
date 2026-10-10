@@ -65,9 +65,24 @@ export function GestaoDoSalario() {
   const [paraDesfazer, setParaDesfazer] = useState<DivisaoDoSalario | null>(null)
   // SALARIO-45 e SALARIO-49: divisões que ainda podem ser desfeitas
   const [recentes, setRecentes] = useState<DivisaoDoSalario[] | null>(null)
+  // SALARIO-13 e SALARIO-63: o campo da simulação, o mesmo no resumo e no
+  // editor, que já vem com o salário recebido mais recente
+  const [valorSimulado, setValorSimulado] = useState("")
+  const [recebidoAnterior, setRecebidoAnterior] = useState<string | undefined>(undefined)
   const ultimoParam = useRef<string | null>(null)
   const painelDeReceitas = useRef<HTMLElement>(null)
   const secaoDoPlano = useRef<HTMLElement>(null)
+
+  const valorRecebido = pendentes?.reduce<RecebimentoDoSalario | null>(
+    (maisRecente, r) => (!maisRecente || r.date > maisRecente.date ? r : maisRecente),
+    null,
+  )?.amount
+  // O salário recebido pode chegar depois do plano: preenche o campo se o
+  // usuário ainda não digitou nada
+  if (valorRecebido !== recebidoAnterior) {
+    setRecebidoAnterior(valorRecebido)
+    if (!valorSimulado && valorRecebido) setValorSimulado(valorRecebido)
+  }
 
   async function carregarPendentes() {
     try {
@@ -271,7 +286,9 @@ export function GestaoDoSalario() {
               partes={plano.parts}
               referencias={referencias}
               onEditar={editarPlano}
-              valorSugerido={pendentes?.[0]?.amount}
+              valorSimulado={valorSimulado}
+              onValorSimulado={setValorSimulado}
+              valorRecebido={valorRecebido}
             />
           ) : telaDoPlano === "escolha" ? (
             <EscolhaDoModelo
@@ -288,6 +305,9 @@ export function GestaoDoSalario() {
               contas={contas}
               metas={metas}
               referencias={referencias}
+              valorSimulado={valorSimulado}
+              onValorSimulado={setValorSimulado}
+              valorRecebido={valorRecebido}
               onSalvo={planoSalvo}
               onTrocarModelo={() => setTelaDoPlano("escolha")}
               onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
