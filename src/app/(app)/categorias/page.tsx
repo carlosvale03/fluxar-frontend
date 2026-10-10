@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag } from "lucide-react"
 import { CategoryForm } from "@/components/categories/CategoryForm"
+import { GerenciarClasses } from "@/components/categories/GerenciarClasses"
 import { usePlan } from "@/hooks/use-plan"
 import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { LucideIcon } from "@/components/ui/icon-picker"
@@ -468,6 +469,10 @@ export default function CategoriesPage() {
             </div>
         </div>
 
+        <div className="flex flex-col sm:flex-row gap-3">
+        {/* CLASSE-03 a CLASSE-09: classes de despesa, ao lado de Nova Categoria */}
+        <GerenciarClasses onAlterar={refreshCategories} />
+
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
                 <Button disabled={limiteAtingido("limite_categorias")} className="rounded-full px-6 h-12 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
@@ -495,6 +500,7 @@ export default function CategoriesPage() {
               </ScrollArea>
             </DialogContent>
           </Dialog>
+        </div>
         </div>
 
         {/* PERM-20: uso e limite de categorias principais do plano */}
