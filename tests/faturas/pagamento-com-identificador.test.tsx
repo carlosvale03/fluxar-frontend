@@ -27,10 +27,10 @@ const CONTAS = [
 const FATURA = {
   id: "fatura-1",
   credit_card_id: "cartao-1",
-  month: 10,
-  year: 2026,
-  due_date: "2026-10-10",
-  closing_date: "2026-10-03",
+  month: 3,
+  year: 2025,
+  due_date: "2025-03-10",
+  closing_date: "2025-03-03",
   status: "CLOSED",
   total_amount: "1000.00",
   payment: null,
@@ -57,7 +57,7 @@ function dialogo(open: boolean) {
 }
 
 async function confirmarQuandoPronto() {
-  await screen.findByText("10/10/2026")
+  await screen.findByText("10/03/2025")
   await vi.waitFor(() => expect(botaoConfirmar()).toBeEnabled())
   await userEvent.click(botaoConfirmar())
 }
