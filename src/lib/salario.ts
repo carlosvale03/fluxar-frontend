@@ -39,16 +39,8 @@ export function quantidadeDeTransacoes(n: number): string {
   return `${n} ${n === 1 ? "transação" : "transações"}`
 }
 
-// O nome do modelo quando o plano salvo tem exatamente as partes dele, para o
-// status da página ("Plano ativo: 50/30/20"); senão, null
-export function modeloDoPlano(
-  partes: { name: string; rule_type: RegraDaParte; value: string }[],
-  modelos: ModeloDeDivisao[] | null | undefined,
-): string | null {
-  return modeloCorrespondente(partes, modelos)?.name ?? null
-}
-
-// O modelo que tem exatamente as partes do plano, ou null
+// O modelo que tem exatamente as partes do plano, ou null: dá o nome do
+// status da página ("Plano ativo: 50/30/20") e o sentido das partes
 export function modeloCorrespondente(
   partes: { name: string; rule_type: RegraDaParte; value: string }[],
   modelos: ModeloDeDivisao[] | null | undefined,
