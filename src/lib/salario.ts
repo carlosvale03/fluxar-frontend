@@ -1,5 +1,5 @@
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
-import type { ModeloDeDivisao, ReferenciaDaParte, ReferenciasDoSalario, RegraDaParte } from "@/types/salario"
+import type { ModeloDeDivisao, ReferenciaDaParte, ReferenciasDoSalario, RegraDaParte, SaidaDescontada } from "@/types/salario"
 
 // SALARIO-56: com menos de 3 meses completos, a tela diz quantos entraram na
 // média ("Média de 1 mês", "Média de 2 meses")
@@ -37,6 +37,18 @@ export function percentualParaCampo(valor: string): string {
 // "N transações" com o singular para uma (SALARIO-31)
 export function quantidadeDeTransacoes(n: number): string {
   return `${n} ${n === 1 ? "transação" : "transações"}`
+}
+
+// "N saídas" com o singular para uma (SALARIO-71)
+export function quantidadeDeSaidas(n: number): string {
+  return `${n} ${n === 1 ? "saída" : "saídas"}`
+}
+
+// SALARIO-68: "Descontou R$ 130,00 em 1 saída", ou null sem desconto
+export function resumoDoDesconto(saidas: SaidaDescontada[] | undefined): string | null {
+  if (!saidas?.length) return null
+  const total = saidas.reduce((soma, saida) => soma + paraCentavos(saida.amount), 0)
+  return `Descontou ${formatarMoeda(deCentavos(total))} em ${quantidadeDeSaidas(saidas.length)}`
 }
 
 // O modelo que tem exatamente as partes do plano, ou null: dá o nome do

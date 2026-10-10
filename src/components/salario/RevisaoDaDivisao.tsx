@@ -11,15 +11,62 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { MoneyInput } from "@/components/ui/money-input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Skeleton } from "@/components/ui/skeleton"
 import { lerData } from "@/lib/datas"
-import { formatarMoeda } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { quantidadeDeTransacoes } from "@/lib/salario"
+import { quantidadeDeTransacoes, resumoDoDesconto } from "@/lib/salario"
 import { salarioService } from "@/services/salario"
-import type { AjustesDaDivisao, DivisaoDoSalario, ItemDaDivisaoCalculada, RevisaoDaDivisao as Revisao } from "@/types/salario"
+import type {
+  AjustesDaDivisao,
+  DivisaoDoSalario,
+  ItemDaDivisaoCalculada,
+  RevisaoDaDivisao as Revisao,
+  SaidaDoSalario,
+  SaidasDaDivisao,
+} from "@/types/salario"
 
 const dataCurta = (data: string | null | undefined) => (data ? format(lerData(data), "dd/MM/yyyy") : "")
+
+// SALARIO-71: o Select do Radix não aceita valor vazio
+const NAO_DESCONTAR = "nao-descontar"
+// Saídas visíveis antes de "Mostrar todas"
+const SAIDAS_VISIVEIS = 6
+// Espera entre a troca da parte de uma saída e o novo cálculo
+const ESPERA_DO_RECALCULO = 300
+
+interface Pedido {
+  ajustes: AjustesDaDivisao
+  escolhas: SaidasDaDivisao
+}
+
+const VAZIO: Pedido = { ajustes: {}, escolhas: {} }
+
+// "Despesa", "Transferência para Reserva", "Aporte em Viagem", "Fatura do
+// Nubank". A API não diz se a transferência foi um aporte: é aporte quando o
+// destino tem o nome de uma meta do plano
+function tipoDaSaida(saida: SaidaDoSalario, itens: ItemDaDivisaoCalculada[]): string {
+  const destino = saida.destination_name
+  switch (saida.type) {
+    case "EXPENSE":
+      return saida.category_name ? `Despesa (${saida.category_name})` : "Despesa"
+    case "TRANSFER_OUT":
+      if (!destino) return "Transferência"
+      return itens.some((item) => item.destination_type === "GOAL" && item.destination_name === destino)
+        ? `Aporte em ${destino}`
+        : `Transferência para ${destino}`
+    case "INVOICE_PAYMENT":
+      return destino ? `Fatura do ${destino}` : "Pagamento de fatura"
+    case "CREDIT_CARD":
+      return destino ? `Compra no ${destino}` : "Compra no cartão"
+    default:
+      return "Saída"
+  }
+}
+
+const sugestoesDe = (saidas: SaidaDoSalario[]): SaidasDaDivisao =>
+  Object.fromEntries(saidas.map((saida) => [saida.id, saida.suggested_part_id]))
 
 interface RevisaoDaDivisaoProps {
   // Recebimento a dividir; null fecha a revisão
@@ -30,78 +77,161 @@ interface RevisaoDaDivisaoProps {
 }
 
 // SALARIO-29 a SALARIO-31 e SALARIO-44: a revisão de cada transação, o ajuste
-// por parte, a confirmação forte e, no fim, as transações criadas
+// por parte, a confirmação forte e, no fim, as transações criadas.
+// SALARIO-71: as saídas da conta do salário desde o recebimento, cada uma
+// descontada da parte escolhida
 export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesfazer }: RevisaoDaDivisaoProps) {
   const open = recebimentoId !== null
   const [revisao, setRevisao] = useState<Revisao | null>(null)
-  const [ajustes, setAjustes] = useState<AjustesDaDivisao>({})
+  // A parte escolhida para cada saída, como aparece nos Selects
+  const [escolhas, setEscolhas] = useState<SaidasDaDivisao>({})
   // Texto em edição de cada ajuste, por id da parte
   const [digitados, setDigitados] = useState<Record<string, string>>({})
   const [confirmado, setConfirmado] = useState(false)
   const [recalculando, setRecalculando] = useState(false)
   const [gerando, setGerando] = useState(false)
   const [resultado, setResultado] = useState<DivisaoDoSalario | null>(null)
+  const [todasAsSaidas, setTodasAsSaidas] = useState(false)
 
   // SALARIO-37 e AD-007: uma chave por abertura da revisão, reenviada em
   // toda nova tentativa até o sucesso; fechar e abrir de novo gera outra
   const chaveDaTentativa = useRef("")
+  // Ajustes e saídas do último pedido e os da revisão na tela; a geração
+  // envia os da tela, iguais aos do pedido fora do recálculo
+  const pedido = useRef<Pedido>(VAZIO)
+  const aplicado = useRef<Pedido>(VAZIO)
+  // Cada cálculo ganha um número, e só a resposta do último entra na tela
+  const sequencia = useRef(0)
+  const espera = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
 
+  const aplicar = (nova: Revisao, valores: Pedido) => {
+    pedido.current = valores
+    aplicado.current = valores
+    setEscolhas(valores.escolhas)
+    setRevisao(nova)
+  }
+
+  // A primeira prévia vem sem desconto e com a parte sugerida de cada saída
+  // (SALARIO-65); havendo saídas, a revisão pede de novo com as sugestões
   async function carregar(id: string) {
+    const numero = ++sequencia.current
+    let primeira: Revisao
     try {
-      setRevisao(await salarioService.revisar(id))
+      primeira = await salarioService.revisar(id)
     } catch (erro) {
+      if (numero !== sequencia.current) return
       tratarErro(erro, { mensagemPadrao: "Erro ao montar a revisão da divisão." })
       onOpenChange(false)
+      return
+    }
+    if (numero !== sequencia.current) return
+    const saidas = primeira.outflows ?? []
+    if (!saidas.length) {
+      aplicar(primeira, VAZIO)
+      return
+    }
+    const sugeridas = sugestoesDe(saidas)
+    pedido.current = { ajustes: {}, escolhas: sugeridas }
+    setEscolhas(sugeridas)
+    try {
+      const descontada = await salarioService.revisar(id, undefined, sugeridas)
+      if (numero === sequencia.current) aplicar(descontada, { ajustes: {}, escolhas: sugeridas })
+    } catch (erro) {
+      if (numero !== sequencia.current) return
+      tratarErro(erro, { mensagemPadrao: "Erro ao descontar as saídas da divisão." })
+      // Fica a prévia sem desconto, com todas as saídas em "Não descontar"
+      aplicar(primeira, { ajustes: {}, escolhas: Object.fromEntries(saidas.map((saida) => [saida.id, null])) })
     }
   }
 
   useEffect(() => {
     if (!recebimentoId) return
     chaveDaTentativa.current = crypto.randomUUID()
+    clearTimeout(espera.current)
+    pedido.current = VAZIO
+    aplicado.current = VAZIO
     setRevisao(null)
-    setAjustes({})
+    setEscolhas({})
     setDigitados({})
     setConfirmado(false)
+    setRecalculando(false)
     setResultado(null)
+    setTodasAsSaidas(false)
     void carregar(recebimentoId)
     // Só quando a revisão abre para um recebimento
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [recebimentoId])
 
+  // Fechada a revisão, nenhuma resposta pendente entra mais na tela
+  useEffect(() => {
+    if (open) return
+    sequencia.current += 1
+    clearTimeout(espera.current)
+  }, [open])
+
+  useEffect(() => () => clearTimeout(espera.current), [])
+
+  // SALARIO-30 e SALARIO-71: pede a prévia com os ajustes e as saídas do
+  // pedido; a resposta antiga é descartada, e o erro volta ao que está na tela
+  const recalcular = (trocas: Partial<Pedido>, atraso = 0) =>
+    new Promise<void>((resolve) => {
+      if (!recebimentoId) return resolve()
+      const id = recebimentoId
+      const valores = { ...pedido.current, ...trocas }
+      pedido.current = valores
+      const numero = ++sequencia.current
+      clearTimeout(espera.current)
+      setRecalculando(true)
+      espera.current = setTimeout(async () => {
+        try {
+          const nova = await salarioService.revisar(id, valores.ajustes, valores.escolhas)
+          if (numero === sequencia.current) aplicar(nova, valores)
+        } catch (erro) {
+          if (numero === sequencia.current) {
+            tratarErro(erro, { mensagemPadrao: "Erro ao recalcular a divisão." })
+            pedido.current = aplicado.current
+            setEscolhas(aplicado.current.escolhas)
+          }
+        } finally {
+          if (numero === sequencia.current) setRecalculando(false)
+          resolve()
+        }
+      }, atraso)
+    })
+
   // SALARIO-30: o ajuste vale só nesta divisão; o backend recalcula o total,
   // o livre e as partes reduzidas
   const aplicarAjuste = async (item: ItemDaDivisaoCalculada) => {
     if (!recebimentoId || !item.part_id) return
-    const digitado = digitados[item.part_id]
+    const parte = item.part_id
+    const digitado = digitados[parte]
+    const esquecer = () =>
+      setDigitados(({ [parte]: _removido, ...resto }) => {
+        void _removido
+        return resto
+      })
     if (digitado === undefined || digitado === item.amount) return
     if (!digitado) {
-      setDigitados(({ [item.part_id as string]: _removido, ...resto }) => {
-        void _removido
-        return resto
-      })
+      esquecer()
       return
     }
-    const novos = { ...ajustes, [item.part_id]: digitado }
-    setRecalculando(true)
-    try {
-      setRevisao(await salarioService.revisar(recebimentoId, novos))
-      setAjustes(novos)
-    } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao recalcular a divisão." })
-    } finally {
-      setDigitados(({ [item.part_id as string]: _removido, ...resto }) => {
-        void _removido
-        return resto
-      })
-      setRecalculando(false)
-    }
+    await recalcular({ ajustes: { ...pedido.current.ajustes, [parte]: digitado } })
+    esquecer()
+  }
+
+  // SALARIO-71: trocar a parte de uma saída recalcula a revisão
+  const escolherParte = (saidaId: string, valor: string) => {
+    const novas = { ...pedido.current.escolhas, [saidaId]: valor === NAO_DESCONTAR ? null : valor }
+    setEscolhas(novas)
+    void recalcular({ escolhas: novas }, ESPERA_DO_RECALCULO)
   }
 
   const gerar = async () => {
     if (!recebimentoId) return
     setGerando(true)
     try {
-      const divisao = await salarioService.gerar(recebimentoId, chaveDaTentativa.current, ajustes)
+      const { ajustes, escolhas: saidas } = aplicado.current
+      const divisao = await salarioService.gerar(recebimentoId, chaveDaTentativa.current, ajustes, saidas)
       setResultado(divisao)
       toast.success("Divisão gerada.")
       onGerada(divisao)
@@ -117,9 +247,63 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   const transacoes = revisao?.items.filter((item) => item.generates_transaction) ?? []
   const ficam = revisao?.items.filter((item) => !item.generates_transaction) ?? []
   const semDestino = transacoes.some((item) => !item.destination_type)
+  const saidas = revisao?.outflows ?? []
+  const saidasVisiveis = todasAsSaidas ? saidas : saidas.slice(0, SAIDAS_VISIVEIS)
+  // SALARIO-72: o já gasto é a soma das saídas descontadas
+  const jaGasto = saidas.reduce((soma, saida) => soma + (saida.part_id ? paraCentavos(saida.amount) : 0), 0)
+
+  const escolhaDe = (saida: SaidaDoSalario) => (saida.id in escolhas ? escolhas[saida.id] : saida.part_id)
+
+  const linhaDaSaida = (saida: SaidaDoSalario) => {
+    const escolhida = escolhaDe(saida)
+    const descricao = saida.description || "Saída"
+    // As partes que recebem valor, mais a escolhida, para o Select mostrar o nome
+    const partes = (revisao?.items ?? []).filter(
+      (item) => item.part_id && (paraCentavos(item.amount) > 0 || item.part_id === escolhida),
+    )
+    const sugerida = escolhida !== null && escolhida === saida.suggested_part_id
+    return (
+      <li key={saida.id} aria-label={descricao} className="p-3 space-y-2 sm:flex sm:items-center sm:gap-3 sm:space-y-0">
+        <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-bold text-sm truncate">{descricao}</p>
+            <p className="text-xs text-muted-foreground font-medium tabular-nums">
+              {format(lerData(saida.date), "dd/MM")} · {tipoDaSaida(saida, revisao?.items ?? [])}
+            </p>
+          </div>
+          <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(saida.amount)}</p>
+        </div>
+        <div className="flex items-center gap-2 sm:w-56 sm:shrink-0">
+          <Select
+            value={escolhida ?? NAO_DESCONTAR}
+            onValueChange={(valor) => escolherParte(saida.id, valor)}
+            disabled={gerando}
+          >
+            <SelectTrigger aria-label={`Parte de ${descricao}`} className="h-10 min-w-0 flex-1 rounded-xl text-sm">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {partes.map((item) => (
+                <SelectItem key={item.part_id} value={item.part_id as string}>
+                  {item.name}
+                </SelectItem>
+              ))}
+              <SelectItem value={NAO_DESCONTAR}>Não descontar</SelectItem>
+            </SelectContent>
+          </Select>
+          {sugerida && <span className="text-[11px] font-medium text-muted-foreground">Sugerida</span>}
+        </div>
+      </li>
+    )
+  }
 
   const linhaDoItem = (item: ItemDaDivisaoCalculada, gera: boolean) => {
     const id = item.part_id
+    const gasto = paraCentavos(item.spent)
+    const passou = paraCentavos(item.exceeded)
+    // As partes com destino numa conta ou numa meta transferem o que sobra
+    // do valor calculado depois das saídas (SALARIO-66)
+    const transfere = item.destination_type === "ACCOUNT" || item.destination_type === "GOAL"
     return (
       <li key={`${item.name}-${id}`} aria-label={item.name} className="p-3 rounded-2xl border border-border/40 bg-background/60 space-y-2">
         <div className="flex items-start justify-between gap-3">
@@ -154,9 +338,27 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                   : `${item.destination_name ?? ""}: não gera transação`}
               </p>
             )}
+            {(transfere || gasto > 0) && (
+              <p className="text-xs text-muted-foreground font-medium tabular-nums">
+                Calculado {formatarMoeda(item.amount)}
+                {gasto > 0 && ` · Já gasto ${formatarMoeda(item.spent)}`}
+              </p>
+            )}
           </div>
-          <p className="font-black text-sm whitespace-nowrap">{formatarMoeda(item.amount)}</p>
+          {transfere ? (
+            <p className="text-right whitespace-nowrap">
+              <span className="block text-[11px] font-medium text-muted-foreground">Transferir</span>{" "}
+              <span className="font-black text-sm tabular-nums">{formatarMoeda(item.transfer ?? item.amount)}</span>
+            </p>
+          ) : (
+            <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(item.amount)}</p>
+          )}
         </div>
+        {passou > 0 && (
+          <p role="status" className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400">
+            Passou {formatarMoeda(item.exceeded)} do valor da parte
+          </p>
+        )}
         {id && (
           <MoneyInput
             aria-label={`Ajustar ${item.name}`}
@@ -211,6 +413,36 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               </div>
             ) : (
               <>
+                <section aria-labelledby="saidas-desde-o-salario" className="space-y-2">
+                  <div className="space-y-0.5">
+                    <h3 id="saidas-desde-o-salario" className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+                      Saídas desde o salário
+                    </h3>
+                    <p className="text-xs text-muted-foreground font-medium">
+                      O que já saiu da conta do salário desde que ele caiu. Escolha de qual parte saiu cada valor.
+                    </p>
+                  </div>
+                  {saidas.length ? (
+                    <>
+                      <ul className="rounded-xl border border-border/40 divide-y divide-border/40" aria-label="Saídas desde o salário">
+                        {saidasVisiveis.map(linhaDaSaida)}
+                      </ul>
+                      {saidas.length > SAIDAS_VISIVEIS && (
+                        <Button
+                          variant="ghost"
+                          className="h-10 rounded-xl px-3 text-sm font-bold"
+                          aria-expanded={todasAsSaidas}
+                          onClick={() => setTodasAsSaidas((todas) => !todas)}
+                        >
+                          {todasAsSaidas ? "Mostrar menos" : `Mostrar todas (${saidas.length})`}
+                        </Button>
+                      )}
+                    </>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Nenhuma saída desde o salário.</p>
+                  )}
+                </section>
+
                 <div className="space-y-2">
                   <h3 className="text-xs font-black uppercase tracking-widest text-muted-foreground">
                     Transações que serão criadas
@@ -233,7 +465,15 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                   </div>
                 )}
 
-                <div className="rounded-2xl bg-muted/30 p-4 space-y-1 text-sm">
+                <div className="rounded-2xl bg-muted/30 p-4 space-y-1 text-sm tabular-nums">
+                  <div className="flex justify-between gap-3">
+                    <span className="font-medium text-muted-foreground">Recebido</span>
+                    <span className="font-black" data-testid="recebido-da-divisao">{formatarMoeda(revisao.receipt.amount)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <span className="font-medium text-muted-foreground">Já gasto</span>
+                    <span className="font-black" data-testid="gasto-da-divisao">{formatarMoeda(deCentavos(jaGasto))}</span>
+                  </div>
                   <div className="flex justify-between gap-3">
                     <span className="font-medium text-muted-foreground">Total das transações</span>
                     <span className="font-black" data-testid="total-da-divisao">{formatarMoeda(revisao.total)}</span>
@@ -287,6 +527,7 @@ function ResultadoDaDivisao({
   onDesfazer: () => void
   onFechar: () => void
 }) {
+  const desconto = resumoDoDesconto(divisao.outflows)
   return (
     <div className="space-y-4">
       <ul className="space-y-2" aria-label="Transações criadas">
@@ -307,10 +548,11 @@ function ResultadoDaDivisao({
                 <span>{dataCurta(transacao.date)}</span>
               </p>
             </div>
-            <p className="font-black text-sm whitespace-nowrap">{formatarMoeda(transacao.amount)}</p>
+            <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(transacao.amount)}</p>
           </li>
         ))}
       </ul>
+      {desconto && <p className="text-sm font-medium text-muted-foreground tabular-nums">{desconto}.</p>}
       <p className="text-sm font-medium text-muted-foreground">
         Ficou livre na conta do salário: <span className="font-black text-foreground">{formatarMoeda(divisao.free)}</span>
       </p>

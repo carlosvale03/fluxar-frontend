@@ -9,8 +9,17 @@ import type {
   RecebimentoDoSalario,
   ReferenciasDoSalario,
   RevisaoDaDivisao,
+  SaidasDaDivisao,
   Simulacao,
 } from "@/types/salario"
+
+// Os ajustes e as saídas só vão no corpo quando têm algum item
+function opcionais(adjustments?: AjustesDaDivisao, outflows?: SaidasDaDivisao) {
+  const corpo: { adjustments?: AjustesDaDivisao; outflows?: SaidasDaDivisao } = {}
+  if (adjustments && Object.keys(adjustments).length) corpo.adjustments = adjustments
+  if (outflows && Object.keys(outflows).length) corpo.outflows = outflows
+  return corpo
+}
 
 // Gestão do salário: todas as rotas dependem do recurso `gestao_do_salario`
 // (SALARIO-16); o erro sobe para a tela, que chama tratarErro (AD-042).
@@ -52,20 +61,24 @@ export const salarioService = {
     return response.data
   },
 
-  // SALARIO-29 e SALARIO-30
-  revisar: async (receipt: string, adjustments?: AjustesDaDivisao) => {
-    const response = await api.post<RevisaoDaDivisao>(
-      "/salary/divisions/preview/",
-      adjustments && Object.keys(adjustments).length ? { receipt, adjustments } : { receipt },
-    )
+  // SALARIO-29, SALARIO-30 e SALARIO-71: sem `outflows`, nada é descontado,
+  // e cada saída vem com a parte sugerida
+  revisar: async (receipt: string, adjustments?: AjustesDaDivisao, outflows?: SaidasDaDivisao) => {
+    const response = await api.post<RevisaoDaDivisao>("/salary/divisions/preview/", {
+      receipt,
+      ...opcionais(adjustments, outflows),
+    })
     return response.data
   },
 
-  // SALARIO-32 a SALARIO-37: a chave da tentativa vai em todo reenvio (AD-007)
-  gerar: async (receipt: string, idempotencyKey: string, adjustments?: AjustesDaDivisao) => {
-    const corpo: Record<string, unknown> = { receipt, idempotency_key: idempotencyKey }
-    if (adjustments && Object.keys(adjustments).length) corpo.adjustments = adjustments
-    const response = await api.post<DivisaoDoSalario>("/salary/divisions/", corpo)
+  // SALARIO-32 a SALARIO-37: a chave da tentativa vai em todo reenvio (AD-007);
+  // SALARIO-68: as saídas escolhidas na revisão
+  gerar: async (receipt: string, idempotencyKey: string, adjustments?: AjustesDaDivisao, outflows?: SaidasDaDivisao) => {
+    const response = await api.post<DivisaoDoSalario>("/salary/divisions/", {
+      receipt,
+      idempotency_key: idempotencyKey,
+      ...opcionais(adjustments, outflows),
+    })
     return response.data
   },
 
