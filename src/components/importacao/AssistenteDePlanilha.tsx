@@ -6,12 +6,15 @@ import { ArrowLeft, Loader2, Table as TableIcon } from "lucide-react"
 import { PassoArquivo } from "@/components/importacao/PassoArquivo"
 import { mesclarPlano } from "@/components/importacao/plano"
 import { RevisaoDeAbas } from "@/components/importacao/RevisaoDeAbas"
+import { CAMPOS_DA_CONTA, campoDoErroDaConta, RevisaoDeContas } from "@/components/importacao/RevisaoDeContas"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { formatarMoeda } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
+import { api } from "@/services/apiClient"
 import { analisarArquivo } from "@/services/import-export"
+import type { Account } from "@/types/accounts"
 import type { AnaliseDeImportacao, PlanoDeImportacao, ResumoDaAnalise } from "@/types/importacao"
 
 // IMPCOMP-44: as mudanças no plano esperam um pouco antes de pedir a nova
@@ -92,13 +95,42 @@ function ConteudoDoAssistente() {
   // Só a resposta do último pedido vale
   const ultimoPedido = useRef(0)
   const espera = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [contasAtivas, setContasAtivas] = useState<Account[]>([])
+  // Erros do backend nos campos das contas do plano (IMPCOMP-24, IMPCOMP-28)
+  const [errosDasContas, setErrosDasContas] = useState<Record<string, string>>({})
 
-  useEffect(
-    () => () => {
+  const carregarContas = async () => {
+    try {
+      const resposta = await api.get<Account[]>("/accounts/")
+      setContasAtivas(resposta.data.filter((conta) => conta.is_active !== false))
+    } catch (erro) {
+      tratarErro(erro, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: carregarContas })
+    }
+  }
+
+  useEffect(() => {
+    void carregarContas()
+    return () => {
       if (espera.current) clearTimeout(espera.current)
-    },
-    [],
-  )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // O erro de um campo de conta vai para a conta na aba Contas; os demais
+  // vão para o Sonner
+  const mostrarErro = (erro: unknown, enviado: PlanoDeImportacao | undefined, mensagemPadrao: string) => {
+    const nomes = Object.keys(enviado?.contas ?? {})
+    const campos = nomes.flatMap((nome) => CAMPOS_DA_CONTA.map((campo) => campoDoErroDaConta(nome, campo)))
+    const erros: Record<string, string> = {}
+    const form = {
+      setError: (campo: string, { message }: { type: string; message: string }) => {
+        erros[campo] = message
+      },
+    }
+    tratarErro(erro, { form, campos, mensagemPadrao })
+    setErrosDasContas(erros)
+    if (Object.keys(erros).length) setAbaAtiva("contas")
+  }
 
   const guardarPlano = (novo: PlanoDeImportacao) => {
     planoAtual.current = novo
@@ -112,10 +144,11 @@ function ConteudoDoAssistente() {
       const resposta = await analisarArquivo(escolhido, enviado)
       if (pedido !== ultimoPedido.current) return
       setAnalise(resposta)
+      setErrosDasContas({})
       guardarPlano(enviado ? mesclarPlano(planoAtual.current, resposta.plano) : resposta.plano)
     } catch (erro) {
       if (pedido !== ultimoPedido.current) return
-      tratarErro(erro, { mensagemPadrao: "Erro ao analisar a planilha." })
+      mostrarErro(erro, enviado, "Erro ao analisar a planilha.")
     } finally {
       if (pedido === ultimoPedido.current) setAnalisando(false)
     }
@@ -185,7 +218,9 @@ function ConteudoDoAssistente() {
             <TabsContent value="abas" className="pt-2">
               <RevisaoDeAbas plano={plano} onAlterar={alterarPlano} />
             </TabsContent>
-            <TabsContent value="contas" className="pt-2">{null}</TabsContent>
+            <TabsContent value="contas" className="pt-2">
+              <RevisaoDeContas plano={plano} contasAtivas={contasAtivas} erros={errosDasContas} onAlterar={alterarPlano} />
+            </TabsContent>
             <TabsContent value="linhas" className="pt-2">{null}</TabsContent>
           </Tabs>
 
