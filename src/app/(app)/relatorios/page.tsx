@@ -38,6 +38,7 @@ import { formatarTaxa, percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoe
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { ErroDoBloco } from "@/components/reports/erro-do-bloco"
+import { GastosPuxados } from "@/components/reports/GastosPuxados"
 
 // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número, e
 // a conversão é só para plotar
@@ -394,6 +395,11 @@ export default function ReportsPage() {
                         />
                         </>
                         )}
+                        </RecursoBloqueado>
+
+                        {/* VINCULO-36 e VINCULO-37: travado pelo plano (VINCULO-20) */}
+                        <RecursoBloqueado chave="vinculos" titulo="Gastos puxados" className="lg:col-span-2">
+                            <GastosPuxados period={period} className="lg:col-span-2" />
                         </RecursoBloqueado>
                     </div>
                 </TabsContent>

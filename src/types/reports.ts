@@ -216,3 +216,27 @@ export interface TagDistributionReport {
     }
 }
 
+// VINCULO-34: gastos puxados por categoria raiz da principal; os valores
+// vêm como texto com duas casas
+export interface GastoPuxado {
+    category_id: string | null
+    category_name: string
+    color: string
+    amount: string
+}
+
+export interface GrupoDeGastosPuxados {
+    category_id: string | null
+    category_name: string
+    color: string
+    total: string
+    pulled: GastoPuxado[]
+}
+
+export interface GastosPuxadosReport {
+    groups: GrupoDeGastosPuxados[]
+    period?: {
+        start_date: string
+        end_date: string
+    }
+}

@@ -3,6 +3,7 @@ import { format } from "date-fns"
 import { lerData } from "@/lib/datas"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { api } from "@/services/apiClient"
+import type { GastosPuxadosReport } from "@/types/reports"
 import type { PrincipalDoVinculo, Transaction } from "@/types/transactions"
 
 // Vínculo entre transações (AD-027, AD-054): uma despesa ou compra no cartão
@@ -73,6 +74,13 @@ export async function buscarGastos(busca: BuscaDeGasto, excluir: string): Promis
   return resultados.filter(
     (t) => t.id !== excluir && podeTerVinculo(t) && (valor === null || paraCentavos(t.amount) === valor),
   )
+}
+
+// VINCULO-34 e VINCULO-35: o relatório de gastos puxados, com o período dos
+// gráficos simples ("this_month", "last_30_days"...)
+export async function buscarGastosPuxados(period: string): Promise<GastosPuxadosReport> {
+  const resposta = await api.get<GastosPuxadosReport>("/reports/linked-expenses/", { params: { period } })
+  return { ...resposta.data, groups: resposta.data?.groups ?? [] }
 }
 
 export function ehPrincipal(transacao: Pick<Transaction, "dependents_count" | "total_cost">): boolean {
