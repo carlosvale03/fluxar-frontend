@@ -31,8 +31,9 @@ export const ReceitasDoSalario = forwardRef<HTMLElement, ReceitasDoSalarioProps>
   return (
     <section
       ref={ref}
+      tabIndex={-1}
       aria-labelledby="receitas-do-salario-titulo"
-      className="rounded-2xl border border-border bg-card p-5 space-y-4 scroll-mt-24"
+      className="rounded-2xl border border-border bg-card p-5 space-y-4 scroll-mt-24 outline-none"
     >
       <div className="space-y-1">
         <h2 id="receitas-do-salario-titulo" className="text-base font-semibold">

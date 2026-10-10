@@ -143,6 +143,21 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
     expect((put.mock.calls[1][1] as { salary_categories: string[] }).salary_categories).toEqual(["cat-salario", "cat-freela"])
   })
 
+  it("sem salário a dividir, explica e leva ao painel com o foco na primeira categoria", async () => {
+    render(<SalarioPage />)
+
+    const faixa = await screen.findByRole("region", { name: "Salário recebido" })
+    expect(await within(faixa).findByText("Nenhum salário a dividir neste mês ou no anterior.")).toBeInTheDocument()
+    expect(faixa).toHaveTextContent("Suas receitas estão em outra categoria?")
+    const receitas = await painel()
+    await within(receitas).findByRole("checkbox", { name: "Salário" })
+
+    await userEvent.click(within(faixa).getByRole("button", { name: "Escolher receitas de salário" }))
+
+    expect(receitas).toContainElement(document.activeElement as HTMLElement)
+    expect(document.activeElement).toBe(within(receitas).getByRole("checkbox", { name: "Salário" }))
+  })
+
   it("a categoria recusada pelo backend aparece no toast, e a escolha continua", async () => {
     put.mockRejectedValue({ response: { status: 400, data: { salary_categories: ["Categoria não encontrada."] } } })
     render(<SalarioPage />)

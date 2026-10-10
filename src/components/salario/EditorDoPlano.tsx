@@ -293,7 +293,7 @@ export function EditorDoPlano({
     <section aria-label="Plano de divisão" className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black tracking-tight">Seu plano de divisão</h2>
+          <h3 className="text-base font-semibold">Partes do plano</h3>
           <p className="text-sm text-muted-foreground font-medium">
             As partes são atendidas na ordem da lista. O que sobrar fica livre na conta do salário.
           </p>

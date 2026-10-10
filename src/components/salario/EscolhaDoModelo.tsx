@@ -24,7 +24,7 @@ export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }
     <section aria-label="Escolha do modelo" className="space-y-4">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
         <div>
-          <h2 className="text-xl font-black tracking-tight">Como você quer dividir o salário?</h2>
+          <h3 className="text-base font-semibold">Como você quer dividir o salário?</h3>
           <p className="text-sm text-muted-foreground font-medium">
             Comece por um modelo conhecido e ajuste as partes depois, ou monte o seu do zero.
           </p>

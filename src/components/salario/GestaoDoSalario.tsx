@@ -2,18 +2,20 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Info } from "lucide-react"
+import { Info, Wallet } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
 import { ReceitasDoSalario } from "@/components/salario/ReceitasDoSalario"
-import { ReferenciasDoMes } from "@/components/salario/ReferenciasDoMes"
+import { ComprometidoNoMes, SeuHistorico } from "@/components/salario/ReferenciasDoMes"
 import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
 import { DivisoesRecentes } from "@/components/salario/DivisoesRecentes"
 import { RevisaoDaDivisao } from "@/components/salario/RevisaoDaDivisao"
 import { SalariosADividir } from "@/components/salario/SalariosADividir"
 import { tratarErro } from "@/lib/erros"
+import { modeloDoPlano } from "@/lib/salario"
+import { cn } from "@/lib/utils"
 import { accountsService } from "@/services/accounts"
 import { getCategories } from "@/services/categories"
 import { goalsService } from "@/services/goals"
@@ -30,6 +32,12 @@ import type {
 } from "@/types/salario"
 
 type TelaDoPlano = "escolha" | "editor"
+
+// Leva o painel ou a seção à vista, sem animar com movimento reduzido
+function mostrar(elemento: HTMLElement | null) {
+  const reduzido = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  elemento?.scrollIntoView?.({ behavior: reduzido ? "auto" : "smooth", block: "start" })
+}
 
 // Conteúdo da página da gestão do salário, montado só com o recurso
 // liberado (SALARIO-15, SALARIO-16)
@@ -56,6 +64,8 @@ export function GestaoDoSalario() {
   // SALARIO-45 e SALARIO-49: divisões que ainda podem ser desfeitas
   const [recentes, setRecentes] = useState<DivisaoDoSalario[] | null>(null)
   const ultimoParam = useRef<string | null>(null)
+  const painelDeReceitas = useRef<HTMLElement>(null)
+  const secaoDoPlano = useRef<HTMLElement>(null)
 
   async function carregarPendentes() {
     try {
@@ -136,6 +146,16 @@ export function GestaoDoSalario() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Do aviso de nenhum salário a dividir para o painel Receitas de salário,
+  // com o foco na primeira categoria
+  const irParaReceitas = () => {
+    const painel = painelDeReceitas.current
+    if (!painel) return
+    mostrar(painel)
+    const alvo = painel.querySelector<HTMLElement>('[role="checkbox"]') ?? painel
+    alvo.focus({ preventScroll: true })
+  }
+
   // SALARIO-21 e SALARIO-22: com plano, abre a revisão; sem plano, abre antes
   // a escolha do modelo
   function iniciarDivisao(recebimentoId: string, temPlano: boolean) {
@@ -144,6 +164,7 @@ export function GestaoDoSalario() {
     } else {
       setDividirDepois(recebimentoId)
       setTelaDoPlano("escolha")
+      mostrar(secaoDoPlano.current)
     }
   }
 
@@ -179,41 +200,86 @@ export function GestaoDoSalario() {
     setVersaoDoEditor((v) => v + 1)
   }
 
+  // Status do cabeçalho: o modelo do plano salvo, ou quantas partes ele tem
+  const status = !plano
+    ? null
+    : plano.has_plan
+      ? `Plano ativo: ${modeloDoPlano(plano.parts, modelos) ?? `${plano.parts.length} ${plano.parts.length === 1 ? "parte" : "partes"}`}`
+      : "Sem plano ainda"
+
   return (
     <div className="space-y-6">
-      <SalariosADividir recebimentos={pendentes} onDividir={dividir} />
-      <ReceitasDoSalario categorias={categorias} salvas={plano?.salary_categories ?? null} onSalvas={categoriasSalvas} />
-      <DivisoesRecentes divisoes={recentes} onDesfazer={setParaDesfazer} />
-      <ReferenciasDoMes referencias={referencias} />
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Wallet aria-hidden className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Gestão do salário</h1>
+            <p className="text-sm text-muted-foreground">Separe o que vai guardar assim que o salário cair.</p>
+          </div>
+        </div>
+        {status && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span
+              aria-hidden
+              className={cn("h-2 w-2 rounded-full", plano?.has_plan ? "bg-emerald-500" : "bg-muted-foreground/40")}
+            />
+            {status}
+          </p>
+        )}
+      </header>
 
-      {dividirDepois && telaDoPlano === "escolha" && (
-        <p role="status" className="flex items-center gap-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 text-sm font-bold">
-          <Info className="h-4 w-4 text-primary shrink-0" />
-          Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
-        </p>
-      )}
+      <SalariosADividir recebimentos={pendentes} onDividir={dividir} onEscolherReceitas={irParaReceitas} />
 
-      {plano === null ? (
-        <Skeleton className="h-64 w-full rounded-[32px]" />
-      ) : telaDoPlano === "escolha" ? (
-        <EscolhaDoModelo
-          modelos={modelos}
-          referencias={referencias}
-          onEscolher={escolherModelo}
-          onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
-        />
-      ) : (
-        <EditorDoPlano
-          key={versaoDoEditor}
-          partesIniciais={partesDoEditor}
-          categoriasDoSalario={plano.salary_categories}
-          contas={contas}
-          metas={metas}
-          referencias={referencias}
-          onSalvo={planoSalvo}
-          onTrocarModelo={() => setTelaDoPlano("escolha")}
-        />
-      )}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+        <section ref={secaoDoPlano} aria-labelledby="seu-plano-titulo" className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-6 lg:col-span-2 scroll-mt-24">
+          <h2 id="seu-plano-titulo" className="text-base font-semibold">
+            Seu plano
+          </h2>
+
+          {dividirDepois && telaDoPlano === "escolha" && (
+            <p role="status" className="flex items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm">
+              <Info aria-hidden className="h-4 w-4 shrink-0 text-primary" />
+              Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
+            </p>
+          )}
+
+          {plano === null ? (
+            <Skeleton className="h-64 w-full rounded-xl" />
+          ) : telaDoPlano === "escolha" ? (
+            <EscolhaDoModelo
+              modelos={modelos}
+              referencias={referencias}
+              onEscolher={escolherModelo}
+              onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
+            />
+          ) : (
+            <EditorDoPlano
+              key={versaoDoEditor}
+              partesIniciais={partesDoEditor}
+              categoriasDoSalario={plano.salary_categories}
+              contas={contas}
+              metas={metas}
+              referencias={referencias}
+              onSalvo={planoSalvo}
+              onTrocarModelo={() => setTelaDoPlano("escolha")}
+            />
+          )}
+        </section>
+
+        <aside aria-label="Receitas e referências do mês" className="space-y-6">
+          <ReceitasDoSalario
+            ref={painelDeReceitas}
+            categorias={categorias}
+            salvas={plano?.salary_categories ?? null}
+            onSalvas={categoriasSalvas}
+          />
+          <ComprometidoNoMes referencias={referencias} />
+          <SeuHistorico referencias={referencias} />
+          <DivisoesRecentes divisoes={recentes} onDesfazer={setParaDesfazer} />
+        </aside>
+      </div>
 
       <RevisaoDaDivisao
         recebimentoId={revisando}

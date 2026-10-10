@@ -111,6 +111,15 @@ describe("Página da gestão do salário", { timeout: 15000 }, () => {
     expect(await screen.findByText("Média de 1 mês")).toBeInTheDocument()
   })
 
+  it("sem nenhum mês completo, o histórico mostra uma linha só, sem as médias zeradas", async () => {
+    comRespostas({ "/salary/pending/": [], "/salary/references/": referencias({ months_used: 0 }), "/salary/plan/": { has_plan: false, parts: [], salary_categories: [] } })
+    render(<SalarioPage />)
+
+    const historico = await screen.findByRole("region", { name: "Seu histórico" })
+    expect(await within(historico).findByText("Ainda sem um mês completo de histórico.")).toBeInTheDocument()
+    expect(within(historico).queryByText("Salário menos despesas")).not.toBeInTheDocument()
+  })
+
   it("com dois meses de histórico, avisa \"Média de 2 meses\"", async () => {
     comRespostas({ "/salary/pending/": [], "/salary/references/": referencias({ months_used: 2 }), "/salary/plan/": { has_plan: false, parts: [], salary_categories: [] } })
     render(<SalarioPage />)

@@ -1,5 +1,5 @@
 import { paraCentavos } from "@/lib/dinheiro"
-import type { ReferenciaDaParte, ReferenciasDoSalario } from "@/types/salario"
+import type { ModeloDeDivisao, ReferenciaDaParte, ReferenciasDoSalario, RegraDaParte } from "@/types/salario"
 
 // SALARIO-56: com menos de 3 meses completos, a tela diz quantos entraram na
 // média ("Média de 1 mês", "Média de 2 meses")
@@ -37,4 +37,22 @@ export function percentualParaCampo(valor: string): string {
 // "N transações" com o singular para uma (SALARIO-31)
 export function quantidadeDeTransacoes(n: number): string {
   return `${n} ${n === 1 ? "transação" : "transações"}`
+}
+
+// O nome do modelo quando o plano salvo tem exatamente as partes dele, para o
+// status da página ("Plano ativo: 50/30/20"); senão, null
+export function modeloDoPlano(
+  partes: { name: string; rule_type: RegraDaParte; value: string }[],
+  modelos: ModeloDeDivisao[] | null | undefined,
+): string | null {
+  if (!modelos || partes.length === 0) return null
+  const modelo = modelos.find(
+    (m) =>
+      m.parts.length === partes.length &&
+      m.parts.every(
+        (p, i) =>
+          p.name === partes[i].name && p.rule_type === partes[i].rule_type && paraCentavos(p.value) === paraCentavos(partes[i].value),
+      ),
+  )
+  return modelo?.name ?? null
 }
