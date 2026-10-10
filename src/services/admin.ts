@@ -93,19 +93,46 @@ export async function getAdminStats() {
   return response.data
 }
 
-// System Logs & Settings
+// ADMIN-08 a ADMIN-10 (AD-049): administrador e usuário afetado pelo
+// identificador e pelo e-mail mascarado; antes e depois são escalares ou null
+export type ValorDoLog = string | number | boolean | null
+
 export interface SystemLog {
   id: string
   action: string
   description: string
-  admin_name: string
+  admin_id: string | null
+  // E-mail mascarado, ou "Sistema"
+  admin_email: string
+  user_id: string | null
+  // Mascarado, ou vazio depois da exclusão da conta (ADMIN-11)
+  user_email: string
+  before: ValorDoLog
+  after: ValorDoLog
   timestamp: string
-  details?: any
 }
 
-export async function getSystemLogs(page: number = 1): Promise<PaginatedResponse<SystemLog>> {
-  const response = await api.get<PaginatedResponse<SystemLog>>("/admin/logs/", { params: { page } })
+// ADMIN-13: filtros do log; datas em AAAA-MM-DD, dias inteiros
+export interface FiltrosDoLog {
+  action?: string
+  admin?: string
+  inicio?: string
+  fim?: string
+}
+
+export async function getSystemLogs(page: number = 1, filtros: FiltrosDoLog = {}): Promise<PaginatedResponse<SystemLog>> {
+  // Filtro vazio não vai na requisição
+  const preenchidos = Object.fromEntries(Object.entries(filtros).filter(([, valor]) => !!valor))
+  const response = await api.get<PaginatedResponse<SystemLog>>("/admin/logs/", { params: { page, ...preenchidos } })
   return response.data
+}
+
+// O filtro de administrador do log lista quem tem o papel ADMIN
+export async function getAdministradores() {
+  const response = await api.get<PaginatedResponse<User>>("/admin/users/", {
+    params: { role: "ADMIN", page_size: 100 },
+  })
+  return response.data.results ?? []
 }
 
 export async function updateSystemSettings(settings: Record<string, any>) {

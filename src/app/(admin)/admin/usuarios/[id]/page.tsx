@@ -49,6 +49,7 @@ import { getAbsoluteUrl } from "@/lib/utils"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
 import { formatarMoeda } from "@/lib/dinheiro"
+import { ValoresDoLog, rotuloDaAcao } from "@/app/(admin)/admin/_componentes/log-de-auditoria"
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -431,8 +432,10 @@ export default function UserDetailsPage() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Ação: <span className="font-mono font-bold">{log.action}</span> • Autor: {log.admin_name}
+                                    Ação: <span className="font-bold">{rotuloDaAcao(log.action)}</span> • Autor: {log.admin_email}
                                 </p>
+                                {/* ADMIN-14: o antes e o depois de cada registro */}
+                                <ValoresDoLog log={log} />
                             </div>
                         ))}
                     </div>
