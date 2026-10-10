@@ -61,19 +61,31 @@ export async function bulkDeleteAdminUsers(userIds: string[], admin_password: st
   })
 }
 
+// ADMIN-02: saúde medida na hora; o banco vem com erro e sem latência quando cai
+export interface SaudeDoSistema {
+  api: string
+  database: {
+    status: "ok" | "error"
+    latency_ms: number | null
+    version: string | null
+  }
+}
+
+// ADMIN-05 e ADMIN-07: sem receita; contagem por plano e a porcentagem
+// ("42.9", sempre uma casa) de usuários em planos pagos
 export interface AdminStats {
   total_users: number
-  premium_users: number
+  users_by_plan: Record<Plano, number>
+  paid_users_percentage: string
   recent_users: Array<{
     id: string
     name: string
     email: string
     created_at: string
   }>
-  status: string
-  db_status: string
-  db_latency: string
-  api_version: string
+  health: SaudeDoSistema
+  // ADMIN-03: versão do deploy em execução
+  version: string
 }
 
 export async function getAdminStats() {

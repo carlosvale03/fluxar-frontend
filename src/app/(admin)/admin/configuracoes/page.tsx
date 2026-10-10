@@ -183,7 +183,7 @@ export default function AdminSettingsPage() {
                     <CardHeader className="pb-2">
                         <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Status do Servidor</CardDescription>
                         <CardTitle className="text-3xl font-black flex items-center gap-3">
-                            {stats?.status || "Online"} 
+                            {stats?.health?.api || "Online"} 
                             <div className="relative flex h-4 w-4">
                                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                 <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
@@ -202,7 +202,7 @@ export default function AdminSettingsPage() {
                 <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
                     <CardHeader className="pb-2">
                         <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Versão da API</CardDescription>
-                        <CardTitle className="text-3xl font-black text-foreground">v{stats?.api_version || "1.2.5"}</CardTitle>
+                        <CardTitle className="text-3xl font-black text-foreground">v{stats?.version || "1.2.5"}</CardTitle>
                     </CardHeader>
                     <CardContent>
                          <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
@@ -216,14 +216,14 @@ export default function AdminSettingsPage() {
                 <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-blue-500/30 transition-all duration-300">
                      <CardHeader className="pb-2">
                         <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Banco de Dados</CardDescription>
-                        <CardTitle className={`text-3xl font-black ${stats?.db_status === 'Erro' ? 'text-red-500' : 'text-blue-500'}`}>
-                            {stats?.db_status || "Conectado"}
+                        <CardTitle className={`text-3xl font-black ${stats?.health?.database?.status === "error" ? 'text-red-500' : 'text-blue-500'}`}>
+                            {stats?.health?.database?.status || "Conectado"}
                         </CardTitle>
                      </CardHeader>
                      <CardContent>
                          <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
                             <Database className="h-4 w-4 text-blue-500" />
-                            PostgreSQL 15.4 (Lat: {stats?.db_latency || "0ms"})
+                            PostgreSQL 15.4 (Lat: {stats?.health?.database?.latency_ms ?? "0ms"})
                         </div>
                      </CardContent>
                 </Card>
