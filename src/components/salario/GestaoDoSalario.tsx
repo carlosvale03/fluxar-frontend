@@ -285,6 +285,7 @@ export function GestaoDoSalario() {
               partes={plano.parts}
               referencias={referencias}
               onEditar={() => editarPlano()}
+              onTrocarModelo={() => setTelaDoPlano("escolha")}
               onEscolherDestino={editarPlano}
               valorSimulado={valorSimulado}
               onValorSimulado={setValorSimulado}

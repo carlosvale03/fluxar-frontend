@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import SalarioPage from "@/app/(app)/salario/page"
 import type { User } from "@/contexts/auth-context"
 import { api } from "@/services/apiClient"
-import type { PlanoDoSalario } from "@/types/salario"
+import type { ParteDoPlano, PlanoDoSalario } from "@/types/salario"
 
 import { usuario } from "../permissoes/acesso"
 import { CATEGORIAS_DE_RECEITA, CONTAS, METAS, MODELOS, PLANO_SALVO, SEM_PLANO, parte, recebimento, referencias, resposta } from "./dados"
@@ -227,6 +227,49 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     await userEvent.type(percentual, "60")
 
     expect(screen.getByText("Soma: 140% · Passa de 100%")).toHaveClass("text-destructive")
+  })
+
+  it("trocar de modelo a partir do resumo mantém o plano salvo até o novo ser salvo", async () => {
+    put.mockImplementation(((_url: string, corpo: unknown) => {
+      const enviado = corpo as { parts: Partial<ParteDoPlano>[]; salary_categories: string[] }
+      return resposta({
+        has_plan: true,
+        parts: enviado.parts.map((p, i) => parte({ ...p, id: `nova-${i}` })),
+        salary_categories: enviado.salary_categories,
+      })
+    }) as typeof api.put)
+    render(<SalarioPage />)
+    await regiaoDoPlano()
+
+    // SALARIO-61: do resumo, a escolha abre com a volta ao plano salvo
+    await userEvent.click(screen.getByRole("button", { name: "Trocar de modelo" }))
+    expect(screen.getByRole("region", { name: "Escolha do modelo" })).toBeInTheDocument()
+    expect(screen.getByText("Plano ativo: 50/30/20")).toBeInTheDocument()
+    await userEvent.click(screen.getByRole("button", { name: "Voltar ao meu plano" }))
+    expect(legenda("Essenciais")).toHaveTextContent("50%")
+
+    // Escolher outro modelo e cancelar também volta ao plano salvo
+    await userEvent.click(screen.getByRole("button", { name: "Trocar de modelo" }))
+    await userEvent.click(screen.getByRole("button", { name: "Usar o modelo Seis potes" }))
+    expect(screen.getByLabelText("Percentual de Necessidades")).toHaveValue("55")
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+    expect(legenda("Essenciais")).toHaveTextContent("50%")
+    expect(put).not.toHaveBeenCalled()
+
+    // Só ao salvar o plano novo substitui o antigo
+    await userEvent.click(screen.getByRole("button", { name: "Trocar de modelo" }))
+    await userEvent.click(screen.getByRole("button", { name: "Usar o modelo Seis potes" }))
+    await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
+    await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
+    expect((put.mock.calls[0][1] as { parts: { name: string }[] }).parts.map((p) => p.name)).toEqual([
+      "Necessidades",
+      "Liberdade financeira",
+      "Poupança para gastos futuros",
+      "Educação",
+      "Diversão",
+      "Doações",
+    ])
+    expect(await screen.findByText("Plano ativo: Seis potes")).toBeInTheDocument()
   })
 
   it("trocar de modelo sem mudanças vai direto à escolha", async () => {

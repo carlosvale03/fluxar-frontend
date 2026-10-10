@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react"
 import { format } from "date-fns"
-import { AlertTriangle, Pencil } from "lucide-react"
+import { AlertTriangle, Pencil, Shuffle } from "lucide-react"
 import { toast } from "sonner"
 
 import { BarraDaDivisao, COR_DO_LIVRE, PontoDaCor, corDaParte } from "@/components/salario/BarraDaDivisao"
@@ -19,6 +19,8 @@ interface ResumoDoPlanoProps {
   partes: ParteDoPlano[]
   referencias: ReferenciasDoSalario | null
   onEditar: () => void
+  // SALARIO-61: abre a escolha do modelo; o plano salvo fica até salvar outro
+  onTrocarModelo: () => void
   // Abre o editor com o foco no destino da parte nessa posição
   onEscolherDestino: (indice: number) => void
   // O valor do campo da simulação, que a página guarda para o editor também
@@ -56,6 +58,7 @@ export function ResumoDoPlano({
   partes,
   referencias,
   onEditar,
+  onTrocarModelo,
   onEscolherDestino,
   valorSimulado,
   onValorSimulado,
@@ -102,9 +105,14 @@ export function ResumoDoPlano({
         <p className="text-sm text-muted-foreground">
           As partes são atendidas na ordem da lista. O que sobrar fica livre na conta do salário.
         </p>
-        <Button variant="outline" className="h-10 shrink-0 rounded-xl px-4 self-start" onClick={onEditar}>
-          <Pencil aria-hidden /> Editar plano
-        </Button>
+        <div className="flex shrink-0 flex-wrap gap-2 self-start">
+          <Button variant="ghost" className="h-10 rounded-xl px-3" onClick={onTrocarModelo}>
+            <Shuffle aria-hidden /> Trocar de modelo
+          </Button>
+          <Button variant="outline" className="h-10 rounded-xl px-4" onClick={onEditar}>
+            <Pencil aria-hidden /> Editar plano
+          </Button>
+        </div>
       </div>
 
       <div className="space-y-2">
