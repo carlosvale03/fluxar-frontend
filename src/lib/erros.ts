@@ -113,8 +113,10 @@ export function tratarErro(erro: unknown, opcoes: OpcoesDeErro = {}): void {
     return
   }
 
-  // CONTRATO-30: cada erro no seu campo; os que sobram vão para o Sonner
-  if (resposta.status === 400 && dados && typeof dados === "object") {
+  // CONTRATO-30: cada erro no seu campo; os que sobram vão para o Sonner. O
+  // 403 sem detail também vem por campo, como a senha do administrador
+  // recusada (ADMIN-18)
+  if ((resposta.status === 400 || resposta.status === 403) && dados && typeof dados === "object") {
     const sobras: string[] = []
     const marcados = new Set<string>()
     for (const [campo, mensagem] of errosPorCampo(dados)) {

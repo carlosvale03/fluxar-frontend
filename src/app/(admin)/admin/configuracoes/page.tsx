@@ -6,10 +6,16 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Activity, Server, FileText, AlertTriangle, RefreshCw, Loader2, Database, Globe, FlaskConical, Layers } from "lucide-react"
+import { Server, FileText, AlertTriangle, RefreshCw, Loader2, Globe, FlaskConical, Layers } from "lucide-react"
 import { toast } from "sonner"
-import { getAdminStats, getSystemLogs, updateSystemSettings, getSystemSettings, AdminStats, SystemLog, getAdminPlans, updateAdminPlans, ConfiguracaoDosPlanos, MudancaDosPlanos } from "@/services/admin"
+import { getAdminStats, getSystemLogs, getAdministradores, updateSystemSettings, getSystemSettings, AdminStats, SystemLog, FiltrosDoLog, getAdminPlans, updateAdminPlans, ConfiguracaoDosPlanos, MudancaDosPlanos } from "@/services/admin"
+import type { User } from "@/contexts/auth-context"
 import { TabelaDeTravas } from "@/components/planos/tabela-de-travas"
+import { CardsDeSaude } from "@/components/admin/saude-do-sistema"
+import { ACOES_DO_LOG, ValoresDoLog, rotuloDaAcao } from "@/app/(admin)/admin/_componentes/log-de-auditoria"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
 
@@ -27,6 +33,9 @@ export default function AdminSettingsPage() {
   const [logsCount, setLogsCount] = useState(0)
   const [logsTotalPages, setLogsTotalPages] = useState(1)
   const [isLoadingLogs, setIsLoadingLogs] = useState(false)
+  // ADMIN-13: filtros por ação, administrador e período
+  const [filtrosDoLog, setFiltrosDoLog] = useState<FiltrosDoLog>({})
+  const [administradores, setAdministradores] = useState<User[]>([])
   // PERM-10 e PERM-24: travas dos planos e liberação para testes
   const [planos, setPlanos] = useState<ConfiguracaoDosPlanos | null>(null)
   const [isSavingUnlock, setIsSavingUnlock] = useState(false)
@@ -65,11 +74,12 @@ export default function AdminSettingsPage() {
   const loadLogs = async () => {
       try {
           setIsLoadingLogs(true)
-          const data = await getSystemLogs(logsPage)
+          const data = await getSystemLogs(logsPage, filtrosDoLog)
           setLogs(data.results)
           setLogsCount(data.count)
           setLogsTotalPages(data.total_pages)
       } catch (error) {
+          // Data inválida no filtro: 400 do campo, que vira aviso
           tratarErro(error, { mensagemPadrao: "Erro ao carregar os logs.", tentarDeNovo: loadLogs })
       } finally {
           setIsLoadingLogs(false)
@@ -78,7 +88,25 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     loadLogs()
-  }, [logsPage])
+  }, [logsPage, filtrosDoLog])
+
+  // ADMIN-13: mudar um filtro volta à primeira página
+  const mudarFiltro = (campo: keyof FiltrosDoLog, valor: string) => {
+      setFiltrosDoLog((atuais) => ({ ...atuais, [campo]: valor }))
+      setLogsPage(1)
+  }
+
+  const loadAdmins = async () => {
+      try {
+          setAdministradores(await getAdministradores())
+      } catch (error) {
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar os administradores.", tentarDeNovo: loadAdmins })
+      }
+  }
+
+  useEffect(() => {
+    loadAdmins()
+  }, [])
 
   const loadData = async () => {
       try {
@@ -88,12 +116,10 @@ export default function AdminSettingsPage() {
               getSystemSettings()
           ])
           setStats(statsData)
-          if (settingsData && settingsData.maintenance_mode) {
-              setMaintenanceMode(settingsData.maintenance_mode === 'true')
-          }
+          // Sem a configuração, a manutenção está desligada (SESSAO-24)
+          setMaintenanceMode(settingsData?.maintenance_mode === 'true')
       } catch (error) {
-          console.error("Failed to load admin settings data", error)
-          toast.error("Erro ao carregar dados do sistema.")
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar dados do sistema.", tentarDeNovo: loadData })
       } finally {
           setIsRefreshing(false)
       }
@@ -118,21 +144,10 @@ export default function AdminSettingsPage() {
         }
     } catch (error) {
         setMaintenanceMode(!checked) // Revert
-        toast.error("Erro ao atualizar modo de manutenção.")
+        tratarErro(error, { mensagemPadrao: "Erro ao atualizar modo de manutenção." })
     } finally {
         setIsLoading(false)
     }
-  }
-
-  const handleClearCache = () => {
-      toast.promise(
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-          {
-              loading: 'Limpando cache do sistema...',
-              success: 'Cache limpo com sucesso!',
-              error: 'Erro ao limpar cache.'
-          }
-      )
   }
 
   return (
@@ -174,64 +189,31 @@ export default function AdminSettingsPage() {
         {/* --- SYSTEM TAB --- */}
         <TabsContent value="system" className="mt-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
             
-            {/* System Status Cards */}
+            {/* ADMIN-02 e ADMIN-03: saúde e versão medidas pelo backend */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                
-                {/* Server Status */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] overflow-hidden group hover:border-emerald-500/30 transition-all duration-300">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-emerald-700" />
-                    <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Status do Servidor</CardDescription>
-                        <CardTitle className="text-3xl font-black flex items-center gap-3">
-                            {stats?.status || "Online"} 
-                            <div className="relative flex h-4 w-4">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
-                            </div>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-emerald-500" />
-                            Uptime: 99.9% (30d)
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                {/* Version Info */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
-                    <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Versão da API</CardDescription>
-                        <CardTitle className="text-3xl font-black text-foreground">v{stats?.api_version || "1.2.5"}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                            <Globe className="h-4 w-4 text-primary" />
-                            Build: 2026.04.29-stable
-                        </div>
-                    </CardContent>
-                </Card>
+                <CardsDeSaude saude={stats?.health} carregando={isRefreshing && !stats} />
 
-                {/* Database Status */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-blue-500/30 transition-all duration-300">
-                     <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Banco de Dados</CardDescription>
-                        <CardTitle className={`text-3xl font-black ${stats?.db_status === 'Erro' ? 'text-red-500' : 'text-blue-500'}`}>
-                            {stats?.db_status || "Conectado"}
+                <Card data-testid="versao-do-sistema" className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
+                    <CardHeader className="pb-2">
+                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70 flex items-center justify-between">
+                            Versão do sistema
+                            <Globe className="h-4 w-4 text-primary" />
+                        </CardDescription>
+                        <CardTitle className={`text-3xl font-black break-all ${stats?.version ? "text-foreground" : "text-muted-foreground"}`}>
+                            {stats?.version || "Sem dados"}
                         </CardTitle>
-                     </CardHeader>
-                     <CardContent>
-                         <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                            <Database className="h-4 w-4 text-blue-500" />
-                            PostgreSQL 15.4 (Lat: {stats?.db_latency || "0ms"})
-                        </div>
-                     </CardContent>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">
+                            Deploy em execução
+                        </p>
+                    </CardContent>
                 </Card>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-3">
+            <div className="grid gap-8 lg:grid-cols-2">
                 {/* Maintenance Mode Control */}
-                <Card className={`lg:col-span-2 border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${maintenanceMode ? 'border-destructive/50 bg-destructive/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                <Card className={`border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${maintenanceMode ? 'border-destructive/50 bg-destructive/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
                     <CardHeader>
                         <div className="flex items-center gap-3">
                             <div className={`p-3 rounded-2xl ${maintenanceMode ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/10 text-orange-500'}`}>
@@ -265,7 +247,7 @@ export default function AdminSettingsPage() {
                 </Card>
 
                 {/* PERM-24: liberação para testes, junto da manutenção */}
-                <Card className={`lg:col-span-2 border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${planos?.testing_unlock ? 'border-amber-500/40 bg-amber-500/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                <Card className={`border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${planos?.testing_unlock ? 'border-amber-500/40 bg-amber-500/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
                     <CardHeader>
                         <div className="flex items-center gap-3">
                             <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500">
@@ -293,26 +275,6 @@ export default function AdminSettingsPage() {
                         />
                     </CardContent>
                 </Card>
-
-                {/* Cache Control */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] flex flex-col justify-between">
-                    <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500">
-                                <RefreshCw className="h-6 w-6" />
-                            </div>
-                            <CardTitle className="text-lg font-bold">Cache Global</CardTitle>
-                        </div>
-                        <CardDescription>
-                            Forçar atualização de dados estáticos e CDN.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardFooter className="p-6 pt-0">
-                        <Button variant="outline" className="w-full font-bold border-primary/20 hover:bg-primary/5 hover:text-primary rounded-xl" onClick={handleClearCache}>
-                            Limpar Cache
-                        </Button>
-                    </CardFooter>
-                </Card>
             </div>
 
         </TabsContent>
@@ -339,10 +301,10 @@ export default function AdminSettingsPage() {
             </Card>
         </TabsContent>
 
-        {/* --- LOGS TAB --- */}
+        {/* --- LOGS TAB (ADMIN-12 e ADMIN-13) --- */}
         <TabsContent value="logs" className="mt-8 animate-in fade-in slide-in-from-right-4 duration-500">
             <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden">
-                <CardHeader className="border-b border-border/40 bg-muted/20">
+                <CardHeader className="border-b border-border/40 bg-muted/20 space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle className="text-xl font-bold">Logs de Auditoria</CardTitle>
@@ -351,6 +313,58 @@ export default function AdminSettingsPage() {
                         <Badge variant="outline" className="bg-background/50 font-mono text-xs">
                             {logsCount} registros
                         </Badge>
+                    </div>
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Ação</Label>
+                            <Select value={filtrosDoLog.action || "ALL"} onValueChange={(valor) => mudarFiltro("action", valor === "ALL" ? "" : valor)}>
+                                <SelectTrigger aria-label="Filtrar por ação" className="rounded-xl border-border/40 bg-background/50 text-xs font-bold">
+                                    <SelectValue placeholder="Todas as ações" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="ALL">Todas as ações</SelectItem>
+                                    {ACOES_DO_LOG.map((acao) => (
+                                        <SelectItem key={acao.valor} value={acao.valor}>{acao.rotulo}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Administrador</Label>
+                            <Select value={filtrosDoLog.admin || "ALL"} onValueChange={(valor) => mudarFiltro("admin", valor === "ALL" ? "" : valor)}>
+                                <SelectTrigger aria-label="Filtrar por administrador" className="rounded-xl border-border/40 bg-background/50 text-xs font-bold">
+                                    <SelectValue placeholder="Todos os administradores" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    <SelectItem value="ALL">Todos os administradores</SelectItem>
+                                    {administradores.map((admin) => (
+                                        <SelectItem key={admin.id} value={admin.id}>{admin.name} ({admin.email})</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="log-inicio" className="text-[10px] font-black uppercase tracking-widest opacity-50">De</Label>
+                            <Input
+                                id="log-inicio"
+                                type="date"
+                                className="rounded-xl border-border/40 bg-background/50 text-xs font-bold"
+                                value={filtrosDoLog.inicio ?? ""}
+                                max={filtrosDoLog.fim || undefined}
+                                onChange={(e) => mudarFiltro("inicio", e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-1">
+                            <Label htmlFor="log-fim" className="text-[10px] font-black uppercase tracking-widest opacity-50">Até</Label>
+                            <Input
+                                id="log-fim"
+                                type="date"
+                                className="rounded-xl border-border/40 bg-background/50 text-xs font-bold"
+                                value={filtrosDoLog.fim ?? ""}
+                                min={filtrosDoLog.inicio || undefined}
+                                onChange={(e) => mudarFiltro("fim", e.target.value)}
+                            />
+                        </div>
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
@@ -364,30 +378,34 @@ export default function AdminSettingsPage() {
                             logs.map((log) => (
                                 <div key={log.id} className="p-4 sm:p-6 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between group">
                                     <div className="flex gap-4 items-start">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold">
-                                            {log.admin_name.charAt(0)}
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold uppercase">
+                                            {log.admin_email.charAt(0)}
                                         </div>
                                         <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <p className="text-sm font-bold">{log.action}</p>
+                                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                <p className="text-sm font-bold">{rotuloDaAcao(log.action)}</p>
                                                 <Badge variant="secondary" className="text-[10px] font-mono opacity-70">
-                                                    ID: {log.id}
+                                                    {log.action}
                                                 </Badge>
                                             </div>
                                             <p className="text-sm text-muted-foreground">{log.description}</p>
+                                            {log.user_email && (
+                                                <p className="text-xs text-muted-foreground mt-1">Usuário: {log.user_email}</p>
+                                            )}
+                                            <ValoresDoLog log={log} />
                                             <p className="text-xs font-bold text-primary/70 mt-1 sm:hidden">
-                                                {new Date(log.timestamp).toLocaleString()}
+                                                {new Date(log.timestamp).toLocaleString('pt-BR')} • por {log.admin_email}
                                             </p>
                                         </div>
                                     </div>
-                                    <div className="text-right hidden sm:block">
+                                    <div className="text-right hidden sm:block shrink-0">
                                         <p className="text-xs font-bold text-foreground">
-                                            {new Date(log.timestamp).toLocaleDateString()}
+                                            {new Date(log.timestamp).toLocaleDateString('pt-BR')}
                                         </p>
                                         <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                                            {new Date(log.timestamp).toLocaleTimeString()}
+                                            {new Date(log.timestamp).toLocaleTimeString('pt-BR')}
                                         </p>
-                                        <p className="text-[10px] text-muted-foreground mt-1">por {log.admin_name}</p>
+                                        <p className="text-[10px] text-muted-foreground mt-1">por {log.admin_email}</p>
                                     </div>
                                 </div>
                             ))

@@ -24,7 +24,8 @@ vi.mock("@/services/apiClient", async (importOriginal) => ({
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn(), warning: vi.fn() } }))
 
 // PERM-18: o acesso do /auth/me com tudo liberado e sem limite
-vi.mock("@/hooks/use-plan", () => ({
+vi.mock("@/hooks/use-plan", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/hooks/use-plan")>()),
   usePlan: () => ({ podeUsar: () => true, limite: () => ({ limit: null, used: 0 }), limiteAtingido: () => false }),
 }))
 
@@ -50,7 +51,18 @@ const ORCAMENTOS = Array.from({ length: 12 }, (_, i) => ({
 }))
 
 function log(n: number) {
-  return { id: `log-${n}`, action: "USER_UPDATE", description: `Ação ${n}`, admin_name: "Admin", timestamp: "2026-10-01T12:00:00Z" }
+  return {
+    id: `log-${n}`,
+    action: "CHANGE_PLAN",
+    description: `Ação ${n}`,
+    admin_id: "a1",
+    admin_email: "a***@x.com",
+    user_id: "u1",
+    user_email: "u***@x.com",
+    before: "COMMON",
+    after: "PREMIUM",
+    timestamp: "2026-10-01T12:00:00Z",
+  }
 }
 
 function paginaDeLogs(pagina: number) {
@@ -70,7 +82,14 @@ function respostas(url: string, config?: { params?: { page?: number } }) {
   const dados: Record<string, unknown> = {
     "/tags/": TAGS,
     "/budgets/": ORCAMENTOS,
-    "/admin/stats/": { total_users: 1, premium_users: 0, recent_users: [], status: "ok", db_status: "ok", db_latency: "1ms", api_version: "1" },
+    "/admin/stats/": {
+      total_users: 1,
+      users_by_plan: { COMMON: 1, PREMIUM: 0, PREMIUM_PLUS: 0 },
+      paid_users_percentage: "0.0",
+      recent_users: [],
+      health: { api: "ok", database: { status: "ok", latency_ms: 1, version: "16.4" } },
+      version: "1",
+    },
     "/admin/settings/": {},
   }
   return Promise.resolve({ data: dados[url] ?? [] })

@@ -3,29 +3,80 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Users, CreditCard, ShieldCheck, Activity, Loader2 } from "lucide-react"
+import { Users, ShieldCheck, Crown, User as UserIcon, Percent, Loader2 } from "lucide-react"
 import { getAdminStats, AdminStats } from "@/services/admin"
-import { toast } from "sonner"
+import { tratarErro } from "@/lib/erros"
+import { nomeDoPlano } from "@/hooks/use-plan"
+import { CardsDeSaude } from "@/components/admin/saude-do-sistema"
+import type { Plano } from "@/types/planos"
 import Link from "next/link"
+
+// ADMIN-07: um card por plano, com o nome que o usuário vê
+const PLANOS_DO_DASHBOARD: { plano: Plano; rotulo: string; icone: typeof Users; cor: string }[] = [
+  { plano: "COMMON", rotulo: `Plano ${nomeDoPlano("COMMON")}`, icone: UserIcon, cor: "text-muted-foreground" },
+  { plano: "PREMIUM", rotulo: `Plano ${nomeDoPlano("PREMIUM")}`, icone: ShieldCheck, cor: "text-primary" },
+  { plano: "PREMIUM_PLUS", rotulo: `Plano ${nomeDoPlano("PREMIUM_PLUS")}`, icone: Crown, cor: "text-amber-500" },
+]
+
+// "42.9" da API vira "42,9%"
+function porcentagem(valor: string | undefined) {
+  return valor === undefined ? "—" : `${valor.replace(".", ",")}%`
+}
+
+function CardDeNumero({
+  titulo,
+  valor,
+  legenda,
+  icone: Icone,
+  cor,
+  carregando,
+}: {
+  titulo: string
+  valor: string | number
+  legenda: string
+  icone: typeof Users
+  cor: string
+  carregando: boolean
+}) {
+  return (
+    <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/70">
+          {titulo}
+        </CardTitle>
+        <Icone className={`h-4 w-4 ${cor}`} />
+      </CardHeader>
+      <CardContent>
+        <div className="text-3xl font-black">
+          {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : valor}
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase">{legenda}</p>
+      </CardContent>
+    </Card>
+  )
+}
 
 export default function AdminDashboardPage() {
   const [stats, setStats] = useState<AdminStats | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  useEffect(() => {
-    async function loadStats() {
-      try {
-        setIsLoading(true)
-        const data = await getAdminStats()
-        setStats(data)
-      } catch (error) {
-        toast.error("Erro ao carregar métricas.")
-      } finally {
-        setIsLoading(false)
-      }
+  const loadStats = async () => {
+    try {
+      setIsLoading(true)
+      setStats(await getAdminStats())
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar métricas.", tentarDeNovo: loadStats })
+    } finally {
+      setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadStats()
   }, [])
+
+  // Sem resposta da API, nada de zero inventado
+  const numero = (valor: number | undefined) => (valor === undefined ? "—" : valor)
 
   return (
     <div className="container mx-auto py-10 px-4 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -38,55 +89,38 @@ export default function AdminDashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/70">
-              Total de Usuários
-            </CardTitle>
-            <Users className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.total_users || 0}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-bold">
-              {isLoading ? "CARREGANDO DADOS..." : "BASE TOTAL CADASTRADA"}
-            </p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+        <CardDeNumero
+          titulo="Total de Usuários"
+          valor={numero(stats?.total_users)}
+          legenda="Ativos e arquivados"
+          icone={Users}
+          cor="text-primary"
+          carregando={isLoading}
+        />
+        {PLANOS_DO_DASHBOARD.map(({ plano, rotulo, icone, cor }) => (
+          <CardDeNumero
+            key={plano}
+            titulo={rotulo}
+            valor={numero(stats?.users_by_plan?.[plano])}
+            legenda="Usuários no plano"
+            icone={icone}
+            cor={cor}
+            carregando={isLoading}
+          />
+        ))}
+        <CardDeNumero
+          titulo="Usuários em planos pagos"
+          valor={porcentagem(stats?.paid_users_percentage)}
+          legenda="Premium e Premium Plus"
+          icone={Percent}
+          cor="text-emerald-500"
+          carregando={isLoading}
+        />
+      </div>
 
-        <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/70">
-              Usuários Premium
-            </CardTitle>
-            <ShieldCheck className="h-4 w-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-black">
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.premium_users || 0}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-bold">
-              {isLoading ? "CALCULANDO..." : "ASSINATURAS ATIVAS"}
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/70">
-              Status do Sistema
-            </CardTitle>
-            <Activity className="h-4 w-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className={`text-3xl font-black ${stats?.status === 'Operacional' ? 'text-emerald-500' : 'text-amber-500'}`}>
-              {isLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : "Operacional"}
-            </div>
-            <p className="text-[10px] text-muted-foreground mt-1 font-bold">API HEALTH CHECK OK</p>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <CardsDeSaude saude={stats?.health} carregando={isLoading} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

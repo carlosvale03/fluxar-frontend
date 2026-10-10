@@ -69,6 +69,32 @@ describe("tratarErro", () => {
     expect(erro.mock.calls).toEqual([["Não encontrado."], ["Recurso disponível no plano Premium."]])
   })
 
+  it("403 por campo vai para o campo do formulário, sem toast (ADMIN-18)", () => {
+    const form = { setError: vi.fn() }
+
+    tratarErro(erroHttp(403, { admin_password: ["Senha do administrador incorreta."] }), {
+      form,
+      campos: ["admin_password"],
+    })
+
+    expect(form.setError.mock.calls).toEqual([
+      ["admin_password", { type: "server", message: "Senha do administrador incorreta." }],
+    ])
+    expect(erro).not.toHaveBeenCalled()
+  })
+
+  it("403 com detail e erros de campo juntos mostra o detail no Sonner", () => {
+    const form = { setError: vi.fn() }
+
+    tratarErro(
+      erroHttp(403, { detail: "Você não tem permissão.", admin_password: ["Senha do administrador incorreta."] }),
+      { form, campos: ["admin_password"] },
+    )
+
+    expect(form.setError).not.toHaveBeenCalled()
+    expect(erro.mock.calls).toEqual([["Você não tem permissão."]])
+  })
+
   it.each([
     ["erro de rede", () => new AxiosError("Network Error", AxiosError.ERR_NETWORK)],
     ["503", () => erroHttp(503, { detail: "Service Unavailable" })],

@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { 
-    Users, CreditCard, ShieldCheck, Activity, Loader2, 
-    ArrowLeft, Mail, Phone, Calendar, MapPin, 
-    TrendingUp, TrendingDown, Wallet, Clock, AlertCircle, CheckCircle2,
-    Edit2, Eye, EyeOff, AlertTriangle, Trash2, ShieldAlert, Archive, Eraser
+import {
+    ShieldCheck, Activity, Loader2,
+    ArrowLeft, Mail, Phone, Calendar, MapPin,
+    Wallet, Clock, AlertCircle, CheckCircle2,
+    AlertTriangle, Trash2, ShieldAlert, Archive, Eraser
 } from "lucide-react"
 import { 
     Dialog, 
@@ -49,6 +49,18 @@ import { getAbsoluteUrl } from "@/lib/utils"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
 import { formatarMoeda } from "@/lib/dinheiro"
+import { ValoresDoLog, rotuloDaAcao } from "@/app/(admin)/admin/_componentes/log-de-auditoria"
+import {
+    APAGADO_NA_EXCLUSAO,
+    APAGADO_NA_LIMPEZA,
+    CampoDaSenhaDoAdmin,
+    CampoDoEmailDeConfirmacao,
+    MANTIDO_NA_LIMPEZA,
+    emailConfere,
+    tratarErroDaAcao,
+} from "@/app/(admin)/admin/_componentes/confirmacoes"
+import type { Plano } from "@/types/planos"
+import { nomeDoPlano } from "@/hooks/use-plan"
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -57,6 +69,7 @@ export default function UserDetailsPage() {
 
   const [activeTab, setActiveTab] = useState("overview")
   const [isLoading, setIsLoading] = useState(true)
+  const [erroAoCarregar, setErroAoCarregar] = useState(false)
   // LGPD-19: CPF e telefone mascarados como vêm da API, sem nascimento nem renda
   const [user, setUser] = useState<UsuarioNoPainel | null>(null)
   const [financialStats, setFinancialStats] = useState<UserFinancialStats | null>(null)
@@ -70,7 +83,10 @@ export default function UserDetailsPage() {
   const [isChangePlanModalOpen, setIsChangePlanModalOpen] = useState(false)
   const [newPlan, setNewPlan] = useState<string>("COMMON")
   const [adminPassword, setAdminPassword] = useState("")
-  const [showPassword, setShowPassword] = useState(false)
+  // ADMIN-18: a recusa da senha aparece no campo
+  const [erroSenha, setErroSenha] = useState("")
+  // ADMIN-20: limpar e excluir pedem o e-mail do usuário digitado
+  const [emailDigitado, setEmailDigitado] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Modais de Exclusão/Arquivamento
@@ -81,6 +97,15 @@ export default function UserDetailsPage() {
   // Modal Reset Senha
   const [isResetModalOpen, setIsResetModalOpen] = useState(false)
   const [newPassword, setNewPassword] = useState("")
+
+  // Cada confirmação começa com os campos vazios
+  const abrir = (abrirDialogo: (aberto: boolean) => void) => {
+    setAdminPassword("")
+    setErroSenha("")
+    setEmailDigitado("")
+    setNewPassword("")
+    abrirDialogo(true)
+  }
 
   const loadLogs = async () => {
     if (!userId) return
@@ -98,28 +123,82 @@ export default function UserDetailsPage() {
     loadLogs()
   }, [userId, logsPage])
 
-  useEffect(() => {
-    async function loadData() {
-        if (!userId) return
+  // ADMIN-01: a falha fica na tela, com "Tentar de novo", sem dado de exemplo
+  // e sem levar de volta à lista
+  const loadData = async () => {
+    if (!userId) return
 
-        try {
-            setIsLoading(true)
-            const [userData, statsData] = await Promise.all([
-                getAdminUser(userId),
-                getUserFinancialStats(userId)
-            ])
-            setUser(userData)
-            setFinancialStats(statsData)
-            setNewPlan(userData.plan)
-        } catch (error) {
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar detalhes do usuário." })
-            router.push("/admin/usuarios")
-        } finally {
-            setIsLoading(false)
-        }
+    try {
+        setIsLoading(true)
+        setErroAoCarregar(false)
+        const [userData, statsData] = await Promise.all([
+            getAdminUser(userId),
+            getUserFinancialStats(userId)
+        ])
+        setUser(userData)
+        setFinancialStats(statsData)
+        setNewPlan(userData.plan)
+    } catch (error) {
+        setUser(null)
+        setFinancialStats(null)
+        setErroAoCarregar(true)
+        tratarErro(error, { mensagemPadrao: "Erro ao carregar detalhes do usuário.", tentarDeNovo: loadData })
+    } finally {
+        setIsLoading(false)
     }
+  }
+
+  useEffect(() => {
     loadData()
-  }, [userId, router])
+  }, [userId])
+
+  // As ações sobre o usuário; sem os dados dele, ficam todas desabilitadas
+  const botoesDeAcao = (habilitados: boolean) => (
+      <div className="flex flex-wrap gap-3">
+          <Button
+            variant="outline"
+            className="font-bold border-primary/20 hover:bg-primary/10"
+            onClick={() => abrir(setIsResetModalOpen)}
+            disabled={!habilitados}
+          >
+              Resetar Senha
+          </Button>
+          <Button
+            variant="outline"
+            className="font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
+            onClick={() => abrir(setIsClearDataModalOpen)}
+            disabled={!habilitados}
+          >
+              <Eraser className="mr-2 h-4 w-4" /> Limpar Dados
+          </Button>
+          <Button
+            variant="secondary"
+            className="font-bold bg-muted/50 hover:bg-muted text-foreground"
+            onClick={() => abrir(setIsArchiveModalOpen)}
+            disabled={!habilitados}
+          >
+              <Archive className="mr-2 h-4 w-4" /> Arquivar Conta
+          </Button>
+          <Button
+            variant="destructive"
+            className="font-bold shadow-lg shadow-red-500/20"
+            onClick={() => abrir(setIsHardDeleteModalOpen)}
+            disabled={!habilitados}
+          >
+              <Trash2 className="mr-2 h-4 w-4" /> Excluir Permanente
+          </Button>
+      </div>
+  )
+
+  const voltar = (
+      <Button
+        variant="ghost"
+        className="w-fit pl-0 hover:bg-transparent hover:text-primary transition-colors duration-200"
+        onClick={() => router.back()}
+      >
+          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Lista
+      </Button>
+  )
 
   if (isLoading) {
       return (
@@ -130,60 +209,71 @@ export default function UserDetailsPage() {
       )
   }
 
-  if (!user) return null
+  if (!user) {
+      return (
+          <div className="container mx-auto py-8 px-4 space-y-8 max-w-7xl animate-in fade-in duration-500">
+              <div className="flex flex-col gap-6">
+                  {voltar}
+                  {botoesDeAcao(false)}
+              </div>
+              <Card role="alert" className="border border-red-500/20 bg-red-500/5 shadow-sm rounded-[24px]">
+                  <CardContent className="flex flex-col items-center text-center gap-4 p-10">
+                      <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                          <AlertCircle className="h-6 w-6 text-red-600" />
+                      </div>
+                      <div className="space-y-1">
+                          <h2 className="text-lg font-black uppercase tracking-tight">Não foi possível carregar o usuário</h2>
+                          <p className="text-sm text-muted-foreground font-medium">
+                              {erroAoCarregar
+                                ? "Os dados não chegaram da API. Nenhuma ação fica disponível até eles carregarem."
+                                : "Usuário não informado."}
+                          </p>
+                      </div>
+                      <Button onClick={loadData} className="rounded-xl font-black uppercase tracking-widest text-[10px]">
+                          Tentar de novo
+                      </Button>
+                  </CardContent>
+              </Card>
+          </div>
+      )
+  }
 
+  // ADMIN-19: mudar o plano não pede a senha
   const confirmChangePlan = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
-
     try {
       setIsSubmitting(true)
-      const updatedUser = await updateAdminUser(user.id, { 
-        plan: newPlan as any,
-        admin_password: adminPassword 
-      })
+      const updatedUser = await updateAdminUser(user.id, { plan: newPlan as Plano })
       setUser(updatedUser)
-      toast.success(`Plano de ${user.name} alterado para ${newPlan}.`)
+      toast.success(`Plano de ${user.name} alterado para ${nomeDoPlano(newPlan as Plano)}.`)
       setIsChangePlanModalOpen(false)
-      setAdminPassword("")
       loadLogs()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao alterar plano"
-      toast.error(msg)
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao alterar plano" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmArchive = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
+    if (!adminPassword) return
 
     try {
       setIsSubmitting(true)
       await deleteAdminUser(user.id, adminPassword)
       toast.success(`Usuário ${user.name} arquivado com sucesso.`)
       setIsArchiveModalOpen(false)
-      // Atualizar o estado local ou recarregar
+      setAdminPassword("")
       setUser({ ...user, is_active: false })
       loadLogs()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao arquivar usuário"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuário" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmHardDelete = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
+    if (!adminPassword || !emailConfere(user.email, emailDigitado)) return
 
     try {
       setIsSubmitting(true)
@@ -194,85 +284,64 @@ export default function UserDetailsPage() {
       router.push("/admin/usuarios")
     } catch (error) {
       // LGPD-12: com o Cloudinary fora, nada foi apagado e o backend explica (503 deletion_failed)
-      const dados = (error as { response?: { data?: { code?: unknown; detail?: unknown } } }).response?.data
-      if (dados?.code === "deletion_failed" && typeof dados.detail === "string") {
-        toast.error(dados.detail)
-      } else {
-        tratarErro(error, { mensagemPadrao: "Erro ao excluir usuário permanentemente" })
-      }
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao excluir usuário permanentemente" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmClearData = async () => {
-    if (!adminPassword) {
-        toast.error("Senha de administrador requerida.")
-        return
-    }
+    if (!adminPassword || !emailConfere(user.email, emailDigitado)) return
 
     try {
       setIsSubmitting(true)
-      await clearAdminUserData(user.id, adminPassword)
+      const resposta = await clearAdminUserData(user.id, adminPassword)
       toast.success(`Todos os dados de ${user.name} foram excluídos. O login foi mantido.`)
       setIsClearDataModalOpen(false)
       setAdminPassword("")
+      setEmailDigitado("")
       loadLogs()
-      
-      // Limpa os status financeiros locais para refletir na interface
-      setFinancialStats({
-          total_balance: "0.00",
-          avg_income_value: "0.00",
-          avg_expense_value: "0.00",
-          income_count_per_day: 0,
-          expense_count_per_day: 0,
-          last_transaction_date: "Sem dados"
-      })
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao limpar dados do usuário"
-      toast.error(msg)
+      // As estatísticas do cadastro novo, calculadas pela API
+      setFinancialStats(resposta.financial_stats)
+    } catch (error) {
+      // 503 clear_failed: nada foi apagado; 400 own_account: o detail do backend
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao limpar dados do usuário" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   const confirmResetPassword = async () => {
-    if (!newPassword || !adminPassword) {
-        toast.error("Nova senha e senha de administrador são requeridas.")
-        return
-    }
+    if (!newPassword || !adminPassword) return
 
     try {
       setIsSubmitting(true)
-      await resetAdminUserPassword(user.id, { 
+      await resetAdminUserPassword(user.id, {
         new_password: newPassword,
-        admin_password: adminPassword 
+        admin_password: adminPassword
       })
       toast.success(`Senha de ${user.name} redefinida com sucesso.`)
       setIsResetModalOpen(false)
       setNewPassword("")
       setAdminPassword("")
       loadLogs()
-    } catch (error: any) {
-      const msg = error.response?.data?.detail || "Erro ao resetar senha"
-      toast.error(msg)
+    } catch (error) {
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao resetar senha" })
     } finally {
       setIsSubmitting(false)
     }
   }
 
+  const mudarSenha = (valor: string) => {
+    setAdminPassword(valor)
+    setErroSenha("")
+  }
+
   return (
     <div className="container mx-auto py-8 px-4 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
       
-      {/* Header */}
       <div className="flex flex-col gap-6">
-          <Button 
-            variant="ghost" 
-            className="w-fit pl-0 hover:bg-transparent hover:text-primary transition-colors duration-200" 
-            onClick={() => router.back()}
-          >
-              <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Lista
-          </Button>
+          {voltar}
 
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
               <div className="flex items-center gap-6">
@@ -290,7 +359,7 @@ export default function UserDetailsPage() {
                             {user.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                         <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
-                            {user.plan === 'PREMIUM_PLUS' ? 'Premium Plus' : user.plan === 'PREMIUM' ? 'Premium' : 'Gratuito'}
+                            {nomeDoPlano(user.plan as Plano)}
                         </Badge>
                      </div>
                      <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
@@ -300,36 +369,7 @@ export default function UserDetailsPage() {
                  </div>
               </div>
               
-              <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="font-bold border-primary/20 hover:bg-primary/10"
-                    onClick={() => setIsResetModalOpen(true)}
-                  >
-                      Resetar Senha
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
-                    onClick={() => setIsClearDataModalOpen(true)}
-                  >
-                      <Eraser className="mr-2 h-4 w-4" /> Limpar Dados
-                  </Button>
-                  <Button 
-                    variant="secondary" 
-                    className="font-bold bg-muted/50 hover:bg-muted text-foreground"
-                    onClick={() => setIsArchiveModalOpen(true)}
-                  >
-                      <Archive className="mr-2 h-4 w-4" /> Arquivar Conta
-                  </Button>
-                  <Button 
-                    variant="destructive" 
-                    className="font-bold shadow-lg shadow-red-500/20"
-                    onClick={() => setIsHardDeleteModalOpen(true)}
-                  >
-                      <Trash2 className="mr-2 h-4 w-4" /> Excluir Permanente
-                  </Button>
-              </div>
+              {botoesDeAcao(true)}
           </div>
       </div>
 
@@ -339,7 +379,6 @@ export default function UserDetailsPage() {
         <TabsList className="bg-muted/50 p-1 rounded-xl h-auto">
           <TabsTrigger value="overview" className="rounded-lg px-6 py-2 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Visão Geral</TabsTrigger>
           <TabsTrigger value="logs" className="rounded-lg px-6 py-2 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Logs de Atividade</TabsTrigger>
-          <TabsTrigger value="subscription" className="rounded-lg px-6 py-2 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Assinatura</TabsTrigger>
         </TabsList>
 
         {/* --- OVERVIEW TAB --- */}
@@ -396,11 +435,26 @@ export default function UserDetailsPage() {
                             <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><MapPin className="h-4 w-4" /> CPF</span>
                             <span className="text-sm font-bold">{user.cpf || "Não informado"}</span>
                         </div>
-                         <div className="flex items-center justify-between pb-1">
+                         <div className="flex items-center justify-between border-b border-border/50 pb-3">
                             <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Email Verificado</span>
                             <Badge variant={user.emailVerified ? "default" : "destructive"} className="text-[10px]">
                                 {user.emailVerified ? "SIM" : "NÃO"}
                             </Badge>
+                        </div>
+                        {/* ADMIN-06: sem cobrança, o plano fica aqui, sem aba de assinatura */}
+                        <div className="flex items-center justify-between gap-3 pb-1">
+                            <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Plano</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-bold">{nomeDoPlano(user.plan as Plano)}</span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-7 rounded-xl font-black text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary/10"
+                                    onClick={() => { setNewPlan(user.plan); setIsChangePlanModalOpen(true) }}
+                                >
+                                    Alterar plano
+                                </Button>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
@@ -431,8 +485,10 @@ export default function UserDetailsPage() {
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Ação: <span className="font-mono font-bold">{log.action}</span> • Autor: {log.admin_name}
+                                    Ação: <span className="font-bold">{rotuloDaAcao(log.action)}</span> • Autor: {log.admin_email}
                                 </p>
+                                {/* ADMIN-14: o antes e o depois de cada registro */}
+                                <ValoresDoLog log={log} />
                             </div>
                         ))}
                     </div>
@@ -449,105 +505,8 @@ export default function UserDetailsPage() {
              </Card>
          </TabsContent>
 
-         {/* --- SUBSCRIPTION TAB (Placeholder) --- */}
-         <TabsContent value="subscription" className="animate-in fade-in slide-in-from-right-2 duration-300">
-             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-1 border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm flex flex-col justify-between">
-                    <CardHeader>
-                        <CardTitle className="text-lg">Plano Atual</CardTitle>
-                        <CardDescription>Nível de acesso do usuário no sistema.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="flex flex-col items-center justify-center p-8 space-y-4">
-                        <div className={`w-20 h-20 rounded-3xl flex items-center justify-center shadow-2xl ${
-                            user.plan === 'PREMIUM_PLUS' ? 'bg-amber-500/20 text-amber-600' :
-                            user.plan === 'PREMIUM' ? 'bg-primary/20 text-primary' :
-                            'bg-muted text-muted-foreground'
-                        }`}>
-                            <ShieldCheck className="h-10 w-10" />
-                        </div>
-                        <div className="text-center">
-                            <h3 className="text-2xl font-black uppercase tracking-widest">{user.plan.replace('_', ' ')}</h3>
-                            <p className="text-xs font-bold text-muted-foreground opacity-60">
-                                {user.plan === 'COMMON' ? 'Assinatura Básica' : 'Assinatura Ativa'}
-                            </p>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="bg-muted/30 p-4">
-                        <Button 
-                            variant="outline" 
-                            className="w-full font-black text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary/10 rounded-xl"
-                            onClick={() => setIsChangePlanModalOpen(true)}
-                        >
-                            Alterar Plano Manualmente
-                        </Button>
-                    </CardFooter>
-                </Card>
 
-                <Card className="lg:col-span-2 border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm">
-                    <CardHeader>
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <CardTitle className="text-lg">Histórico de Transações</CardTitle>
-                                <CardDescription>Registros de pagamentos e mudanças de plano.</CardDescription>
-                            </div>
-                            <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 text-[10px] font-black uppercase tracking-widest px-2">
-                                Roadmap
-                            </Badge>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl flex gap-3 mb-4">
-                                <AlertCircle className="h-4 w-4 text-primary shrink-0" />
-                                <p className="text-[10px] font-bold text-primary/80 uppercase tracking-widest leading-tight">
-                                    Nota: Este painel exibirá dados reais assim que a integração com o gateway de pagamentos for concluída.
-                                </p>
-                            </div>
-                            {/* Mock History */}
-                            <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 group hover:border-primary/20 transition-all">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
-                                        <CheckCircle2 className="h-4 w-4" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold">Renovação Mensal - Premium</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Cartão de Crédito • ID: #TRX-9902</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-black text-emerald-600">R$ 29,90</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground/60">05/02/2026</p>
-                                </div>
-                            </div>
-
-                            <div className="flex items-center justify-between p-4 rounded-2xl bg-muted/20 border border-border/40 group hover:border-primary/20 transition-all opacity-60">
-                                <div className="flex items-center gap-4">
-                                    <div className="p-2 rounded-xl bg-primary/10 text-primary">
-                                        <ArrowLeft className="h-4 w-4 rotate-90" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-bold">Upgrade: Free → Premium</p>
-                                        <p className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">Ação Administrativa</p>
-                                    </div>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-black text-primary">GRATUITO</p>
-                                    <p className="text-[10px] font-bold text-muted-foreground/60">12/01/2026</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="mt-8 border-t border-dashed border-border/50 pt-8 text-center">
-                            <Button variant="ghost" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary">
-                                Carregar Histórico Completo
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-             </div>
-         </TabsContent>
-
-         {/* Modal de Alteração de Plano */}
+         {/* Modal de Alteração de Plano (ADMIN-19: sem senha) */}
          <Dialog open={isChangePlanModalOpen} onOpenChange={setIsChangePlanModalOpen}>
             <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
             <DialogHeader>
@@ -556,52 +515,29 @@ export default function UserDetailsPage() {
                 Selecione o novo nível de acesso para <strong>{user.name}</strong>.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Novo Plano</Label>
                 <Select value={newPlan} onValueChange={setNewPlan}>
-                    <SelectTrigger className="rounded-xl border-border/40 bg-muted/20">
+                    <SelectTrigger aria-label="Novo plano" className="rounded-xl border-border/40 bg-muted/20">
                     <SelectValue placeholder="Selecione um plano" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/40">
-                    <SelectItem value="COMMON">GRATUITO</SelectItem>
+                    <SelectItem value="COMMON">COMUM</SelectItem>
                     <SelectItem value="PREMIUM">PREMIUM</SelectItem>
                     <SelectItem value="PREMIUM_PLUS">PREMIUM PLUS</SelectItem>
                     </SelectContent>
                 </Select>
                 </div>
-
-                <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-                <div className="relative">
-                    <Input 
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Digite sua senha para confirmar"
-                    className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                    value={adminPassword}
-                    onChange={(e) => setAdminPassword(e.target.value)}
-                    autoComplete="new-password"
-                    />
-                    <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                    onClick={() => setShowPassword(!showPassword)}
-                    type="button"
-                    >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                </div>
-                </div>
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-                <Button 
-                    onClick={confirmChangePlan} 
+                <Button
+                    onClick={confirmChangePlan}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || newPlan === user.plan}
                 >
                 {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
                 Confirmar Alteração
@@ -624,7 +560,7 @@ export default function UserDetailsPage() {
                     Ao arquivar <strong>{user.name}</strong>, o acesso ao sistema será bloqueado, mas os dados serão preservados.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4">
                 <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
                     <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
@@ -637,33 +573,12 @@ export default function UserDetailsPage() {
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
-                    <div className="relative">
-                        <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Sua senha de acesso admin"
-                            className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
-                <Button 
-                    onClick={confirmArchive} 
+                <Button
+                    onClick={confirmArchive}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={isSubmitting || !adminPassword}
                 >
@@ -675,9 +590,9 @@ export default function UserDetailsPage() {
             </DialogContent>
         </Dialog>
 
-        {/* Modal de Exclusão Permanente (IRREVERSÍVEL) */}
+        {/* Modal de Exclusão Permanente (IRREVERSÍVEL, ADMIN-20) */}
         <Dialog open={isHardDeleteModalOpen} onOpenChange={setIsHardDeleteModalOpen}>
-            <DialogContent className="rounded-[32px] border-red-500/20 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogContent className="rounded-[32px] border-red-500/20 bg-background/95 backdrop-blur-xl max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
@@ -689,59 +604,33 @@ export default function UserDetailsPage() {
                     Você está prestes a excluir permanentemente a conta de <strong>{user.name}</strong> e todos os dados associados.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-6">
                 <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 space-y-3">
                     <h4 className="text-xs font-black uppercase tracking-widest text-red-600">O que será removido:</h4>
                     <ul className="space-y-2">
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                            <span>TODAS as transações, contas bancárias e cartões.</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                            <span>Metas, categorias personalizadas e tags.</span>
-                        </li>
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
-                            <span>Dados de perfil, avatar e configurações de acesso.</span>
-                        </li>
+                        {APAGADO_NA_EXCLUSAO.map((item) => (
+                            <li key={item} className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                                <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                                <span>{item}</span>
+                            </li>
+                        ))}
                     </ul>
                     <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter mt-4 text-center">
                         ESTA AÇÃO NÃO PODE SER DESFEITA EM NENHUMA HIPÓTESE.
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
-                    <div className="relative">
-                        <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Sua senha de acesso admin"
-                            className="rounded-xl border-red-500/20 bg-red-500/5 focus:ring-red-500/20 pr-10"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
+                <CampoDoEmailDeConfirmacao email={user.email} valor={emailDigitado} onChange={setEmailDigitado} />
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="border-red-500/20 bg-red-500/5" />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
-                <Button 
-                    onClick={confirmHardDelete} 
+                <Button
+                    onClick={confirmHardDelete}
                     variant="destructive"
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-red-500/20"
-                    disabled={isSubmitting || !adminPassword}
+                    disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
                     {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Trash2 className="h-3 w-3 mr-2" />}
                     EXCLUIR PERMANENTEMENTE
@@ -765,50 +654,28 @@ export default function UserDetailsPage() {
                 Defina uma nova senha de acesso para <strong>{user.name}</strong>.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Nova Senha do Usuário</Label>
-                <div className="relative">
-                    <Input 
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Mínimo 8 caracteres"
-                        className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10"
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        autoComplete="new-password"
-                    />
-                </div>
+                <Label htmlFor="nova-senha-do-usuario" className="text-[10px] font-black uppercase tracking-widest opacity-50">Nova Senha do Usuário</Label>
+                <Input
+                    id="nova-senha-do-usuario"
+                    type="password"
+                    placeholder="Mínimo 8 caracteres"
+                    className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    autoComplete="new-password"
+                />
                 </div>
 
-                <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Sua Senha de Administrador</Label>
-                <div className="relative">
-                    <Input 
-                        type={showPassword ? "text" : "password"}
-                        placeholder="Confirme sua identidade"
-                        className="rounded-xl border-border/40 bg-muted/5 focus:ring-primary/20 pr-10"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        autoComplete="new-password"
-                    />
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                        onClick={() => setShowPassword(!showPassword)}
-                        type="button"
-                    >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
-                </div>
-                </div>
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
                 <Button variant="ghost" onClick={() => setIsResetModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-                <Button 
-                    onClick={confirmResetPassword} 
+                <Button
+                    onClick={confirmResetPassword}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
                     disabled={isSubmitting || !newPassword || !adminPassword}
                 >
@@ -819,9 +686,9 @@ export default function UserDetailsPage() {
             </DialogContent>
         </Dialog>
 
-        {/* Modal de Limpar Dados (Clear Data) */}
+        {/* Modal de Limpar Dados (ADMIN-20 a ADMIN-23) */}
         <Dialog open={isClearDataModalOpen} onOpenChange={setIsClearDataModalOpen}>
-            <DialogContent className="rounded-[32px] border-amber-500/30 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogContent className="rounded-[32px] border-amber-500/30 bg-background/95 backdrop-blur-xl max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
                     <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
@@ -830,21 +697,23 @@ export default function UserDetailsPage() {
                     <DialogTitle className="font-black text-xl uppercase tracking-tight text-amber-600">Limpar Dados do Usuário</DialogTitle>
                 </div>
                 <DialogDescription className="text-sm font-medium text-foreground">
-                    Você está prestes a excluir todos os registros de <strong>{user.name}</strong>, mas manterá o acesso dele ao sistema.
+                    Você está prestes a excluir todos os registros de <strong>{user.name}</strong>, mas manterá o acesso dele ao sistema. Ele fica como um cadastro novo.
                 </DialogDescription>
             </DialogHeader>
-            
+
             <div className="py-4 space-y-6">
                 <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">O que vai acontecer:</h4>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">O que será apagado:</h4>
                     <ul className="space-y-2">
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
-                            <span>Transações, contas bancárias, cartões, metas e orçamentos serão <strong>excluídos permanentemente</strong>.</span>
-                        </li>
+                        {APAGADO_NA_LIMPEZA.map((item) => (
+                            <li key={item} className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
+                                <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                                <span>{item}</span>
+                            </li>
+                        ))}
                         <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
                             <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
-                            <span>O login, a senha, os dados do perfil e a assinatura <strong>serão mantidos</strong>.</span>
+                            <span>Ficam: {MANTIDO_NA_LIMPEZA}</span>
                         </li>
                     </ul>
                     <p className="text-[10px] font-black text-amber-600 uppercase tracking-tighter mt-4 text-center">
@@ -852,35 +721,15 @@ export default function UserDetailsPage() {
                     </p>
                 </div>
 
-                <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Confirme sua Senha de Administrador</Label>
-                    <div className="relative">
-                        <Input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Sua senha de acesso admin"
-                            className="rounded-xl border-amber-500/20 bg-amber-500/5 focus:ring-amber-500/20 pr-10"
-                            value={adminPassword}
-                            onChange={(e) => setAdminPassword(e.target.value)}
-                            autoComplete="new-password"
-                        />
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent text-muted-foreground"
-                            onClick={() => setShowPassword(!showPassword)}
-                            type="button"
-                        >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                        </Button>
-                    </div>
-                </div>
+                <CampoDoEmailDeConfirmacao email={user.email} valor={emailDigitado} onChange={setEmailDigitado} />
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="border-amber-500/20 bg-amber-500/5" />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
-                <Button 
-                    onClick={confirmClearData} 
+                <Button
+                    onClick={confirmClearData}
                     className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-amber-500/20 bg-amber-500 hover:bg-amber-600 text-white"
-                    disabled={isSubmitting || !adminPassword}
+                    disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
                     {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Eraser className="h-3 w-3 mr-2" />}
                     LIMPAR DADOS
