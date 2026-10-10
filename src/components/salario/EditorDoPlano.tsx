@@ -2,11 +2,21 @@
 
 import { useMemo, useState } from "react"
 import { format } from "date-fns"
-import { ArrowDown, ArrowUp, Calculator, Loader2, Plus, Save, Shuffle, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, Plus, Save, Shuffle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
+import { BarraDaDivisao, PontoDaCor, corDaParte } from "@/components/salario/BarraDaDivisao"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { MoneyInput } from "@/components/ui/money-input"
 import {
@@ -21,7 +31,7 @@ import {
 import { lerData } from "@/lib/datas"
 import { deCentavos, formatarMoeda, lerValorDigitado, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { percentualParaCampo, porcentagemNoHistorico } from "@/lib/salario"
+import { montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDoPercentual } from "@/lib/salario"
 import { cn } from "@/lib/utils"
 import { salarioService } from "@/services/salario"
 import { AccountType, type Account } from "@/types/accounts"
@@ -32,7 +42,6 @@ import type {
   ReferenciaDaParte,
   ReferenciasDoSalario,
   RegraDaParte,
-  Simulacao,
   TipoDeDestino,
 } from "@/types/salario"
 
@@ -87,6 +96,10 @@ function rascunhoDe(parte: ParteInicial): Rascunho {
   }
 }
 
+// O que conta como mudança no editor, para pedir confirmação ao trocar de modelo
+const assinatura = (partes: Rascunho[]) =>
+  JSON.stringify(partes.map((p) => [p.name, p.rule_type, p.valor, p.destino]))
+
 function destinoEnviado(destino: string): Pick<ParteEnviada, "destination_type" | "account" | "goal"> {
   if (destino === CONTA_DO_SALARIO) return { destination_type: "SALARY_ACCOUNT", account: null, goal: null }
   if (destino.startsWith("ACCOUNT:")) return { destination_type: "ACCOUNT", account: destino.slice(8), goal: null }
@@ -125,11 +138,13 @@ interface EditorDoPlanoProps {
   referencias: ReferenciasDoSalario | null
   onSalvo: (plano: PlanoDoSalario) => void
   onTrocarModelo: () => void
+  // Com plano salvo: volta ao plano como estava
+  onCancelar?: () => void
 }
 
-// SALARIO-04 a SALARIO-07, SALARIO-12 a SALARIO-14, SALARIO-54 e SALARIO-55:
-// as partes em ordem de prioridade, com regra, valor e destino; a simulação
-// com um valor digitado.
+// SALARIO-04 a SALARIO-07, SALARIO-12, SALARIO-54 e SALARIO-55: as partes em
+// ordem de prioridade, com regra, valor e destino, e a barra da divisão
+// mudando enquanto o plano é editado. Nada muda antes de salvar.
 export function EditorDoPlano({
   partesIniciais,
   categoriasDoSalario,
@@ -138,13 +153,13 @@ export function EditorDoPlano({
   referencias,
   onSalvo,
   onTrocarModelo,
+  onCancelar,
 }: EditorDoPlanoProps) {
   const [partes, setPartes] = useState<Rascunho[]>(() => partesIniciais.map(rascunhoDe))
+  const [assinaturaInicial] = useState(() => assinatura(partesIniciais.map(rascunhoDe)))
   const [erros, setErros] = useState<Record<string, ErrosDaParte>>({})
   const [salvando, setSalvando] = useState(false)
-  const [valorSimulado, setValorSimulado] = useState("")
-  const [simulacao, setSimulacao] = useState<Simulacao | null>(null)
-  const [simulando, setSimulando] = useState(false)
+  const [confirmarTroca, setConfirmarTroca] = useState(false)
 
   // SALARIO-05: contas ativas que não são cofrinho e metas ativas
   const contasDeDestino = useMemo(
@@ -153,9 +168,15 @@ export function EditorDoPlano({
   )
   const metasDeDestino = useMemo(() => metas.filter((m) => m.is_active !== false), [metas])
 
-  const somaDosPercentuais = partes
-    .filter((p) => p.rule_type === "PERCENT")
-    .reduce((soma, p) => soma + (paraCentavos(lerValorDigitado(p.valor) ?? "0") || 0), 0)
+  const mediaDoSalario = referencias ? paraCentavos(referencias.history.salary_average) : 0
+  const base = mediaDoSalario > 0 ? mediaDoSalario : null
+  const barra = montarBarra(
+    partes.map((p) => ({ nome: p.name.trim(), regra: p.rule_type, valor: valorEnviado(p) })),
+    base,
+  )
+  const acimaDe100 = barra.somaDosPercentuais > 10000
+  const temFixas = partes.some((p) => p.rule_type === "FIXED")
+  const alterado = assinatura(partes) !== assinaturaInicial
 
   const alterar = (chave: string, mudanca: Partial<Rascunho>) => {
     setPartes((atuais) => atuais.map((p) => (p.chave === chave ? { ...p, ...mudanca } : p)))
@@ -165,7 +186,6 @@ export function EditorDoPlano({
       void _removido
       return resto
     })
-    setSimulacao(null)
   }
 
   // SALARIO-07: a ordem define quais partes são atendidas primeiro
@@ -177,21 +197,18 @@ export function EditorDoPlano({
       ;[novas[indice], novas[destino]] = [novas[destino], novas[indice]]
       return novas
     })
-    setSimulacao(null)
   }
 
-  const remover = (chave: string) => {
-    setPartes((atuais) => atuais.filter((p) => p.chave !== chave))
-    setSimulacao(null)
-  }
+  const remover = (chave: string) => setPartes((atuais) => atuais.filter((p) => p.chave !== chave))
 
-  const adicionar = () => {
+  const adicionar = () =>
     setPartes((atuais) => [
       ...atuais,
       { chave: novaChave(), name: "", rule_type: "PERCENT", valor: "", destino: "", reference: "", inicial: null },
     ])
-    setSimulacao(null)
-  }
+
+  // Trocar de modelo descarta as mudanças: com alguma, pede confirmação
+  const pedirTroca = () => (alterado ? setConfirmarTroca(true) : onTrocarModelo())
 
   // As partes no formato da API; com algum campo vazio, marca os erros e
   // devolve null
@@ -262,24 +279,6 @@ export function EditorDoPlano({
     }
   }
 
-  // SALARIO-13: quanto vai para cada parte e quanto fica livre, sem gravar nada
-  const simular = async () => {
-    if (!maiorQueZero(valorSimulado)) {
-      toast.error("Digite o valor do salário para simular.")
-      return
-    }
-    const enviadas = montarPartes()
-    if (!enviadas) return
-    setSimulando(true)
-    try {
-      setSimulacao(await salarioService.simular(valorSimulado, enviadas))
-    } catch (erro) {
-      mostrarErros(erro, partes.map((p) => p.chave))
-    } finally {
-      setSimulando(false)
-    }
-  }
-
   const opcoesDeDestino = (parte: Rascunho) => {
     const conhecido =
       parte.destino === "" ||
@@ -289,249 +288,224 @@ export function EditorDoPlano({
     return { conhecido, nome: parte.inicial?.destination_name ?? "Destino indisponível" }
   }
 
+  // "Soma: 80% · Livre: 20%"; com partes fixas, a soma em R$ entra junto
+  const fixos = barra.somaDosFixos > 0 ? ` + ${formatarMoeda(deCentavos(barra.somaDosFixos))}` : ""
+  const resumoDaSoma = acimaDe100
+    ? `Soma: ${textoDoPercentual(barra.somaDosPercentuais)}${fixos} · Passa de 100%`
+    : temFixas && !base
+      ? `Soma: ${textoDoPercentual(barra.somaDosPercentuais)}${fixos}`
+      : `Soma: ${textoDoPercentual(barra.somaDosPercentuais)}${fixos} · Livre: ${textoDoPercentual(barra.livre)}`
+
   return (
-    <section aria-label="Plano de divisão" className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
-        <div>
-          <h3 className="text-base font-semibold">Partes do plano</h3>
-          <p className="text-sm text-muted-foreground font-medium">
-            As partes são atendidas na ordem da lista. O que sobrar fica livre na conta do salário.
-          </p>
-        </div>
-        <Button variant="outline" className="rounded-2xl font-bold text-xs self-start sm:self-auto" onClick={onTrocarModelo}>
-          <Shuffle className="mr-2 h-4 w-4" /> Trocar de modelo
+    <div role="region" aria-label="Plano de divisão" className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          As partes são atendidas na ordem da lista. O que sobrar fica livre na conta do salário.
+        </p>
+        <Button variant="ghost" className="h-10 shrink-0 rounded-xl px-3 self-start" onClick={pedirTroca}>
+          <Shuffle aria-hidden /> Trocar de modelo
         </Button>
       </div>
 
-      <Card className="border-border/40 bg-card/50 backdrop-blur-sm rounded-[32px] overflow-hidden">
-        <CardContent className="p-6 space-y-4">
-          {partes.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center bg-muted/10 rounded-2xl border border-dashed border-border/40">
-              Nenhuma parte ainda. Adicione a primeira parte do seu plano.
-            </p>
-          ) : (
-            <ol className="space-y-3" aria-label="Partes do plano">
-              {partes.map((parte, indice) => {
-                const rotulo = parte.name.trim() || `parte ${indice + 1}`
-                const historico = porcentagemNoHistorico(parte.reference, referencias)
-                const pedido = pedidoDaMeta(parte, metas)
-                const errosDaParte = erros[parte.chave] ?? {}
-                const destino = opcoesDeDestino(parte)
-                return (
-                  <li
-                    key={parte.chave}
-                    aria-label={rotulo}
-                    className="p-4 rounded-2xl border border-border/40 bg-background/60 space-y-3"
+      <div className="space-y-2">
+        <BarraDaDivisao barra={barra} />
+        {temFixas && base ? (
+          <p className="text-xs text-muted-foreground tabular-nums">
+            Partes em R$ comparadas à sua média de salário, {formatarMoeda(deCentavos(base))}
+          </p>
+        ) : barra.fixasForaDaBarra > 0 ? (
+          <p className="text-xs text-muted-foreground">Partes em R$ ficam fora da barra até haver uma média de salário.</p>
+        ) : null}
+      </div>
+
+      {partes.length === 0 ? (
+        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+          Nenhuma parte ainda. Adicione a primeira parte do seu plano.
+        </p>
+      ) : (
+        <ol className="divide-y divide-border border-y border-border" aria-label="Partes do plano">
+          {partes.map((parte, indice) => {
+            const rotulo = parte.name.trim() || `parte ${indice + 1}`
+            const historico = porcentagemNoHistorico(parte.reference, referencias)
+            const pedido = pedidoDaMeta(parte, metas)
+            const errosDaParte = erros[parte.chave] ?? {}
+            const destino = opcoesDeDestino(parte)
+            return (
+              <li key={parte.chave} aria-label={rotulo} className="flex gap-2 py-3">
+                <div className="flex shrink-0 flex-col">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-xl"
+                    aria-label={`Subir ${rotulo}`}
+                    disabled={indice === 0}
+                    onClick={() => mover(indice, -1)}
                   >
-                    <div className="flex flex-col lg:flex-row gap-3 lg:items-start">
-                      <div className="flex lg:flex-col gap-1 shrink-0">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl"
-                          aria-label={`Subir ${rotulo}`}
-                          disabled={indice === 0}
-                          onClick={() => mover(indice, -1)}
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 rounded-xl"
-                          aria-label={`Descer ${rotulo}`}
-                          disabled={indice === partes.length - 1}
-                          onClick={() => mover(indice, 1)}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                      </div>
+                    <ArrowUp aria-hidden />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-xl"
+                    aria-label={`Descer ${rotulo}`}
+                    disabled={indice === partes.length - 1}
+                    onClick={() => mover(indice, 1)}
+                  >
+                    <ArrowDown aria-hidden />
+                  </Button>
+                </div>
 
-                      <div className="flex-1 space-y-1 min-w-0">
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <PontoDaCor className={corDaParte(indice)} />
+                    <Input
+                      aria-label={`Nome da parte ${indice + 1}`}
+                      value={parte.name}
+                      maxLength={60}
+                      placeholder="Nome da parte"
+                      className="h-10 rounded-xl font-medium"
+                      onChange={(e) => alterar(parte.chave, { name: e.target.value })}
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:text-destructive"
+                      aria-label={`Remover ${rotulo}`}
+                      onClick={() => remover(parte.chave)}
+                    >
+                      <Trash2 aria-hidden />
+                    </Button>
+                  </div>
+
+                  <div className="flex flex-col gap-2 pl-[18px] sm:flex-row pr-12">
+                    <div className="flex shrink-0 gap-2">
+                      <div className="flex h-10 shrink-0 rounded-xl border border-border p-0.5" role="group" aria-label={`Regra de ${rotulo}`}>
+                        {(["PERCENT", "FIXED"] as const).map((regra) => (
+                          <button
+                            key={regra}
+                            type="button"
+                            aria-pressed={parte.rule_type === regra}
+                            className={cn(
+                              "min-w-10 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                              parte.rule_type === regra ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+                            )}
+                            onClick={() => parte.rule_type !== regra && alterar(parte.chave, { rule_type: regra, valor: "" })}
+                          >
+                            {regra === "PERCENT" ? "%" : "R$"}
+                          </button>
+                        ))}
+                      </div>
+                      {parte.rule_type === "PERCENT" ? (
                         <Input
-                          aria-label={`Nome da parte ${indice + 1}`}
-                          value={parte.name}
-                          maxLength={60}
-                          placeholder="Nome da parte"
-                          className="rounded-xl h-10 font-bold"
-                          onChange={(e) => alterar(parte.chave, { name: e.target.value })}
+                          aria-label={`Percentual de ${rotulo}`}
+                          inputMode="decimal"
+                          value={parte.valor}
+                          placeholder="0"
+                          className="h-10 w-24 rounded-xl tabular-nums"
+                          onChange={(e) => alterar(parte.chave, { valor: e.target.value.replace(/[^\d,.]/g, "") })}
                         />
-                        {errosDaParte.name && <p className="text-xs font-medium text-destructive">{errosDaParte.name}</p>}
-                        {historico && (
-                          <p className="text-[11px] text-muted-foreground font-medium">{historico} no seu histórico</p>
-                        )}
-                      </div>
-
-                      <div className="space-y-1 lg:w-56">
-                        <div className="flex gap-2">
-                          <div className="flex rounded-xl border border-border/40 p-0.5 shrink-0" role="group" aria-label={`Regra de ${rotulo}`}>
-                            {(["PERCENT", "FIXED"] as const).map((regra) => (
-                              <button
-                                key={regra}
-                                type="button"
-                                aria-pressed={parte.rule_type === regra}
-                                className={cn(
-                                  "px-2.5 h-9 rounded-lg text-xs font-black transition-colors",
-                                  parte.rule_type === regra ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
-                                )}
-                                onClick={() => parte.rule_type !== regra && alterar(parte.chave, { rule_type: regra, valor: "" })}
-                              >
-                                {regra === "PERCENT" ? "%" : "R$"}
-                              </button>
-                            ))}
-                          </div>
-                          {parte.rule_type === "PERCENT" ? (
-                            <Input
-                              aria-label={`Percentual de ${rotulo}`}
-                              inputMode="decimal"
-                              value={parte.valor}
-                              placeholder="0"
-                              className="rounded-xl h-10 font-bold"
-                              onChange={(e) => alterar(parte.chave, { valor: e.target.value.replace(/[^\d,.]/g, "") })}
-                            />
-                          ) : (
-                            <MoneyInput
-                              aria-label={`Valor de ${rotulo}`}
-                              value={parte.valor}
-                              placeholder="R$ 0,00"
-                              className="rounded-xl h-10 font-bold"
-                              onValueChange={(valor) => alterar(parte.chave, { valor: valor ?? "" })}
-                            />
-                          )}
-                        </div>
-                        {errosDaParte.value && <p className="text-xs font-medium text-destructive">{errosDaParte.value}</p>}
-                      </div>
-
-                      <div className="space-y-1 lg:w-64">
-                        <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
-                          <SelectTrigger aria-label={`Destino de ${rotulo}`} className="rounded-xl h-10 font-medium">
-                            <SelectValue placeholder="Escolha o destino" />
-                          </SelectTrigger>
-                          <SelectContent className="rounded-2xl">
-                            <SelectItem value={CONTA_DO_SALARIO} className="rounded-xl">
-                              Fica na conta do salário
-                            </SelectItem>
-                            {!destino.conhecido && (
-                              <SelectItem value={parte.destino} className="rounded-xl" disabled>
-                                {destino.nome}
-                              </SelectItem>
-                            )}
-                            {contasDeDestino.length > 0 && (
-                              <SelectGroup>
-                                <SelectLabel>Contas</SelectLabel>
-                                {contasDeDestino.map((conta) => (
-                                  <SelectItem key={conta.id} value={`ACCOUNT:${conta.id}`} className="rounded-xl">
-                                    {conta.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            )}
-                            {metasDeDestino.length > 0 && (
-                              <SelectGroup>
-                                <SelectLabel>Metas</SelectLabel>
-                                {metasDeDestino.map((meta) => (
-                                  <SelectItem key={meta.id} value={`GOAL:${meta.id}`} className="rounded-xl">
-                                    Meta: {meta.name}
-                                  </SelectItem>
-                                ))}
-                              </SelectGroup>
-                            )}
-                          </SelectContent>
-                        </Select>
-                        {errosDaParte.destination && (
-                          <p className="text-xs font-medium text-destructive">{errosDaParte.destination}</p>
-                        )}
-                        {!parte.destino && !errosDaParte.destination && (
-                          <p className="text-[11px] font-medium text-amber-700 dark:text-amber-400">
-                            Escolha o destino antes de dividir.
-                          </p>
-                        )}
-                        {pedido && (
-                          <p className="text-[11px] text-muted-foreground font-medium">
-                            A meta pede {formatarMoeda(pedido.mensal)} por mês até {format(lerData(pedido.data), "dd/MM/yyyy")}
-                          </p>
-                        )}
-                      </div>
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-9 w-9 rounded-xl text-muted-foreground hover:text-destructive shrink-0"
-                        aria-label={`Remover ${rotulo}`}
-                        onClick={() => remover(parte.chave)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      ) : (
+                        <MoneyInput
+                          aria-label={`Valor de ${rotulo}`}
+                          value={parte.valor}
+                          placeholder="R$ 0,00"
+                          className="h-10 w-32 rounded-xl tabular-nums"
+                          onValueChange={(valor) => alterar(parte.chave, { valor: valor ?? "" })}
+                        />
+                      )}
                     </div>
-                  </li>
-                )
-              })}
-            </ol>
-          )}
 
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <Button variant="outline" className="rounded-2xl font-bold text-xs" onClick={adicionar}>
-              <Plus className="mr-2 h-4 w-4" /> Adicionar parte
-            </Button>
-            <p className={cn("text-xs font-bold", somaDosPercentuais > 10000 ? "text-destructive" : "text-muted-foreground")}>
-              Soma dos percentuais: {percentualParaCampo(deCentavos(somaDosPercentuais))}%
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+                    <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
+                      <SelectTrigger aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-xl">
+                        <SelectValue placeholder="Escolha o destino" />
+                      </SelectTrigger>
+                      <SelectContent className="rounded-xl">
+                        <SelectItem value={CONTA_DO_SALARIO}>Fica na conta do salário</SelectItem>
+                        {!destino.conhecido && (
+                          <SelectItem value={parte.destino} disabled>
+                            {destino.nome}
+                          </SelectItem>
+                        )}
+                        {contasDeDestino.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Contas</SelectLabel>
+                            {contasDeDestino.map((conta) => (
+                              <SelectItem key={conta.id} value={`ACCOUNT:${conta.id}`}>
+                                {conta.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
+                        {metasDeDestino.length > 0 && (
+                          <SelectGroup>
+                            <SelectLabel>Metas</SelectLabel>
+                            {metasDeDestino.map((meta) => (
+                              <SelectItem key={meta.id} value={`GOAL:${meta.id}`}>
+                                Meta: {meta.name}
+                              </SelectItem>
+                            ))}
+                          </SelectGroup>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-      <Card className="border-border/40 bg-card/50 backdrop-blur-sm rounded-[32px] overflow-hidden">
-        <CardContent className="p-6 space-y-4">
-          <div>
-            <h3 className="text-base font-black tracking-tight">Simular a divisão</h3>
-            <p className="text-xs text-muted-foreground font-medium">Veja quanto vai para cada parte. Nada é lançado.</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            <MoneyInput
-              aria-label="Valor do salário"
-              value={valorSimulado}
-              placeholder="R$ 0,00"
-              className="rounded-xl h-10 font-bold sm:max-w-xs"
-              onValueChange={(valor) => {
-                setValorSimulado(valor ?? "")
-                setSimulacao(null)
-              }}
-            />
-            <Button variant="outline" className="rounded-2xl font-bold text-xs h-10" onClick={simular} disabled={simulando}>
-              {simulando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Calculator className="mr-2 h-4 w-4" />}
-              Simular
-            </Button>
-          </div>
-          {simulacao && (
-            <ul className="divide-y divide-border/40" aria-label="Resultado da simulação">
-              {simulacao.items.map((item, i) => (
-                <li key={`${item.name}-${i}`} className="flex items-center justify-between gap-3 py-2 text-sm">
-                  <span className="font-medium">
-                    {item.name}
-                    {item.reduced && <span className="ml-2 text-[11px] font-bold text-amber-700 dark:text-amber-400">reduzida</span>}
-                  </span>
-                  <span className="font-bold">{formatarMoeda(item.amount)}</span>
-                </li>
-              ))}
-              <li className="flex items-center justify-between gap-3 py-2 text-sm">
-                <span className="font-black">Fica livre na conta do salário</span>
-                <span className="font-black">{formatarMoeda(simulacao.free)}</span>
+                  <div className="space-y-0.5 pl-[18px] text-xs empty:hidden">
+                    {errosDaParte.name && <p className="font-medium text-destructive">{errosDaParte.name}</p>}
+                    {errosDaParte.value && <p className="font-medium text-destructive">{errosDaParte.value}</p>}
+                    {errosDaParte.destination && <p className="font-medium text-destructive">{errosDaParte.destination}</p>}
+                    {!parte.destino && !errosDaParte.destination && (
+                      <p className="font-medium text-amber-700 dark:text-amber-400">Escolha o destino antes de dividir.</p>
+                    )}
+                    {historico && <p className="text-muted-foreground">{historico} no seu histórico</p>}
+                    {pedido && (
+                      <p className="text-muted-foreground tabular-nums">
+                        A meta pede {formatarMoeda(pedido.mensal)} por mês até {format(lerData(pedido.data), "dd/MM/yyyy")}
+                      </p>
+                    )}
+                  </div>
+                </div>
               </li>
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+            )
+          })}
+        </ol>
+      )}
 
-      <div className="flex justify-end">
-        <Button
-          className="rounded-2xl font-black uppercase tracking-widest text-xs px-8 h-12 shadow-lg shadow-primary/20"
-          onClick={salvar}
-          disabled={salvando}
-        >
-          {salvando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button variant="outline" className="h-10 rounded-xl px-4" onClick={adicionar}>
+          <Plus aria-hidden /> Adicionar parte
+        </Button>
+        <p aria-live="polite" className={cn("text-sm tabular-nums", acimaDe100 ? "font-medium text-destructive" : "text-muted-foreground")}>
+          {resumoDaSoma}
+        </p>
+      </div>
+
+      <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+        {onCancelar && (
+          <Button variant="ghost" className="h-10 rounded-xl px-4" onClick={onCancelar} disabled={salvando}>
+            Cancelar
+          </Button>
+        )}
+        <Button className="h-10 rounded-xl px-5 font-semibold" onClick={salvar} loading={salvando}>
+          {!salvando && <Save aria-hidden />}
           Salvar plano
         </Button>
       </div>
-    </section>
+
+      <AlertDialog open={confirmarTroca} onOpenChange={setConfirmarTroca}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar de modelo?</AlertDialogTitle>
+            <AlertDialogDescription>As mudanças que você fez nas partes serão descartadas.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="h-10 rounded-xl">Continuar editando</AlertDialogCancel>
+            <AlertDialogAction className="h-10 rounded-xl" onClick={onTrocarModelo}>
+              Trocar de modelo
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   )
 }

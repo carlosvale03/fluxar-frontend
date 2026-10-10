@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
 import { ReceitasDoSalario } from "@/components/salario/ReceitasDoSalario"
+import { ResumoDoPlano } from "@/components/salario/ResumoDoPlano"
 import { ComprometidoNoMes, SeuHistorico } from "@/components/salario/ReferenciasDoMes"
 import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
 import { DivisoesRecentes } from "@/components/salario/DivisoesRecentes"
@@ -31,7 +32,7 @@ import type {
   ReferenciasDoSalario,
 } from "@/types/salario"
 
-type TelaDoPlano = "escolha" | "editor"
+type TelaDoPlano = "escolha" | "editor" | "resumo"
 
 // Leva o painel ou a seção à vista, sem animar com movimento reduzido
 function mostrar(elemento: HTMLElement | null) {
@@ -96,7 +97,7 @@ export function GestaoDoSalario() {
   function abrirPlano(salvo: PlanoDoSalario) {
     setPlano(salvo)
     setPartesDoEditor(salvo.parts)
-    setTelaDoPlano(salvo.has_plan ? "editor" : "escolha")
+    setTelaDoPlano(salvo.has_plan ? "resumo" : "escolha")
     setVersaoDoEditor((v) => v + 1)
   }
 
@@ -192,6 +193,14 @@ export function GestaoDoSalario() {
     void carregarPendentes()
   }
 
+  // O plano salvo vai para o editor, no mesmo lugar do resumo
+  const editarPlano = () => {
+    if (!plano) return
+    setPartesDoEditor(plano.parts)
+    setTelaDoPlano("editor")
+    setVersaoDoEditor((v) => v + 1)
+  }
+
   // SALARIO-02, SALARIO-03 e SALARIO-06: o modelo monta as partes no editor;
   // o plano só muda ao salvar
   const escolherModelo = (modelo: ModeloDeDivisao) => {
@@ -247,6 +256,8 @@ export function GestaoDoSalario() {
 
           {plano === null ? (
             <Skeleton className="h-64 w-full rounded-xl" />
+          ) : telaDoPlano === "resumo" ? (
+            <ResumoDoPlano partes={plano.parts} referencias={referencias} onEditar={editarPlano} />
           ) : telaDoPlano === "escolha" ? (
             <EscolhaDoModelo
               modelos={modelos}
@@ -264,6 +275,7 @@ export function GestaoDoSalario() {
               referencias={referencias}
               onSalvo={planoSalvo}
               onTrocarModelo={() => setTelaDoPlano("escolha")}
+              onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
             />
           )}
         </section>

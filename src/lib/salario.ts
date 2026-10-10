@@ -1,4 +1,4 @@
-import { paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, paraCentavos } from "@/lib/dinheiro"
 import type { ModeloDeDivisao, ReferenciaDaParte, ReferenciasDoSalario, RegraDaParte } from "@/types/salario"
 
 // SALARIO-56: com menos de 3 meses completos, a tela diz quantos entraram na
@@ -55,4 +55,65 @@ export function modeloDoPlano(
       ),
   )
   return modelo?.name ?? null
+}
+
+// Uma parte para a barra da divisão: o valor é o texto da API ("50.00"), ou
+// null quando o campo ainda não tem um valor
+export interface ParteDaBarra {
+  nome: string
+  regra: RegraDaParte
+  valor: string | null
+}
+
+export interface FatiaDaBarra {
+  nome: string
+  // Posição da parte na lista, que escolhe a cor
+  indice: number
+  // Em centésimos de ponto percentual: 5000 = 50%
+  centesimos: number
+}
+
+export interface BarraDaDivisao {
+  fatias: FatiaDaBarra[]
+  // O que não vai para nenhuma parte, em centésimos de ponto percentual
+  livre: number
+  // Soma dos percentuais digitados, sem o limite de 100%
+  somaDosPercentuais: number
+  // Soma das partes em valor fixo, em centavos
+  somaDosFixos: number
+  // Partes em valor fixo que ficaram fora por falta de um salário de base
+  fixasForaDaBarra: number
+}
+
+// A proporção de cada parte num salário de 100%. Percentuais entram como
+// estão; valores fixos, sobre a base em centavos (sem base, ficam fora). As
+// partes são atendidas na ordem, então a que passa de 100% é cortada, como
+// na divisão de verdade.
+export function montarBarra(partes: ParteDaBarra[], baseEmCentavos: number | null): BarraDaDivisao {
+  let restante = 10000
+  let somaDosPercentuais = 0
+  let somaDosFixos = 0
+  let fixasForaDaBarra = 0
+  const fatias = partes.map((parte, indice) => {
+    const valor = paraCentavos(parte.valor)
+    const seguro = Number.isNaN(valor) || valor < 0 ? 0 : valor
+    let pedido = 0
+    if (parte.regra === "PERCENT") {
+      pedido = seguro
+      somaDosPercentuais += seguro
+    } else {
+      somaDosFixos += seguro
+      if (baseEmCentavos && baseEmCentavos > 0) pedido = Math.round((seguro * 10000) / baseEmCentavos)
+      else if (seguro > 0) fixasForaDaBarra += 1
+    }
+    const centesimos = Math.min(pedido, restante)
+    restante -= centesimos
+    return { nome: parte.nome, indice, centesimos }
+  })
+  return { fatias, livre: restante, somaDosPercentuais, somaDosFixos, fixasForaDaBarra }
+}
+
+// Centésimos de ponto percentual para o texto ("50%", "33,33%")
+export function textoDoPercentual(centesimos: number): string {
+  return `${percentualParaCampo(deCentavos(centesimos))}%`
 }

@@ -132,14 +132,20 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     expect(corpoDoPut().parts[2]).toMatchObject({ name: "Guardar", destination_type: "GOAL", goal: "meta-viagem", account: null })
   })
 
+  // O plano salvo abre no resumo; o editor abre no mesmo lugar com "Editar plano"
   it("com o plano salvo, a parte com a meta Viagem mostra quanto ela pede por mês", async () => {
     comPlano(PLANO_SALVO)
     render(<SalarioPage />)
 
-    const guardar = await vi.waitFor(() => parteNoEditor("Guardar"))
+    const noResumo = await vi.waitFor(() => parteNoEditor("Guardar"))
+    expect(noResumo).toHaveTextContent("A meta pede R$ 250,00 por mês até 30/06/2027")
+    expect(noResumo).toHaveTextContent("Meta: Viagem")
+    expect(screen.queryByRole("list", { name: "Modelos" })).not.toBeInTheDocument()
+
+    await userEvent.click(screen.getByRole("button", { name: "Editar plano" }))
+    const guardar = parteNoEditor("Guardar")
     expect(guardar).toHaveTextContent("A meta pede R$ 250,00 por mês até 30/06/2027")
     expect(within(guardar).getByLabelText("Destino de Guardar")).toHaveTextContent("Meta: Viagem")
-    expect(screen.queryByRole("list", { name: "Modelos" })).not.toBeInTheDocument()
   })
 
   it("simular R$ 3.000,00 mostra o valor de cada parte e o livre, sem salvar", async () => {
@@ -161,14 +167,11 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     await userEvent.type(screen.getByLabelText("Valor do salário"), "3000")
     await userEvent.click(screen.getByRole("button", { name: "Simular" }))
 
-    const resultado = await screen.findByRole("list", { name: "Resultado da simulação" })
-    const linhas = within(resultado).getAllByRole("listitem").map((li) => li.textContent?.replace(/\s/g, " "))
-    expect(linhas).toEqual([
-      "EssenciaisR$ 1.500,00",
-      "DispensáveisR$ 900,00",
-      "GuardarR$ 600,00",
-      "Fica livre na conta do salárioR$ 2.400,00",
-    ])
+    // O valor de cada parte entra na própria legenda do plano
+    await vi.waitFor(() => expect(parteNoEditor("Essenciais")).toHaveTextContent("R$ 1.500,00"))
+    expect(parteNoEditor("Dispensáveis")).toHaveTextContent("R$ 900,00")
+    expect(parteNoEditor("Guardar")).toHaveTextContent("R$ 600,00")
+    expect(screen.getByText("Fica livre na conta do salário").parentElement).toHaveTextContent("R$ 2.400,00")
     expect(post).toHaveBeenCalledWith("/salary/simulate/", expect.objectContaining({ amount: "3000.00" }))
     const enviado = post.mock.calls[0][1] as { parts: Record<string, unknown>[] }
     expect(enviado.parts.map((p) => p.name)).toEqual(["Essenciais", "Dispensáveis", "Guardar"])
@@ -184,7 +187,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
       },
     })
     render(<SalarioPage />)
-    await vi.waitFor(() => parteNoEditor("Guardar"))
+    await userEvent.click(await screen.findByRole("button", { name: "Editar plano" }))
 
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
@@ -199,12 +202,12 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     comPlano(PLANO_SALVO)
     put.mockRejectedValue({ response: { status: 400, data: { detail: "A soma dos percentuais passa de 100%." } } })
     render(<SalarioPage />)
-    await vi.waitFor(() => parteNoEditor("Guardar"))
+    await userEvent.click(await screen.findByRole("button", { name: "Editar plano" }))
 
     const percentual = screen.getByLabelText("Percentual de Guardar")
     await userEvent.clear(percentual)
     await userEvent.type(percentual, "60")
-    expect(screen.getByText("Soma dos percentuais: 140%")).toBeInTheDocument()
+    expect(screen.getByText(/^Soma: 140%/)).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith("A soma dos percentuais passa de 100%."))
