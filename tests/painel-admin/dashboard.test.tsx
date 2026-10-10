@@ -46,7 +46,7 @@ describe("Dashboard do admin", () => {
 
     expect(await screen.findByText("Bruno Lima")).toBeInTheDocument()
     expect(within(card("Total de Usuários")).getByText("7")).toBeInTheDocument()
-    expect(within(card("Plano Gratuito")).getByText("4")).toBeInTheDocument()
+    expect(within(card("Plano Comum")).getByText("4")).toBeInTheDocument()
     expect(within(card("Plano Premium")).getByText("2")).toBeInTheDocument()
     expect(within(card("Plano Premium Plus")).getByText("1")).toBeInTheDocument()
     expect(within(card("Usuários em planos pagos")).getByText("42,9%")).toBeInTheDocument()

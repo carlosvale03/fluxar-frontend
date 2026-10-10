@@ -6,15 +6,16 @@ import { Button } from "@/components/ui/button"
 import { Users, ShieldCheck, Crown, User as UserIcon, Percent, Loader2 } from "lucide-react"
 import { getAdminStats, AdminStats } from "@/services/admin"
 import { tratarErro } from "@/lib/erros"
+import { nomeDoPlano } from "@/hooks/use-plan"
 import { CardsDeSaude } from "@/components/admin/saude-do-sistema"
 import type { Plano } from "@/types/planos"
 import Link from "next/link"
 
 // ADMIN-07: um card por plano, com o nome que o usuário vê
 const PLANOS_DO_DASHBOARD: { plano: Plano; rotulo: string; icone: typeof Users; cor: string }[] = [
-  { plano: "COMMON", rotulo: "Plano Gratuito", icone: UserIcon, cor: "text-muted-foreground" },
-  { plano: "PREMIUM", rotulo: "Plano Premium", icone: ShieldCheck, cor: "text-primary" },
-  { plano: "PREMIUM_PLUS", rotulo: "Plano Premium Plus", icone: Crown, cor: "text-amber-500" },
+  { plano: "COMMON", rotulo: `Plano ${nomeDoPlano("COMMON")}`, icone: UserIcon, cor: "text-muted-foreground" },
+  { plano: "PREMIUM", rotulo: `Plano ${nomeDoPlano("PREMIUM")}`, icone: ShieldCheck, cor: "text-primary" },
+  { plano: "PREMIUM_PLUS", rotulo: `Plano ${nomeDoPlano("PREMIUM_PLUS")}`, icone: Crown, cor: "text-amber-500" },
 ]
 
 // "42.9" da API vira "42,9%"

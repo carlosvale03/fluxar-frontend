@@ -1,6 +1,8 @@
 import { ArrowRight } from "lucide-react"
 
+import { nomeDoPlano } from "@/hooks/use-plan"
 import type { SystemLog, ValorDoLog } from "@/services/admin"
+import type { Plano } from "@/types/planos"
 
 // AD-049: as ações do log de auditoria, com o nome mostrado na tela. As três
 // últimas são de registros antigos, gravados antes do log estruturado.
@@ -25,8 +27,7 @@ export function rotuloDaAcao(acao: string) {
   return ACOES_DO_LOG.find((a) => a.valor === acao)?.rotulo ?? acao
 }
 
-// Os mesmos nomes das outras telas do painel
-const PLANOS: Record<string, string> = { COMMON: "Gratuito", PREMIUM: "Premium", PREMIUM_PLUS: "Premium Plus" }
+// Os mesmos nomes das outras telas do painel e do app
 const PAPEIS: Record<string, string> = { USER: "Usuário", ADMIN: "Administrador" }
 
 // O valor de antes ou de depois como o administrador lê
@@ -45,7 +46,7 @@ export function formatarValorDoLog(acao: string, valor: ValorDoLog): string {
         return valor ? "Sim" : "Não"
     }
   }
-  if (acao === "CHANGE_PLAN") return PLANOS[String(valor)] ?? String(valor)
+  if (acao === "CHANGE_PLAN") return nomeDoPlano(String(valor) as Plano)
   if (acao === "CHANGE_ROLE") return PAPEIS[String(valor)] ?? String(valor)
   return String(valor)
 }

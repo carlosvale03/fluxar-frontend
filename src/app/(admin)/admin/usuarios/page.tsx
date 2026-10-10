@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { nomeDoPlano } from "@/hooks/use-plan"
 import { 
   Table, 
   TableBody, 
@@ -375,9 +376,9 @@ export default function UserManagementPage() {
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 <SelectItem value="ALL">Todos Planos</SelectItem>
-                <SelectItem value="COMMON">Gratuito</SelectItem>
-                <SelectItem value="PREMIUM">Premium</SelectItem>
-                <SelectItem value="PREMIUM_PLUS">Premium Plus</SelectItem>
+                <SelectItem value="COMMON">{nomeDoPlano("COMMON")}</SelectItem>
+                <SelectItem value="PREMIUM">{nomeDoPlano("PREMIUM")}</SelectItem>
+                <SelectItem value="PREMIUM_PLUS">{nomeDoPlano("PREMIUM_PLUS")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -625,7 +626,7 @@ export default function UserManagementPage() {
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
                 <SelectContent className="rounded-xl border-border/40">
-                  <SelectItem value="COMMON">GRATUITO</SelectItem>
+                  <SelectItem value="COMMON">COMUM</SelectItem>
                   <SelectItem value="PREMIUM">PREMIUM</SelectItem>
                   <SelectItem value="PREMIUM_PLUS">PREMIUM PLUS</SelectItem>
                 </SelectContent>

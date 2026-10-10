@@ -60,12 +60,7 @@ import {
     tratarErroDaAcao,
 } from "@/app/(admin)/admin/_componentes/confirmacoes"
 import type { Plano } from "@/types/planos"
-
-const NOMES_DOS_PLANOS: Record<string, string> = {
-  COMMON: "Gratuito",
-  PREMIUM: "Premium",
-  PREMIUM_PLUS: "Premium Plus",
-}
+import { nomeDoPlano } from "@/hooks/use-plan"
 
 export default function UserDetailsPage() {
   const params = useParams()
@@ -249,7 +244,7 @@ export default function UserDetailsPage() {
       setIsSubmitting(true)
       const updatedUser = await updateAdminUser(user.id, { plan: newPlan as Plano })
       setUser(updatedUser)
-      toast.success(`Plano de ${user.name} alterado para ${NOMES_DOS_PLANOS[newPlan] ?? newPlan}.`)
+      toast.success(`Plano de ${user.name} alterado para ${nomeDoPlano(newPlan as Plano)}.`)
       setIsChangePlanModalOpen(false)
       loadLogs()
     } catch (error) {
@@ -364,7 +359,7 @@ export default function UserDetailsPage() {
                             {user.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
                         <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
-                            {user.plan === 'PREMIUM_PLUS' ? 'Premium Plus' : user.plan === 'PREMIUM' ? 'Premium' : 'Gratuito'}
+                            {nomeDoPlano(user.plan as Plano)}
                         </Badge>
                      </div>
                      <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
@@ -450,7 +445,7 @@ export default function UserDetailsPage() {
                         <div className="flex items-center justify-between gap-3 pb-1">
                             <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Plano</span>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold">{NOMES_DOS_PLANOS[user.plan] ?? user.plan}</span>
+                                <span className="text-sm font-bold">{nomeDoPlano(user.plan as Plano)}</span>
                                 <Button
                                     variant="outline"
                                     size="sm"
@@ -529,7 +524,7 @@ export default function UserDetailsPage() {
                     <SelectValue placeholder="Selecione um plano" />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/40">
-                    <SelectItem value="COMMON">GRATUITO</SelectItem>
+                    <SelectItem value="COMMON">COMUM</SelectItem>
                     <SelectItem value="PREMIUM">PREMIUM</SelectItem>
                     <SelectItem value="PREMIUM_PLUS">PREMIUM PLUS</SelectItem>
                     </SelectContent>

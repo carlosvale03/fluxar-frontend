@@ -149,7 +149,7 @@ describe("Log de auditoria nas configurações", () => {
 
     const valores = screen.getAllByTestId("antes-e-depois").map((el) => el.textContent?.replace(/\s+/g, " ").trim())
     expect(valores).toEqual([
-      "Antes:GratuitoDepois:Premium",
+      "Antes:ComumDepois:Premium",
       "Antes:5Depois:sem limite",
       "Antes:DesligadoDepois:Ligado",
     ])

@@ -245,6 +245,28 @@ describe("Confirmações na lista de usuários", () => {
     await vi.waitFor(() => expect(patch).toHaveBeenCalledWith("/admin/users/u1/", { plan: "PREMIUM" }))
   })
 
+  it("restaurar um arquivado não pede a senha e envia só is_active", async () => {
+    patch.mockResolvedValueOnce({ data: { ...USUARIO, is_active: true } })
+    render(<UserManagementPage />)
+    await screen.findByText("Ana Souza")
+    await userEvent.click(screen.getByRole("button", { name: "Arquivados" }))
+    await vi.waitFor(() =>
+      expect(get).toHaveBeenLastCalledWith("/admin/users/", expect.objectContaining({ params: expect.objectContaining({ show_archived: "true" }) })),
+    )
+
+    const linha = (await screen.findByText("Ana Souza")).closest("tr") as HTMLElement
+    const menu = within(linha).getAllByRole("button").find((b) => b.getAttribute("aria-haspopup") === "menu") as HTMLElement
+    await userEvent.click(menu)
+    await userEvent.click(await screen.findByRole("menuitem", { name: /restaurar conta/i }))
+
+    const janela = dialogo()
+    expect(within(janela).queryByLabelText(ROTULO_DA_SENHA)).not.toBeInTheDocument()
+    await userEvent.click(within(janela).getByRole("button", { name: /confirmar restauração/i }))
+
+    await vi.waitFor(() => expect(patch).toHaveBeenCalledWith("/admin/users/u1/", { is_active: true }))
+    expect(patch.mock.calls[0][1]).not.toHaveProperty("admin_password")
+  })
+
   it("arquivar em lote pede a senha e envia os selecionados", async () => {
     apagar.mockResolvedValueOnce({ data: {} })
     render(<UserManagementPage />)
