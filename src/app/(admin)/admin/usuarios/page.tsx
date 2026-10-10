@@ -72,6 +72,7 @@ import type { Plano } from "@/types/planos"
 export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [erroAoCarregar, setErroAoCarregar] = useState(false)
   const [search, setSearch] = useState("")
   const [debouncedSearch, setDebouncedSearch] = useState("")
   const [page, setPage] = useState(1)
@@ -105,8 +106,11 @@ export default function UserManagementPage() {
   // Debounce para busca no servidor
   useEffect(() => {
     const timer = setTimeout(() => {
+      // Só uma busca nova volta à primeira página; a abertura da tela não
+      // desfaz a troca de página feita antes do fim da espera
+      if (search === debouncedSearch) return
       setDebouncedSearch(search)
-      setPage(1) // Volta para a primeira página ao buscar
+      setPage(1)
     }, 500)
     return () => clearTimeout(timer)
   }, [search])
@@ -114,6 +118,7 @@ export default function UserManagementPage() {
   const loadUsers = async () => {
     try {
       setIsLoading(true)
+      setErroAoCarregar(false)
       const data = await getAdminUsers(
         page, 
         debouncedSearch, 
@@ -125,8 +130,10 @@ export default function UserManagementPage() {
       setTotalCount(data.count)
       setTotalPages(data.total_pages)
     } catch (error) {
-      console.error("Failed to load users", error)
-      toast.error("Erro ao carregar lista de usuários")
+      // AD-042: o erro da lista passa pelo caminho único, com "Tentar de novo"
+      setUsers([])
+      setErroAoCarregar(true)
+      tratarErro(error, { mensagemPadrao: "Erro ao carregar lista de usuários", tentarDeNovo: loadUsers })
     } finally {
       setIsLoading(false)
     }
@@ -349,7 +356,7 @@ export default function UserManagementPage() {
               setFilterRole(val)
               setPage(1)
             }}>
-              <SelectTrigger className="w-[110px] sm:w-[130px] rounded-2xl border-border/40 bg-background/50 font-bold text-[10px] uppercase tracking-widest">
+              <SelectTrigger aria-label="Filtrar por cargo" className="w-[110px] sm:w-[130px] rounded-2xl border-border/40 bg-background/50 font-bold text-[10px] uppercase tracking-widest">
                 <SelectValue placeholder="Cargo" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -363,7 +370,7 @@ export default function UserManagementPage() {
               setFilterPlan(val)
               setPage(1)
             }}>
-              <SelectTrigger className="w-[110px] sm:w-[130px] rounded-2xl border-border/40 bg-background/50 font-bold text-[10px] uppercase tracking-widest">
+              <SelectTrigger aria-label="Filtrar por plano" className="w-[110px] sm:w-[130px] rounded-2xl border-border/40 bg-background/50 font-bold text-[10px] uppercase tracking-widest">
                 <SelectValue placeholder="Plano" />
               </SelectTrigger>
               <SelectContent className="rounded-xl">
@@ -549,7 +556,16 @@ export default function UserManagementPage() {
              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto opacity-20">
                 <UserIcon className="h-8 w-8" />
              </div>
-             <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Nenhum usuário encontrado</p>
+             {erroAoCarregar ? (
+               <>
+                 <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Não foi possível carregar a lista</p>
+                 <Button variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={loadUsers}>
+                   Tentar de novo
+                 </Button>
+               </>
+             ) : (
+               <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Nenhum usuário encontrado</p>
+             )}
           </div>
         )}
       </div>

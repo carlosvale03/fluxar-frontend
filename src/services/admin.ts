@@ -23,13 +23,15 @@ export async function getAdminUsers(
   role?: string,
   plan?: string
 ) {
+  // ADMIN-16: busca por nome ou e-mail e filtros de plano, papel e status;
+  // filtro vazio não vai na requisição
   const response = await api.get<PaginatedResponse<User>>("/admin/users/", {
-    params: { 
-      page, 
-      search,
+    params: {
+      page,
+      search: search || undefined,
       show_archived: showArchived ? 'true' : 'false',
-      role,
-      plan
+      role: role || undefined,
+      plan: plan || undefined,
     }
   })
   return response.data
