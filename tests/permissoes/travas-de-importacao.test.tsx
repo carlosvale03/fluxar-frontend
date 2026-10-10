@@ -55,7 +55,7 @@ describe("Importação e exportação", () => {
     render(<ImportExportPage />)
 
     expect(screen.queryByRole("button", { name: "Configurar Importação OFX" })).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Mapear Colunas e Importar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Importar Planilha" })).toBeInTheDocument()
     expect(screen.getAllByText(AVISO)).toHaveLength(1)
   })
 
@@ -63,7 +63,7 @@ describe("Importação e exportação", () => {
     comAcesso(["importacao_planilha"])
     render(<ImportExportPage />)
 
-    expect(screen.queryByRole("button", { name: "Mapear Colunas e Importar" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Importar Planilha" })).not.toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Configurar Importação OFX" })).toBeInTheDocument()
     expect(screen.getAllByText(AVISO)).toHaveLength(1)
   })
@@ -103,7 +103,7 @@ describe("Importação e exportação", () => {
     render(<ImportExportPage />)
 
     expect(screen.getByRole("button", { name: "Configurar Importação OFX" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Mapear Colunas e Importar" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Importar Planilha" })).toBeInTheDocument()
     await abrirExportacao()
     expect(screen.getByRole("button", { name: "Gerar PDF" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Gerar XLS" })).toBeInTheDocument()
