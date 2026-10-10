@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { ArrowDownCircle, ArrowUpCircle, CalendarIcon, Filter, Layers, Shapes, Tag as TagIcon, Wallet, X } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle, CalendarIcon, Filter, Layers, Link2, Lock, Shapes, Tag as TagIcon, Wallet, X } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { cn } from "@/lib/utils"
@@ -41,6 +41,7 @@ import { Account, AccountTypeLabels } from "@/types/accounts"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { TagSelector } from "@/components/tags/TagSelector"
 import { usePlan } from "@/hooks/use-plan"
+import { MENSAGEM_RECURSO_BLOQUEADO } from "@/components/planos/recurso-bloqueado"
 import { tratarErro } from "@/lib/erros"
 
 interface TransactionFiltersProps {
@@ -59,11 +60,16 @@ export interface FilterState {
   // CLASSE-34 e CLASSE-35: classes de despesa e `sem_classe`, enviadas como
   // classId repetido
   classIds?: string[]
+  // VINCULO-30 e VINCULO-33: só as principais e as dependentes (linked=true)
+  linked?: boolean
 }
 
 export function TransactionFilters({ onApplyFilters, currentFilters }: TransactionFiltersProps) {
   // PERM-19: o filtro por tags some com `tags` fechado
-  const tagsLiberadas = usePlan().podeUsar("tags") === true
+  const { podeUsar } = usePlan()
+  const tagsLiberadas = podeUsar("tags") === true
+  // VINCULO-20: o filtro "Com vínculo" fica travado com `vinculos` fechado
+  const vinculosLiberados = podeUsar("vinculos") === true
   const [isOpen, setIsOpen] = useState(false)
   
   // Local state for the filter form (not applied yet)
@@ -74,6 +80,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   const [accountId, setAccountId] = useState<string>(currentFilters.accountId)
   const [tagIds, setTagIds] = useState<string[]>(currentFilters.tagIds || [])
   const [classIds, setClassIds] = useState<string[]>(currentFilters.classIds || [])
+  const [linked, setLinked] = useState<boolean>(currentFilters.linked ?? false)
 
   // Dependencies
   const [categories, setCategories] = useState<Category[]>([])
@@ -100,6 +107,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         setAccountId(currentFilters.accountId)
         setTagIds(currentFilters.tagIds || [])
         setClassIds(currentFilters.classIds || [])
+        setLinked(currentFilters.linked ?? false)
 
         fetchDependencies()
         fetchClasses()
@@ -145,7 +153,8 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
           categoryIds,
           accountId,
           tagIds,
-          classIds
+          classIds,
+          linked: vinculosLiberados && linked
       })
       setIsOpen(false)
   }
@@ -172,6 +181,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       setAccountId("ALL")
       setTagIds([])
       setClassIds([])
+      setLinked(false)
   }
 
   const activeFilterCount = [
@@ -180,7 +190,8 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       categoryIds.length > 0,
       accountId !== "ALL",
       tagIds.length > 0,
-      classIds.length > 0
+      classIds.length > 0,
+      linked
   ].filter(Boolean).length
 
   return (
@@ -399,6 +410,33 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                         )
                     })}
                 </div>
+            </div>
+
+            {/* VINCULO-30: só as transações com vínculo; travado pelo plano (VINCULO-20) */}
+            <div className="space-y-3">
+                <div className="flex items-center gap-2 mb-1">
+                   <Link2 className="h-3.5 w-3.5 text-primary opacity-70" />
+                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Vínculo</Label>
+                </div>
+                <label
+                    className={cn(
+                        "flex items-center gap-2 rounded-[24px] border border-border/40 bg-muted/20 px-4 py-3 transition-colors",
+                        vinculosLiberados ? "cursor-pointer hover:bg-muted/40" : "cursor-not-allowed opacity-70",
+                        vinculosLiberados && linked && "bg-primary/5"
+                    )}
+                    title={vinculosLiberados ? undefined : MENSAGEM_RECURSO_BLOQUEADO}
+                >
+                    <Checkbox
+                        checked={vinculosLiberados && linked}
+                        disabled={!vinculosLiberados}
+                        onCheckedChange={(valor) => setLinked(valor === true)}
+                        aria-label="Com vínculo"
+                    />
+                    <span className="font-bold text-xs">Com vínculo</span>
+                    {!vinculosLiberados && (
+                        <Lock className="ml-auto h-3.5 w-3.5 text-amber-600" aria-label="Travado pelo plano" />
+                    )}
+                </label>
             </div>
 
             {/* Tags Filter: só com `tags` aberto (PERM-19) */}

@@ -382,6 +382,8 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
       // CLASSE-34 e CLASSE-35: as classes vão repetidas, com sem_classe
       for (const id of filters.classIds ?? []) params.append('classId', id)
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
+      // VINCULO-30: só as principais e as dependentes
+      if (filters.linked) params.append('linked', 'true')
       
       if (filters.tagIds && filters.tagIds.length > 0) {
         filters.tagIds.forEach(tagId => {
