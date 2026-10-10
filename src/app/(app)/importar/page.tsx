@@ -61,7 +61,8 @@ export default function ImportExportPage() {
     type: "ALL",
     categoryIds: [],
     accountId: "ALL",
-    tagIds: []
+    tagIds: [],
+    classIds: []
   })
   
   // PERM-19 e PERM-26: cada importação e exportação segue a trava dela no
