@@ -77,7 +77,7 @@ export default function AboutPage() {
         {/* Nossos Valores */}
         <motion.div variants={itemVariants} className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
-            { icon: ShieldCheck, title: "Segurança", desc: "Seus dados são criptografados com padrões bancários.", color: "text-blue-500", bg: "bg-blue-500/10" },
+            { icon: ShieldCheck, title: "Segurança", desc: "A conexão é criptografada, e seus dados pessoais ficam criptografados no banco.", color: "text-blue-500", bg: "bg-blue-500/10" },
             { icon: Users, title: "Comunidade", desc: "Evoluímos ouvindo o feedback real dos nossos usuários.", color: "text-purple-500", bg: "bg-purple-500/10" },
             { icon: Heart, title: "Transparência", desc: "Sem letras miúdas. Você sempre sabe como seus dados são usados.", color: "text-rose-500", bg: "bg-rose-500/10" },
           ].map((val, idx) => (

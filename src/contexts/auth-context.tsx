@@ -15,6 +15,7 @@ import { anunciarFimDaSessao, aoFimDaSessao, renovarSessao } from "@/lib/sessao-
 import { registrarAcoesDePlano } from "@/lib/erros"
 import type { Acesso, Plano } from "@/types/planos"
 import {
+  CHAVE_DA_VOLTA_DOS_TERMOS,
   aoSessaoEncerrada,
   api,
   definirTokenDeAcesso,
@@ -49,7 +50,21 @@ export interface User {
   created_at: string
   // PERM-17: o que o plano libera para este usuário, informado pelo /auth/me
   access?: Acesso
+  // LGPD-28: a versão dos termos aceita e a vigente
+  terms?: { accepted_version: string | null; current_version: string }
+  // LGPD-34: o consentimento para o uso de dados anonimizados
+  product_improvement_consent?: boolean
 }
+
+// LGPD-28: sem o aceite da versão vigente, a tela de aceite vem antes das outras
+export const PAGINA_DE_ACEITE = "/termos/aceite"
+
+export function precisaAceitarOsTermos(user: User | null): boolean {
+  return !!user?.terms && user.terms.accepted_version !== user.terms.current_version
+}
+
+// Páginas abertas sem o aceite: os próprios termos e a manutenção
+const LIBERADAS_SEM_ACEITE = ["/termos", "/manutencao"]
 
 interface AuthContextType {
   user: User | null
@@ -58,6 +73,8 @@ interface AuthContextType {
   // O servidor não respondeu ao abrir a sessão: ela continua, e a tela oferece
   // tentar de novo (SESSAO-12)
   erroDeConexao: boolean
+  // LGPD-28: o usuário ainda não aceitou a versão vigente dos termos
+  precisaAceitarTermos: boolean
   tentarDeNovo: () => Promise<void>
   login: (token: string, user?: User) => Promise<void>
   logout: () => Promise<void>
@@ -167,6 +184,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [temUsuario, router])
 
+  // LGPD-28: ao carregar o usuário sem o aceite da versão vigente, leva à
+  // tela de aceite, guardando a página para voltar depois do aceite
+  const precisaAceitarTermos = precisaAceitarOsTermos(user)
+  useEffect(() => {
+    if (!precisaAceitarTermos) return
+    const caminho = window.location.pathname
+    if (LIBERADAS_SEM_ACEITE.some((pagina) => caminho.startsWith(pagina))) return
+    if (!caminho.startsWith("/auth")) {
+      sessionStorage.setItem(CHAVE_DA_VOLTA_DOS_TERMOS, caminho + window.location.search)
+    }
+    router.replace(PAGINA_DE_ACEITE)
+  }, [precisaAceitarTermos, router])
+
   // O token de renovação chega só no cookie httpOnly, e o de acesso fica na
   // memória da aba (SESSAO-01, SESSAO-02)
   const login = async (token: string, newUser?: User) => {
@@ -202,6 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading: estado === "carregando",
         erroDeConexao: estado === "erro",
+        precisaAceitarTermos,
         tentarDeNovo,
         login,
         logout,

@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react"
 import { AvisoDeConexao } from "@/components/sessao/aviso-de-conexao"
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, isLoading, erroDeConexao, tentarDeNovo } = useAuth()
+  const { isAuthenticated, isLoading, erroDeConexao, tentarDeNovo, precisaAceitarTermos } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -30,6 +30,11 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
+    return null
+  }
+
+  // LGPD-28: a tela de aceite dos termos vem antes; o auth-context leva até ela
+  if (precisaAceitarTermos) {
     return null
   }
 

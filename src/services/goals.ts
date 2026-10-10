@@ -12,6 +12,19 @@ import {
   GoalWithdrawData,
 } from "@/types/goals";
 
+// LGPD-20: a imagem da meta vai com um nome genérico; o nome original do
+// arquivo pode conter o nome da pessoa
+const EXTENSOES: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif",
+};
+
+export function nomeGenericoDaImagem(arquivo: File): string {
+  return `imagem-da-meta.${EXTENSOES[arquivo.type] ?? "jpg"}`;
+}
+
 export const goalsService = {
   getGoals: async () => {
     // CONTRATO-01: coleção completa, como array
@@ -35,7 +48,7 @@ export const goalsService = {
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (key === 'image' && value instanceof File) {
-          formData.append(key, value);
+          formData.append(key, value, nomeGenericoDaImagem(value));
         } else if (value instanceof Date) {
           // CONTRATO-25: data sem hora pelos componentes locais, não em UTC
           formData.append(key, paraApi(value));
@@ -56,7 +69,7 @@ export const goalsService = {
     Object.entries(data).forEach(([key, value]) => {
       if (value !== undefined && value !== null) {
         if (key === 'image' && value instanceof File) {
-          formData.append(key, value);
+          formData.append(key, value, nomeGenericoDaImagem(value));
         } else if (value instanceof Date) {
           // CONTRATO-25: data sem hora pelos componentes locais, não em UTC
           formData.append(key, paraApi(value));

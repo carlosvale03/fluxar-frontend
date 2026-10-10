@@ -17,6 +17,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Settings, Lock, Globe, Bell } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { tratarErro } from "@/lib/erros"
+import { ExcluirConta } from "@/components/privacidade/excluir-conta"
+import { ConsentimentoDeMelhoria } from "@/components/privacidade/consentimento"
 
 // --- Settings Form Schema ---
 const settingsSchema = z.object({
@@ -173,6 +175,7 @@ export default function SettingsPage() {
           <TabsList className="bg-muted/50 p-1 rounded-2xl border border-border/40">
             <TabsTrigger value="general" className="rounded-xl font-bold px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm">Geral</TabsTrigger>
             <TabsTrigger value="security" className="rounded-xl font-bold px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm">Segurança</TabsTrigger>
+            <TabsTrigger value="privacy" className="rounded-xl font-bold px-6 data-[state=active]:bg-card data-[state=active]:shadow-sm">Privacidade</TabsTrigger>
           </TabsList>
         </div>
 
@@ -365,6 +368,14 @@ export default function SettingsPage() {
                   </CardFooter>
               </form>
           </Card>
+      </TabsContent>
+
+      {/* --- PRIVACIDADE (LGPD-01 a LGPD-04, LGPD-34) --- */}
+      <TabsContent value="privacy" className="mt-8 animate-in slide-in-from-bottom-2 duration-500">
+          <div className="max-w-2xl space-y-8">
+              <ConsentimentoDeMelhoria />
+              <ExcluirConta />
+          </div>
       </TabsContent>
       </Tabs>
     </div>

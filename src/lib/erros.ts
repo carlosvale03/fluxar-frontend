@@ -90,6 +90,9 @@ export function tratarErro(erro: unknown, opcoes: OpcoesDeErro = {}): void {
 
   const dados = resposta.data as Record<string, unknown> | undefined
 
+  // LGPD-28: o apiClient já leva à página de aceite; nenhum toast antes disso
+  if (resposta.status === 403 && dados?.code === "terms_acceptance_required") return
+
   // PERM-19 e PERM-20: o aviso da trava leva aos planos, e o acesso é relido
   // para a tela mostrar o bloqueio
   if (ehBloqueioDePlano(resposta.status, dados)) {

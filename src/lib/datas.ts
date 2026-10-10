@@ -25,3 +25,9 @@ export function paraApi(data: Date): string {
 export function hojeNaApi(): string {
   return paraApi(new Date())
 }
+
+// LGPD-05 e LGPD-07: a data e hora ISO da exclusão marcada como dd/MM/aaaa,
+// no fuso do usuário
+export function dataDaExclusao(iso: string): string {
+  return format(new Date(iso), "dd/MM/yyyy")
+}

@@ -16,6 +16,14 @@ import { ResendVerification } from "@/components/auth/resend-verification"
 import { AlertCircle, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { motion } from "framer-motion"
+import { tratarErro } from "@/lib/erros"
+import { dataDaExclusao } from "@/lib/datas"
+
+// LGPD-07: o login de conta com exclusão marcada traz a data e o token para cancelar
+interface ExclusaoPendente {
+  deletion_scheduled_for: string
+  cancel_token: string
+}
 
 const loginSchema = z.object({
   email: z.string()
@@ -36,7 +44,25 @@ export default function LoginPage() {
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
   const [emailNaoVerificado, setEmailNaoVerificado] = useState<string | null>(null)
-  
+  const [exclusaoPendente, setExclusaoPendente] = useState<ExclusaoPendente | null>(null)
+  const [cancelando, setCancelando] = useState(false)
+
+  // LGPD-08: cancela a exclusão com o token do login, reativa a conta e entra
+  const cancelarExclusao = async () => {
+    if (!exclusaoPendente) return
+    try {
+      setCancelando(true)
+      const response = await api.post("/auth/cancel-deletion/", { cancel_token: exclusaoPendente.cancel_token })
+      await login(response.data.access)
+      toast.success("A exclusão foi cancelada. Bem-vindo de volta ao Fluxar!")
+    } catch (error) {
+      setExclusaoPendente(null)
+      tratarErro(error, { mensagemPadrao: "Não foi possível cancelar a exclusão. Entre de novo." })
+    } finally {
+      setCancelando(false)
+    }
+  }
+
   const { register, handleSubmit, setError, formState: { errors } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   })
@@ -45,6 +71,7 @@ export default function LoginPage() {
     try {
       setIsLoading(true)
       setEmailNaoVerificado(null)
+      setExclusaoPendente(null)
       const response = await api.post("/auth/login/", data)
       await login(response.data.access, response.data.user)
       toast.success("Bem-vindo de volta ao Fluxar!")
@@ -52,9 +79,16 @@ export default function LoginPage() {
       const msg = mensagemDeErro(error, "E-mail ou senha incorretos. Tente novamente.")
       setError("root", { message: msg })
       // Conta pendente com a senha certa: oferece o reenvio do link (AUTH-13)
-      const code = (error as { response?: { data?: { code?: unknown } } }).response?.data?.code
-      if (code === "email_not_verified") {
+      const dados = (error as { response?: { data?: ExclusaoPendente & { code?: unknown } } }).response?.data
+      if (dados?.code === "email_not_verified") {
         setEmailNaoVerificado(data.email)
+      }
+      // Conta com exclusão marcada: mostra a data e oferece cancelar (LGPD-07)
+      if (dados?.code === "deletion_pending" && dados.cancel_token) {
+        setExclusaoPendente({
+          deletion_scheduled_for: dados.deletion_scheduled_for,
+          cancel_token: dados.cancel_token,
+        })
       }
     } finally {
       setIsLoading(false)
@@ -90,6 +124,29 @@ export default function LoginPage() {
           {emailNaoVerificado && (
             <motion.div variants={itemVariants}>
               <ResendVerification email={emailNaoVerificado} />
+            </motion.div>
+          )}
+
+          {exclusaoPendente && (
+            <motion.div
+              variants={itemVariants}
+              className="space-y-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10"
+            >
+              <p className="text-sm font-medium">
+                A exclusão definitiva desta conta está marcada para{" "}
+                <strong>{dataDaExclusao(exclusaoPendente.deletion_scheduled_for)}</strong>. Cancele a exclusão para
+                voltar a usar o Fluxar com todos os seus dados.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full rounded-full font-bold"
+                onClick={cancelarExclusao}
+                loading={cancelando}
+                disabled={cancelando}
+              >
+                Cancelar exclusão
+              </Button>
             </motion.div>
           )}
 
