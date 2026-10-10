@@ -6,10 +6,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Activity, Server, FileText, AlertTriangle, RefreshCw, Loader2, Database, Globe, FlaskConical, Layers } from "lucide-react"
+import { Server, FileText, AlertTriangle, RefreshCw, Loader2, Globe, FlaskConical, Layers } from "lucide-react"
 import { toast } from "sonner"
 import { getAdminStats, getSystemLogs, updateSystemSettings, getSystemSettings, AdminStats, SystemLog, getAdminPlans, updateAdminPlans, ConfiguracaoDosPlanos, MudancaDosPlanos } from "@/services/admin"
 import { TabelaDeTravas } from "@/components/planos/tabela-de-travas"
+import { CardsDeSaude } from "@/components/admin/saude-do-sistema"
 import { Paginacao } from "@/components/ui/paginacao"
 import { tratarErro } from "@/lib/erros"
 
@@ -88,12 +89,10 @@ export default function AdminSettingsPage() {
               getSystemSettings()
           ])
           setStats(statsData)
-          if (settingsData && settingsData.maintenance_mode) {
-              setMaintenanceMode(settingsData.maintenance_mode === 'true')
-          }
+          // Sem a configuração, a manutenção está desligada (SESSAO-24)
+          setMaintenanceMode(settingsData?.maintenance_mode === 'true')
       } catch (error) {
-          console.error("Failed to load admin settings data", error)
-          toast.error("Erro ao carregar dados do sistema.")
+          tratarErro(error, { mensagemPadrao: "Erro ao carregar dados do sistema.", tentarDeNovo: loadData })
       } finally {
           setIsRefreshing(false)
       }
@@ -118,21 +117,10 @@ export default function AdminSettingsPage() {
         }
     } catch (error) {
         setMaintenanceMode(!checked) // Revert
-        toast.error("Erro ao atualizar modo de manutenção.")
+        tratarErro(error, { mensagemPadrao: "Erro ao atualizar modo de manutenção." })
     } finally {
         setIsLoading(false)
     }
-  }
-
-  const handleClearCache = () => {
-      toast.promise(
-          new Promise((resolve) => setTimeout(resolve, 2000)),
-          {
-              loading: 'Limpando cache do sistema...',
-              success: 'Cache limpo com sucesso!',
-              error: 'Erro ao limpar cache.'
-          }
-      )
   }
 
   return (
@@ -174,64 +162,31 @@ export default function AdminSettingsPage() {
         {/* --- SYSTEM TAB --- */}
         <TabsContent value="system" className="mt-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
             
-            {/* System Status Cards */}
+            {/* ADMIN-02 e ADMIN-03: saúde e versão medidas pelo backend */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                
-                {/* Server Status */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] overflow-hidden group hover:border-emerald-500/30 transition-all duration-300">
-                    <div className="absolute top-0 left-0 w-1 h-full bg-gradient-to-b from-emerald-500 to-emerald-700" />
-                    <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Status do Servidor</CardDescription>
-                        <CardTitle className="text-3xl font-black flex items-center gap-3">
-                            {stats?.health?.api || "Online"} 
-                            <div className="relative flex h-4 w-4">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-4 w-4 bg-emerald-500"></span>
-                            </div>
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                            <Activity className="h-4 w-4 text-emerald-500" />
-                            Uptime: 99.9% (30d)
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                {/* Version Info */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
-                    <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Versão da API</CardDescription>
-                        <CardTitle className="text-3xl font-black text-foreground">v{stats?.version || "1.2.5"}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                         <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                            <Globe className="h-4 w-4 text-primary" />
-                            Build: 2026.04.29-stable
-                        </div>
-                    </CardContent>
-                </Card>
+                <CardsDeSaude saude={stats?.health} carregando={isRefreshing && !stats} />
 
-                {/* Database Status */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-blue-500/30 transition-all duration-300">
-                     <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70">Banco de Dados</CardDescription>
-                        <CardTitle className={`text-3xl font-black ${stats?.health?.database?.status === "error" ? 'text-red-500' : 'text-blue-500'}`}>
-                            {stats?.health?.database?.status || "Conectado"}
+                <Card data-testid="versao-do-sistema" className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
+                    <CardHeader className="pb-2">
+                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70 flex items-center justify-between">
+                            Versão do sistema
+                            <Globe className="h-4 w-4 text-primary" />
+                        </CardDescription>
+                        <CardTitle className={`text-3xl font-black break-all ${stats?.version ? "text-foreground" : "text-muted-foreground"}`}>
+                            {stats?.version || "Sem dados"}
                         </CardTitle>
-                     </CardHeader>
-                     <CardContent>
-                         <div className="text-xs font-bold text-muted-foreground mt-2 flex items-center gap-2">
-                            <Database className="h-4 w-4 text-blue-500" />
-                            PostgreSQL 15.4 (Lat: {stats?.health?.database?.latency_ms ?? "0ms"})
-                        </div>
-                     </CardContent>
+                    </CardHeader>
+                    <CardContent>
+                        <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">
+                            Deploy em execução
+                        </p>
+                    </CardContent>
                 </Card>
             </div>
 
-            <div className="grid gap-8 lg:grid-cols-3">
+            <div className="grid gap-8 lg:grid-cols-2">
                 {/* Maintenance Mode Control */}
-                <Card className={`lg:col-span-2 border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${maintenanceMode ? 'border-destructive/50 bg-destructive/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                <Card className={`border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${maintenanceMode ? 'border-destructive/50 bg-destructive/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
                     <CardHeader>
                         <div className="flex items-center gap-3">
                             <div className={`p-3 rounded-2xl ${maintenanceMode ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/10 text-orange-500'}`}>
@@ -265,7 +220,7 @@ export default function AdminSettingsPage() {
                 </Card>
 
                 {/* PERM-24: liberação para testes, junto da manutenção */}
-                <Card className={`lg:col-span-2 border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${planos?.testing_unlock ? 'border-amber-500/40 bg-amber-500/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                <Card className={`border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${planos?.testing_unlock ? 'border-amber-500/40 bg-amber-500/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
                     <CardHeader>
                         <div className="flex items-center gap-3">
                             <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500">
@@ -292,26 +247,6 @@ export default function AdminSettingsPage() {
                             className="data-[state=checked]:bg-amber-500"
                         />
                     </CardContent>
-                </Card>
-
-                {/* Cache Control */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] flex flex-col justify-between">
-                    <CardHeader>
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-500">
-                                <RefreshCw className="h-6 w-6" />
-                            </div>
-                            <CardTitle className="text-lg font-bold">Cache Global</CardTitle>
-                        </div>
-                        <CardDescription>
-                            Forçar atualização de dados estáticos e CDN.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardFooter className="p-6 pt-0">
-                        <Button variant="outline" className="w-full font-bold border-primary/20 hover:bg-primary/5 hover:text-primary rounded-xl" onClick={handleClearCache}>
-                            Limpar Cache
-                        </Button>
-                    </CardFooter>
                 </Card>
             </div>
 
