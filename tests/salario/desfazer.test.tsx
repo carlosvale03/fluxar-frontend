@@ -54,9 +54,12 @@ const DIVISAO = divisao({
 })
 
 let desfazer: () => Promise<unknown>
+// GET /salary/divisions/?undoable=true
+let recentes: () => unknown[]
 
 const chamadasDoDesfazer = () => post.mock.calls.filter(([url]) => url === "/salary/divisions/div-1/undo/")
 const chamadasDosPendentes = () => get.mock.calls.filter(([url]) => url === "/salary/pending/")
+const chamadasDasRecentes = () => get.mock.calls.filter(([url]) => url === "/salary/divisions/")
 
 // Gera a divisão pela revisão e abre a confirmação do desfazer
 async function gerarEPedirParaDesfazer() {
@@ -74,6 +77,7 @@ async function gerarEPedirParaDesfazer() {
 beforeEach(() => {
   vi.clearAllMocks()
   auth.user = usuario()
+  recentes = () => []
   const dados: Record<string, unknown> = {
     "/salary/pending/": [recebimento()],
     "/salary/references/": referencias(),
@@ -83,7 +87,8 @@ beforeEach(() => {
     "/goals/": METAS,
     "/categories/": CATEGORIAS_DE_RECEITA,
   }
-  get.mockImplementation(((url: string) => resposta(dados[url] ?? [])) as typeof api.get)
+  get.mockImplementation(((url: string) =>
+    resposta(url === "/salary/divisions/" ? recentes() : (dados[url] ?? []))) as typeof api.get)
   desfazer = () => resposta({ ...DIVISAO, undone_at: "2026-10-10T13:00:00-03:00" })
   post.mockImplementation(((url: string) => {
     if (url === "/salary/divisions/preview/") return resposta(revisao())
@@ -136,6 +141,13 @@ describe("Desfazer a divisão pela tela", { timeout: 15000 }, () => {
     expect(chamadasDosPendentes()).toHaveLength(2)
   })
 
+  it("gerar relê as divisões recentes", async () => {
+    await gerarEPedirParaDesfazer()
+
+    await vi.waitFor(() => expect(chamadasDasRecentes()).toHaveLength(2))
+    expect(chamadasDasRecentes()[0][1]).toEqual({ params: { undoable: true } })
+  })
+
   it("cancelar fecha a confirmação sem desfazer", async () => {
     const confirmacao = await gerarEPedirParaDesfazer()
 
@@ -143,5 +155,52 @@ describe("Desfazer a divisão pela tela", { timeout: 15000 }, () => {
 
     await vi.waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument())
     expect(chamadasDoDesfazer()).toHaveLength(0)
+  })
+})
+
+// SALARIO-45 e SALARIO-49: depois de fechado o resultado, as divisões ainda
+// no prazo ficam em "Divisões recentes", com o desfazer
+describe("Divisões recentes", { timeout: 15000 }, () => {
+  it("mostra o salário, a data, o total e até quando dá para desfazer", async () => {
+    recentes = () => [DIVISAO]
+    render(<SalarioPage />)
+
+    const lista = await screen.findByRole("list", { name: "Divisões recentes" })
+    const [item] = within(lista).getAllByRole("listitem")
+    expect(item).toHaveTextContent("Salário de R$ 3.000,00 recebido em 05/10/2026")
+    expect(item).toHaveTextContent("Dividido em 10/10/2026")
+    expect(item).toHaveTextContent("Total dividido: R$ 600,00")
+    expect(item).toHaveTextContent("Você pode desfazer até 17/10/2026")
+    expect(chamadasDasRecentes()[0][1]).toEqual({ params: { undoable: true } })
+  })
+
+  it("sem divisões no prazo, a seção não aparece", async () => {
+    render(<SalarioPage />)
+
+    await screen.findByRole("region", { name: "Plano de divisão" })
+    await vi.waitFor(() => expect(chamadasDasRecentes()).toHaveLength(1))
+    expect(screen.queryByRole("heading", { name: "Divisões recentes" })).not.toBeInTheDocument()
+  })
+
+  it("desfazer pela lista abre a confirmação, desfaz e relê as listas", async () => {
+    let desfeita = false
+    recentes = () => (desfeita ? [] : [DIVISAO])
+    desfazer = () => {
+      desfeita = true
+      return resposta({ ...DIVISAO, undone_at: "2026-10-11T13:00:00-03:00" })
+    }
+    render(<SalarioPage />)
+    const lista = await screen.findByRole("list", { name: "Divisões recentes" })
+
+    await userEvent.click(within(lista).getByRole("button", { name: /^Desfazer divisão/ }))
+    const confirmacao = await screen.findByRole("alertdialog")
+    expect(within(within(confirmacao).getByRole("list", { name: "Transações que serão removidas" })).getAllByRole("listitem")).toHaveLength(2)
+    await userEvent.click(within(confirmacao).getByRole("button", { name: "Desfazer divisão" }))
+
+    await vi.waitFor(() => expect(chamadasDoDesfazer()).toHaveLength(1))
+    await vi.waitFor(() => expect(chamadasDasRecentes()).toHaveLength(2))
+    await vi.waitFor(() => expect(chamadasDosPendentes()).toHaveLength(2))
+    await vi.waitFor(() => expect(screen.queryByRole("list", { name: "Divisões recentes" })).not.toBeInTheDocument())
+    expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument()
   })
 })

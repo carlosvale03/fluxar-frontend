@@ -9,6 +9,7 @@ import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoP
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
 import { ReferenciasDoMes } from "@/components/salario/ReferenciasDoMes"
 import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
+import { DivisoesRecentes } from "@/components/salario/DivisoesRecentes"
 import { RevisaoDaDivisao } from "@/components/salario/RevisaoDaDivisao"
 import { SalariosADividir } from "@/components/salario/SalariosADividir"
 import { tratarErro } from "@/lib/erros"
@@ -51,6 +52,8 @@ export function GestaoDoSalario() {
   const [dividirDepois, setDividirDepois] = useState<string | null>(null)
   // SALARIO-45: divisão na confirmação do desfazer
   const [paraDesfazer, setParaDesfazer] = useState<DivisaoDoSalario | null>(null)
+  // SALARIO-45 e SALARIO-49: divisões que ainda podem ser desfeitas
+  const [recentes, setRecentes] = useState<DivisaoDoSalario[] | null>(null)
   const ultimoParam = useRef<string | null>(null)
 
   async function carregarPendentes() {
@@ -59,6 +62,15 @@ export function GestaoDoSalario() {
     } catch (erro) {
       setPendentes([])
       tratarErro(erro, { mensagemPadrao: "Erro ao carregar os salários a dividir.", tentarDeNovo: carregarPendentes })
+    }
+  }
+
+  async function carregarRecentes() {
+    try {
+      setRecentes(await salarioService.getDivisoesRecentes())
+    } catch (erro) {
+      setRecentes([])
+      tratarErro(erro, { mensagemPadrao: "Erro ao carregar as divisões recentes.", tentarDeNovo: carregarRecentes })
     }
   }
 
@@ -114,6 +126,7 @@ export function GestaoDoSalario() {
 
   useEffect(() => {
     void carregarPendentes()
+    void carregarRecentes()
     void carregarReferencias()
     void carregarPlano()
     void carregarOpcoes()
@@ -160,6 +173,7 @@ export function GestaoDoSalario() {
   return (
     <div className="space-y-6">
       <SalariosADividir recebimentos={pendentes} onDividir={dividir} />
+      <DivisoesRecentes divisoes={recentes} onDesfazer={setParaDesfazer} />
       <ReferenciasDoMes referencias={referencias} />
 
       {dividirDepois && telaDoPlano === "escolha" && (
@@ -195,7 +209,10 @@ export function GestaoDoSalario() {
       <RevisaoDaDivisao
         recebimentoId={revisando}
         onOpenChange={fecharRevisao}
-        onGerada={() => void carregarPendentes()}
+        onGerada={() => {
+          void carregarPendentes()
+          void carregarRecentes()
+        }}
         onDesfazer={setParaDesfazer}
       />
 
@@ -203,10 +220,12 @@ export function GestaoDoSalario() {
         divisao={paraDesfazer}
         onOpenChange={(aberta) => !aberta && setParaDesfazer(null)}
         onDesfeita={() => {
-          // SALARIO-47: o salário volta à lista de salários a dividir
+          // SALARIO-47: o salário volta à lista de salários a dividir, e a
+          // divisão sai das divisões recentes
           setParaDesfazer(null)
           fecharRevisao(false)
           void carregarPendentes()
+          void carregarRecentes()
         }}
       />
     </div>

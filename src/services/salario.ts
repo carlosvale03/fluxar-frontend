@@ -67,6 +67,12 @@ export const salarioService = {
     return response.data
   },
 
+  // SALARIO-45 e SALARIO-49: as divisões ainda no prazo, mais recentes primeiro
+  getDivisoesRecentes: async () => {
+    const response = await api.get<DivisaoDoSalario[]>("/salary/divisions/", { params: { undoable: true } })
+    return response.data
+  },
+
   // SALARIO-46 a SALARIO-51
   desfazer: async (id: string) => {
     const response = await api.post<DivisaoDoSalario>(`/salary/divisions/${id}/undo/`)
