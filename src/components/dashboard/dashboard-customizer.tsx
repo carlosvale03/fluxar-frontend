@@ -300,11 +300,16 @@ export const getInitialConfig = (): DashboardModuleConfig[] => {
             color: def.color,
         })).sort((a, b) => ordem(a.id) - ordem(b.id))
         // Módulo novo entra logo depois do que o precede no layout padrão, como
-        // a divisão por classe ao lado da distribuição de despesas
+        // a divisão por classe ao lado da distribuição de despesas; o primeiro do
+        // padrão entra no começo
         DEFAULT_CONFIG.forEach((def, index) => {
             if (salvo(def.id)) return
             const anterior = DEFAULT_CONFIG[index - 1]
-            const posicao = anterior ? config.findIndex(m => m.id === anterior.id) : -1
+            if (!anterior) {
+                config.splice(0, 0, def)
+                return
+            }
+            const posicao = config.findIndex(m => m.id === anterior.id)
             config.splice(posicao === -1 ? config.length : posicao + 1, 0, def)
         })
         return config
