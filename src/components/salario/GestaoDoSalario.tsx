@@ -1,12 +1,14 @@
 "use client"
 
-import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useEffect, useRef, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
+import { Info } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
 import { ReferenciasDoMes } from "@/components/salario/ReferenciasDoMes"
+import { RevisaoDaDivisao } from "@/components/salario/RevisaoDaDivisao"
 import { SalariosADividir } from "@/components/salario/SalariosADividir"
 import { tratarErro } from "@/lib/erros"
 import { accountsService } from "@/services/accounts"
@@ -17,6 +19,7 @@ import type { Account } from "@/types/accounts"
 import type { Category } from "@/types/categories"
 import type { Goal } from "@/types/goals"
 import type {
+  DivisaoDoSalario,
   ModeloDeDivisao,
   PlanoDoSalario,
   RecebimentoDoSalario,
@@ -29,6 +32,7 @@ type TelaDoPlano = "escolha" | "editor"
 // liberado (SALARIO-15, SALARIO-16)
 export function GestaoDoSalario() {
   const router = useRouter()
+  const paramDividir = useSearchParams().get("dividir")
   const [pendentes, setPendentes] = useState<RecebimentoDoSalario[] | null>(null)
   const [referencias, setReferencias] = useState<ReferenciasDoSalario | null>(null)
   const [plano, setPlano] = useState<PlanoDoSalario | null>(null)
@@ -40,6 +44,12 @@ export function GestaoDoSalario() {
   const [partesDoEditor, setPartesDoEditor] = useState<ParteInicial[]>([])
   // Troca a cada modelo escolhido ou plano salvo, para o editor recomeçar
   const [versaoDoEditor, setVersaoDoEditor] = useState(0)
+  // Recebimento na revisão da divisão
+  const [revisando, setRevisando] = useState<string | null>(null)
+  // SALARIO-22: recebimento que espera o plano ser salvo para ir à revisão
+  const [dividirDepois, setDividirDepois] = useState<string | null>(null)
+  const [, setParaDesfazer] = useState<DivisaoDoSalario | null>(null)
+  const ultimoParam = useRef<string | null>(null)
 
   async function carregarPendentes() {
     try {
@@ -63,6 +73,15 @@ export function GestaoDoSalario() {
     setPartesDoEditor(salvo.parts)
     setTelaDoPlano(salvo.has_plan ? "editor" : "escolha")
     setVersaoDoEditor((v) => v + 1)
+  }
+
+  // Plano salvo: o salário que esperava o plano vai para a revisão
+  function planoSalvo(salvo: PlanoDoSalario) {
+    abrirPlano(salvo)
+    if (salvo.has_plan && dividirDepois) {
+      setRevisando(dividirDepois)
+      setDividirDepois(null)
+    }
   }
 
   async function carregarPlano() {
@@ -100,8 +119,32 @@ export function GestaoDoSalario() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // SALARIO-21 e SALARIO-22: com plano, abre a revisão; sem plano, abre antes
+  // a escolha do modelo
+  function iniciarDivisao(recebimentoId: string, temPlano: boolean) {
+    if (temPlano) {
+      setRevisando(recebimentoId)
+    } else {
+      setDividirDepois(recebimentoId)
+      setTelaDoPlano("escolha")
+    }
+  }
+
+  // /salario?dividir=<id>, vindo do aviso do salário
+  useEffect(() => {
+    if (!plano || !paramDividir || paramDividir === ultimoParam.current) return
+    ultimoParam.current = paramDividir
+    iniciarDivisao(paramDividir, plano.has_plan)
+  }, [plano, paramDividir])
+
   const dividir = (recebimento: RecebimentoDoSalario) => {
-    router.replace(`/salario?dividir=${recebimento.id}`)
+    if (plano) iniciarDivisao(recebimento.id, plano.has_plan)
+  }
+
+  const fecharRevisao = (aberta: boolean) => {
+    if (aberta) return
+    setRevisando(null)
+    if (paramDividir) router.replace("/salario")
   }
 
   // SALARIO-02, SALARIO-03 e SALARIO-06: o modelo monta as partes no editor;
@@ -116,6 +159,13 @@ export function GestaoDoSalario() {
     <div className="space-y-6">
       <SalariosADividir recebimentos={pendentes} onDividir={dividir} />
       <ReferenciasDoMes referencias={referencias} />
+
+      {dividirDepois && telaDoPlano === "escolha" && (
+        <p role="status" className="flex items-center gap-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 text-sm font-bold">
+          <Info className="h-4 w-4 text-primary shrink-0" />
+          Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
+        </p>
+      )}
 
       {plano === null ? (
         <Skeleton className="h-64 w-full rounded-[32px]" />
@@ -135,10 +185,17 @@ export function GestaoDoSalario() {
           metas={metas}
           categorias={categorias}
           referencias={referencias}
-          onSalvo={abrirPlano}
+          onSalvo={planoSalvo}
           onTrocarModelo={() => setTelaDoPlano("escolha")}
         />
       )}
+
+      <RevisaoDaDivisao
+        recebimentoId={revisando}
+        onOpenChange={fecharRevisao}
+        onGerada={() => void carregarPendentes()}
+        onDesfazer={setParaDesfazer}
+      />
     </div>
   )
 }

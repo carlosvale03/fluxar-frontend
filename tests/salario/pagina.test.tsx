@@ -67,7 +67,7 @@ describe("Página da gestão do salário", () => {
     expect(get.mock.calls.filter(([url]) => String(url).startsWith("/salary/"))).toHaveLength(0)
   })
 
-  it("lista os salários a dividir, e dividir abre a divisão daquele salário", async () => {
+  it("lista os salários a dividir; sem plano, dividir pede antes o modelo", async () => {
     render(<SalarioPage />)
 
     const lista = await screen.findByRole("list", { name: "Salários a dividir" })
@@ -79,7 +79,8 @@ describe("Página da gestão do salário", () => {
     expect(itens[1]).toHaveTextContent("Importado")
 
     await userEvent.click(within(itens[0]).getByRole("button", { name: /Dividir/ }))
-    expect(navegacao.replace).toHaveBeenCalledWith("/salario?dividir=rec-1")
+    expect(await screen.findByRole("status")).toHaveTextContent("Escolha um modelo e salve o seu plano.")
+    expect(screen.getByRole("region", { name: "Escolha do modelo" })).toBeInTheDocument()
   })
 
   it("sem salários a dividir, diz que não há nenhum", async () => {
