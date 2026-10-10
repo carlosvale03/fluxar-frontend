@@ -164,6 +164,39 @@ describe("Ajuste dos percentuais no editor", { timeout: 15000 }, () => {
     expect(salvar).toBeEnabled()
   })
 
+  it("\"Adicionar parte\" cria uma parte percentual com o que falta para 100%, com o foco no nome", async () => {
+    await editar50_30_20()
+    // O campo do percentual mostra o % dentro dele
+    expect(campo("Essenciais").parentElement).toHaveTextContent("%")
+
+    // Com 100% já repartidos, a parte nova começa em 0%
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar parte" }))
+    expect(screen.getByLabelText("Percentual de parte 4")).toHaveValue("0")
+    expect(document.activeElement).toBe(screen.getByLabelText("Nome da parte 4"))
+    await userEvent.click(screen.getByRole("button", { name: "Remover parte 4" }))
+
+    await userEvent.click(screen.getByRole("button", { name: "Travar Essenciais" }))
+    await userEvent.click(screen.getByRole("button", { name: "Travar Dispensáveis" }))
+    await digitar("Guardar", "7,5")
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar parte" }))
+
+    expect(screen.getByLabelText("Percentual de parte 4")).toHaveValue("12,5")
+    expect(document.activeElement).toBe(screen.getByLabelText("Nome da parte 4"))
+    expect(screen.getByText(/^Soma: 100%/)).toBeInTheDocument()
+    await userEvent.keyboard("Viagem")
+    expect(screen.getByLabelText("Nome da parte 4")).toHaveValue("Viagem")
+  })
+
+  it("no Personalizado, a primeira parte começa com 100%", async () => {
+    render(<SalarioPage />)
+    await userEvent.click(await screen.findByRole("button", { name: "Usar o modelo Personalizado" }))
+
+    await userEvent.click(screen.getByRole("button", { name: "Adicionar parte" }))
+
+    expect(screen.getByLabelText("Percentual de parte 1")).toHaveValue("100")
+    expect(document.activeElement).toBe(screen.getByLabelText("Nome da parte 1"))
+  })
+
   it("as partes em R$ nunca são ajustadas, e as travas não vão para o plano", async () => {
     render(<SalarioPage />)
     await userEvent.click(await screen.findByRole("button", { name: "Usar o modelo 50/30/20" }))

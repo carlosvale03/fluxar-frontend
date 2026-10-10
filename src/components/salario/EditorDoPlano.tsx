@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { flushSync } from "react-dom"
 import { format } from "date-fns"
 import { AlertTriangle, ArrowDown, ArrowUp, Lock, LockOpen, Plus, Save, Shuffle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -305,12 +306,19 @@ export function EditorDoPlano({
     setPartes((atuais) => atuais.filter((p) => p.chave !== chave))
   }
 
+  // A parte nova é percentual, com o que falta para os percentuais darem 100%
+  // (ou zero), e o foco vai para o nome dela
   const adicionar = () => {
     edicao.current = null
-    setPartes((atuais) => [
-      ...atuais,
-      { chave: novaChave(), name: "", rule_type: "PERCENT", valor: "", destino: "", reference: "", inicial: null },
-    ])
+    const chave = novaChave()
+    const valor = percentualParaCampo(deCentavos(Math.max(0, 10000 - barra.somaDosPercentuais)))
+    flushSync(() =>
+      setPartes((atuais) => [
+        ...atuais,
+        { chave, name: "", rule_type: "PERCENT", valor, destino: "", reference: "", inicial: null },
+      ]),
+    )
+    document.getElementById(`nome-da-${chave}`)?.focus()
   }
 
   // Trocar de modelo descarta as mudanças: com alguma, pede confirmação
@@ -480,6 +488,7 @@ export function EditorDoPlano({
                   <div className="flex items-center gap-2">
                     <PontoDaCor className={corDaParte(indice)} />
                     <Input
+                      id={`nome-da-${parte.chave}`}
                       aria-label={`Nome da parte ${indice + 1}`}
                       value={parte.name}
                       maxLength={60}
@@ -519,15 +528,23 @@ export function EditorDoPlano({
                       </div>
                       {parte.rule_type === "PERCENT" ? (
                         <>
-                          <Input
-                            aria-label={`Percentual de ${rotulo}`}
-                            inputMode="decimal"
-                            value={parte.valor}
-                            placeholder="0"
-                            className="h-10 w-24 rounded-xl tabular-nums"
-                            onChange={(e) => mudarPercentual(parte.chave, e.target.value.replace(/[^\d,.]/g, ""))}
-                            onBlur={() => (edicao.current = null)}
-                          />
+                          <div className="relative w-24 shrink-0">
+                            <Input
+                              aria-label={`Percentual de ${rotulo}`}
+                              inputMode="decimal"
+                              value={parte.valor}
+                              placeholder="0"
+                              className="h-10 w-full rounded-xl pr-7 tabular-nums"
+                              onChange={(e) => mudarPercentual(parte.chave, e.target.value.replace(/[^\d,.]/g, ""))}
+                              onBlur={() => (edicao.current = null)}
+                            />
+                            <span
+                              aria-hidden
+                              className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
+                            >
+                              %
+                            </span>
+                          </div>
                           <Button
                             type="button"
                             variant="ghost"
