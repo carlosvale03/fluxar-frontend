@@ -16,7 +16,7 @@ import { DivisoesRecentes } from "@/components/salario/DivisoesRecentes"
 import { RevisaoDaDivisao } from "@/components/salario/RevisaoDaDivisao"
 import { SalariosADividir } from "@/components/salario/SalariosADividir"
 import { tratarErro } from "@/lib/erros"
-import { modeloDoPlano } from "@/lib/salario"
+import { modeloCorrespondente } from "@/lib/salario"
 import { cn } from "@/lib/utils"
 import { accountsService } from "@/services/accounts"
 import { getCategories } from "@/services/categories"
@@ -59,6 +59,8 @@ export function GestaoDoSalario() {
   const [versaoDoEditor, setVersaoDoEditor] = useState(0)
   // Posição da parte cujo destino recebe o foco ao abrir o editor
   const [destinoEmFoco, setDestinoEmFoco] = useState<number | null>(null)
+  // Código do modelo escolhido para o editor; null segue o plano salvo
+  const [modeloEscolhido, setModeloEscolhido] = useState<string | null>(null)
   // Recebimento na revisão da divisão
   const [revisando, setRevisando] = useState<string | null>(null)
   // SALARIO-22: recebimento que espera o plano ser salvo para ir à revisão
@@ -210,6 +212,7 @@ export function GestaoDoSalario() {
   const editarPlano = (focarDestino: number | null = null) => {
     if (!plano) return
     setPartesDoEditor(plano.parts)
+    setModeloEscolhido(null)
     setDestinoEmFoco(focarDestino)
     setTelaDoPlano("editor")
     setVersaoDoEditor((v) => v + 1)
@@ -219,16 +222,20 @@ export function GestaoDoSalario() {
   // o plano só muda ao salvar
   const escolherModelo = (modelo: ModeloDeDivisao) => {
     setPartesDoEditor(modelo.parts)
+    setModeloEscolhido(modelo.code)
     setDestinoEmFoco(null)
     setTelaDoPlano("editor")
     setVersaoDoEditor((v) => v + 1)
   }
 
+  // O modelo que o plano salvo segue, quando tem exatamente as partes dele
+  const modeloDoPlanoSalvo = plano?.has_plan ? modeloCorrespondente(plano.parts, modelos) : null
+
   // Status do cabeçalho: o modelo do plano salvo, ou quantas partes ele tem
   const status = !plano
     ? null
     : plano.has_plan
-      ? `Plano ativo: ${modeloDoPlano(plano.parts, modelos) ?? `${plano.parts.length} ${plano.parts.length === 1 ? "parte" : "partes"}`}`
+      ? `Plano ativo: ${modeloDoPlanoSalvo?.name ?? `${plano.parts.length} ${plano.parts.length === 1 ? "parte" : "partes"}`}`
       : "Sem plano ainda"
 
   return (
@@ -286,6 +293,7 @@ export function GestaoDoSalario() {
               referencias={referencias}
               onEditar={() => editarPlano()}
               onTrocarModelo={() => setTelaDoPlano("escolha")}
+              codigoDoModelo={modeloDoPlanoSalvo?.code}
               onEscolherDestino={editarPlano}
               valorSimulado={valorSimulado}
               onValorSimulado={setValorSimulado}
@@ -303,6 +311,7 @@ export function GestaoDoSalario() {
               key={versaoDoEditor}
               partesIniciais={partesDoEditor}
               focarDestino={destinoEmFoco}
+              codigoDoModelo={modeloEscolhido ?? modeloDoPlanoSalvo?.code}
               categoriasDoSalario={plano.salary_categories}
               contas={contas}
               metas={metas}

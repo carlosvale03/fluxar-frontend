@@ -6,6 +6,7 @@ import { AlertTriangle, Pencil, Shuffle } from "lucide-react"
 import { toast } from "sonner"
 
 import { BarraDaDivisao, COR_DO_LIVRE, PontoDaCor, corDaParte } from "@/components/salario/BarraDaDivisao"
+import { SobreAParte } from "@/components/salario/SobreOModelo"
 import { Button } from "@/components/ui/button"
 import { MoneyInput } from "@/components/ui/money-input"
 import { lerData } from "@/lib/datas"
@@ -21,6 +22,8 @@ interface ResumoDoPlanoProps {
   onEditar: () => void
   // SALARIO-61: abre a escolha do modelo; o plano salvo fica até salvar outro
   onTrocarModelo: () => void
+  // O modelo que o plano segue, para explicar as partes com o sentido dele
+  codigoDoModelo?: string | null
   // Abre o editor com o foco no destino da parte nessa posição
   onEscolherDestino: (indice: number) => void
   // O valor do campo da simulação, que a página guarda para o editor também
@@ -59,6 +62,7 @@ export function ResumoDoPlano({
   referencias,
   onEditar,
   onTrocarModelo,
+  codigoDoModelo,
   onEscolherDestino,
   valorSimulado,
   onValorSimulado,
@@ -139,7 +143,10 @@ export function ResumoDoPlano({
             <li key={parte.id} aria-label={parte.name} className="flex items-start gap-3 py-3">
               <PontoDaCor className={`mt-1.5 ${corDaParte(indice)}`} />
               <div className="min-w-0 flex-1 space-y-0.5">
-                <p className="text-sm font-medium">{parte.name}</p>
+                <div className="flex items-center gap-0.5">
+                  <p className="text-sm font-medium">{parte.name}</p>
+                  <SobreAParte nome={parte.name} codigoDoModelo={codigoDoModelo} className="-my-3" />
+                </div>
                 {destino.falta ? (
                   <Button
                     variant="ghost"

@@ -6,6 +6,7 @@ import { ArrowDown, ArrowUp, Plus, Save, Shuffle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { BarraDaDivisao, PontoDaCor, corDaParte } from "@/components/salario/BarraDaDivisao"
+import { SobreAParte } from "@/components/salario/SobreOModelo"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -147,6 +148,8 @@ interface EditorDoPlanoProps {
   onCancelar?: () => void
   // Posição da parte cujo destino recebe o foco ao abrir
   focarDestino?: number | null
+  // O modelo de onde as partes vieram, para explicar as partes com o sentido dele
+  codigoDoModelo?: string | null
 }
 
 // SALARIO-04 a SALARIO-07, SALARIO-12, SALARIO-54, SALARIO-55 e SALARIO-63:
@@ -166,6 +169,7 @@ export function EditorDoPlano({
   onTrocarModelo,
   onCancelar,
   focarDestino = null,
+  codigoDoModelo = null,
 }: EditorDoPlanoProps) {
   const [partes, setPartes] = useState<Rascunho[]>(() => partesIniciais.map(rascunhoDe))
   const [assinaturaInicial] = useState(() => assinatura(partesIniciais.map(rascunhoDe)))
@@ -402,6 +406,7 @@ export function EditorDoPlano({
                       className="h-10 rounded-xl font-medium"
                       onChange={(e) => alterar(parte.chave, { name: e.target.value })}
                     />
+                    <SobreAParte nome={parte.name} codigoDoModelo={codigoDoModelo} />
                     <Button
                       variant="ghost"
                       size="icon"

@@ -1,6 +1,7 @@
 "use client"
 
 import { BarraDaDivisao, PontoDaCor, corDaParte } from "@/components/salario/BarraDaDivisao"
+import { ComoFunciona } from "@/components/salario/SobreOModelo"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { montarBarra, percentualParaCampo, porcentagemNoHistorico } from "@/lib/salario"
@@ -13,10 +14,10 @@ interface EscolhaDoModeloProps {
   onCancelar?: () => void
 }
 
-// SALARIO-01: os três modelos da literatura, cada um com a obra de origem e
-// a proporção das partes, e o Personalizado. SALARIO-54: ao lado das partes
-// que correspondem a uma classe, quanto essa classe ocupou do salário no
-// histórico. A linha inteira escolhe o modelo.
+// SALARIO-01 e SALARIO-57: os três modelos da literatura, cada um com a obra
+// de origem, a proporção das partes e "Como funciona", e o Personalizado.
+// SALARIO-54: ao lado das partes que correspondem a uma classe, quanto essa
+// classe ocupou do salário no histórico. A linha inteira escolhe o modelo.
 export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }: EscolhaDoModeloProps) {
   return (
     <div role="region" aria-label="Escolha do modelo" className="space-y-3">
@@ -57,7 +58,7 @@ export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }
                           {modelo.author}, <em>{modelo.book}</em>
                         </>
                       ) : (
-                        "Comece do zero e monte as partes do seu jeito."
+                        "Comece do zero."
                       )}
                     </p>
                   </div>
@@ -86,6 +87,9 @@ export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }
                       </ul>
                     </>
                   )}
+
+                  {/* Acima da camada do botão, para abrir sem escolher o modelo */}
+                  <ComoFunciona codigo={modelo.code} className="relative z-10" />
                 </div>
 
                 {/* O ::after cobre a linha toda, para a linha inteira escolher o modelo */}
