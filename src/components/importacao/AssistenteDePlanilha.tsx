@@ -1,22 +1,30 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Loader2, Table as TableIcon } from "lucide-react"
+import { ArrowLeft, Loader2, Table as TableIcon, Upload } from "lucide-react"
+import { toast } from "sonner"
 
 import { PassoArquivo } from "@/components/importacao/PassoArquivo"
 import { mesclarPlano } from "@/components/importacao/plano"
 import { RevisaoDeAbas } from "@/components/importacao/RevisaoDeAbas"
+import { ResultadoDaImportacao } from "@/components/importacao/ResultadoDaImportacao"
 import { RevisaoDeLinhas } from "@/components/importacao/RevisaoDeLinhas"
 import { CAMPOS_DA_CONTA, campoDoErroDaConta, RevisaoDeContas } from "@/components/importacao/RevisaoDeContas"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { usePlan } from "@/hooks/use-plan"
 import { formatarMoeda } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
 import { api } from "@/services/apiClient"
-import { analisarArquivo } from "@/services/import-export"
+import { analisarArquivo, importarArquivo } from "@/services/import-export"
 import type { Account } from "@/types/accounts"
-import type { AnaliseDeImportacao, PlanoDeImportacao, ResumoDaAnalise } from "@/types/importacao"
+import type {
+  AnaliseDeImportacao,
+  PlanoDeImportacao,
+  ResultadoDaImportacao as Resultado,
+  ResumoDaAnalise,
+} from "@/types/importacao"
 
 // IMPCOMP-44: as mudanças no plano esperam um pouco antes de pedir a nova
 // análise, para várias mudanças seguidas virarem uma chamada só
@@ -78,13 +86,14 @@ export function AssistenteDePlanilha({ open, onOpenChange }: AssistenteDePlanilh
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[960px] max-h-[95vh] rounded-[32px] border-border/60 bg-card shadow-2xl overflow-hidden p-0">
-        <ConteudoDoAssistente />
+        <ConteudoDoAssistente onFechar={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
   )
 }
 
-function ConteudoDoAssistente() {
+function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
+  const { atualizarUso } = usePlan()
   const [arquivo, setArquivo] = useState<File | null>(null)
   const [analise, setAnalise] = useState<AnaliseDeImportacao | null>(null)
   const [plano, setPlano] = useState<PlanoDeImportacao>({})
@@ -99,6 +108,8 @@ function ConteudoDoAssistente() {
   const [contasAtivas, setContasAtivas] = useState<Account[]>([])
   // Erros do backend nos campos das contas do plano (IMPCOMP-24, IMPCOMP-28)
   const [errosDasContas, setErrosDasContas] = useState<Record<string, string>>({})
+  const [importando, setImportando] = useState(false)
+  const [resultado, setResultado] = useState<Resultado | null>(null)
 
   const carregarContas = async () => {
     try {
@@ -187,7 +198,25 @@ function ConteudoDoAssistente() {
     setAnalisando(false)
   }
 
-  const emRevisao = !!arquivo && !!analise
+  // IMPCOMP-45: a importação grava o plano revisado numa requisição só
+  const importar = async () => {
+    if (!arquivo) return
+    const enviado = planoAtual.current
+    setImportando(true)
+    try {
+      const resposta = await importarArquivo(arquivo, enviado)
+      setResultado(resposta)
+      toast.success("Importação concluída!")
+      // PERM-20: as contas criadas contam no limite do plano
+      if (resposta.accounts_created?.length) await atualizarUso()
+    } catch (erro) {
+      mostrarErro(erro, enviado, "Erro ao importar a planilha.")
+    } finally {
+      setImportando(false)
+    }
+  }
+
+  const emRevisao = !!arquivo && !!analise && !resultado
   return (
     <div className="p-6 overflow-y-auto max-h-[95vh] custom-scrollbar">
       <DialogHeader className="mb-4">
@@ -196,15 +225,23 @@ function ConteudoDoAssistente() {
             <TableIcon className="h-6 w-6" />
           </div>
           <div className="min-w-0">
-            <DialogTitle className="text-2xl font-black tracking-tight">Importar planilha</DialogTitle>
+            <DialogTitle className="text-2xl font-black tracking-tight">
+              {resultado ? "Importação concluída" : "Importar planilha"}
+            </DialogTitle>
             <DialogDescription className="text-xs font-medium text-muted-foreground mt-1 truncate">
-              {emRevisao ? `Revise o que foi reconhecido em ${arquivo.name}.` : "Escolha o arquivo exportado do seu app ou banco."}
+              {resultado
+                ? "Resumo do que foi gravado, por aba."
+                : emRevisao
+                  ? `Revise o que foi reconhecido em ${arquivo.name}.`
+                  : "Escolha o arquivo exportado do seu app ou banco."}
             </DialogDescription>
           </div>
         </div>
       </DialogHeader>
 
-      {!emRevisao && <PassoArquivo analisando={analisando} onEscolher={escolherArquivo} />}
+      {resultado && <ResultadoDaImportacao resultado={resultado} onFechar={onFechar} />}
+
+      {!emRevisao && !resultado && <PassoArquivo analisando={analisando} onEscolher={escolherArquivo} />}
 
       {emRevisao && (
         <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
@@ -232,12 +269,13 @@ function ConteudoDoAssistente() {
               variant="outline"
               className="w-full sm:flex-1 rounded-full font-black uppercase text-[10px] h-12"
               onClick={trocarArquivo}
+              disabled={importando}
             >
               <ArrowLeft className="h-4 w-4 mr-2" /> Trocar arquivo
             </Button>
             <p
               aria-live="polite"
-              className="w-full sm:flex-[2] flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground min-h-12"
+              className="w-full sm:flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground min-h-12"
             >
               {analisando && (
                 <>
@@ -245,6 +283,14 @@ function ConteudoDoAssistente() {
                 </>
               )}
             </p>
+            <Button
+              className="w-full sm:flex-1 rounded-full font-black uppercase tracking-widest text-[10px] h-12 shadow-lg shadow-primary/20"
+              onClick={importar}
+              disabled={analisando || importando}
+            >
+              {importando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+              {importando ? "Importando..." : "Importar"}
+            </Button>
           </div>
         </div>
       )}
