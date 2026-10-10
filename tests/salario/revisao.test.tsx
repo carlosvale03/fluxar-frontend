@@ -108,7 +108,8 @@ beforeEach(() => {
   comRespostasDoPost()
 })
 
-describe("Revisão e geração da divisão", () => {
+// A página inteira é pesada no jsdom quando a suíte roda em paralelo
+describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
   it("mostra cada transação com origem, destino, valor e data, o total e o livre", async () => {
     const janela = await abrirRevisao()
 

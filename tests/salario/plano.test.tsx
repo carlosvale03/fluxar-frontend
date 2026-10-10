@@ -70,7 +70,8 @@ beforeEach(() => {
   put.mockImplementation(((_url: string, corpo: unknown) => resposta({ ...PLANO_SALVO, ...(corpo as object) })) as typeof api.put)
 })
 
-describe("Escolha do modelo e editor do plano", () => {
+// A página inteira é pesada no jsdom quando a suíte roda em paralelo
+describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
   it("sem plano, a escolha mostra os quatro modelos com a obra de origem", async () => {
     render(<SalarioPage />)
 

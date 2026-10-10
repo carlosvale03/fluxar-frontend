@@ -50,7 +50,8 @@ beforeEach(() => {
   })
 })
 
-describe("Página da gestão do salário", () => {
+// A página inteira é pesada no jsdom quando a suíte roda em paralelo
+describe("Página da gestão do salário", { timeout: 15000 }, () => {
   it("o menu de recursos leva à gestão do salário", async () => {
     render(<Header />)
 

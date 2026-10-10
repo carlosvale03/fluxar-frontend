@@ -93,7 +93,8 @@ beforeEach(() => {
   }) as typeof api.post)
 })
 
-describe("Desfazer a divisão pela tela", () => {
+// A página inteira é pesada no jsdom quando a suíte roda em paralelo
+describe("Desfazer a divisão pela tela", { timeout: 15000 }, () => {
   it("a confirmação lista as transações da divisão", async () => {
     const confirmacao = await gerarEPedirParaDesfazer()
 

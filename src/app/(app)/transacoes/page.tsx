@@ -47,6 +47,7 @@ import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-
 import { TransactionDeleteDialog } from "@/components/transactions/transaction-delete-dialog"
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
 import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
+import { useAvisoDoSalario } from "@/components/salario/AvisoDoSalario"
 import Link from "next/link"
 
 import { api } from "@/services/apiClient"
@@ -91,6 +92,9 @@ export default function TransactionsPage() {
   const handleFormSuccess = () => {
       fetchTransactions()
   }
+
+  // SALARIO-19: lançar ou efetivar um salário recebido abre o aviso da divisão
+  const { conferirSalario, avisoDoSalario } = useAvisoDoSalario()
 
   const handleEdit = (transaction: Transaction) => {
       setTransactionToEdit(transaction)
@@ -297,12 +301,13 @@ export default function TransactionsPage() {
 
   const handleConfirm = async (transaction: Transaction) => {
       try {
-          await api.patch(`/transactions/${transaction.id}/`, { status: "COMPLETED" })
+          const resposta = await api.patch<Transaction>(`/transactions/${transaction.id}/`, { status: "COMPLETED" })
           toast.success("Transação efetivada com sucesso!")
           fetchTransactions()
+          void conferirSalario(resposta.data)
       } catch (error) {
-          console.error("Failed to confirm transaction", error)
-          toast.error("Erro ao efetivar transação.")
+          // CONTRATO-33: nenhuma falha silenciosa
+          tratarErro(error, { mensagemPadrao: "Erro ao efetivar transação." })
       }
   }
 
@@ -558,10 +563,14 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
             setIsFormOpen(open)
             if (!open) setTransactionToEdit(null) // Clear edit state on close
         }}
-        onSuccess={handleFormSuccess}
+        onSuccess={(criada) => {
+            handleFormSuccess()
+            void conferirSalario(criada)
+        }}
         type={formType}
         initialData={transactionToEdit}
       />
+      {avisoDoSalario}
 
       {/* Mobile-Friendly Transaction List */}
       <div className="md:hidden space-y-6">
