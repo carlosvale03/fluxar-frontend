@@ -34,6 +34,7 @@ export type DashboardModuleId =
     | "BALANCE_EVOLUTION"
     | "BUDGET_SUMMARY"
     | "EXPENSE_DISTRIBUTION"
+    | "CLASS_DISTRIBUTION"
     | "INCOME_SOURCE"
     | "CREDIT_MANAGEMENT"
     | "GOALS_JOURNEY"
@@ -64,6 +65,8 @@ export const DEFAULT_CONFIG: DashboardModuleConfig[] = [
     { id: "BALANCE_EVOLUTION", label: "Evolução de Saldo", visible: true, icon: BarChart3, color: COLORS.indigo },
     { id: "BUDGET_SUMMARY", label: "Orçamentos Ativos", visible: true, icon: Wallet, color: COLORS.purple },
     { id: "EXPENSE_DISTRIBUTION", label: "Distribuição de Despesas", visible: true, icon: PieChart, color: COLORS.rose },
+    // CLASSE-28: ao lado do gráfico de despesas por categoria
+    { id: "CLASS_DISTRIBUTION", label: "Despesas por Classe", visible: true, icon: PieChart, color: COLORS.purple },
     { id: "INCOME_SOURCE", label: "Origem dos Ganhos", visible: true, icon: PieChart, color: COLORS.green },
     { id: "TAG_EXPENSE_DISTRIBUTION", label: "Despesas por Tag", visible: false, icon: PieChart, color: COLORS.rose },
     { id: "TAG_INCOME_SOURCE", label: "Ganhos por Tag", visible: false, icon: PieChart, color: COLORS.green },
@@ -286,19 +289,25 @@ export const getInitialConfig = (): DashboardModuleConfig[] => {
     if (!saved) return DEFAULT_CONFIG
 
     try {
-        const parsed = JSON.parse(saved)
+        const parsed: Partial<DashboardModuleConfig>[] = JSON.parse(saved)
         // Merge with DEFAULT_CONFIG in case new modules were added or attributes changed
-        return DEFAULT_CONFIG.map(def => {
-            const found = parsed.find((p: any) => p.id === def.id)
-            return found ? { ...def, visible: found.visible, ...found, icon: def.icon, color: def.color } : def
-        }).sort((a, b) => {
-            const indexA = parsed.findIndex((p: any) => p.id === a.id)
-            const indexB = parsed.findIndex((p: any) => p.id === b.id)
-            if (indexA === -1 && indexB === -1) return 0
-            if (indexA === -1) return 1
-            if (indexB === -1) return -1
-            return indexA - indexB
+        const salvo = (id: string) => parsed.find(p => p.id === id)
+        const ordem = (id: string) => parsed.findIndex(p => p.id === id)
+        const config: DashboardModuleConfig[] = DEFAULT_CONFIG.filter(def => salvo(def.id)).map(def => ({
+            ...def,
+            ...salvo(def.id),
+            icon: def.icon,
+            color: def.color,
+        })).sort((a, b) => ordem(a.id) - ordem(b.id))
+        // Módulo novo entra logo depois do que o precede no layout padrão, como
+        // a divisão por classe ao lado da distribuição de despesas
+        DEFAULT_CONFIG.forEach((def, index) => {
+            if (salvo(def.id)) return
+            const anterior = DEFAULT_CONFIG[index - 1]
+            const posicao = anterior ? config.findIndex(m => m.id === anterior.id) : -1
+            config.splice(posicao === -1 ? config.length : posicao + 1, 0, def)
         })
+        return config
     } catch (e) {
         return DEFAULT_CONFIG
     }
