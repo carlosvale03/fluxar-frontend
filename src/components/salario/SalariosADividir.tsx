@@ -50,7 +50,7 @@ export function SalariosADividir({ recebimentos, onDividir }: SalariosADividirPr
               >
                 <div className="flex-1 min-w-0">
                   <p className="font-bold truncate">{recebimento.description}</p>
-                  <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-2">
+                  <div className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-2">
                     <span>{format(lerData(recebimento.date), "dd/MM/yyyy")}</span>
                     <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
                     <span>{recebimento.account_name}</span>
@@ -65,7 +65,7 @@ export function SalariosADividir({ recebimentos, onDividir }: SalariosADividirPr
                         Importado
                       </Badge>
                     )}
-                  </p>
+                  </div>
                 </div>
                 <p className="text-lg font-black text-emerald-600 whitespace-nowrap">{formatarMoeda(recebimento.amount)}</p>
                 <Button
