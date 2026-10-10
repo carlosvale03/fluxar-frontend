@@ -157,7 +157,7 @@ export interface UserFinancialStats {
     avg_expense_value: string
     income_count_per_day: number
     expense_count_per_day: number
-    last_transaction_date: string
+    last_transaction_date: string | null
 }
 
 export async function getUserFinancialStats(userId: string): Promise<UserFinancialStats> {
@@ -176,7 +176,8 @@ export async function resetAdminUserPassword(userId: string, data: { admin_passw
 }
 
 export async function clearAdminUserData(userId: string, adminPassword: string) {
-    const response = await api.post<{ message: string }>(`/admin/users/${userId}/clear-data/`, { admin_password: adminPassword })
+    // ADMIN-22: a resposta traz as estatísticas do cadastro já limpo
+    const response = await api.post<{ message: string; financial_stats: UserFinancialStats }>(`/admin/users/${userId}/clear-data/`, { admin_password: adminPassword })
     return response.data
 }
 
