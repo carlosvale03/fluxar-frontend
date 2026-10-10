@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button"
 import { lerData } from "@/lib/datas"
 import { formatarMoeda } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { quantidadeDeTransacoes } from "@/lib/salario"
+import { quantidadeDeTransacoes, resumoDoDesconto } from "@/lib/salario"
 import { salarioService } from "@/services/salario"
 import type { DivisaoDoSalario } from "@/types/salario"
 
@@ -50,6 +50,8 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
   }
 
   const transacoes = divisao?.transactions ?? []
+  // SALARIO-70: as saídas descontadas voltam a valer para a próxima divisão
+  const desconto = divisao ? resumoDoDesconto(divisao.outflows) : null
 
   return (
     <AlertDialog open={divisao !== null} onOpenChange={(aberto) => !desfazendo && onOpenChange(aberto)}>
@@ -86,10 +88,19 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
                   <span>{format(lerData(transacao.date), "dd/MM/yyyy")}</span>
                 </p>
               </div>
-              <p className="font-black text-sm whitespace-nowrap">{formatarMoeda(transacao.amount)}</p>
+              <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(transacao.amount)}</p>
             </li>
           ))}
         </ul>
+
+        {desconto && (
+          <p className="text-sm font-medium text-muted-foreground tabular-nums">
+            {desconto}.{" "}
+            {divisao?.outflows?.length === 1
+              ? "Ela volta a ficar disponível para a próxima divisão."
+              : "Elas voltam a ficar disponíveis para a próxima divisão."}
+          </p>
+        )}
 
         <AlertDialogFooter className="pt-4">
           <AlertDialogCancel className="rounded-full h-11 px-6 font-bold" disabled={desfazendo}>

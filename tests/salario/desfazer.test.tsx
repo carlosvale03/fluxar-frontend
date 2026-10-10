@@ -174,6 +174,31 @@ describe("Divisões recentes", { timeout: 15000 }, () => {
     expect(chamadasDasRecentes()[0][1]).toEqual({ params: { undoable: true } })
   })
 
+  // SALARIO-68 e SALARIO-70: o que foi descontado das saídas aparece na lista
+  // e na confirmação do desfazer
+  it("mostra quanto a divisão descontou e em quantas saídas", async () => {
+    const descontadas = [
+      { id: "s-1", date: "2026-10-06", description: "Mercado", amount: "130.00", type: "EXPENSE" as const, part_name: "Essenciais" },
+      { id: null, date: null, description: null, amount: null, type: null, part_name: null },
+      { id: "s-2", date: "2026-10-07", description: "Guardar", amount: "100.00", type: "TRANSFER_OUT" as const, part_name: "Guardar" },
+    ]
+    recentes = () => [
+      { ...DIVISAO, outflows: descontadas },
+      divisao({ id: "div-2", receipt: { ...DIVISAO.receipt, id: "rec-2", amount: "1000.00" }, outflows: [] }),
+    ]
+    render(<SalarioPage />)
+
+    const lista = await screen.findByRole("list", { name: "Divisões recentes" })
+    const [comDesconto, semDesconto] = within(lista).getAllByRole("listitem")
+    expect(comDesconto).toHaveTextContent("Descontou R$ 230,00 em 3 saídas")
+    expect(comDesconto).toHaveTextContent("Total dividido: R$ 600,00")
+    expect(semDesconto).not.toHaveTextContent("Descontou")
+
+    await userEvent.click(within(comDesconto).getByRole("button", { name: /^Desfazer divisão/ }))
+    const confirmacao = await screen.findByRole("alertdialog")
+    expect(confirmacao).toHaveTextContent("Descontou R$ 230,00 em 3 saídas. Elas voltam a ficar disponíveis para a próxima divisão.")
+  })
+
   it("sem divisões no prazo, a seção não aparece", async () => {
     render(<SalarioPage />)
 

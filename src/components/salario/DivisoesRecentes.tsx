@@ -6,6 +6,7 @@ import { Undo2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { lerData } from "@/lib/datas"
 import { formatarMoeda } from "@/lib/dinheiro"
+import { resumoDoDesconto } from "@/lib/salario"
 import type { DivisaoDoSalario } from "@/types/salario"
 
 interface DivisoesRecentesProps {
@@ -35,6 +36,8 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
           const recebido = divisao.receipt.date
             ? `Salário de ${formatarMoeda(divisao.receipt.amount)} recebido em ${dataCurta(divisao.receipt.date)}`
             : `Salário de ${formatarMoeda(divisao.receipt.amount)}`
+          // SALARIO-68: o que a divisão descontou das saídas da conta
+          const desconto = resumoDoDesconto(divisao.outflows)
           return (
             <li key={divisao.id} className="flex items-start justify-between gap-3 py-3">
               <div className="min-w-0 space-y-0.5">
@@ -42,6 +45,7 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
                 <p className="text-xs text-muted-foreground tabular-nums">
                   Dividido em {dataCurta(divisao.date)} · Total dividido: {formatarMoeda(divisao.total)}
                 </p>
+                {desconto && <p className="text-xs text-muted-foreground tabular-nums">{desconto}</p>}
                 <p className="text-xs text-muted-foreground tabular-nums">
                   Você pode desfazer até {dataCurta(divisao.can_undo_until)}
                 </p>
