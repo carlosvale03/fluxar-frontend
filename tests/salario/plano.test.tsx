@@ -218,7 +218,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     comPlano(PLANO_SALVO)
     const pedidos: { amount: string; responder: (dados: unknown) => void }[] = []
     post.mockImplementation(((_url: string, corpo: { amount: string }) =>
-      new Promise((resolve) => pedidos.push({ amount: corpo.amount, responder: (dados) => resolve({ data: dados }) }))) as typeof api.post)
+      new Promise<{ data: unknown }>((resolve) => pedidos.push({ amount: corpo.amount, responder: (dados) => resolve({ data: dados }) }))) as unknown as typeof api.post)
     const simulacao = (amount: string, livre: string) => ({
       amount,
       items: PLANO_SALVO.parts.map((p) => ({ part_id: p.id, name: p.name, destination_type: p.destination_type, destination_name: null, amount: "0.00", reduced: false, adjusted: false, generates_transaction: false })),
