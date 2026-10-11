@@ -237,17 +237,25 @@ export function EditorDoPlano({
 
   // SALARIO-05: qualquer conta ativa, cofrinhos inclusive, e as metas ativas
   const contasDeDestino = useMemo(() => contas.filter((c) => c.is_active), [contas])
+  // SALARIO-76: o cofrinho de uma meta ativa aparece só como a meta, que o
+  // backend usaria no lugar dele; e a meta com o cofrinho inativo não recebe
+  const cofrinhosDeMetas = useMemo(
+    () => new Set(metas.filter((m) => m.is_active !== false).map((m) => m.account)),
+    [metas],
+  )
   const gruposDeDestino = useMemo(
     () =>
       GRUPOS_DE_CONTAS.map(({ tipo, rotulo }) => ({
         rotulo,
-        contas: contasDeDestino.filter((c) => c.type === tipo).sort(porNome),
+        contas: contasDeDestino
+          .filter((c) => c.type === tipo && !(tipo === AccountType.PIGGY_BANK && cofrinhosDeMetas.has(c.id)))
+          .sort(porNome),
       })).filter((grupo) => grupo.contas.length > 0),
-    [contasDeDestino],
+    [contasDeDestino, cofrinhosDeMetas],
   )
   const metasDeDestino = useMemo(
-    () => metas.filter((m) => m.is_active !== false).sort(porNome),
-    [metas],
+    () => metas.filter((m) => m.is_active !== false && contasDeDestino.some((c) => c.id === m.account)).sort(porNome),
+    [metas, contasDeDestino],
   )
   // O cofrinho de cada meta, pelo nome da conta, quando a conta está na lista
   const cofrinhoDaMeta = (meta: Goal) => contas.find((c) => c.id === meta.account)?.name

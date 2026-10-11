@@ -150,13 +150,14 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     expect(parteNoEditor("Guardar")).not.toHaveTextContent("no seu histórico")
   })
 
-  it("o destino oferece contas ativas, cofrinhos inclusive, e metas ativas, e a meta escolhida vai no plano", async () => {
+  it("o destino oferece contas ativas e metas ativas, e a meta escolhida vai no plano", async () => {
     render(<SalarioPage />)
     await usarModelo("50/30/20")
 
     await userEvent.click(screen.getByLabelText("Destino de Guardar"))
     const opcoes = (await screen.findAllByRole("option")).map((o) => o.textContent)
-    expect(opcoes).toEqual(["Fica na conta do salário", "Banco Azul", "Reserva", "Cofrinho Casa", "Viagem no Cofrinho Casa"])
+    // SALARIO-76: o Cofrinho Casa é o da meta Viagem e aparece só como a meta
+    expect(opcoes).toEqual(["Fica na conta do salário", "Banco Azul", "Reserva", "Viagem no Cofrinho Casa"])
     await userEvent.click(screen.getByRole("option", { name: "Viagem no Cofrinho Casa" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
@@ -320,7 +321,8 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
 })
 
 // SALARIO-05 e SALARIO-11: qualquer conta ativa é destino, cofrinhos
-// inclusive, agrupada por tipo; as metas ativas vêm por último
+// inclusive, agrupada por tipo; as metas ativas vêm por último. SALARIO-76:
+// o cofrinho de uma meta ativa aparece só como a meta
 describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
   const CONTAS_DE_TODOS_OS_TIPOS = [
     { id: "cofre-b", name: "Cofrinho Viagem", type: "PIGGY_BANK", is_active: true, balance: "0.00" },
@@ -331,6 +333,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
     { id: "cc-a", name: "Ágil Banco", type: "CHECKING", is_active: true, balance: "0.00" },
     { id: "cc-b", name: "banco Beta", type: "CHECKING", is_active: true, balance: "0.00" },
     { id: "cofre-a", name: "Cofrinho Casa", type: "PIGGY_BANK", is_active: true, balance: "0.00" },
+    { id: "cofre-livre", name: "Cofrinho Livre", type: "PIGGY_BANK", is_active: true, balance: "0.00" },
     { id: "velha", name: "Conta antiga", type: "CHECKING", is_active: false, balance: "0.00" },
     { id: "cofre-velho", name: "Cofrinho velho", type: "PIGGY_BANK", is_active: false, balance: "0.00" },
   ]
@@ -339,6 +342,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
     { id: "m-casa", name: "Casa", status: "IN_PROGRESS", is_active: true, target_amount: "100.00", current_amount: "0.00", account: "cofre-a" },
     { id: "m-sem", name: "Avulsa", status: "IN_PROGRESS", is_active: true, target_amount: "100.00", current_amount: "0.00", account: "fora-da-lista" },
     { id: "m-velha", name: "Antiga", status: "COMPLETED", is_active: false, target_amount: "100.00", current_amount: "100.00", account: "cofre-a" },
+    { id: "m-cofre-inativo", name: "Moto", status: "IN_PROGRESS", is_active: true, target_amount: "100.00", current_amount: "0.00", account: "cofre-velho" },
   ]
 
   async function abrirDestinos(contas: unknown[] = CONTAS_DE_TODOS_OS_TIPOS, metas: unknown[] = METAS_EM_COFRINHOS) {
@@ -366,31 +370,40 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
     expect(nomesDasOpcoes(screen.getByRole("group", { name: "Contas correntes" }))).toEqual(["Ágil Banco", "banco Beta", "Zeta Banco"])
   })
 
-  it("os cofrinhos aparecem no grupo Cofrinhos e podem ser o destino", async () => {
+  it("os cofrinhos sem meta aparecem no grupo Cofrinhos e podem ser o destino", async () => {
     await abrirDestinos()
 
-    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Casa", "Cofrinho Viagem"])
-    await userEvent.click(screen.getByRole("option", { name: "Cofrinho Casa" }))
+    // Os cofrinhos das metas Casa e Viagem ficam só no grupo Metas
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Livre"])
+    await userEvent.click(screen.getByRole("option", { name: "Cofrinho Livre" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
-    expect(corpoDoPut().parts[2]).toMatchObject({ name: "Guardar", destination_type: "ACCOUNT", account: "cofre-a", goal: null })
+    expect(corpoDoPut().parts[2]).toMatchObject({ name: "Guardar", destination_type: "ACCOUNT", account: "cofre-livre", goal: null })
   })
 
-  it("contas e metas inativas não aparecem", async () => {
+  it("o cofrinho de uma meta inativa volta a aparecer como cofrinho", async () => {
+    await abrirDestinos(CONTAS_DE_TODOS_OS_TIPOS, METAS_EM_COFRINHOS.filter((m) => m.id !== "m-casa"))
+
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Casa", "Cofrinho Livre"])
+  })
+
+  it("contas e metas inativas não aparecem, nem a meta com o cofrinho inativo ou fora das contas ativas", async () => {
     const lista = await abrirDestinos()
 
     const opcoes = within(lista).getAllByRole("option").map((o) => o.textContent)
     expect(opcoes).not.toContain("Conta antiga")
     expect(opcoes).not.toContain("Cofrinho velho")
     expect(opcoes.some((o) => o?.startsWith("Antiga"))).toBe(false)
+    expect(opcoes.some((o) => o?.startsWith("Moto"))).toBe(false)
+    expect(opcoes.some((o) => o?.startsWith("Avulsa"))).toBe(false)
   })
 
-  it("as metas vêm no grupo Metas, por nome, com o cofrinho de cada uma quando ele é conhecido", async () => {
+  it("as metas vêm no grupo Metas, por nome, com o cofrinho de cada uma", async () => {
     await abrirDestinos()
 
     const metas = screen.getByRole("group", { name: "Metas" })
-    expect(nomesDasOpcoes(metas)).toEqual(["Avulsa", "Casa no Cofrinho Casa", "Viagem no Cofrinho Viagem"])
+    expect(nomesDasOpcoes(metas)).toEqual(["Casa no Cofrinho Casa", "Viagem no Cofrinho Viagem"])
     expect(within(metas).getByText("no Cofrinho Casa")).toHaveClass("text-muted-foreground")
   })
 
