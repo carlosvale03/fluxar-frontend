@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+import { AssistenteDePlanilha } from "@/components/importacao/AssistenteDePlanilha"
 import { ImportDialog } from "@/components/transactions/import-dialog"
 import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
 import { startOfMonth, endOfMonth } from "date-fns"
@@ -44,9 +45,10 @@ export default function ImportExportPage() {
     }
   }, [searchParams])
   
-  // Import state
+  // Import state: o OFX segue no diálogo antigo; a planilha abre o
+  // assistente da importação completa (IMPCOMP-43)
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false)
-  const [importType, setImportType] = useState<"OFX" | "SPREADSHEET">("OFX")
+  const [isAssistenteOpen, setIsAssistenteOpen] = useState(false)
 
   // Additional Actions state
   const [isHistoryOpen, setIsHistoryOpen] = useState(false)
@@ -68,10 +70,6 @@ export default function ImportExportPage() {
   // PERM-19 e PERM-26: cada importação e exportação segue a trava dela no
   // acesso do /auth/me; com a trava fechada, o botão dá lugar ao aviso
 
-  const handleOpenImport = (type: "OFX" | "SPREADSHEET") => {
-    setImportType(type)
-    setIsImportDialogOpen(true)
-  }
 
   const handleExport = async (format: 'PDF' | 'XLS') => {
     try {
@@ -103,8 +101,10 @@ export default function ImportExportPage() {
       <ImportDialog 
         open={isImportDialogOpen}
         onOpenChange={setIsImportDialogOpen}
-        type={importType}
+        type="OFX"
       />
+
+      <AssistenteDePlanilha open={isAssistenteOpen} onOpenChange={setIsAssistenteOpen} />
 
       {/* Sheet para Histórico */}
       <Sheet open={isHistoryOpen} onOpenChange={setIsHistoryOpen}>
@@ -187,7 +187,7 @@ export default function ImportExportPage() {
                 </table>
               </div>
               <p className="text-[10px] italic text-muted-foreground">
-                * No momento da importação, você poderá mapear qual coluna da sua planilha corresponde a cada campo do Fluxar.
+                * As abas, as colunas e as contas são reconhecidas automaticamente, inclusive na exportação do Mobills. Antes de gravar, você revisa tudo: ajusta as colunas, vincula ou cria as contas com o saldo atual e corrige ou exclui linhas.
               </p>
             </TabsContent>
           </Tabs>
@@ -232,7 +232,7 @@ export default function ImportExportPage() {
                 <RecursoBloqueado chave="importacao_ofx" compacto>
                 <Button
                     className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 shadow-md shadow-primary/20"
-                    onClick={() => handleOpenImport("OFX")}
+                    onClick={() => setIsImportDialogOpen(true)}
                 >
                   Configurar Importação OFX
                 </Button>
@@ -250,7 +250,7 @@ export default function ImportExportPage() {
                 </div>
                 <CardTitle className="mt-4 font-black uppercase tracking-tight">Planilhas (CSV/XLSX)</CardTitle>
                 <CardDescription className="text-xs font-medium">
-                  Suporte flexível para planilhas personalizadas.
+                  Abas, colunas e contas reconhecidas automaticamente.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -258,9 +258,9 @@ export default function ImportExportPage() {
                 <Button
                     variant="outline"
                     className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-12 border-blue-500/20 hover:bg-blue-500/10 text-blue-500"
-                    onClick={() => handleOpenImport("SPREADSHEET")}
+                    onClick={() => setIsAssistenteOpen(true)}
                 >
-                  Mapear Colunas e Importar
+                  Importar Planilha
                 </Button>
                 </RecursoBloqueado>
               </CardContent>
@@ -274,7 +274,7 @@ export default function ImportExportPage() {
             <div>
               <AlertTitle className="font-bold text-sm text-primary mb-1">Dica de Importação</AlertTitle>
               <AlertDescription className="text-xs leading-relaxed text-primary/80">
-                Arquivos OFX são processados automaticamente sem necessidade de mapeamento manual. Para planilhas, você poderá escolher quais colunas representam data, valor e descrição.
+                Arquivos OFX são processados automaticamente sem necessidade de mapeamento manual. Nas planilhas, as abas, as colunas e as contas são detectadas automaticamente, e você revisa tudo antes de importar.
               </AlertDescription>
             </div>
           </Alert>

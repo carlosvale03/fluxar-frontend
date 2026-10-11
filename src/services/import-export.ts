@@ -1,6 +1,12 @@
 import { api } from "./apiClient";
 import { paraApi } from "@/lib/datas";
 import type { FilterState } from "@/components/transactions/transaction-filters";
+import type {
+  AcaoDaConta,
+  AnaliseDeImportacao,
+  PlanoDeImportacao,
+  ResultadoDaImportacao,
+} from "@/types/importacao";
 
 // CONTRATO-34: importação e exportação podem levar até 120 segundos; as
 // demais requisições ficam com os 30 segundos do apiClient
@@ -56,6 +62,51 @@ export function paramsDaExportacao(filtros: FilterState): URLSearchParams {
   // arquivo não leva o vínculo
   if (filtros.linked) params.append("linked", "true");
   return params;
+}
+
+// IMPCOMP-13 e IMPCOMP-45: o plano vai como texto JSON no multipart. Os
+// campos que só a análise devolve (motivo, cabeçalho, dados da conta no
+// arquivo) ficam de fora do envio.
+export function planoDoEnvio(plano: PlanoDeImportacao): PlanoDeImportacao {
+  const enviado: PlanoDeImportacao = {}
+  if (plano.abas) {
+    enviado.abas = plano.abas.map(({ nome, papel, colunas }) => (colunas ? { nome, papel, colunas } : { nome, papel }))
+  }
+  if (plano.contas) {
+    enviado.contas = Object.fromEntries(
+      Object.entries(plano.contas).map(([nome, acao]) => {
+        const semArquivo: AcaoDaConta = { ...acao }
+        delete semArquivo.arquivo
+        return [nome, semArquivo]
+      }),
+    )
+  }
+  if (plano.linhas) enviado.linhas = plano.linhas
+  return enviado
+}
+
+function formularioDoPlano(file: File, plano?: PlanoDeImportacao): FormData {
+  const formData = new FormData()
+  formData.append("file", file)
+  if (plano) formData.append("plano", JSON.stringify(planoDoEnvio(plano)))
+  return formData
+}
+
+// AD-055: a análise nunca grava; a importação grava o plano final
+export async function analisarArquivo(file: File, plano?: PlanoDeImportacao): Promise<AnaliseDeImportacao> {
+  const response = await api.post("/import/analise/", formularioDoPlano(file, plano), {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
+  })
+  return response.data
+}
+
+export async function importarArquivo(file: File, plano: PlanoDeImportacao): Promise<ResultadoDaImportacao> {
+  const response = await api.post("/import/", formularioDoPlano(file, plano), {
+    headers: { "Content-Type": "multipart/form-data" },
+    timeout: TEMPO_MAXIMO_ARQUIVOS_MS,
+  })
+  return response.data
 }
 
 export const importExportService = {
