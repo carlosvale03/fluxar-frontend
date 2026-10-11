@@ -167,7 +167,7 @@ export function AccountFormDialog({
 
   const onSubmit = async (data: AccountFormValues) => {
     setIsLoading(true)
-    // SALDO-52: o status não vai no PUT (o backend o ignora); o interruptor
+    // SALDO-54: o status não vai no PUT (o backend o ignora); o interruptor
     // inativa ou reativa a conta pelas rotas próprias
     const { is_active: ativa, ...dados } = data
     const payload = {
@@ -210,7 +210,7 @@ export function AccountFormDialog({
         setOpen?.(false)
         onSuccess?.()
       } catch (error) {
-        // SALDO-47, SALDO-48 e SALDO-50: a recusa do backend vai ao Sonner, o
+        // SALDO-49, SALDO-50 e SALDO-52: a recusa do backend vai ao Sonner, o
         // diálogo fica aberto e o interruptor volta ao status da conta
         if (mudouStatus && !mudouNoBackend) setValue("is_active", account.is_active)
         if (salvouDados || mudouNoBackend) onUpdated?.()
@@ -448,7 +448,7 @@ export function AccountFormDialog({
                         )}
                     </div>
 
-                    {/* SALDO-52: inativar e reativar valem só para uma conta que já existe */}
+                    {/* SALDO-54: inativar e reativar valem só para uma conta que já existe */}
                     {isEditing && (
                     <div className="flex items-center justify-between p-5 rounded-[24px] bg-muted/5 border border-border/20 group hover:border-primary/20 transition-all duration-500">
                         <div className="flex items-center gap-3">

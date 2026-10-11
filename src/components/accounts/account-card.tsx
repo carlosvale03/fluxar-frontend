@@ -23,7 +23,7 @@ interface AccountCardProps {
   onEdit: (account: Account) => void
   onDelete: (account: Account) => void
   onAdjustment?: (account: Account) => void
-  // SALDO-49: só a conta inativa mostra a ação de reativar
+  // SALDO-51: só a conta inativa mostra a ação de reativar
   onReactivate?: (account: Account) => void
 }
 
@@ -117,6 +117,8 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment, onReactiv
                     <RefreshCcw className="h-4 w-4" />
                 </Button>
                 )}
+                {/* Conta inativa não se edita (o backend devolve 404): só reativa (SALDO-51) */}
+                {account.is_active && (
                 <Button 
                     variant="ghost" 
                     size="icon" 
@@ -126,6 +128,7 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment, onReactiv
                 >
                     <Edit className="h-4 w-4" />
                 </Button>
+                )}
                 {account.is_active && (
                 <Button 
                     variant="ghost" 

@@ -9,7 +9,7 @@ import { api } from "@/services/apiClient"
 import { Account, AccountType } from "@/types/accounts"
 import { toast } from "sonner"
 
-// SALDO-46 a SALDO-52: o interruptor "Conta ativa" inativa e reativa a conta
+// SALDO-48 a SALDO-54: o interruptor "Conta ativa" inativa e reativa a conta
 // pelas rotas próprias, o filtro "Inativas" pede as inativas ao backend e o
 // cartão da conta inativa tem a ação de reativar.
 
@@ -78,7 +78,7 @@ beforeEach(() => {
   })
 })
 
-describe("Lista de contas por status (SALDO-51)", () => {
+describe("Lista de contas por status (SALDO-53)", () => {
   it("abre pedindo a lista padrão, sem parâmetro", async () => {
     render(<AccountsPage />)
 
@@ -120,7 +120,7 @@ describe("Lista de contas por status (SALDO-51)", () => {
   })
 })
 
-describe("Reativar pelo cartão da conta inativa (SALDO-49 e SALDO-50)", () => {
+describe("Reativar pelo cartão da conta inativa (SALDO-51 e SALDO-52)", () => {
   it("só a conta inativa tem a ação Reativar", async () => {
     render(<AccountsPage />)
     await screen.findByText("Banco")
@@ -128,6 +128,16 @@ describe("Reativar pelo cartão da conta inativa (SALDO-49 e SALDO-50)", () => {
     await screen.findByText("Conta antiga")
 
     expect(screen.getAllByRole("button", { name: "Reativar" })).toHaveLength(1)
+  })
+
+  it("a conta inativa não tem a ação de editar, que o backend recusaria", async () => {
+    render(<AccountsPage />)
+    await screen.findByText("Banco")
+    await escolherStatus("Todas")
+    await screen.findByText("Conta antiga")
+
+    // Editar e excluir só aparecem nas ativas: uma de cada por conta ativa
+    expect(screen.getAllByTitle("Editar Conta")).toHaveLength(screen.getAllByTitle("Excluir Conta").length)
   })
 
   it("reativa, relê a lista e o uso do plano", async () => {
@@ -168,7 +178,7 @@ describe("Reativar pelo cartão da conta inativa (SALDO-49 e SALDO-50)", () => {
   })
 })
 
-describe("Interruptor Conta ativa na edição (SALDO-52)", () => {
+describe("Interruptor Conta ativa na edição (SALDO-54)", () => {
   function abrirEdicao(account: Account) {
     const onSuccess = vi.fn()
     render(<AccountFormDialog open onOpenChange={vi.fn()} account={account} onSuccess={onSuccess} />)

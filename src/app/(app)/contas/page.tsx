@@ -72,7 +72,7 @@ export default function AccountsPage() {
   // PERM-18 e PERM-20: o limite e o uso vêm do acesso do /auth/me
   const hasReachedLimit = limiteAtingido("limite_contas")
 
-  // SALDO-51: "Ativas" usa a lista padrão; "Inativas" e "Todas" pedem ao
+  // SALDO-53: "Ativas" usa a lista padrão; "Inativas" e "Todas" pedem ao
   // backend as contas inativas também
   const statusDaBusca: StatusDaConta | undefined =
     statusFilter === "INACTIVE" ? "inactive" : statusFilter === "ALL" ? "all" : undefined
@@ -161,7 +161,7 @@ export default function AccountsPage() {
     }
   }
 
-  // SALDO-49 e SALDO-50: reativar volta a conta às listas e pode esbarrar no
+  // SALDO-51 e SALDO-52: reativar volta a conta às listas e pode esbarrar no
   // limite de contas do plano
   const handleReactivate = async (account: Account) => {
     try {
