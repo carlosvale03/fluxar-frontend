@@ -611,8 +611,9 @@ export function EditorDoPlano({
 
                     <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
                       <SelectTrigger data-destino={indice} aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-xl">
+                        {/* O rótulo vai num span: texto solto no SelectValue conflita com o portal do item escolhido */}
                         <SelectValue placeholder="Escolha o destino">
-                          {rotuloDoDestino(parte, destino.nome)}
+                          <span className="truncate">{rotuloDoDestino(parte, destino.nome)}</span>
                         </SelectValue>
                       </SelectTrigger>
                       <SelectContent className="max-h-80 rounded-xl">
