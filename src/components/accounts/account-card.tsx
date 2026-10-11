@@ -1,4 +1,4 @@
-import { MoreVertical, Edit, Trash2, Wallet, RefreshCcw } from "lucide-react"
+import { MoreVertical, Edit, Trash2, Wallet, RefreshCcw, RotateCcw } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -23,9 +23,11 @@ interface AccountCardProps {
   onEdit: (account: Account) => void
   onDelete: (account: Account) => void
   onAdjustment?: (account: Account) => void
+  // SALDO-51: só a conta inativa mostra a ação de reativar
+  onReactivate?: (account: Account) => void
 }
 
-export function AccountCard({ account, onEdit, onDelete, onAdjustment }: AccountCardProps) {
+export function AccountCard({ account, onEdit, onDelete, onAdjustment, onReactivate }: AccountCardProps) {
 
   const color = account.color || "#000000"
   
@@ -84,6 +86,17 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment }: Account
                             {account.institution || "Personal"}
                         </span>
                     </div>
+                    {!account.is_active && onReactivate && (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-8 rounded-full px-3 text-xs font-bold"
+                            onClick={(e) => { e.stopPropagation(); onReactivate(account) }}
+                        >
+                            <RotateCcw className="mr-1.5 h-3.5 w-3.5" />
+                            Reativar
+                        </Button>
+                    )}
                 </div>
             </div>
 
@@ -93,6 +106,7 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment }: Account
                 "bg-background/90 backdrop-blur-md shadow-lg border border-border/40",
                 "opacity-0 group-hover:opacity-100 translate-y-1 group-hover:translate-y-0 scale-90 group-hover:scale-100 z-30"
             )}>
+                {account.is_active && (
                 <Button 
                     variant="ghost" 
                     size="icon" 
@@ -102,6 +116,9 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment }: Account
                 >
                     <RefreshCcw className="h-4 w-4" />
                 </Button>
+                )}
+                {/* Conta inativa não se edita (o backend devolve 404): só reativa (SALDO-51) */}
+                {account.is_active && (
                 <Button 
                     variant="ghost" 
                     size="icon" 
@@ -111,6 +128,8 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment }: Account
                 >
                     <Edit className="h-4 w-4" />
                 </Button>
+                )}
+                {account.is_active && (
                 <Button 
                     variant="ghost" 
                     size="icon" 
@@ -120,6 +139,7 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment }: Account
                 >
                     <Trash2 className="h-4 w-4" />
                 </Button>
+                )}
             </div>
         </div>
     </div>

@@ -71,6 +71,11 @@ export interface ItemDaDivisaoCalculada {
   adjusted: boolean
   generates_transaction: boolean
   origin_account?: { id: string; name: string }
+  // SALARIO-66 e SALARIO-67: na revisão, o já gasto (saídas descontadas na
+  // parte), o que será transferido e quanto as saídas passaram do valor
+  spent?: string
+  transfer?: string
+  exceeded?: string
 }
 
 export interface Simulacao {
@@ -93,10 +98,30 @@ export interface RecebimentoDoSalario {
   imported: boolean
 }
 
-// SALARIO-29 e SALARIO-30: a revisão, sem gravar nada
+// SALARIO-64 e SALARIO-65: uma saída da conta do salário desde o recebimento.
+// CREDIT_CARD é a compra no cartão paga com a conta do salário (a data é a do
+// pagamento e o destino é o nome do cartão)
+export type TipoDeSaida = "EXPENSE" | "TRANSFER_OUT" | "INVOICE_PAYMENT" | "CREDIT_CARD"
+
+export interface SaidaDoSalario {
+  id: string
+  date: string
+  description: string
+  amount: string
+  type: TipoDeSaida
+  destination_name: string | null
+  category_name: string | null
+  suggested_part_id: string | null
+  // A parte escolhida no pedido, ecoada pela API
+  part_id: string | null
+}
+
+// SALARIO-29 e SALARIO-30: a revisão, sem gravar nada. Com saídas
+// descontadas, `total` e `free` já vêm descontados (SALARIO-72)
 export interface RevisaoDaDivisao {
   receipt: RecebimentoDoSalario
   items: ItemDaDivisaoCalculada[]
+  outflows: SaidaDoSalario[]
   total: string
   free: string
   date: string
@@ -104,6 +129,20 @@ export interface RevisaoDaDivisao {
 
 // Ajustes da revisão: id da parte para o valor ("450.00")
 export type AjustesDaDivisao = Record<string, string>
+
+// SALARIO-71: id da saída para o id da parte, ou null para não descontar
+export type SaidasDaDivisao = Record<string, string | null>
+
+// SALARIO-68: uma saída descontada na divisão (campos nulos se ela foi
+// apagada depois)
+export interface SaidaDescontada {
+  id: string | null
+  date: string | null
+  description: string | null
+  amount: string | null
+  type: TipoDeSaida | null
+  part_name: string | null
+}
 
 // SALARIO-44: uma transação criada pela divisão
 export interface TransacaoDaDivisao {
@@ -138,7 +177,15 @@ export interface DivisaoDoSalario {
     amount: string
     reduced: boolean
     generates_transaction: boolean
+    spent?: string
+    transfer?: string
+    exceeded?: string
   }[]
+  // SALARIO-68: o que foi descontado; ausente nas divisões antigas
+  outflows?: SaidaDescontada[]
+  // SALARIO-77: quantas saídas descontadas mudaram ou foram apagadas depois
+  // da divisão
+  outflows_changed?: number
   transactions: TransacaoDaDivisao[]
   total: string
   free: string

@@ -6,6 +6,7 @@ import type {
   RecebimentoDoSalario,
   ReferenciasDoSalario,
   RevisaoDaDivisao,
+  SaidaDoSalario,
 } from "@/types/salario"
 
 // Respostas da API da gestão do salário para os testes (contratos de T3 a T7)
@@ -151,9 +152,26 @@ export function revisao(trocas: Partial<RevisaoDaDivisao> = {}): RevisaoDaDivisa
       { part_id: "p-dis", name: "Dispensáveis", destination_type: "SALARY_ACCOUNT", destination_name: "Fica na conta do salário", amount: "900.00", reduced: false, adjusted: false, generates_transaction: false, origin_account: origem },
       { part_id: "p-gua", name: "Guardar", destination_type: "GOAL", destination_name: "Viagem", amount: "600.00", reduced: false, adjusted: false, generates_transaction: true, origin_account: origem },
     ],
+    outflows: [],
     total: "600.00",
     free: "2400.00",
     date: "2026-10-10",
+    ...trocas,
+  }
+}
+
+// SALARIO-64: uma saída da conta do salário desde o recebimento
+export function saida(trocas: Partial<SaidaDoSalario> = {}): SaidaDoSalario {
+  return {
+    id: "s-1",
+    date: "2026-10-06",
+    description: "Mercado",
+    amount: "130.00",
+    type: "EXPENSE",
+    destination_name: null,
+    category_name: "Alimentação",
+    suggested_part_id: null,
+    part_id: null,
     ...trocas,
   }
 }

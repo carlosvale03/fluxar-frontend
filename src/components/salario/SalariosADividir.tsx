@@ -5,7 +5,6 @@ import { Banknote, Scissors } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { lerData } from "@/lib/datas"
 import { formatarMoeda } from "@/lib/dinheiro"
@@ -14,72 +13,110 @@ import type { RecebimentoDoSalario } from "@/types/salario"
 interface SalariosADividirProps {
   recebimentos: RecebimentoDoSalario[] | null
   onDividir: (recebimento: RecebimentoDoSalario) => void
+  // Leva ao painel Receitas de salário
+  onEscolherReceitas?: () => void
+}
+
+const Ponto = () => <span aria-hidden className="h-1 w-1 rounded-full bg-muted-foreground/40" />
+
+function Detalhes({ recebimento }: { recebimento: RecebimentoDoSalario }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+      <span className="tabular-nums">{format(lerData(recebimento.date), "dd/MM/yyyy")}</span>
+      <Ponto />
+      <span>{recebimento.account_name}</span>
+      {recebimento.category_name && (
+        <>
+          <Ponto />
+          <span>{recebimento.category_name}</span>
+        </>
+      )}
+      {recebimento.imported && (
+        <Badge variant="outline" className="rounded-full px-2 py-0 text-xs font-medium text-muted-foreground cursor-default">
+          Importado
+        </Badge>
+      )}
+    </div>
+  )
 }
 
 // SALARIO-24: os salários efetivados do mês atual e do anterior que ainda
-// não foram divididos, cada um com o botão de dividir
-export function SalariosADividir({ recebimentos, onDividir }: SalariosADividirProps) {
-  return (
-    <Card className="border-border/40 bg-card/50 backdrop-blur-sm rounded-[32px] overflow-hidden">
-      <CardContent className="p-6 space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 rounded-2xl bg-emerald-500/10 text-emerald-600">
-            <Banknote className="h-5 w-5" />
-          </div>
-          <div>
-            <h2 className="text-lg font-black tracking-tight">Salários a dividir</h2>
-            <p className="text-xs text-muted-foreground font-medium">Recebidos neste mês e no anterior</p>
-          </div>
-        </div>
+// não foram divididos. O mais recente fica em destaque com a ação principal;
+// os outros vêm abaixo, compactos.
+export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }: SalariosADividirProps) {
+  const ordenados = recebimentos ? [...recebimentos].sort((a, b) => b.date.localeCompare(a.date)) : null
 
-        {recebimentos === null ? (
-          <div className="space-y-2">
-            <Skeleton className="h-16 w-full rounded-2xl" />
-            <Skeleton className="h-16 w-full rounded-2xl" />
+  return (
+    <section aria-labelledby="salario-recebido-titulo" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+      <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <h2 id="salario-recebido-titulo" className="flex items-center gap-2 text-base font-semibold">
+          <Banknote aria-hidden className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+          Salário recebido
+        </h2>
+        <p className="text-xs text-muted-foreground">Neste mês e no anterior, ainda não dividido</p>
+      </div>
+
+      {ordenados === null ? (
+        <div className="space-y-3">
+          <Skeleton className="h-5 w-48 rounded-md" />
+          <Skeleton className="h-9 w-40 rounded-md" />
+        </div>
+      ) : ordenados.length === 0 ? (
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="text-sm font-medium">Nenhum salário a dividir neste mês ou no anterior.</p>
+            <p className="text-sm text-muted-foreground">Suas receitas estão em outra categoria?</p>
           </div>
-        ) : recebimentos.length === 0 ? (
-          <p className="text-sm text-muted-foreground py-6 text-center bg-muted/10 rounded-2xl border border-dashed border-border/40">
-            Nenhum salário a dividir. Quando você lançar um salário recebido, ele aparece aqui.
-          </p>
-        ) : (
-          <ul className="space-y-2" aria-label="Salários a dividir">
-            {recebimentos.map((recebimento) => (
-              <li
-                key={recebimento.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 p-4 rounded-2xl border border-border/40 bg-background/60"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold truncate">{recebimento.description}</p>
-                  <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-2">
-                    <span>{format(lerData(recebimento.date), "dd/MM/yyyy")}</span>
-                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                    <span>{recebimento.account_name}</span>
-                    {recebimento.category_name && (
-                      <>
-                        <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                        <span>{recebimento.category_name}</span>
-                      </>
-                    )}
-                    {recebimento.imported && (
-                      <Badge variant="outline" className="text-[10px] rounded-full">
-                        Importado
-                      </Badge>
-                    )}
+          {onEscolherReceitas && (
+            <Button variant="outline" className="h-10 rounded-xl px-4 self-start sm:self-auto" onClick={onEscolherReceitas}>
+              Escolher receitas de salário
+            </Button>
+          )}
+        </div>
+      ) : (
+        <ul className="divide-y divide-border" aria-label="Salários a dividir">
+          {ordenados.map((recebimento, indice) =>
+            indice === 0 ? (
+              <li key={recebimento.id} className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate text-sm font-medium">{recebimento.description}</p>
+                  <p className="text-3xl font-semibold tracking-tight tabular-nums text-emerald-600 dark:text-emerald-400">
+                    {formatarMoeda(recebimento.amount)}
                   </p>
+                  <div className="text-sm text-muted-foreground">
+                    <Detalhes recebimento={recebimento} />
+                  </div>
                 </div>
-                <p className="text-lg font-black text-emerald-600 whitespace-nowrap">{formatarMoeda(recebimento.amount)}</p>
                 <Button
-                  className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-10 px-5"
+                  className="h-11 w-full rounded-xl px-5 text-sm font-semibold sm:w-auto"
                   onClick={() => onDividir(recebimento)}
                   aria-label={`Dividir ${recebimento.description} de ${formatarMoeda(recebimento.amount)}`}
                 >
-                  <Scissors className="mr-2 h-4 w-4" /> Dividir
+                  <Scissors aria-hidden /> Dividir agora
                 </Button>
               </li>
-            ))}
-          </ul>
-        )}
-      </CardContent>
-    </Card>
+            ) : (
+              <li key={recebimento.id} className="flex items-center gap-3 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{recebimento.description}</p>
+                  <div className="text-xs text-muted-foreground">
+                    <Detalhes recebimento={recebimento} />
+                  </div>
+                </div>
+                <span className="whitespace-nowrap text-sm font-semibold tabular-nums">{formatarMoeda(recebimento.amount)}</span>
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-xl px-4"
+                  onClick={() => onDividir(recebimento)}
+                  aria-label={`Dividir ${recebimento.description} de ${formatarMoeda(recebimento.amount)}`}
+                >
+                  Dividir
+                </Button>
+              </li>
+            ),
+          )}
+        </ul>
+      )}
+    </section>
   )
 }

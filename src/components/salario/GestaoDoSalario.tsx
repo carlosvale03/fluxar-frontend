@@ -2,17 +2,22 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Info } from "lucide-react"
+import { Info, Wallet } from "lucide-react"
 
 import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
-import { ReferenciasDoMes } from "@/components/salario/ReferenciasDoMes"
+import { EtapasDoPlano } from "@/components/salario/EtapasDoPlano"
+import { ReceitasDoSalario, type PainelDeReceitas } from "@/components/salario/ReceitasDoSalario"
+import { ResumoDoPlano } from "@/components/salario/ResumoDoPlano"
+import { ComprometidoNoMes, SeuHistorico } from "@/components/salario/ReferenciasDoMes"
 import { DesfazerDivisao } from "@/components/salario/DesfazerDivisao"
 import { DivisoesRecentes } from "@/components/salario/DivisoesRecentes"
 import { RevisaoDaDivisao } from "@/components/salario/RevisaoDaDivisao"
 import { SalariosADividir } from "@/components/salario/SalariosADividir"
 import { tratarErro } from "@/lib/erros"
+import { modeloCorrespondente } from "@/lib/salario"
+import { cn } from "@/lib/utils"
 import { accountsService } from "@/services/accounts"
 import { getCategories } from "@/services/categories"
 import { goalsService } from "@/services/goals"
@@ -28,7 +33,13 @@ import type {
   ReferenciasDoSalario,
 } from "@/types/salario"
 
-type TelaDoPlano = "escolha" | "editor"
+type TelaDoPlano = "escolha" | "editor" | "resumo"
+
+// Leva o painel ou a seção à vista, sem animar com movimento reduzido
+function mostrar(elemento: HTMLElement | null) {
+  const reduzido = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches
+  elemento?.scrollIntoView?.({ behavior: reduzido ? "auto" : "smooth", block: "start" })
+}
 
 // Conteúdo da página da gestão do salário, montado só com o recurso
 // liberado (SALARIO-15, SALARIO-16)
@@ -41,11 +52,15 @@ export function GestaoDoSalario() {
   const [modelos, setModelos] = useState<ModeloDeDivisao[] | null>(null)
   const [contas, setContas] = useState<Account[]>([])
   const [metas, setMetas] = useState<Goal[]>([])
-  const [categorias, setCategorias] = useState<Category[]>([])
+  const [categorias, setCategorias] = useState<Category[] | null>(null)
   const [telaDoPlano, setTelaDoPlano] = useState<TelaDoPlano>("escolha")
   const [partesDoEditor, setPartesDoEditor] = useState<ParteInicial[]>([])
   // Troca a cada modelo escolhido ou plano salvo, para o editor recomeçar
   const [versaoDoEditor, setVersaoDoEditor] = useState(0)
+  // Posição da parte cujo destino recebe o foco ao abrir o editor
+  const [destinoEmFoco, setDestinoEmFoco] = useState<number | null>(null)
+  // Código do modelo escolhido para o editor; null segue o plano salvo
+  const [modeloEscolhido, setModeloEscolhido] = useState<string | null>(null)
   // Recebimento na revisão da divisão
   const [revisando, setRevisando] = useState<string | null>(null)
   // SALARIO-22: recebimento que espera o plano ser salvo para ir à revisão
@@ -54,7 +69,34 @@ export function GestaoDoSalario() {
   const [paraDesfazer, setParaDesfazer] = useState<DivisaoDoSalario | null>(null)
   // SALARIO-45 e SALARIO-49: divisões que ainda podem ser desfeitas
   const [recentes, setRecentes] = useState<DivisaoDoSalario[] | null>(null)
+  // SALARIO-13 e SALARIO-63: o campo da simulação, o mesmo no resumo e no
+  // editor, que já vem com o salário recebido mais recente
+  const [valorSimulado, setValorSimulado] = useState("")
+  const [recebidoAnterior, setRecebidoAnterior] = useState<string | undefined>(undefined)
+  // Depois que o usuário mexe no campo, o salário recebido não o preenche mais
+  const [campoTocado, setCampoTocado] = useState(false)
   const ultimoParam = useRef<string | null>(null)
+  const painelDeReceitas = useRef<PainelDeReceitas>(null)
+  const secaoDoPlano = useRef<HTMLElement>(null)
+
+  const valorRecebido = pendentes?.reduce<RecebimentoDoSalario | null>(
+    (maisRecente, r) => (!maisRecente || r.date > maisRecente.date ? r : maisRecente),
+    null,
+  )?.amount
+  // O salário recebido pode chegar depois do plano, e a lista é relida a cada
+  // divisão: o campo acompanha o mais recente só enquanto o usuário não mexeu
+  // nele, para não voltar a se preencher depois de limpo
+  if (valorRecebido !== recebidoAnterior) {
+    setRecebidoAnterior(valorRecebido)
+    if (!campoTocado) setValorSimulado(valorRecebido ?? "")
+  }
+
+  const mudarValorSimulado = (valor: string) => {
+    // O campo também entrega o valor ao sair dele, sem mudança
+    if (valor === valorSimulado) return
+    setCampoTocado(true)
+    setValorSimulado(valor)
+  }
 
   async function carregarPendentes() {
     try {
@@ -85,7 +127,7 @@ export function GestaoDoSalario() {
   function abrirPlano(salvo: PlanoDoSalario) {
     setPlano(salvo)
     setPartesDoEditor(salvo.parts)
-    setTelaDoPlano(salvo.has_plan ? "editor" : "escolha")
+    setTelaDoPlano(salvo.has_plan ? "resumo" : "escolha")
     setVersaoDoEditor((v) => v + 1)
   }
 
@@ -120,6 +162,7 @@ export function GestaoDoSalario() {
       setMetas(listaDeMetas)
       setCategorias(listaDeCategorias.filter((c) => c.type === "INCOME" && c.is_active !== false))
     } catch (erro) {
+      setCategorias((atuais) => atuais ?? [])
       tratarErro(erro, { mensagemPadrao: "Erro ao carregar contas, metas e categorias.", tentarDeNovo: carregarOpcoes })
     }
   }
@@ -134,6 +177,10 @@ export function GestaoDoSalario() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Do aviso de nenhum salário a dividir para o painel Receitas de salário,
+  // aberto e com o foco na primeira categoria
+  const irParaReceitas = () => painelDeReceitas.current?.abrir()
+
   // SALARIO-21 e SALARIO-22: com plano, abre a revisão; sem plano, abre antes
   // a escolha do modelo
   function iniciarDivisao(recebimentoId: string, temPlano: boolean) {
@@ -142,6 +189,7 @@ export function GestaoDoSalario() {
     } else {
       setDividirDepois(recebimentoId)
       setTelaDoPlano("escolha")
+      mostrar(secaoDoPlano.current)
     }
   }
 
@@ -162,49 +210,144 @@ export function GestaoDoSalario() {
     if (paramDividir) router.replace("/salario")
   }
 
-  // SALARIO-02, SALARIO-03 e SALARIO-06: o modelo monta as partes no editor;
-  // o plano só muda ao salvar
-  const escolherModelo = (modelo: ModeloDeDivisao) => {
-    setPartesDoEditor(modelo.parts)
+  // SALARIO-14: as categorias de salário mudaram; o plano fica como está e
+  // os salários a dividir são relidos com as novas categorias
+  const categoriasSalvas = (salvo: PlanoDoSalario) => {
+    setPlano((atual) => (atual ? { ...atual, salary_categories: salvo.salary_categories } : salvo))
+    void carregarPendentes()
+  }
+
+  // O plano salvo vai para o editor, no mesmo lugar do resumo; de "Escolher
+  // destino", com o foco no destino da parte
+  const editarPlano = (focarDestino: number | null = null) => {
+    if (!plano) return
+    setPartesDoEditor(plano.parts)
+    setModeloEscolhido(null)
+    setDestinoEmFoco(focarDestino)
     setTelaDoPlano("editor")
     setVersaoDoEditor((v) => v + 1)
   }
 
+  // SALARIO-02, SALARIO-03 e SALARIO-06: o modelo monta as partes no editor;
+  // o plano só muda ao salvar
+  const escolherModelo = (modelo: ModeloDeDivisao) => {
+    setPartesDoEditor(modelo.parts)
+    setModeloEscolhido(modelo.code)
+    setDestinoEmFoco(null)
+    setTelaDoPlano("editor")
+    setVersaoDoEditor((v) => v + 1)
+  }
+
+  // O modelo que o plano salvo segue, quando tem exatamente as partes dele
+  const modeloDoPlanoSalvo = plano?.has_plan ? modeloCorrespondente(plano.parts, modelos) : null
+
+  // Status do cabeçalho: o modelo do plano salvo, ou quantas partes ele tem
+  const status = !plano
+    ? null
+    : plano.has_plan
+      ? `Plano ativo: ${modeloDoPlanoSalvo?.name ?? `${plano.parts.length} ${plano.parts.length === 1 ? "parte" : "partes"}`}`
+      : "Sem plano ainda"
+
   return (
     <div className="space-y-6">
-      <SalariosADividir recebimentos={pendentes} onDividir={dividir} />
-      <DivisoesRecentes divisoes={recentes} onDesfazer={setParaDesfazer} />
-      <ReferenciasDoMes referencias={referencias} />
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+            <Wallet aria-hidden className="h-5 w-5" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Gestão do salário</h1>
+            <p className="text-sm text-muted-foreground">Separe o que vai guardar assim que o salário cair.</p>
+          </div>
+        </div>
+        {status && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span
+              aria-hidden
+              className={cn("h-2 w-2 rounded-full", plano?.has_plan ? "bg-emerald-500" : "bg-muted-foreground/40")}
+            />
+            {status}
+          </p>
+        )}
+      </header>
 
-      {dividirDepois && telaDoPlano === "escolha" && (
-        <p role="status" className="flex items-center gap-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 text-sm font-bold">
-          <Info className="h-4 w-4 text-primary shrink-0" />
-          Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
-        </p>
-      )}
+      <SalariosADividir recebimentos={pendentes} onDividir={dividir} onEscolherReceitas={irParaReceitas} />
 
-      {plano === null ? (
-        <Skeleton className="h-64 w-full rounded-[32px]" />
-      ) : telaDoPlano === "escolha" ? (
-        <EscolhaDoModelo
-          modelos={modelos}
-          referencias={referencias}
-          onEscolher={escolherModelo}
-          onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
-        />
-      ) : (
-        <EditorDoPlano
-          key={versaoDoEditor}
-          partesIniciais={partesDoEditor}
-          categoriasIniciais={plano.salary_categories}
-          contas={contas}
-          metas={metas}
-          categorias={categorias}
-          referencias={referencias}
-          onSalvo={planoSalvo}
-          onTrocarModelo={() => setTelaDoPlano("escolha")}
-        />
-      )}
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
+        <section ref={secaoDoPlano} aria-labelledby="seu-plano-titulo" className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-6 lg:col-span-2 scroll-mt-24">
+          <h2 id="seu-plano-titulo" className="text-base font-semibold">
+            Seu plano
+          </h2>
+
+          {dividirDepois && telaDoPlano === "escolha" && (
+            <p role="status" className="flex items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm">
+              <Info aria-hidden className="h-4 w-4 shrink-0 text-primary" />
+              Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
+            </p>
+          )}
+
+          {plano && !plano.has_plan && telaDoPlano !== "resumo" && (
+            <EtapasDoPlano
+              etapa={telaDoPlano === "escolha" ? 2 : 3}
+              categoriasDoSalario={plano.salary_categories}
+              categorias={categorias}
+              onEscolherReceitas={irParaReceitas}
+            />
+          )}
+
+          {plano === null ? (
+            <Skeleton className="h-64 w-full rounded-xl" />
+          ) : telaDoPlano === "resumo" ? (
+            <ResumoDoPlano
+              partes={plano.parts}
+              referencias={referencias}
+              onEditar={() => editarPlano()}
+              onTrocarModelo={() => setTelaDoPlano("escolha")}
+              codigoDoModelo={modeloDoPlanoSalvo?.code}
+              onEscolherDestino={editarPlano}
+              valorSimulado={valorSimulado}
+              onValorSimulado={mudarValorSimulado}
+              valorRecebido={valorRecebido}
+            />
+          ) : telaDoPlano === "escolha" ? (
+            <EscolhaDoModelo
+              modelos={modelos}
+              referencias={referencias}
+              onEscolher={escolherModelo}
+              onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
+            />
+          ) : (
+            <EditorDoPlano
+              key={versaoDoEditor}
+              partesIniciais={partesDoEditor}
+              focarDestino={destinoEmFoco}
+              codigoDoModelo={modeloEscolhido ?? modeloDoPlanoSalvo?.code}
+              contas={contas}
+              metas={metas}
+              referencias={referencias}
+              valorSimulado={valorSimulado}
+              onValorSimulado={mudarValorSimulado}
+              valorRecebido={valorRecebido}
+              onSalvo={planoSalvo}
+              onTrocarModelo={() => setTelaDoPlano("escolha")}
+              onCancelar={plano.has_plan ? () => abrirPlano(plano) : undefined}
+            />
+          )}
+        </section>
+
+        <aside aria-label="Receitas e referências do mês" className="space-y-6">
+          <ReceitasDoSalario
+            ref={painelDeReceitas}
+            categorias={categorias}
+            salvas={plano?.salary_categories ?? null}
+            temSalarioADividir={pendentes === null ? null : pendentes.length > 0}
+            onSalvas={categoriasSalvas}
+          />
+          <ComprometidoNoMes referencias={referencias} />
+          <SeuHistorico referencias={referencias} />
+          <DivisoesRecentes divisoes={recentes} onDesfazer={setParaDesfazer} />
+        </aside>
+      </div>
 
       <RevisaoDaDivisao
         recebimentoId={revisando}
