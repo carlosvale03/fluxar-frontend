@@ -203,11 +203,47 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     await vi.waitFor(() => expect(parteNoEditor("Essenciais")).toHaveTextContent("R$ 1.500,00"))
     expect(parteNoEditor("Dispensáveis")).toHaveTextContent("R$ 900,00")
     expect(parteNoEditor("Guardar")).toHaveTextContent("R$ 600,00")
-    expect(screen.getByText("Fica livre na conta do salário").parentElement).toHaveTextContent("R$ 2.400,00")
-    expect(post).toHaveBeenCalledWith("/salary/simulate/", expect.objectContaining({ amount: "3000.00" }))
-    const enviado = post.mock.calls[0][1] as { parts: Record<string, unknown>[] }
-    expect(enviado.parts.map((p) => p.name)).toEqual(["Essenciais", "Dispensáveis", "Guardar"])
+    // O que fica na conta inclui as partes que ficam nela, e o livre da
+    // legenda é só o que não vai para nenhuma parte
+    const resultado = screen.getByRole("group", { name: "Resultado da simulação" })
+    expect(within(resultado).getByText("Sai em transferências e aportes").parentElement).toHaveTextContent("R$ 600,00")
+    expect(within(resultado).getByText("Fica na conta do salário").parentElement).toHaveTextContent("R$ 2.400,00")
+    expect(within(screen.getByRole("list", { name: "Partes do plano" })).queryByRole("listitem", { name: "Livre" })).not.toBeInTheDocument()
+    // Sem as partes, o backend simula pelo plano salvo, mesmo com um destino inativado depois
+    expect(post).toHaveBeenCalledWith("/salary/simulate/", { amount: "3000.00" })
     expect(put).not.toHaveBeenCalled()
+  })
+
+  it("só a resposta da última simulação entra na tela", async () => {
+    comPlano(PLANO_SALVO)
+    const pedidos: { amount: string; responder: (dados: unknown) => void }[] = []
+    post.mockImplementation(((_url: string, corpo: { amount: string }) =>
+      new Promise((resolve) => pedidos.push({ amount: corpo.amount, responder: (dados) => resolve({ data: dados }) }))) as typeof api.post)
+    const simulacao = (amount: string, livre: string) => ({
+      amount,
+      items: PLANO_SALVO.parts.map((p) => ({ part_id: p.id, name: p.name, destination_type: p.destination_type, destination_name: null, amount: "0.00", reduced: false, adjusted: false, generates_transaction: false })),
+      total: "0.00",
+      free: livre,
+    })
+    render(<SalarioPage />)
+    await vi.waitFor(() => parteNoEditor("Guardar"))
+    const campo = screen.getByLabelText("Valor do salário")
+
+    await userEvent.type(campo, "3000")
+    await userEvent.click(screen.getByRole("button", { name: "Simular" }))
+    await userEvent.clear(campo)
+    await userEvent.type(campo, "1500")
+    await userEvent.click(screen.getByRole("button", { name: "Simular" }))
+    expect(pedidos.map((p) => p.amount)).toEqual(["3000.00", "1500.00"])
+
+    pedidos[1].responder(simulacao("1500.00", "1500.00"))
+    const resultado = await screen.findByRole("group", { name: "Resultado da simulação" })
+    expect(within(resultado).getByText("Fica na conta do salário").parentElement).toHaveTextContent("R$ 1.500,00")
+    pedidos[0].responder(simulacao("3000.00", "3000.00"))
+    await new Promise((resolve) => setTimeout(resolve, 20))
+
+    expect(within(screen.getByRole("group", { name: "Resultado da simulação" })).getByText("Fica na conta do salário").parentElement).toHaveTextContent("R$ 1.500,00")
+    expect(screen.getByRole("button", { name: "Simular" })).toBeEnabled()
   })
 
   it("o erro do backend aparece na parte certa", async () => {

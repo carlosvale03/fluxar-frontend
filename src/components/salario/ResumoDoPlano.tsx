@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, type FormEvent } from "react"
+import { useRef, useState, type FormEvent } from "react"
 import { format } from "date-fns"
 import { AlertTriangle, Pencil, Shuffle } from "lucide-react"
 import { toast } from "sonner"
@@ -14,7 +14,7 @@ import { deCentavos, formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/din
 import { tratarErro } from "@/lib/erros"
 import { baseDaPrevia, montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDaBase, textoDoPercentual } from "@/lib/salario"
 import { salarioService } from "@/services/salario"
-import type { ParteDoPlano, ParteEnviada, ReferenciasDoSalario, Simulacao } from "@/types/salario"
+import type { ParteDoPlano, ReferenciasDoSalario, Simulacao } from "@/types/salario"
 
 interface ResumoDoPlanoProps {
   partes: ParteDoPlano[]
@@ -43,20 +43,11 @@ function destinoDaParte(parte: ParteDoPlano): { texto: string; falta: boolean } 
 const regraDaParte = (parte: ParteDoPlano) =>
   parte.rule_type === "PERCENT" ? `${percentualParaCampo(parte.value)}%` : formatarMoeda(parte.value)
 
-const enviada = (parte: ParteDoPlano): ParteEnviada => ({
-  name: parte.name,
-  rule_type: parte.rule_type,
-  value: parte.value,
-  destination_type: parte.destination_type,
-  account: parte.account,
-  goal: parte.goal,
-  reference: parte.reference,
-})
-
 // SALARIO-12, SALARIO-13, SALARIO-54, SALARIO-55 e SALARIO-63: o plano salvo
 // como uma barra de proporção e a legenda com destino, regra, histórico e o
 // pedido da meta. O valor de cada parte é calculado na hora pela regra de
-// SALARIO-26 sobre a base da prévia; "Simular" pede a divisão ao backend.
+// SALARIO-26 sobre a base da prévia; "Simular" pede ao backend a divisão
+// pelo plano salvo (SALARIO-13).
 export function ResumoDoPlano({
   partes,
   referencias,
@@ -70,6 +61,9 @@ export function ResumoDoPlano({
 }: ResumoDoPlanoProps) {
   const [simulacao, setSimulacao] = useState<Simulacao | null>(null)
   const [simulando, setSimulando] = useState(false)
+  // Cada simulação ganha um número, e só a resposta da última entra na tela;
+  // mudar o valor ou limpar também descarta a que está a caminho
+  const sequencia = useRef(0)
 
   const base = simulacao
     ? { centavos: paraCentavos(simulacao.amount), origem: "simulado" as const }
@@ -93,14 +87,26 @@ export function ResumoDoPlano({
       toast.error("Digite o valor do salário para simular.")
       return
     }
+    const numero = ++sequencia.current
     setSimulando(true)
     try {
-      setSimulacao(await salarioService.simular(valorSimulado, partes.map(enviada)))
+      // Sem as partes, o backend usa o plano salvo: um destino inativado
+      // depois não impede a simulação
+      const nova = await salarioService.simular(valorSimulado)
+      if (numero === sequencia.current) setSimulacao(nova)
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao simular a divisão." })
+      if (numero === sequencia.current) tratarErro(erro, { mensagemPadrao: "Erro ao simular a divisão." })
     } finally {
-      setSimulando(false)
+      if (numero === sequencia.current) setSimulando(false)
     }
+  }
+
+  // O valor mudou ou foi limpo: a simulação na tela e a que está a caminho
+  // deixam de valer
+  const descartarSimulacao = () => {
+    sequencia.current += 1
+    setSimulacao(null)
+    setSimulando(false)
   }
 
   return (
@@ -175,10 +181,12 @@ export function ResumoDoPlano({
           )
         })}
         {(barra.livreEmCentavos !== null ? barra.livreEmCentavos > 0 : barra.livre > 0) && (
-          <li aria-label="Livre na conta do salário" className="flex items-start gap-3 py-3">
+          // O recebido menos todas as partes; o resultado da simulação soma a
+          // isto as partes que ficam na conta do salário
+          <li aria-label="Livre" className="flex items-start gap-3 py-3">
             <PontoDaCor className={`mt-1.5 ${COR_DO_LIVRE}`} />
             <div className="min-w-0 flex-1 space-y-0.5">
-              <p className="text-sm font-medium">Livre na conta do salário</p>
+              <p className="text-sm font-medium">Livre</p>
               <p className="text-xs text-muted-foreground">Não vai para nenhuma parte</p>
             </div>
             <div className="shrink-0 text-right">
@@ -194,13 +202,14 @@ export function ResumoDoPlano({
       </ul>
 
       {simulacao && (
-        <div className="space-y-1 rounded-xl bg-muted/40 px-4 py-3 text-sm">
+        <div role="group" aria-label="Resultado da simulação" className="space-y-1 rounded-xl bg-muted/40 px-4 py-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span className="text-muted-foreground">Sai em transferências e aportes</span>
             <span className="font-semibold tabular-nums">{formatarMoeda(simulacao.total)}</span>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-muted-foreground">Fica livre na conta do salário</span>
+            {/* SALARIO-13: o recebido menos as transferências, com as partes que ficam na conta */}
+            <span className="text-muted-foreground">Fica na conta do salário</span>
             <span className="font-semibold tabular-nums">{formatarMoeda(simulacao.free)}</span>
           </div>
         </div>
@@ -217,8 +226,10 @@ export function ResumoDoPlano({
           placeholder="R$ 0,00"
           className="h-10 w-40 rounded-xl tabular-nums"
           onValueChange={(valor) => {
+            // O campo também entrega o valor ao sair dele, sem mudança
+            if ((valor ?? "") === valorSimulado) return
             onValorSimulado(valor ?? "")
-            setSimulacao(null)
+            descartarSimulacao()
           }}
         />
         <Button type="submit" variant="outline" className="h-10 rounded-xl px-4" loading={simulando}>
@@ -230,7 +241,7 @@ export function ResumoDoPlano({
             variant="ghost"
             className="h-10 rounded-xl px-3"
             onClick={() => {
-              setSimulacao(null)
+              descartarSimulacao()
               onValorSimulado("")
             }}
           >
