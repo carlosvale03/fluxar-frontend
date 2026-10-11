@@ -196,6 +196,23 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     expect((within(janela).getByLabelText("Ajustar Guardar") as HTMLInputElement).value).toMatch(/600,00/)
   })
 
+  it("sem transação e sem saída descontada, não há o que gerar", async () => {
+    comRespostasDoPost({
+      previa: revisao({
+        items: revisao().items.map((item) => ({ ...item, destination_type: "SALARY_ACCOUNT", generates_transaction: false })),
+        total: "0.00",
+        free: "3000.00",
+      }),
+    })
+    const janela = await abrirRevisao()
+    await within(janela).findByRole("list", { name: "Partes que ficam na conta do salário" })
+
+    expect(within(janela).getByText("Nenhuma parte do plano gera transação.")).toBeInTheDocument()
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
+    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 0 transações de R$ 0,00")
+    expect(botaoGerar()).toBeDisabled()
+  })
+
   it("a parte sem destino com algo a transferir não deixa gerar", async () => {
     comRespostasDoPost({
       previa: revisao({

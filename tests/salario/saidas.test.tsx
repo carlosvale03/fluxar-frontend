@@ -270,10 +270,47 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(within(ficam).getByRole("listitem", { name: "Guardar" })).not.toHaveTextContent("Transferir")
     expect(within(ficam).getByRole("listitem", { name: "Dispensáveis" })).toHaveTextContent("Fica na conta R$ 900,00")
     expect(within(janela).queryByRole("list", { name: "Transações que serão criadas" })).not.toBeInTheDocument()
-    expect(within(janela).getByText("Nenhuma parte do plano gera transação.")).toBeInTheDocument()
-    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
-    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 0 transações de R$ 0,00")
+    // SALARIO-73: sem transferência, mas com saídas descontadas, a divisão ainda pode ser gravada
+    expect(within(janela).getByText("Nenhuma transferência a fazer: as saídas já cobriram as partes.")).toBeInTheDocument()
+    expect(botaoGerar()).toHaveTextContent("Gerar a divisão sem transferências")
     expect(botaoGerar()).toBeDisabled()
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo a divisão com as saídas descontadas" }))
+    expect(botaoGerar()).toBeEnabled()
+  })
+
+  it("a divisão sem transferências mostra que as saídas cobriram as partes e o que foi descontado", async () => {
+    const semTransacoes = divisao({
+      transactions: [],
+      total: "0.00",
+      free: "2120.00",
+      outflows: [
+        { id: "s-1", date: "2026-10-06", description: "Mercado", amount: "130.00", type: "EXPENSE", part_name: "Essenciais" },
+        { id: "s-2", date: "2026-10-07", description: "Guardar para a viagem", amount: "100.00", type: "TRANSFER_OUT", part_name: "Guardar" },
+        { id: "s-3", date: "2026-10-08", description: "Fatura de setembro", amount: "650.00", type: "INVOICE_PAYMENT", part_name: "Guardar" },
+      ],
+    })
+    const anterior = post.getMockImplementation()!
+    post.mockImplementation(((url: string, corpo: unknown) =>
+      url === "/salary/divisions/" ? resposta(semTransacoes) : anterior(url, corpo)) as typeof api.post)
+    const janela = await abrirRevisao()
+    await vi.waitFor(() => expect(chamadasDaPrevia()).toHaveLength(2))
+    await escolher(janela, "Fatura de setembro", "Guardar")
+    await vi.waitFor(() => expect(botaoGerar()).toHaveTextContent("Gerar a divisão sem transferências"))
+
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo a divisão com as saídas descontadas" }))
+    await userEvent.click(botaoGerar())
+
+    expect(await within(janela).findByRole("heading", { name: "Divisão gerada" })).toBeInTheDocument()
+    expect(janela).toHaveTextContent("Nenhuma transferência a fazer: as saídas já cobriram as partes.")
+    expect(janela).toHaveTextContent("Descontou R$ 880,00 em 3 saídas.")
+    expect(within(janela).queryByRole("list", { name: "Transações criadas" })).not.toBeInTheDocument()
+
+    // O desfazer não fala em transações removidas
+    await userEvent.click(within(janela).getByRole("button", { name: "Desfazer divisão" }))
+    const confirmacao = await screen.findByRole("alertdialog")
+    expect(confirmacao).toHaveTextContent("Esta divisão não criou transações.")
+    expect(confirmacao).toHaveTextContent("Descontou R$ 880,00 em 3 saídas.")
+    expect(within(confirmacao).queryByRole("list", { name: "Transações que serão removidas" })).not.toBeInTheDocument()
   })
 
   it("a geração envia as saídas escolhidas e o resultado mostra o desconto", async () => {

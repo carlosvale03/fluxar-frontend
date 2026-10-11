@@ -35,6 +35,8 @@ const NAO_DESCONTAR = "nao-descontar"
 const SAIDAS_VISIVEIS = 6
 // Espera entre a troca da parte de uma saída e o novo cálculo
 const ESPERA_DO_RECALCULO = 300
+// SALARIO-73: a divisão sem transferências, só com as saídas descontadas
+const SAIDAS_COBRIRAM = "Nenhuma transferência a fazer: as saídas já cobriram as partes."
 // SALARIO-74: a recusa do backend quando o total da revisão mudou
 const DIVISAO_MUDOU = "A divisão mudou desde a revisão. Confira de novo antes de gerar."
 
@@ -281,6 +283,10 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   const saidasVisiveis = todasAsSaidas ? saidas : saidas.slice(0, SAIDAS_VISIVEIS)
   // SALARIO-72: o já gasto é a soma das saídas descontadas
   const jaGasto = saidas.reduce((soma, saida) => soma + (saida.part_id ? paraCentavos(saida.amount) : 0), 0)
+  // SALARIO-73: sem transação, mas com saídas descontadas, a divisão ainda é
+  // gravada, para registrar o desconto
+  const soSaidas = transacoes.length === 0 && saidas.some((saida) => saida.part_id)
+  const confirmacao = soSaidas ? "Confirmo a divisão com as saídas descontadas" : "Confirmo que fiz essas transferências no banco"
 
   const escolhaDe = (saida: SaidaDoSalario) => (saida.id in escolhas ? escolhas[saida.id] : saida.part_id)
 
@@ -494,7 +500,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                       {transacoes.map((item) => linhaDoItem(item, true))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-muted-foreground">Nenhuma parte do plano gera transação.</p>
+                    <p className="text-sm text-muted-foreground">{soSaidas ? SAIDAS_COBRIRAM : "Nenhuma parte do plano gera transação."}</p>
                   )}
                 </div>
 
@@ -536,19 +542,21 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                   <Checkbox
                     checked={confirmado}
                     onCheckedChange={(marcado) => setConfirmado(marcado === true)}
-                    aria-label="Confirmo que fiz essas transferências no banco"
+                    aria-label={confirmacao}
                     className="mt-0.5"
                   />
-                  <span className="text-sm font-bold">Confirmo que fiz essas transferências no banco</span>
+                  <span className="text-sm font-bold">{confirmacao}</span>
                 </label>
 
                 <Button
                   className="w-full rounded-2xl font-black text-sm h-12 shadow-lg shadow-primary/20"
-                  disabled={!confirmado || transacoes.length === 0 || semDestino || gerando || recalculando}
+                  disabled={!confirmado || (transacoes.length === 0 && !soSaidas) || semDestino || gerando || recalculando}
                   onClick={gerar}
                 >
                   {gerando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {`Gerar ${quantidadeDeTransacoes(transacoes.length)} de ${formatarMoeda(revisao.total)}`}
+                  {soSaidas
+                    ? "Gerar a divisão sem transferências"
+                    : `Gerar ${quantidadeDeTransacoes(transacoes.length)} de ${formatarMoeda(revisao.total)}`}
                 </Button>
               </>
             )}
@@ -572,28 +580,33 @@ function ResultadoDaDivisao({
   const desconto = resumoDoDesconto(divisao.outflows)
   return (
     <div className="space-y-4">
-      <ul className="space-y-2" aria-label="Transações criadas">
-        {divisao.transactions.map((transacao) => (
-          <li
-            key={transacao.transfer_id ?? transacao.part_name}
-            className="flex items-start justify-between gap-3 p-3 rounded-2xl border border-border/40 bg-background/60"
-          >
-            <div className="min-w-0">
-              <p className="font-bold text-sm">
-                {transacao.kind === "GOAL_DEPOSIT" ? "Aporte" : "Transferência"}: {transacao.part_name}
-              </p>
-              <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-1">
-                <span>{transacao.origin_account.name}</span>
-                <ArrowRight className="h-3 w-3" />
-                <span>{transacao.destination_name}</span>
-                <span className="w-1 h-1 rounded-full bg-muted-foreground/30 mx-1" />
-                <span>{dataCurta(transacao.date)}</span>
-              </p>
-            </div>
-            <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(transacao.amount)}</p>
-          </li>
-        ))}
-      </ul>
+      {/* SALARIO-73: só as saídas foram descontadas, sem transação */}
+      {divisao.transactions.length === 0 ? (
+        <p className="text-sm font-bold">{SAIDAS_COBRIRAM}</p>
+      ) : (
+        <ul className="space-y-2" aria-label="Transações criadas">
+          {divisao.transactions.map((transacao) => (
+            <li
+              key={transacao.transfer_id ?? transacao.part_name}
+              className="flex items-start justify-between gap-3 p-3 rounded-2xl border border-border/40 bg-background/60"
+            >
+              <div className="min-w-0">
+                <p className="font-bold text-sm">
+                  {transacao.kind === "GOAL_DEPOSIT" ? "Aporte" : "Transferência"}: {transacao.part_name}
+                </p>
+                <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-1">
+                  <span>{transacao.origin_account.name}</span>
+                  <ArrowRight className="h-3 w-3" />
+                  <span>{transacao.destination_name}</span>
+                  <span className="w-1 h-1 rounded-full bg-muted-foreground/30 mx-1" />
+                  <span>{dataCurta(transacao.date)}</span>
+                </p>
+              </div>
+              <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(transacao.amount)}</p>
+            </li>
+          ))}
+        </ul>
+      )}
       {desconto && <p className="text-sm font-medium text-muted-foreground tabular-nums">{desconto}.</p>}
       <p className="text-sm font-medium text-muted-foreground">
         Ficou livre na conta do salário: <span className="font-black text-foreground">{formatarMoeda(divisao.free)}</span>
