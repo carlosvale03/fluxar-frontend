@@ -17,6 +17,7 @@ import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
 import { novoIdentificador } from "@/lib/identificador"
 import { quantidadeDeTransacoes, resumoDoDesconto } from "@/lib/salario"
+import { cn } from "@/lib/utils"
 import { salarioService } from "@/services/salario"
 import type {
   AjustesDaDivisao,
@@ -528,7 +529,10 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                   </div>
                   <div className="flex justify-between gap-3">
                     <span className="font-medium text-muted-foreground">Fica livre na conta do salário</span>
-                    <span className="font-black" data-testid="livre-da-divisao">{formatarMoeda(revisao.free)}</span>
+                    {/* O livre fica negativo quando as saídas passam do que sobra; mostrado como vem */}
+                    <span className={cn("font-black", paraCentavos(revisao.free) < 0 && "text-destructive")} data-testid="livre-da-divisao">
+                      {formatarMoeda(revisao.free)}
+                    </span>
                   </div>
                 </div>
 
@@ -609,7 +613,10 @@ function ResultadoDaDivisao({
       )}
       {desconto && <p className="text-sm font-medium text-muted-foreground tabular-nums">{desconto}.</p>}
       <p className="text-sm font-medium text-muted-foreground">
-        Ficou livre na conta do salário: <span className="font-black text-foreground">{formatarMoeda(divisao.free)}</span>
+        Ficou livre na conta do salário:{" "}
+        <span className={cn("font-black", paraCentavos(divisao.free) < 0 ? "text-destructive" : "text-foreground")}>
+          {formatarMoeda(divisao.free)}
+        </span>
       </p>
       <div className="flex flex-col sm:flex-row gap-2">
         {!divisao.undone_at && (

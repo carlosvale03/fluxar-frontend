@@ -352,6 +352,15 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(janela).toHaveTextContent("Descontou R$ 230,00 em 2 saídas.")
   })
 
+  it("quando as saídas passam do que sobra, o livre aparece negativo, sem ser zerado", async () => {
+    // R$ 3.000,00 recebidos, R$ 600,00 para Guardar e R$ 2.900,00 de saídas: o livre fica em -R$ 500,00
+    saidasDaConta = [saida({ id: "s-9", description: "Reforma", amount: "2900.00", suggested_part_id: "p-ess" })]
+    const janela = await abrirRevisao()
+
+    await vi.waitFor(() => expect(within(janela).getByTestId("gasto-da-divisao")).toHaveTextContent("R$ 2.900,00"))
+    expect(within(janela).getByTestId("livre-da-divisao").textContent?.replace(/\s/g, " ")).toBe("-R$ 500,00")
+  })
+
   it("sem saídas, mostra o aviso e não pede a prévia de novo", async () => {
     saidasDaConta = []
     const janela = await abrirRevisao()
