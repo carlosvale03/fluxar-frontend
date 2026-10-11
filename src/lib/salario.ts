@@ -94,7 +94,7 @@ export interface FatiaDaBarra {
   centesimos: number
   // Quanto a parte recebe da base, em centavos; null sem base
   centavos: number | null
-  // A parte fixa foi reduzida porque os fixos passaram da base
+  // A parte recebeu menos do que pede: veja DivisaoCalculada.reduzidas
   reduzida: boolean
 }
 
@@ -115,7 +115,10 @@ export interface BarraDaDivisao {
 export interface DivisaoCalculada {
   // Quanto cada parte recebe, em centavos, na ordem das partes
   valores: number[]
-  // Partes fixas reduzidas porque os fixos passaram da base
+  // Partes que recebem menos do que pedem: a fixa cortada porque os fixos
+  // passaram da base, a percentual cortada porque os percentuais passaram de
+  // 100% e a percentual zerada porque não sobrou nada depois dos fixos
+  // (SALARIO-27, SALARIO-78)
   reduzidas: boolean[]
   // O que sobra depois dos fixos, base dos percentuais
   restante: number
@@ -131,7 +134,9 @@ const valorSeguro = (valor: string | null) => {
 // SALARIO-26 a SALARIO-28 (AD-056), a mesma regra do backend: os valores
 // fixos saem primeiro da base; se passarem dela, a última parte fixa é
 // reduzida até zero, depois a anterior. Os percentuais valem sobre o que
-// sobra, cada um arredondado para baixo no centavo, atendidos na ordem.
+// sobra, cada um arredondado para baixo no centavo, atendidos na ordem; a
+// parte percentual que fica com menos do que pede, ou com zero porque não
+// sobrou nada depois dos fixos, é marcada como reduzida (SALARIO-78).
 export function calcularDivisao(partes: ParteDaBarra[], baseEmCentavos: number): DivisaoCalculada {
   const base = Math.max(0, baseEmCentavos)
   const valores = partes.map((parte) => (parte.regra === "FIXED" ? valorSeguro(parte.valor) : 0))
@@ -150,9 +155,11 @@ export function calcularDivisao(partes: ParteDaBarra[], baseEmCentavos: number):
   let disponivel = restante
   partes.forEach((parte, i) => {
     if (parte.regra !== "PERCENT") return
-    const pedido = Math.floor((restante * valorSeguro(parte.valor)) / 10000)
+    const percentual = valorSeguro(parte.valor)
+    const pedido = Math.floor((restante * percentual) / 10000)
     valores[i] = Math.min(pedido, disponivel)
     disponivel -= valores[i]
+    if (valores[i] < pedido || (percentual > 0 && restante === 0)) reduzidas[i] = true
   })
 
   return { valores, reduzidas, restante, livre: base - valores.reduce((soma, valor) => soma + valor, 0) }

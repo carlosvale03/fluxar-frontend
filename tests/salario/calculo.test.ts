@@ -25,8 +25,20 @@ describe("calcularDivisao", () => {
     const divisao = calcularDivisao([fixa("Aluguel", "700.00"), fixa("Escola", "500.00"), percentual("Guardar", "10.00")], 100000)
 
     expect(divisao.valores).toEqual([70000, 30000, 0])
-    expect(divisao.reduzidas).toEqual([false, true, false])
+    // SALARIO-78: o percentual zerado por falta do que sobrar também é reduzido
+    expect(divisao.reduzidas).toEqual([false, true, true])
     expect(divisao.livre).toBe(0)
+  })
+
+  it("fixos que somam a base inteira zeram e reduzem os percentuais, como o backend", () => {
+    const divisao = calcularDivisao([fixa("Aluguel", "1000.00"), percentual("Guardar", "10.00"), percentual("Vazia", "0.00")], 100000)
+
+    expect(divisao.valores).toEqual([100000, 0, 0])
+    expect(divisao.restante).toBe(0)
+    expect(divisao.reduzidas).toEqual([false, true, false])
+
+    const barra = montarBarra([fixa("Aluguel", "1000.00"), percentual("Guardar", "10.00")], 100000)
+    expect(barra.fatias[1]).toMatchObject({ centavos: 0, reduzida: true })
   })
 
   it("a redução passa para a fixa anterior quando a última chega a zero", () => {
@@ -47,6 +59,7 @@ describe("calcularDivisao", () => {
     const divisao = calcularDivisao([percentual("A", "80.00"), percentual("B", "40.00")], 100000)
 
     expect(divisao.valores).toEqual([80000, 20000])
+    expect(divisao.reduzidas).toEqual([false, true])
     expect(divisao.livre).toBe(0)
   })
 })
