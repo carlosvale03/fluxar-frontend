@@ -287,7 +287,8 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     const criadas = await within(janela).findByRole("list", { name: "Transações criadas" })
     expect(criadas).toBeInTheDocument()
     const corpo = post.mock.calls.find(([url]) => url === "/salary/divisions/")![1]
-    expect(corpo).toEqual({ receipt: "rec-1", idempotency_key: expect.any(String), outflows: SUGERIDAS })
+    // SALARIO-74: com o total que a revisão mostrou
+    expect(corpo).toEqual({ receipt: "rec-1", idempotency_key: expect.any(String), outflows: SUGERIDAS, expected_total: "500.00" })
     expect(janela).toHaveTextContent("Descontou R$ 230,00 em 2 saídas.")
   })
 

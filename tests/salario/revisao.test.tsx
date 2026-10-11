@@ -264,6 +264,40 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     expect(chaveDaGeracao(2)).not.toBe(chaveDaGeracao(0))
   })
 
+  it("gerar envia o total da revisão; se a divisão mudou, mostra o motivo e refaz a revisão", async () => {
+    const motivo = "A divisão mudou desde a revisão. Confira de novo antes de gerar."
+    let tentativas = 0
+    comRespostasDoPost({
+      geracao: () => {
+        tentativas += 1
+        return tentativas === 1 ? Promise.reject({ response: { status: 400, data: { detail: motivo } } }) : resposta(divisao())
+      },
+    })
+    const janela = await abrirRevisao()
+    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    const ajuste = within(janela).getByLabelText("Ajustar Guardar")
+    await userEvent.clear(ajuste)
+    await userEvent.type(ajuste, "450")
+    await userEvent.tab()
+    await vi.waitFor(() => expect(within(janela).getByTestId("total-da-divisao")).toHaveTextContent("R$ 450,00"))
+    const confirmacao = within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" })
+    await userEvent.click(confirmacao)
+    const previas = () => post.mock.calls.filter(([url]) => url === "/salary/divisions/preview/")
+    const antes = previas().length
+
+    await userEvent.click(botaoGerar())
+
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith(motivo))
+    const corpo = post.mock.calls.find(([url]) => url === "/salary/divisions/")![1]
+    expect(corpo).toMatchObject({ receipt: "rec-1", adjustments: { "p-gua": "450.00" }, expected_total: "450.00" })
+    // A revisão é pedida de novo com as mesmas escolhas, e a marcação volta a faltar
+    await vi.waitFor(() => expect(previas()).toHaveLength(antes + 1))
+    expect(previas().at(-1)?.[1]).toEqual({ receipt: "rec-1", adjustments: { "p-gua": "450.00" } })
+    expect(confirmacao).not.toBeChecked()
+    expect(botaoGerar()).toBeDisabled()
+    expect(within(janela).getByRole("heading", { name: "Revisar a divisão" })).toBeInTheDocument()
+  })
+
   it("a chave de uma divisão desfeita recebe 409, e a revisão mostra o motivo", async () => {
     const motivo = "Esta divisão foi desfeita. Abra a revisão de novo para dividir."
     comRespostasDoPost({ geracao: () => Promise.reject({ response: { status: 409, data: { detail: motivo } } }) })

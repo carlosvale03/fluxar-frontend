@@ -72,12 +72,20 @@ export const salarioService = {
   },
 
   // SALARIO-32 a SALARIO-37: a chave da tentativa vai em todo reenvio (AD-007);
-  // SALARIO-68: as saídas escolhidas na revisão
-  gerar: async (receipt: string, idempotencyKey: string, adjustments?: AjustesDaDivisao, outflows?: SaidasDaDivisao) => {
+  // SALARIO-68: as saídas escolhidas na revisão; SALARIO-74: o total que a
+  // revisão mostrou, para o backend recusar se a divisão mudou desde então
+  gerar: async (
+    receipt: string,
+    idempotencyKey: string,
+    adjustments?: AjustesDaDivisao,
+    outflows?: SaidasDaDivisao,
+    expectedTotal?: string,
+  ) => {
     const response = await api.post<DivisaoDoSalario>("/salary/divisions/", {
       receipt,
       idempotency_key: idempotencyKey,
       ...opcionais(adjustments, outflows),
+      ...(expectedTotal !== undefined ? { expected_total: expectedTotal } : {}),
     })
     return response.data
   },

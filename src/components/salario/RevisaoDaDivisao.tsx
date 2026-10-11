@@ -35,6 +35,8 @@ const NAO_DESCONTAR = "nao-descontar"
 const SAIDAS_VISIVEIS = 6
 // Espera entre a troca da parte de uma saída e o novo cálculo
 const ESPERA_DO_RECALCULO = 300
+// SALARIO-74: a recusa do backend quando o total da revisão mudou
+const DIVISAO_MUDOU = "A divisão mudou desde a revisão. Confira de novo antes de gerar."
 
 interface Pedido {
   ajustes: AjustesDaDivisao
@@ -247,7 +249,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
     setGerando(true)
     try {
       const { ajustes, escolhas: saidas } = aplicado.current
-      const divisao = await salarioService.gerar(id, chaveDaTentativa.current, ajustes, saidas)
+      const divisao = await salarioService.gerar(id, chaveDaTentativa.current, ajustes, saidas, revisao?.total)
       // Com outro recebimento aberto, só as listas da página são relidas
       if (recebimentoAberto.current === id) {
         setResultado(divisao)
@@ -257,7 +259,16 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
     } catch (erro) {
       // A chave continua a mesma: o reenvio depois de um erro de rede recebe
       // a divisão já gravada, sem gerar em dobro
-      if (recebimentoAberto.current === id) tratarErro(erro, { mensagemPadrao: "Erro ao gerar as transações da divisão." })
+      if (recebimentoAberto.current !== id) return
+      tratarErro(erro, { mensagemPadrao: "Erro ao gerar as transações da divisão." })
+      // SALARIO-74: a divisão mudou desde a revisão (uma saída nova, o plano
+      // editado em outra aba); a revisão é refeita com as mesmas escolhas e
+      // pede a marcação de novo
+      const resposta = (erro as { response?: { status?: number; data?: { detail?: unknown } } } | null)?.response
+      if (resposta?.status === 400 && resposta.data?.detail === DIVISAO_MUDOU) {
+        setConfirmado(false)
+        void recalcular({})
+      }
     } finally {
       setGerando(false)
     }
