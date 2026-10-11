@@ -86,6 +86,36 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     await vi.waitFor(() => expect((campo as HTMLInputElement).value).toMatch(/4\.200,00/))
   })
 
+  it("limpo pelo usuário, o campo não volta a se preencher quando os salários são relidos", async () => {
+    let pendentes = [recebimento({ amount: "4200.00" })]
+    const dados: Record<string, unknown> = {
+      "/salary/references/": referencias(),
+      "/salary/plan/": PLANO_SALVO,
+      "/salary/models/": MODELOS,
+      "/accounts/": CONTAS,
+      "/goals/": METAS,
+      "/categories/": CATEGORIAS_DE_RECEITA,
+    }
+    get.mockImplementation(((url: string) => resposta(url === "/salary/pending/" ? pendentes : (dados[url] ?? []))) as typeof api.get)
+    put.mockImplementation(((_url: string, corpo: unknown) => resposta({ ...PLANO_SALVO, ...(corpo as object) })) as typeof api.put)
+    render(<SalarioPage />)
+    const campo = (await screen.findByLabelText("Valor do salário")) as HTMLInputElement
+    await vi.waitFor(() => expect(campo.value).toMatch(/4\.200,00/))
+
+    await userEvent.clear(campo)
+    await userEvent.tab()
+    // Salvar as receitas de salário relê os salários a dividir, agora com outro mais recente
+    pendentes = [recebimento({ id: "rec-2", amount: "5000.00", date: "2026-10-09" }), ...pendentes]
+    const receitas = screen.getByRole("region", { name: "Receitas de salário" })
+    await userEvent.click(await within(receitas).findByRole("button", { name: "Alterar receitas de salário" }))
+    await userEvent.click(within(receitas).getByRole("checkbox", { name: "Freelance" }))
+    await userEvent.click(within(receitas).getByRole("button", { name: "Salvar" }))
+    await vi.waitFor(() => expect(get.mock.calls.filter(([url]) => url === "/salary/pending/")).toHaveLength(2))
+    await screen.findByText(/^Com o salário recebido \(R\$\s5\.000,00\)/)
+
+    expect((screen.getByLabelText("Valor do salário") as HTMLInputElement).value).toBe("")
+  })
+
   it("sem salário recebido, o campo da simulação começa vazio", async () => {
     render(<SalarioPage />)
 
@@ -168,13 +198,14 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     expect(legenda("Dispensáveis")).toHaveTextContent("R$ 750,00")
     expect(legenda("Guardar")).toHaveTextContent("R$ 500,00")
     expect(legenda("Aluguel")).toHaveTextContent("R$ 500,00")
-    expect(screen.getByText(/^Com o salário de R\$\s3\.000,00/)).toHaveTextContent("Os percentuais valem sobre o que sobra")
+    expect(screen.getByText(/^Com o salário recebido \(R\$\s3\.000,00\)/)).toHaveTextContent("Os percentuais valem sobre o que sobra")
     expect(within(partes()).queryByRole("listitem", { name: "Livre" })).not.toBeInTheDocument()
 
     // O valor digitado muda as prévias antes de simular
     const campo = screen.getByLabelText("Valor do salário")
     await userEvent.clear(campo)
     await userEvent.type(campo, "1500")
+    expect(screen.getByText(/^Simulando com R\$\s1\.500,00/)).toBeInTheDocument()
     expect(legenda("Essenciais")).toHaveTextContent("R$ 500,00")
     expect(legenda("Guardar")).toHaveTextContent("R$ 200,00")
 

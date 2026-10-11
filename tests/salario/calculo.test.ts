@@ -102,10 +102,15 @@ describe("baseDaPrevia", () => {
     expect(baseDaPrevia("", undefined, "0.00")).toBeNull()
   })
 
+  it("o valor simulado igual ao recebido, como vem preenchido, conta como o recebido", () => {
+    expect(baseDaPrevia("3000.00", "3000.00", "2500.00")).toEqual({ centavos: 300000, origem: "recebido" })
+  })
+
   it("diz de onde vem a base", () => {
     // O formatador põe um espaço sem quebra depois do R$
     const texto = (t: string) => t.replace(/\s/g, " ")
-    expect(texto(textoDaBase({ centavos: 300000, origem: "recebido" }))).toBe("Com o salário de R$ 3.000,00")
+    expect(texto(textoDaBase({ centavos: 420000, origem: "simulado" }))).toBe("Simulando com R$ 4.200,00")
+    expect(texto(textoDaBase({ centavos: 300000, origem: "recebido" }))).toBe("Com o salário recebido (R$ 3.000,00)")
     expect(texto(textoDaBase({ centavos: 250000, origem: "media" }))).toBe("Com a média do seu salário (R$ 2.500,00)")
   })
 })

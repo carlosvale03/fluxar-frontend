@@ -10,7 +10,7 @@ import { SobreAParte } from "@/components/salario/SobreOModelo"
 import { Button } from "@/components/ui/button"
 import { MoneyInput } from "@/components/ui/money-input"
 import { lerData } from "@/lib/datas"
-import { deCentavos, formatarMoeda, maiorQueZero, paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, maiorQueZero } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
 import { baseDaPrevia, montarBarra, percentualParaCampo, porcentagemNoHistorico, textoDaBase, textoDoPercentual } from "@/lib/salario"
 import { salarioService } from "@/services/salario"
@@ -65,9 +65,7 @@ export function ResumoDoPlano({
   // mudar o valor ou limpar também descarta a que está a caminho
   const sequencia = useRef(0)
 
-  const base = simulacao
-    ? { centavos: paraCentavos(simulacao.amount), origem: "simulado" as const }
-    : baseDaPrevia(valorSimulado, valorRecebido, referencias?.history.salary_average)
+  const base = baseDaPrevia(simulacao?.amount ?? valorSimulado, valorRecebido, referencias?.history.salary_average)
   // Com a simulação, a barra mostra o que cada parte recebeu de fato
   const barra = simulacao
     ? montarBarra(

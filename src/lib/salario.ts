@@ -219,7 +219,9 @@ export function repartirPercentual(atuais: number[], total: number): number[] {
 export type OrigemDaBase = "simulado" | "recebido" | "media"
 
 // SALARIO-63: a base das prévias é o valor da simulação, quando preenchido;
-// senão, o salário recebido mais recente; senão, a média do histórico
+// senão, o salário recebido mais recente; senão, a média do histórico. O
+// valor simulado igual ao recebido (o campo vem preenchido com ele) conta como
+// o recebido
 export function baseDaPrevia(
   simulado: string | null | undefined,
   recebido: string | null | undefined,
@@ -232,16 +234,21 @@ export function baseDaPrevia(
   ]
   for (const [valor, origem] of candidatos) {
     const centavos = paraCentavos(valor ?? "")
-    if (centavos > 0) return { centavos, origem }
+    if (!(centavos > 0)) continue
+    if (origem === "simulado" && centavos === paraCentavos(recebido ?? "")) return { centavos, origem: "recebido" }
+    return { centavos, origem }
   }
   return null
 }
 
-// O texto da base das prévias: "Com o salário de R$ 3.000,00", ou "Com a
-// média do seu salário (R$ 3.000,00)"
+// O texto da base das prévias, que diz de onde ela vem: "Simulando com R$
+// 4.200,00", "Com o salário recebido (R$ 3.000,00)" ou "Com a média do seu
+// salário (R$ 3.000,00)"
 export function textoDaBase(base: { centavos: number; origem: OrigemDaBase }): string {
   const valor = formatarMoeda(deCentavos(base.centavos))
-  return base.origem === "media" ? `Com a média do seu salário (${valor})` : `Com o salário de ${valor}`
+  if (base.origem === "simulado") return `Simulando com ${valor}`
+  if (base.origem === "recebido") return `Com o salário recebido (${valor})`
+  return `Com a média do seu salário (${valor})`
 }
 
 // Centésimos de ponto percentual para o texto ("50%", "33,33%")

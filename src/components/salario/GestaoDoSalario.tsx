@@ -73,6 +73,8 @@ export function GestaoDoSalario() {
   // editor, que já vem com o salário recebido mais recente
   const [valorSimulado, setValorSimulado] = useState("")
   const [recebidoAnterior, setRecebidoAnterior] = useState<string | undefined>(undefined)
+  // Depois que o usuário mexe no campo, o salário recebido não o preenche mais
+  const [campoTocado, setCampoTocado] = useState(false)
   const ultimoParam = useRef<string | null>(null)
   const painelDeReceitas = useRef<PainelDeReceitas>(null)
   const secaoDoPlano = useRef<HTMLElement>(null)
@@ -81,11 +83,19 @@ export function GestaoDoSalario() {
     (maisRecente, r) => (!maisRecente || r.date > maisRecente.date ? r : maisRecente),
     null,
   )?.amount
-  // O salário recebido pode chegar depois do plano: preenche o campo se o
-  // usuário ainda não digitou nada
+  // O salário recebido pode chegar depois do plano, e a lista é relida a cada
+  // divisão: o campo acompanha o mais recente só enquanto o usuário não mexeu
+  // nele, para não voltar a se preencher depois de limpo
   if (valorRecebido !== recebidoAnterior) {
     setRecebidoAnterior(valorRecebido)
-    if (!valorSimulado && valorRecebido) setValorSimulado(valorRecebido)
+    if (!campoTocado) setValorSimulado(valorRecebido ?? "")
+  }
+
+  const mudarValorSimulado = (valor: string) => {
+    // O campo também entrega o valor ao sair dele, sem mudança
+    if (valor === valorSimulado) return
+    setCampoTocado(true)
+    setValorSimulado(valor)
   }
 
   async function carregarPendentes() {
@@ -296,7 +306,7 @@ export function GestaoDoSalario() {
               codigoDoModelo={modeloDoPlanoSalvo?.code}
               onEscolherDestino={editarPlano}
               valorSimulado={valorSimulado}
-              onValorSimulado={setValorSimulado}
+              onValorSimulado={mudarValorSimulado}
               valorRecebido={valorRecebido}
             />
           ) : telaDoPlano === "escolha" ? (
@@ -316,7 +326,7 @@ export function GestaoDoSalario() {
               metas={metas}
               referencias={referencias}
               valorSimulado={valorSimulado}
-              onValorSimulado={setValorSimulado}
+              onValorSimulado={mudarValorSimulado}
               valorRecebido={valorRecebido}
               onSalvo={planoSalvo}
               onTrocarModelo={() => setTelaDoPlano("escolha")}
