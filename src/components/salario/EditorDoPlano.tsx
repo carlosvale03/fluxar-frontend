@@ -132,12 +132,20 @@ function centesimosDe(parte: Rascunho): number {
 
 interface EdicaoDoPercentual {
   chave: string
-  // Soma dos percentuais antes da edição
-  total: number
   // Soma das outras partes travadas
   travadas: number
-  // As outras partes não travadas, com o percentual de antes da edição
+  // As outras partes não travadas e preenchidas, com o percentual de antes da edição
   livres: { chave: string; centesimos: number }[]
+}
+
+// O erro do valor da parte antes de salvar, ou undefined. O backend recusa
+// percentual zerado e valor fixo abaixo de um centavo (SALARIO-08, SALARIO-09)
+function erroDoValor(parte: Rascunho): string | undefined {
+  const valor = valorEnviado(parte)
+  if (valor === null) return "Informe um valor."
+  if (parte.rule_type === "PERCENT" && !(paraCentavos(valor) > 0)) return "O percentual precisa ser maior que zero."
+  if (parte.rule_type === "FIXED" && !(paraCentavos(valor) >= 1)) return "O valor precisa ser de pelo menos R$ 0,01."
+  return undefined
 }
 
 // SALARIO-55: quanto a meta pede por mês para chegar na data
@@ -269,20 +277,24 @@ export function EditorDoPlano({
   }
 
   // SALARIO-58 e SALARIO-59: ao mudar o percentual de uma parte, as outras
-  // partes percentuais não travadas são ajustadas na proporção de cada uma,
-  // para a soma dos percentuais ficar como era antes da edição. A proporção
-  // vem das partes como estavam quando a edição começou, para os ajustes de
-  // cada tecla não se acumularem; o campo editado nunca é mudado.
+  // partes percentuais não travadas e preenchidas são ajustadas na proporção
+  // de cada uma, para a soma dos percentuais dar 100%; assim, depois de
+  // remover uma parte, a próxima edição volta a somar 100%. A proporção vem
+  // das partes como estavam quando a edição começou, para os ajustes de cada
+  // tecla não se acumularem; o campo editado nunca é mudado. Com o campo
+  // vazio, nada é ajustado; com todas as outras travadas, a soma pode passar
+  // de 100%, e o aviso aparece.
   const mudarPercentual = (chave: string, texto: string) => {
+    if (travadas.has(chave)) return
     let atual = edicao.current
     if (!atual || atual.chave !== chave) {
-      const percentuais = partes.filter((p) => p.rule_type === "PERCENT")
-      const outras = percentuais.filter((p) => p.chave !== chave)
+      const outras = partes.filter((p) => p.rule_type === "PERCENT" && p.chave !== chave)
       atual = {
         chave,
-        total: percentuais.reduce((soma, p) => soma + centesimosDe(p), 0),
         travadas: outras.filter((p) => travadas.has(p.chave)).reduce((soma, p) => soma + centesimosDe(p), 0),
-        livres: outras.filter((p) => !travadas.has(p.chave)).map((p) => ({ chave: p.chave, centesimos: centesimosDe(p) })),
+        livres: outras
+          .filter((p) => !travadas.has(p.chave) && lerValorDigitado(p.valor) !== null)
+          .map((p) => ({ chave: p.chave, centesimos: centesimosDe(p) })),
       }
       edicao.current = atual
     }
@@ -291,7 +303,7 @@ export function EditorDoPlano({
     if (valor !== null && atual.livres.length > 0) {
       const repartidos = repartirPercentual(
         atual.livres.map((p) => p.centesimos),
-        atual.total - paraCentavos(valor) - atual.travadas,
+        10000 - paraCentavos(valor) - atual.travadas,
       )
       atual.livres.forEach((p, i) => (novos[p.chave] = percentualParaCampo(deCentavos(repartidos[i]))))
     }
@@ -299,7 +311,16 @@ export function EditorDoPlano({
     limparErros(chave)
   }
 
-  // SALARIO-59: a trava só existe na tela; não vai para o plano
+  // SALARIO-59: a trava só existe na tela; não vai para o plano. Ela sai
+  // quando a parte deixa de ser percentual ou é removida
+  const soltarTrava = (chave: string) =>
+    setTravadas((atuais) => {
+      if (!atuais.has(chave)) return atuais
+      const novas = new Set(atuais)
+      novas.delete(chave)
+      return novas
+    })
+
   const alternarTrava = (chave: string) => {
     edicao.current = null
     setTravadas((atuais) => {
@@ -325,14 +346,22 @@ export function EditorDoPlano({
   const remover = (chave: string) => {
     edicao.current = null
     setPartes((atuais) => atuais.filter((p) => p.chave !== chave))
+    soltarTrava(chave)
+    limparErros(chave)
+  }
+
+  const trocarRegra = (chave: string, regra: RegraDaParte) => {
+    alterar(chave, { rule_type: regra, valor: "" })
+    soltarTrava(chave)
   }
 
   // A parte nova é percentual, com o que falta para os percentuais darem 100%
-  // (ou zero), e o foco vai para o nome dela
+  // (vazia quando não falta nada), e o foco vai para o nome dela
   const adicionar = () => {
     edicao.current = null
     const chave = novaChave()
-    const valor = percentualParaCampo(deCentavos(Math.max(0, 10000 - barra.somaDosPercentuais)))
+    const falta = 10000 - barra.somaDosPercentuais
+    const valor = falta > 0 ? percentualParaCampo(deCentavos(falta)) : ""
     flushSync(() =>
       setPartes((atuais) => [
         ...atuais,
@@ -345,14 +374,15 @@ export function EditorDoPlano({
   // Trocar de modelo descarta as mudanças: com alguma, pede confirmação
   const pedirTroca = () => (alterado ? setConfirmarTroca(true) : onTrocarModelo())
 
-  // As partes no formato da API; com algum campo vazio, marca os erros e
-  // devolve null
+  // As partes no formato da API; com algum campo vazio ou valor que o backend
+  // recusa, marca os erros ao lado de cada campo e devolve null
   const montarPartes = (): ParteEnviada[] | null => {
     const locais: Record<string, ErrosDaParte> = {}
     const enviadas = partes.map((parte) => {
       const valor = valorEnviado(parte)
+      const erroDeValor = erroDoValor(parte)
       if (!parte.name.trim()) locais[parte.chave] = { ...locais[parte.chave], name: "Dê um nome à parte." }
-      if (valor === null) locais[parte.chave] = { ...locais[parte.chave], value: "Informe um valor." }
+      if (erroDeValor) locais[parte.chave] = { ...locais[parte.chave], value: erroDeValor }
       return {
         name: parte.name.trim(),
         rule_type: parte.rule_type,
@@ -555,7 +585,7 @@ export function EditorDoPlano({
                               "min-w-10 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                               parte.rule_type === regra ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
                             )}
-                            onClick={() => parte.rule_type !== regra && alterar(parte.chave, { rule_type: regra, valor: "" })}
+                            onClick={() => parte.rule_type !== regra && trocarRegra(parte.chave, regra)}
                           >
                             {regra === "PERCENT" ? "%" : "R$"}
                           </button>
@@ -564,15 +594,23 @@ export function EditorDoPlano({
                       {parte.rule_type === "PERCENT" ? (
                         <>
                           <div className="relative w-24 shrink-0">
+                            {/* SALARIO-59: travada, a parte só muda depois de destravar */}
                             <Input
                               aria-label={`Percentual de ${rotulo}`}
+                              aria-describedby={travada ? `trava-da-${parte.chave}` : undefined}
                               inputMode="decimal"
                               value={parte.valor}
                               placeholder="0"
-                              className="h-10 w-full rounded-xl pr-7 tabular-nums"
+                              readOnly={travada}
+                              className={cn("h-10 w-full rounded-xl pr-7 tabular-nums", travada && "bg-muted/50 text-muted-foreground")}
                               onChange={(e) => mudarPercentual(parte.chave, e.target.value.replace(/[^\d,.]/g, ""))}
                               onBlur={() => (edicao.current = null)}
                             />
+                            {travada && (
+                              <span id={`trava-da-${parte.chave}`} className="sr-only">
+                                Percentual travado. Destrave para mudar.
+                              </span>
+                            )}
                             <span
                               aria-hidden
                               className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-sm text-muted-foreground"
@@ -590,7 +628,7 @@ export function EditorDoPlano({
                             )}
                             aria-pressed={travada}
                             aria-label={travada ? `Destravar ${rotulo}` : `Travar ${rotulo}`}
-                            title={travada ? "Percentual travado: fica fora dos ajustes" : "Travar o percentual"}
+                            title={travada ? "Percentual travado: não muda nem entra nos ajustes" : "Travar o percentual"}
                             onClick={() => alternarTrava(parte.chave)}
                           >
                             {travada ? <Lock aria-hidden /> : <LockOpen aria-hidden />}

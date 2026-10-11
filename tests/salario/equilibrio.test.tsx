@@ -169,9 +169,9 @@ describe("Ajuste dos percentuais no editor", { timeout: 15000 }, () => {
     // O campo do percentual mostra o % dentro dele
     expect(campo("Essenciais").parentElement).toHaveTextContent("%")
 
-    // Com 100% já repartidos, a parte nova começa em 0%
+    // Com 100% já repartidos, a parte nova começa vazia
     await userEvent.click(screen.getByRole("button", { name: "Adicionar parte" }))
-    expect(screen.getByLabelText("Percentual de parte 4")).toHaveValue("0")
+    expect(screen.getByLabelText("Percentual de parte 4")).toHaveValue("")
     expect(document.activeElement).toBe(screen.getByLabelText("Nome da parte 4"))
     await userEvent.click(screen.getByRole("button", { name: "Remover parte 4" }))
 
@@ -195,6 +195,83 @@ describe("Ajuste dos percentuais no editor", { timeout: 15000 }, () => {
 
     expect(screen.getByLabelText("Percentual de parte 1")).toHaveValue("100")
     expect(document.activeElement).toBe(screen.getByLabelText("Nome da parte 1"))
+  })
+
+  it("depois de remover uma parte, a próxima edição volta a somar 100%", async () => {
+    await editar50_30_20()
+    await userEvent.click(screen.getByRole("button", { name: "Remover Guardar" }))
+    expect(screen.getByText(/^Soma: 80%/)).toBeInTheDocument()
+
+    await digitar("Essenciais", "60")
+
+    expect(campo("Dispensáveis")).toHaveValue("40")
+    expect(screen.getByText(/^Soma: 100%/)).toBeInTheDocument()
+  })
+
+  it("a parte travada não muda pelo campo até destravar", async () => {
+    await editar50_30_20()
+    await userEvent.click(screen.getByRole("button", { name: "Travar Guardar" }))
+
+    expect(campo("Guardar")).toHaveAttribute("readonly")
+    expect(campo("Guardar")).toHaveAccessibleDescription("Percentual travado. Destrave para mudar.")
+    await userEvent.type(campo("Guardar"), "5")
+    expect(campo("Guardar")).toHaveValue("20")
+
+    await userEvent.click(screen.getByRole("button", { name: "Destravar Guardar" }))
+    expect(campo("Guardar")).not.toHaveAttribute("readonly")
+    await digitar("Guardar", "10")
+    expect(campo("Guardar")).toHaveValue("10")
+  })
+
+  it("trocar a regra para R$ e voltar para % solta a trava", async () => {
+    await editar50_30_20()
+    await userEvent.click(screen.getByRole("button", { name: "Travar Guardar" }))
+    const regra = within(screen.getByRole("group", { name: "Regra de Guardar" }))
+
+    await userEvent.click(regra.getByRole("button", { name: "R$" }))
+    await userEvent.click(regra.getByRole("button", { name: "%" }))
+
+    expect(screen.getByRole("button", { name: "Travar Guardar" })).toHaveAttribute("aria-pressed", "false")
+    expect(campo("Guardar")).not.toHaveAttribute("readonly")
+  })
+
+  it("limpar um campo não ajusta as outras, e o vazio não deixa salvar", async () => {
+    await editar50_30_20()
+
+    await userEvent.clear(campo("Essenciais"))
+
+    expect(campo("Dispensáveis")).toHaveValue("30")
+    expect(campo("Guardar")).toHaveValue("20")
+    await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
+    expect(within(screen.getByRole("listitem", { name: "Essenciais" })).getByText("Informe um valor.")).toBeInTheDocument()
+    expect(put).not.toHaveBeenCalled()
+  })
+
+  it("uma parte em 0% ou em R$ 0,00 não deixa salvar e mostra o erro ao lado do campo", async () => {
+    await editar50_30_20()
+    // 100% numa parte zera as outras, que o backend recusaria
+    await digitar("Essenciais", "100")
+    expect(campo("Dispensáveis")).toHaveValue("0")
+    await userEvent.tab()
+    await userEvent.click(within(screen.getByRole("group", { name: "Regra de Guardar" })).getByRole("button", { name: "R$" }))
+    await userEvent.type(screen.getByLabelText("Valor de Guardar"), "0")
+    await userEvent.tab()
+
+    await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
+
+    expect(screen.getByRole("listitem", { name: "Dispensáveis" })).toHaveTextContent("O percentual precisa ser maior que zero.")
+    expect(screen.getByRole("listitem", { name: "Guardar" })).toHaveTextContent("O valor precisa ser de pelo menos R$ 0,01.")
+    expect(screen.getByRole("listitem", { name: "Essenciais" })).not.toHaveTextContent("precisa ser")
+    expect(put).not.toHaveBeenCalled()
+
+    // Corrigida, a parte perde o erro e o plano é salvo
+    await digitar("Dispensáveis", "20")
+    expect(screen.getByRole("listitem", { name: "Dispensáveis" })).not.toHaveTextContent("O percentual precisa ser maior que zero.")
+    await userEvent.clear(screen.getByLabelText("Valor de Guardar"))
+    await userEvent.type(screen.getByLabelText("Valor de Guardar"), "300")
+    await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
+    await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
+    expect((put.mock.calls[0][1] as { parts: { value: string }[] }).parts.map((p) => p.value)).toEqual(["80.00", "20.00", "300.00"])
   })
 
   it("as partes em R$ nunca são ajustadas, e as travas não vão para o plano", async () => {
