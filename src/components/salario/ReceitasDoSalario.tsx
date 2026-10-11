@@ -133,10 +133,14 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
 })
 
 function Escolha({ categorias, salvas, onSalvas }: { categorias: Category[]; salvas: string[]; onSalvas: (plano: PlanoDoSalario) => void }) {
-  const [marcadas, setMarcadas] = useState<string[]>(salvas)
-  const [salvando, setSalvando] = useState(false)
   const lista = listaDasCategorias(categorias)
-  const mudou = !mesmas(marcadas, salvas)
+  // SALARIO-14: uma categoria salva que foi inativada não está na lista nem
+  // vai no envio, que o backend recusaria
+  const ativa = (id: string) => lista.some((c) => c.id === id)
+  const ativas = salvas.filter(ativa)
+  const [marcadas, setMarcadas] = useState<string[]>(ativas)
+  const [salvando, setSalvando] = useState(false)
+  const mudou = !mesmas(marcadas, ativas)
 
   const alternar = (id: string, marcada: boolean) =>
     setMarcadas((atuais) => (marcada ? [...atuais, id] : atuais.filter((c) => c !== id)))
@@ -144,7 +148,7 @@ function Escolha({ categorias, salvas, onSalvas }: { categorias: Category[]; sal
   const salvar = async () => {
     setSalvando(true)
     try {
-      const plano = await salarioService.salvarCategorias(marcadas)
+      const plano = await salarioService.salvarCategorias(marcadas.filter(ativa))
       toast.success("Receitas de salário salvas.")
       onSalvas(plano)
     } catch (erro) {

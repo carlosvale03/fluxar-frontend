@@ -312,7 +312,6 @@ export function GestaoDoSalario() {
               partesIniciais={partesDoEditor}
               focarDestino={destinoEmFoco}
               codigoDoModelo={modeloEscolhido ?? modeloDoPlanoSalvo?.code}
-              categoriasDoSalario={plano.salary_categories}
               contas={contas}
               metas={metas}
               referencias={referencias}

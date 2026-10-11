@@ -136,7 +136,8 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     expect(corpo.parts.map((p) => p.name)).toEqual(["Essenciais", "Guardar", "Dispensáveis"])
     expect(corpo.parts[0]).toMatchObject({ rule_type: "PERCENT", value: "50.00", destination_type: "SALARY_ACCOUNT", reference: "ESSENCIAL" })
     expect(corpo.parts[1]).toMatchObject({ value: "20.00", destination_type: null, account: null, goal: null })
-    expect(corpo.salary_categories).toEqual(["cat-salario"])
+    // SALARIO-14: as categorias ficam no painel Receitas de salário
+    expect(corpo).not.toHaveProperty("salary_categories")
   })
 
   it("a parte com referência mostra \"62,0% no seu histórico\"", async () => {

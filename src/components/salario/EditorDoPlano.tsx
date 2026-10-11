@@ -171,9 +171,6 @@ function pedidoDaMeta(parte: Rascunho, metas: Goal[]): { mensal: string; data: s
 
 interface EditorDoPlanoProps {
   partesIniciais: ParteInicial[]
-  // SALARIO-14: as categorias de salário salvas, reenviadas como estão; a
-  // escolha delas fica no painel Receitas de salário
-  categoriasDoSalario: string[]
   contas: Account[]
   metas: Goal[]
   referencias: ReferenciasDoSalario | null
@@ -198,7 +195,6 @@ interface EditorDoPlanoProps {
 // muda antes de salvar.
 export function EditorDoPlano({
   partesIniciais,
-  categoriasDoSalario,
   contas,
   metas,
   referencias,
@@ -408,7 +404,9 @@ export function EditorDoPlano({
     const chaves = partes.map((p) => p.chave)
     setSalvando(true)
     try {
-      const plano = await salarioService.salvarPlano({ parts: enviadas, salary_categories: categoriasDoSalario })
+      // SALARIO-14: as categorias ficam no painel Receitas de salário; o
+      // editor grava só as partes, e as categorias salvas não mudam
+      const plano = await salarioService.salvarPlano({ parts: enviadas })
       toast.success("Plano salvo.")
       onSalvo(plano)
     } catch (erro) {

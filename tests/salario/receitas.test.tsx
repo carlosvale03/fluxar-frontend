@@ -181,7 +181,7 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
     expect(document.activeElement).toBe(within(receitas).getByRole("checkbox", { name: "Salário" }))
   })
 
-  it("o plano salvo depois reenvia as categorias novas", async () => {
+  it("salvar o plano grava só as partes, sem reenviar as categorias", async () => {
     render(<SalarioPage />)
     const receitas = await painel()
 
@@ -196,7 +196,22 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
 
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(2))
     expect(put.mock.calls[1][0]).toBe("/salary/plan/")
-    expect((put.mock.calls[1][1] as { salary_categories: string[] }).salary_categories).toEqual(["cat-salario", "cat-freela"])
+    expect(put.mock.calls[1][1]).not.toHaveProperty("salary_categories")
+  })
+
+  it("uma categoria salva que foi inativada não aparece nem vai no envio", async () => {
+    comPlano({ ...SEM_PLANO, salary_categories: ["cat-salario", "cat-inativada"] })
+    render(<SalarioPage />)
+    const receitas = await painel()
+
+    const salvar = await within(receitas).findByRole("button", { name: "Salvar" })
+    expect(within(receitas).getByText("1 marcada")).toBeInTheDocument()
+    expect(salvar).toBeDisabled()
+    await userEvent.click(within(receitas).getByRole("checkbox", { name: "Freelance" }))
+    await userEvent.click(salvar)
+
+    await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
+    expect(put).toHaveBeenCalledWith("/salary/categories/", { salary_categories: ["cat-salario", "cat-freela"] })
   })
 
   it("sem salário a dividir, explica e leva ao painel com o foco na primeira categoria", async () => {
