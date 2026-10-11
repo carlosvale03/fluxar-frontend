@@ -1,12 +1,12 @@
 "use client"
 
 import { format } from "date-fns"
-import { Undo2 } from "lucide-react"
+import { AlertTriangle, Undo2 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { lerData } from "@/lib/datas"
 import { formatarMoeda } from "@/lib/dinheiro"
-import { resumoDoDesconto } from "@/lib/salario"
+import { avisoDasSaidasMudadas, resumoDoDesconto } from "@/lib/salario"
 import type { DivisaoDoSalario } from "@/types/salario"
 
 interface DivisoesRecentesProps {
@@ -38,6 +38,7 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
             : `Salário de ${formatarMoeda(divisao.receipt.amount)}`
           // SALARIO-68: o que a divisão descontou das saídas da conta
           const desconto = resumoDoDesconto(divisao.outflows)
+          const mudaram = avisoDasSaidasMudadas(divisao.outflows_changed)
           return (
             <li key={divisao.id} className="flex items-start justify-between gap-3 py-3">
               <div className="min-w-0 space-y-0.5">
@@ -46,6 +47,12 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
                   Dividido em {dataCurta(divisao.date)} · Total dividido: {formatarMoeda(divisao.total)}
                 </p>
                 {desconto && <p className="text-xs text-muted-foreground tabular-nums">{desconto}</p>}
+                {mudaram && (
+                  <p role="status" className="flex items-start gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                    <AlertTriangle aria-hidden className="mt-px h-3.5 w-3.5 shrink-0" />
+                    {mudaram}
+                  </p>
+                )}
                 <p className="text-xs text-muted-foreground tabular-nums">
                   Você pode desfazer até {dataCurta(divisao.can_undo_until)}
                 </p>

@@ -51,6 +51,14 @@ export function resumoDoDesconto(saidas: SaidaDescontada[] | undefined): string 
   return `Descontou ${formatarMoeda(deCentavos(total))} em ${quantidadeDeSaidas(saidas.length)}`
 }
 
+// SALARIO-77: o aviso das saídas descontadas que mudaram depois da divisão,
+// ou null quando nenhuma mudou
+export function avisoDasSaidasMudadas(n: number | undefined): string | null {
+  if (!n || n <= 0) return null
+  const saidas = n === 1 ? "1 saída mudou" : `${n} saídas mudaram`
+  return `${saidas} depois da divisão. Desfaça e divida de novo para recalcular.`
+}
+
 // O modelo que tem exatamente as partes do plano, ou null: dá o nome do
 // status da página ("Plano ativo: 50/30/20") e o sentido das partes
 export function modeloCorrespondente(

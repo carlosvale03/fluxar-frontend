@@ -199,6 +199,23 @@ describe("Divisões recentes", { timeout: 15000 }, () => {
     expect(confirmacao).toHaveTextContent("Descontou R$ 230,00 em 3 saídas. Elas voltam a ficar disponíveis para a próxima divisão.")
   })
 
+  // SALARIO-77: as saídas descontadas que mudaram depois da divisão
+  it("avisa quantas saídas mudaram depois da divisão, no singular e no plural", async () => {
+    recentes = () => [
+      { ...DIVISAO, outflows_changed: 1 },
+      divisao({ id: "div-2", receipt: { ...DIVISAO.receipt, id: "rec-2" }, outflows_changed: 2 }),
+      divisao({ id: "div-3", receipt: { ...DIVISAO.receipt, id: "rec-3" }, outflows_changed: 0 }),
+    ]
+    render(<SalarioPage />)
+
+    const lista = await screen.findByRole("list", { name: "Divisões recentes" })
+    const [uma, duas, nenhuma] = within(lista).getAllByRole("listitem")
+    expect(within(uma).getByRole("status")).toHaveTextContent("1 saída mudou depois da divisão. Desfaça e divida de novo para recalcular.")
+    expect(within(duas).getByRole("status")).toHaveTextContent("2 saídas mudaram depois da divisão. Desfaça e divida de novo para recalcular.")
+    expect(within(nenhuma).queryByRole("status")).not.toBeInTheDocument()
+    expect(nenhuma).not.toHaveTextContent("mudou")
+  })
+
   it("sem divisões no prazo, a seção não aparece", async () => {
     render(<SalarioPage />)
 

@@ -183,6 +183,9 @@ export interface DivisaoDoSalario {
   }[]
   // SALARIO-68: o que foi descontado; ausente nas divisões antigas
   outflows?: SaidaDescontada[]
+  // SALARIO-77: quantas saídas descontadas mudaram ou foram apagadas depois
+  // da divisão
+  outflows_changed?: number
   transactions: TransacaoDaDivisao[]
   total: string
   free: string
