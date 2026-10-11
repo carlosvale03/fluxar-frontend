@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState } from "react"
+import { Fragment, useEffect, useMemo, useRef, useState } from "react"
 import { flushSync } from "react-dom"
 import { format } from "date-fns"
 import { AlertTriangle, ArrowDown, ArrowUp, Lock, LockOpen, Plus, Save, Shuffle, Trash2 } from "lucide-react"
@@ -27,6 +27,7 @@ import {
   SelectGroup,
   SelectItem,
   SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
@@ -140,6 +141,20 @@ interface EdicaoDoPercentual {
 }
 
 // SALARIO-55: quanto a meta pede por mês para chegar na data
+// SALARIO-05: os destinos agrupados por tipo de conta, nesta ordem
+const GRUPOS_DE_CONTAS: { tipo: AccountType; rotulo: string }[] = [
+  { tipo: AccountType.CHECKING, rotulo: "Contas correntes" },
+  { tipo: AccountType.SAVINGS, rotulo: "Poupanças" },
+  { tipo: AccountType.WALLET, rotulo: "Carteiras" },
+  { tipo: AccountType.INVESTMENT, rotulo: "Investimentos" },
+  { tipo: AccountType.PIGGY_BANK, rotulo: "Cofrinhos" },
+]
+
+// Por nome, em português, sem diferenciar acento nem maiúscula
+function porNome<T extends { name: string }>(a: T, b: T): number {
+  return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" })
+}
+
 function pedidoDaMeta(parte: Rascunho, metas: Goal[]): { mensal: string; data: string } | null {
   if (!parte.destino.startsWith("GOAL:")) return null
   const id = parte.destino.slice(5)
@@ -216,12 +231,22 @@ export function EditorDoPlano({
     alvo?.focus()
   }, [focarDestino])
 
-  // SALARIO-05: contas ativas que não são cofrinho e metas ativas
-  const contasDeDestino = useMemo(
-    () => contas.filter((c) => c.is_active && c.type !== AccountType.PIGGY_BANK),
-    [contas],
+  // SALARIO-05: qualquer conta ativa, cofrinhos inclusive, e as metas ativas
+  const contasDeDestino = useMemo(() => contas.filter((c) => c.is_active), [contas])
+  const gruposDeDestino = useMemo(
+    () =>
+      GRUPOS_DE_CONTAS.map(({ tipo, rotulo }) => ({
+        rotulo,
+        contas: contasDeDestino.filter((c) => c.type === tipo).sort(porNome),
+      })).filter((grupo) => grupo.contas.length > 0),
+    [contasDeDestino],
   )
-  const metasDeDestino = useMemo(() => metas.filter((m) => m.is_active !== false), [metas])
+  const metasDeDestino = useMemo(
+    () => metas.filter((m) => m.is_active !== false).sort(porNome),
+    [metas],
+  )
+  // O cofrinho de cada meta, pelo nome da conta, quando a conta está na lista
+  const cofrinhoDaMeta = (meta: Goal) => contas.find((c) => c.id === meta.account)?.name
 
   const baseDaBarra = baseDaPrevia(valorSimulado, valorRecebido, referencias?.history.salary_average)
   const base = baseDaBarra?.centavos ?? null
@@ -402,6 +427,18 @@ export function EditorDoPlano({
     return { conhecido, nome: parte.inicial?.destination_name ?? "Destino indisponível" }
   }
 
+  // O texto do destino escolhido no campo: a meta leva o "Meta:" na frente,
+  // porque no campo não aparece o grupo
+  const rotuloDoDestino = (parte: Rascunho, nomeDesconhecido: string): string | undefined => {
+    if (parte.destino === "") return undefined
+    if (parte.destino === CONTA_DO_SALARIO) return "Fica na conta do salário"
+    const conta = contasDeDestino.find((c) => `ACCOUNT:${c.id}` === parte.destino)
+    if (conta) return conta.name
+    const meta = metasDeDestino.find((m) => `GOAL:${m.id}` === parte.destino)
+    if (meta) return `Meta: ${meta.name}`
+    return nomeDesconhecido
+  }
+
   // "Soma: 80% · Livre: 20%"; com partes fixas, a soma em R$ entra junto
   const fixos = barra.somaDosFixos > 0 ? ` + ${formatarMoeda(deCentavos(barra.somaDosFixos))}` : ""
   const resumoDaSoma =
@@ -574,34 +611,51 @@ export function EditorDoPlano({
 
                     <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
                       <SelectTrigger data-destino={indice} aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-xl">
-                        <SelectValue placeholder="Escolha o destino" />
+                        <SelectValue placeholder="Escolha o destino">
+                          {rotuloDoDestino(parte, destino.nome)}
+                        </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className="rounded-xl">
+                      <SelectContent className="max-h-80 rounded-xl">
                         <SelectItem value={CONTA_DO_SALARIO}>Fica na conta do salário</SelectItem>
                         {!destino.conhecido && (
                           <SelectItem value={parte.destino} disabled>
                             {destino.nome}
                           </SelectItem>
                         )}
-                        {contasDeDestino.length > 0 && (
-                          <SelectGroup>
-                            <SelectLabel>Contas</SelectLabel>
-                            {contasDeDestino.map((conta) => (
-                              <SelectItem key={conta.id} value={`ACCOUNT:${conta.id}`}>
-                                {conta.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
-                        )}
+                        {gruposDeDestino.map((grupo) => (
+                          <Fragment key={grupo.rotulo}>
+                            <SelectSeparator />
+                            <SelectGroup>
+                              <SelectLabel className="text-xs font-medium text-muted-foreground">{grupo.rotulo}</SelectLabel>
+                              {grupo.contas.map((conta) => (
+                                <SelectItem key={conta.id} value={`ACCOUNT:${conta.id}`}>
+                                  {conta.name}
+                                </SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </Fragment>
+                        ))}
                         {metasDeDestino.length > 0 && (
-                          <SelectGroup>
-                            <SelectLabel>Metas</SelectLabel>
-                            {metasDeDestino.map((meta) => (
-                              <SelectItem key={meta.id} value={`GOAL:${meta.id}`}>
-                                Meta: {meta.name}
-                              </SelectItem>
-                            ))}
-                          </SelectGroup>
+                          <>
+                            <SelectSeparator />
+                            <SelectGroup>
+                              <SelectLabel className="text-xs font-medium text-muted-foreground">Metas</SelectLabel>
+                              {metasDeDestino.map((meta) => {
+                                const cofrinho = cofrinhoDaMeta(meta)
+                                return (
+                                  <SelectItem key={meta.id} value={`GOAL:${meta.id}`}>
+                                    {meta.name}
+                                    {cofrinho && (
+                                      <>
+                                        {" "}
+                                        <span className="text-xs text-muted-foreground">no {cofrinho}</span>
+                                      </>
+                                    )}
+                                  </SelectItem>
+                                )
+                              })}
+                            </SelectGroup>
+                          </>
                         )}
                       </SelectContent>
                     </Select>

@@ -41,14 +41,14 @@ const get = vi.mocked(api.get)
 const post = vi.mocked(api.post)
 const put = vi.mocked(api.put)
 
-function comPlano(plano: PlanoDoSalario) {
+function comPlano(plano: PlanoDoSalario, { contas = CONTAS, metas = METAS }: { contas?: unknown[]; metas?: unknown[] } = {}) {
   const dados: Record<string, unknown> = {
     "/salary/pending/": [],
     "/salary/references/": referencias(),
     "/salary/plan/": plano,
     "/salary/models/": MODELOS,
-    "/accounts/": CONTAS,
-    "/goals/": METAS,
+    "/accounts/": contas,
+    "/goals/": metas,
     "/categories/": CATEGORIAS_DE_RECEITA,
   }
   get.mockImplementation(((url: string) => resposta(dados[url] ?? [])) as typeof api.get)
@@ -149,14 +149,14 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     expect(parteNoEditor("Guardar")).not.toHaveTextContent("no seu histórico")
   })
 
-  it("o destino oferece contas ativas que não são cofrinho e metas ativas, e a meta escolhida vai no plano", async () => {
+  it("o destino oferece contas ativas, cofrinhos inclusive, e metas ativas, e a meta escolhida vai no plano", async () => {
     render(<SalarioPage />)
     await usarModelo("50/30/20")
 
     await userEvent.click(screen.getByLabelText("Destino de Guardar"))
     const opcoes = (await screen.findAllByRole("option")).map((o) => o.textContent)
-    expect(opcoes).toEqual(["Fica na conta do salário", "Banco Azul", "Reserva", "Meta: Viagem"])
-    await userEvent.click(screen.getByRole("option", { name: "Meta: Viagem" }))
+    expect(opcoes).toEqual(["Fica na conta do salário", "Banco Azul", "Reserva", "Cofrinho Casa", "Viagem no Cofrinho Casa"])
+    await userEvent.click(screen.getByRole("option", { name: "Viagem no Cofrinho Casa" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
@@ -214,7 +214,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     put.mockRejectedValue({
       response: {
         status: 400,
-        data: { parts: [{}, { value: ["O percentual deve ficar entre 0,01% e 100%."] }, { goal: ["Escolha uma conta ativa que não seja cofrinho ou uma meta ativa."] }] },
+        data: { parts: [{}, { value: ["O percentual deve ficar entre 0,01% e 100%."] }, { goal: ["Escolha uma conta ativa ou uma meta ativa."] }] },
       },
     })
     render(<SalarioPage />)
@@ -223,7 +223,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
     await vi.waitFor(() =>
-      expect(parteNoEditor("Guardar")).toHaveTextContent("Escolha uma conta ativa que não seja cofrinho ou uma meta ativa."),
+      expect(parteNoEditor("Guardar")).toHaveTextContent("Escolha uma conta ativa ou uma meta ativa."),
     )
     expect(parteNoEditor("Dispensáveis")).toHaveTextContent("O percentual deve ficar entre 0,01% e 100%.")
     expect(parteNoEditor("Essenciais")).not.toHaveTextContent("O percentual deve")
@@ -279,5 +279,95 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
 
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
     expect(put).toHaveBeenCalledWith("/salary/categories/", { salary_categories: ["cat-salario", "cat-freela"] })
+  })
+})
+
+// SALARIO-05 e SALARIO-11: qualquer conta ativa é destino, cofrinhos
+// inclusive, agrupada por tipo; as metas ativas vêm por último
+describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
+  const CONTAS_DE_TODOS_OS_TIPOS = [
+    { id: "cofre-b", name: "Cofrinho Viagem", type: "PIGGY_BANK", is_active: true, balance: "0.00" },
+    { id: "invest", name: "Corretora", type: "INVESTMENT", is_active: true, balance: "0.00" },
+    { id: "cart", name: "Carteira", type: "WALLET", is_active: true, balance: "0.00" },
+    { id: "poup", name: "Poupança Caixa", type: "SAVINGS", is_active: true, balance: "0.00" },
+    { id: "cc-z", name: "Zeta Banco", type: "CHECKING", is_active: true, balance: "0.00" },
+    { id: "cc-a", name: "Ágil Banco", type: "CHECKING", is_active: true, balance: "0.00" },
+    { id: "cc-b", name: "banco Beta", type: "CHECKING", is_active: true, balance: "0.00" },
+    { id: "cofre-a", name: "Cofrinho Casa", type: "PIGGY_BANK", is_active: true, balance: "0.00" },
+    { id: "velha", name: "Conta antiga", type: "CHECKING", is_active: false, balance: "0.00" },
+    { id: "cofre-velho", name: "Cofrinho velho", type: "PIGGY_BANK", is_active: false, balance: "0.00" },
+  ]
+  const METAS_EM_COFRINHOS = [
+    { id: "m-viagem", name: "Viagem", status: "IN_PROGRESS", is_active: true, target_amount: "100.00", current_amount: "0.00", account: "cofre-b" },
+    { id: "m-casa", name: "Casa", status: "IN_PROGRESS", is_active: true, target_amount: "100.00", current_amount: "0.00", account: "cofre-a" },
+    { id: "m-sem", name: "Avulsa", status: "IN_PROGRESS", is_active: true, target_amount: "100.00", current_amount: "0.00", account: "fora-da-lista" },
+    { id: "m-velha", name: "Antiga", status: "COMPLETED", is_active: false, target_amount: "100.00", current_amount: "100.00", account: "cofre-a" },
+  ]
+
+  async function abrirDestinos(contas: unknown[] = CONTAS_DE_TODOS_OS_TIPOS, metas: unknown[] = METAS_EM_COFRINHOS) {
+    comPlano(SEM_PLANO, { contas, metas })
+    render(<SalarioPage />)
+    await usarModelo("50/30/20")
+    await userEvent.click(screen.getByLabelText("Destino de Guardar"))
+    return screen.findByRole("listbox")
+  }
+
+  const nomesDasOpcoes = (grupo: HTMLElement) => within(grupo).getAllByRole("option").map((o) => o.textContent)
+
+  it("os grupos seguem a ordem dos tipos, com as metas por último", async () => {
+    const lista = await abrirDestinos()
+
+    const grupos = within(lista).getAllByRole("group").map((g) => g.getAttribute("aria-labelledby"))
+    const rotulos = grupos.map((id) => document.getElementById(id ?? "")?.textContent)
+    expect(rotulos).toEqual(["Contas correntes", "Poupanças", "Carteiras", "Investimentos", "Cofrinhos", "Metas"])
+    expect(within(lista).getAllByRole("option")[0]).toHaveTextContent("Fica na conta do salário")
+  })
+
+  it("as contas de cada grupo vêm por nome, sem diferenciar acento nem maiúscula", async () => {
+    await abrirDestinos()
+
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Contas correntes" }))).toEqual(["Ágil Banco", "banco Beta", "Zeta Banco"])
+  })
+
+  it("os cofrinhos aparecem no grupo Cofrinhos e podem ser o destino", async () => {
+    await abrirDestinos()
+
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Casa", "Cofrinho Viagem"])
+    await userEvent.click(screen.getByRole("option", { name: "Cofrinho Casa" }))
+    await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
+
+    await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
+    expect(corpoDoPut().parts[2]).toMatchObject({ name: "Guardar", destination_type: "ACCOUNT", account: "cofre-a", goal: null })
+  })
+
+  it("contas e metas inativas não aparecem", async () => {
+    const lista = await abrirDestinos()
+
+    const opcoes = within(lista).getAllByRole("option").map((o) => o.textContent)
+    expect(opcoes).not.toContain("Conta antiga")
+    expect(opcoes).not.toContain("Cofrinho velho")
+    expect(opcoes.some((o) => o?.startsWith("Antiga"))).toBe(false)
+  })
+
+  it("as metas vêm no grupo Metas, por nome, com o cofrinho de cada uma quando ele é conhecido", async () => {
+    await abrirDestinos()
+
+    const metas = screen.getByRole("group", { name: "Metas" })
+    expect(nomesDasOpcoes(metas)).toEqual(["Avulsa", "Casa no Cofrinho Casa", "Viagem no Cofrinho Viagem"])
+    expect(within(metas).getByText("no Cofrinho Casa")).toHaveClass("text-muted-foreground")
+  })
+
+  it("um tipo sem conta ativa não vira grupo", async () => {
+    const lista = await abrirDestinos(
+      [
+        { id: "cc", name: "Banco", type: "CHECKING", is_active: true, balance: "0.00" },
+        { id: "cofre", name: "Cofrinho", type: "PIGGY_BANK", is_active: false, balance: "0.00" },
+      ],
+      [],
+    )
+
+    expect(within(lista).getAllByRole("group")).toHaveLength(1)
+    expect(screen.getByRole("group", { name: "Contas correntes" })).toBeInTheDocument()
+    expect(screen.queryByRole("group", { name: "Cofrinhos" })).not.toBeInTheDocument()
   })
 })
