@@ -242,6 +242,9 @@ describe("Ajuste dos percentuais no editor", { timeout: 15000 }, () => {
 
     expect(campo("Dispensáveis")).toHaveValue("30")
     expect(campo("Guardar")).toHaveValue("20")
+    // Vazia, a parte não diz quanto recebe
+    expect(screen.getByRole("listitem", { name: "Essenciais" })).not.toHaveTextContent("Recebe")
+    expect(screen.getByRole("listitem", { name: "Dispensáveis" })).toHaveTextContent("Recebe R$ 900,00")
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
     expect(within(screen.getByRole("listitem", { name: "Essenciais" })).getByText("Informe um valor.")).toBeInTheDocument()
     expect(put).not.toHaveBeenCalled()

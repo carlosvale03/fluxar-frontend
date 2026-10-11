@@ -712,7 +712,7 @@ export function EditorDoPlano({
                         <p className="font-medium text-amber-700 dark:text-amber-400 tabular-nums">
                           Reduzida para {formatarMoeda(deCentavos(fatia.centavos))}
                         </p>
-                      ) : parte.rule_type === "PERCENT" ? (
+                      ) : parte.rule_type === "PERCENT" && valorEnviado(parte) !== null ? (
                         <p className="font-medium text-foreground tabular-nums">Recebe {formatarMoeda(deCentavos(fatia.centavos))}</p>
                       ) : null)}
                     {errosDaParte.name && <p className="font-medium text-destructive">{errosDaParte.name}</p>}
