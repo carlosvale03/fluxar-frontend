@@ -1,4 +1,4 @@
-import { render, screen, within } from "@testing-library/react"
+import { act, render, screen, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -247,8 +247,31 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     const janela = await abrirRevisao()
     await vi.waitFor(() => expect(chamadasDaPrevia()).toHaveLength(2))
 
-    await escolher(janela, "Mercado", "Dispensáveis")
-    await escolher(janela, "Guardar para a viagem", "Não descontar")
+    // Com o relógio falso, a espera de 300 ms do recálculo só passa quando o
+    // teste manda, por mais lenta que seja a máquina. A Testing Library só
+    // avança o relógio falso que reconhece como o do Jest
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })
+    vi.stubGlobal("jest", { advanceTimersByTime: (ms: number) => vi.advanceTimersByTime(ms) })
+    try {
+      const pessoa = userEvent.setup({ advanceTimers: (ms) => vi.advanceTimersByTime(ms) })
+      const escolherNaHora = async (descricao: string, opcao: string) => {
+        await pessoa.click(within(janela).getByRole("combobox", { name: `Parte de ${descricao}` }))
+        await pessoa.click(await screen.findByRole("option", { name: opcao }))
+      }
+      await escolherNaHora("Mercado", "Dispensáveis")
+      await escolherNaHora("Guardar para a viagem", "Não descontar")
+      expect(chamadasDaPrevia()).toHaveLength(2)
+
+      await act(() => vi.advanceTimersByTimeAsync(299))
+      expect(chamadasDaPrevia()).toHaveLength(2)
+      await act(() => vi.advanceTimersByTimeAsync(1))
+      expect(chamadasDaPrevia()).toHaveLength(3)
+      // A resposta da prévia chega numa tarefa própria, também no relógio falso
+      await act(() => vi.advanceTimersByTimeAsync(10))
+    } finally {
+      vi.useRealTimers()
+      vi.unstubAllGlobals()
+    }
 
     await vi.waitFor(() => expect(parteNaRevisao(janela, "Dispensáveis")).toHaveTextContent("Já gasto R$ 130,00"))
     expect(chamadasDaPrevia()).toHaveLength(3)
