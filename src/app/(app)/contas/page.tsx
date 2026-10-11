@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { Plus, Wallet, AlertCircle, Filter, Search, SlidersHorizontal, Check } from "lucide-react"
 import { toast } from "sonner"
 
@@ -31,6 +31,8 @@ import { AccountCard } from "@/components/accounts/account-card"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { BalanceAdjustmentDialog } from "@/components/accounts/balance-adjustment-dialog"
 import { api, mensagemDeErro } from "@/services/apiClient"
+import { accountsService, StatusDaConta } from "@/services/accounts"
+import { tratarErro } from "@/lib/erros"
 import { Account, AccountType } from "@/types/accounts"
 import { usePlan } from "@/hooks/use-plan"
 import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
@@ -70,22 +72,29 @@ export default function AccountsPage() {
   // PERM-18 e PERM-20: o limite e o uso vêm do acesso do /auth/me
   const hasReachedLimit = limiteAtingido("limite_contas")
 
-  const fetchAccounts = async () => {
+  // SALDO-51: "Ativas" usa a lista padrão; "Inativas" e "Todas" pedem ao
+  // backend as contas inativas também
+  const statusDaBusca: StatusDaConta | undefined =
+    statusFilter === "INACTIVE" ? "inactive" : statusFilter === "ALL" ? "all" : undefined
+  // Só a resposta da busca mais recente vale (o filtro pode mudar no meio)
+  const ultimaBusca = useRef(0)
+
+  const fetchAccounts = useCallback(async () => {
+    const busca = ++ultimaBusca.current
     try {
       setIsLoading(true)
-      const response = await api.get("/accounts/")
-      const data = response.data
-      setAccounts(data || [])
-    } catch (error) {
-      toast.error("Erro ao carregar contas.")
+      const data = await accountsService.getAccounts(statusDaBusca)
+      if (busca === ultimaBusca.current) setAccounts(data || [])
+    } catch {
+      if (busca === ultimaBusca.current) toast.error("Erro ao carregar contas.")
     } finally {
-      setIsLoading(false)
+      if (busca === ultimaBusca.current) setIsLoading(false)
     }
-  }
+  }, [statusDaBusca])
 
   useEffect(() => {
     fetchAccounts()
-  }, [])
+  }, [fetchAccounts])
 
   const filteredAccounts = accounts.filter(acc => {
       const matchesType = filterTypes.length === 0 || filterTypes.includes(acc.type as AccountType)
@@ -149,6 +158,19 @@ export default function AccountsPage() {
     } catch (error) {
       // SALDO-32 e SALDO-33: o backend diz o que resolver antes de excluir
       toast.error(mensagemDeErro(error, "Erro ao excluir conta."))
+    }
+  }
+
+  // SALDO-49 e SALDO-50: reativar volta a conta às listas e pode esbarrar no
+  // limite de contas do plano
+  const handleReactivate = async (account: Account) => {
+    try {
+      await accountsService.reactivateAccount(account.id)
+      toast.success("Conta reativada.")
+      void atualizarUso()
+      fetchAccounts()
+    } catch (error) {
+      tratarErro(error, { mensagemPadrao: "Erro ao reativar conta." })
     }
   }
 
@@ -447,6 +469,7 @@ export default function AccountsPage() {
                     onEdit={handleEdit} 
                     onDelete={handleDeleteClick} 
                     onAdjustment={handleAdjustment}
+                    onReactivate={handleReactivate}
                 />
             ))}
         </div>
@@ -461,6 +484,7 @@ export default function AccountsPage() {
         }}
         account={selectedAccount}
         onSuccess={handleFormSuccess}
+        onUpdated={fetchAccounts}
       />
 
       {/* Balance Adjustment Dialog */}

@@ -33,6 +33,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { MoneyInput } from "@/components/ui/money-input"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { api } from "@/services/apiClient"
+import { accountsService } from "@/services/accounts"
 import { Account, AccountType, AccountTypeLabels } from "@/types/accounts"
 import { BANKS } from "@/data/banks"
 import { cn } from "@/lib/utils"
@@ -80,6 +81,9 @@ interface AccountFormDialogProps {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   defaultType?: AccountType
+  // Os dados foram salvos, mas o diálogo continua aberto (a inativação ou a
+  // reativação foi recusada): a lista pode se atualizar sem fechar o diálogo
+  onUpdated?: () => void
 }
 
 export function AccountFormDialog({ 
@@ -88,7 +92,8 @@ export function AccountFormDialog({
     onSuccess, 
     open: controlledOpen, 
     onOpenChange: setControlledOpen,
-    defaultType = AccountType.CHECKING
+    defaultType = AccountType.CHECKING,
+    onUpdated,
 }: AccountFormDialogProps) {
   const [internalOpen, setInternalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -162,23 +167,68 @@ export function AccountFormDialog({
 
   const onSubmit = async (data: AccountFormValues) => {
     setIsLoading(true)
-    try {
-      const payload = {
-          ...data,
-          initial_balance: deCentavos(paraCentavos(data.initial_balance)),
-          is_active: data.is_active ?? true,
-          institution: data.institution === "other" ? "" : data.institution
-      }
+    // SALDO-52: o status não vai no PUT (o backend o ignora); o interruptor
+    // inativa ou reativa a conta pelas rotas próprias
+    const { is_active: ativa, ...dados } = data
+    const payload = {
+        ...dados,
+        initial_balance: deCentavos(paraCentavos(data.initial_balance)),
+        institution: data.institution === "other" ? "" : data.institution
+    }
 
-      if (isEditing && account) {
-        await api.put(`/accounts/${account.id}/`, payload)
-        toast.success("Conta atualizada com sucesso!")
-      } else {
-        await api.post("/accounts/", payload)
-        toast.success("Conta criada com sucesso!")
-        void atualizarUso()
+    if (isEditing && account) {
+      const querAtiva = ativa ?? true
+      const mudouStatus = querAtiva !== account.is_active
+      const mudouDados =
+        payload.name !== account.name ||
+        payload.type !== account.type ||
+        paraCentavos(payload.initial_balance) !== paraCentavos(account.initial_balance) ||
+        (payload.institution ?? "") !== (account.institution ?? "") ||
+        (payload.color ?? "") !== (account.color ?? "")
+      let salvouDados = false
+      let mudouNoBackend = false
+      try {
+        // Inativar: salva os dados antes, enquanto a conta ainda está ativa.
+        // Reativar: reativa antes, para os dados irem a uma conta ativa
+        if (mudouStatus && querAtiva) {
+          await accountsService.reactivateAccount(account.id)
+          mudouNoBackend = true
+          void atualizarUso()
+        }
+        if (mudouDados || !mudouStatus) {
+          await api.put(`/accounts/${account.id}/`, payload)
+          salvouDados = true
+        }
+        if (mudouStatus && !querAtiva) {
+          await accountsService.deactivateAccount(account.id)
+          mudouNoBackend = true
+          void atualizarUso()
+        }
+        toast.success(
+          !mudouStatus ? "Conta atualizada com sucesso!" : querAtiva ? "Conta reativada." : "Conta inativada.",
+        )
+        setOpen?.(false)
+        onSuccess?.()
+      } catch (error) {
+        // SALDO-47, SALDO-48 e SALDO-50: a recusa do backend vai ao Sonner, o
+        // diálogo fica aberto e o interruptor volta ao status da conta
+        if (mudouStatus && !mudouNoBackend) setValue("is_active", account.is_active)
+        if (salvouDados || mudouNoBackend) onUpdated?.()
+        tratarErro(error, {
+          form: { setError },
+          campos: ["name", "initial_balance"],
+          mensagemPadrao: "Erro ao salvar conta.",
+        })
+      } finally {
+        setIsLoading(false)
       }
-      
+      return
+    }
+
+    try {
+      await api.post("/accounts/", payload)
+      toast.success("Conta criada com sucesso!")
+      void atualizarUso()
       setOpen?.(false)
       onSuccess?.()
     } catch (error) {
@@ -398,7 +448,8 @@ export function AccountFormDialog({
                         )}
                     </div>
 
-                    {/* Status Toggle Area */}
+                    {/* SALDO-52: inativar e reativar valem só para uma conta que já existe */}
+                    {isEditing && (
                     <div className="flex items-center justify-between p-5 rounded-[24px] bg-muted/5 border border-border/20 group hover:border-primary/20 transition-all duration-500">
                         <div className="flex items-center gap-3">
                             <div className={cn(
@@ -408,8 +459,8 @@ export function AccountFormDialog({
                                 <CheckCircle2 className="h-5 w-5" />
                             </div>
                             <div className="space-y-0.5">
-                                <Label htmlFor="is_active" className="text-sm font-black tracking-tight cursor-pointer">Conta Ativa</Label>
-                                <p className="text-[10px] text-muted-foreground/60 font-medium">Define se a conta será exibida nos seletores de transação.</p>
+                                <Label htmlFor="is_active" className="text-sm font-black tracking-tight cursor-pointer">Conta ativa</Label>
+                                <p className="text-[10px] text-muted-foreground/60 font-medium">Inativar tira a conta das listas e dos totais. O histórico continua.</p>
                             </div>
                         </div>
                         <Switch 
@@ -419,6 +470,7 @@ export function AccountFormDialog({
                             className="data-[state=checked]:bg-primary shadow-sm"
                         />
                     </div>
+                    )}
 
                     <DialogFooter className="pt-4">
                         <Button 
