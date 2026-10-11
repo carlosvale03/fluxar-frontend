@@ -102,6 +102,8 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   // Cada cálculo ganha um número, e só a resposta do último entra na tela
   const sequencia = useRef(0)
   const espera = useRef<ReturnType<typeof setTimeout> | undefined>(undefined)
+  // O recebimento aberto agora: a resposta da geração de outro não entra na tela
+  const recebimentoAberto = useRef<string | null>(recebimentoId)
 
   const aplicar = (nova: Revisao, valores: Pedido) => {
     pedido.current = valores
@@ -144,6 +146,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   }
 
   useEffect(() => {
+    recebimentoAberto.current = recebimentoId
     if (!recebimentoId) return
     chaveDaTentativa.current = crypto.randomUUID()
     clearTimeout(espera.current)
@@ -209,8 +212,19 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
         void _removido
         return resto
       })
-    if (digitado === undefined || digitado === item.amount) return
+    if (digitado === undefined) return
+    const ajustada = parte in pedido.current.ajustes
     if (!digitado) {
+      // Campo limpo: o ajuste sai do pedido, e a parte volta ao valor do plano
+      esquecer()
+      if (ajustada) {
+        const { [parte]: _removido, ...resto } = pedido.current.ajustes
+        void _removido
+        await recalcular({ ajustes: resto })
+      }
+      return
+    }
+    if (digitado === item.amount) {
       esquecer()
       return
     }
@@ -227,17 +241,21 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
 
   const gerar = async () => {
     if (!recebimentoId) return
+    const id = recebimentoId
     setGerando(true)
     try {
       const { ajustes, escolhas: saidas } = aplicado.current
-      const divisao = await salarioService.gerar(recebimentoId, chaveDaTentativa.current, ajustes, saidas)
-      setResultado(divisao)
-      toast.success("Divisão gerada.")
+      const divisao = await salarioService.gerar(id, chaveDaTentativa.current, ajustes, saidas)
+      // Com outro recebimento aberto, só as listas da página são relidas
+      if (recebimentoAberto.current === id) {
+        setResultado(divisao)
+        toast.success("Divisão gerada.")
+      }
       onGerada(divisao)
     } catch (erro) {
       // A chave continua a mesma: o reenvio depois de um erro de rede recebe
       // a divisão já gravada, sem gerar em dobro
-      tratarErro(erro, { mensagemPadrao: "Erro ao gerar as transações da divisão." })
+      if (recebimentoAberto.current === id) tratarErro(erro, { mensagemPadrao: "Erro ao gerar as transações da divisão." })
     } finally {
       setGerando(false)
     }
@@ -344,20 +362,15 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               </p>
             )}
           </div>
-          {transfere ? (
-            <p className="text-right whitespace-nowrap">
-              <span className="block text-[11px] font-medium text-muted-foreground">Transferir</span>{" "}
-              <span className="font-black text-sm tabular-nums">{formatarMoeda(item.transfer ?? item.amount)}</span>
-            </p>
-          ) : gasto > 0 ? (
-            // Parte que fica na conta e já teve gastos: mostra o que ainda resta dela
-            <p className="text-right whitespace-nowrap">
-              <span className="block text-[11px] font-medium text-muted-foreground">Resta</span>{" "}
-              <span className="font-black text-sm tabular-nums">{formatarMoeda(item.transfer ?? item.amount)}</span>
-            </p>
-          ) : (
-            <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(item.amount)}</p>
-          )}
+          {/* Só a parte que gera transação transfere; a que fica na conta mostra o que resta dela depois dos gastos */}
+          <p className="text-right whitespace-nowrap">
+            <span className="block text-[11px] font-medium text-muted-foreground">
+              {gera ? "Transferir" : gasto > 0 ? "Resta" : "Fica na conta"}
+            </span>{" "}
+            <span className="font-black text-sm tabular-nums">
+              {formatarMoeda(gera || gasto > 0 ? (item.transfer ?? item.amount) : item.amount)}
+            </span>
+          </p>
         </div>
         {passou > 0 && (
           <p role="status" className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400">
@@ -365,27 +378,37 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
           </p>
         )}
         {id && (
-          <MoneyInput
-            aria-label={`Ajustar ${item.name}`}
-            value={digitados[id] ?? item.amount}
-            className="rounded-xl h-9 text-sm"
-            disabled={recalculando || gerando}
-            onValueChange={(valor) => setDigitados((atuais) => ({ ...atuais, [id]: valor ?? "" }))}
-            onBlur={() => void aplicarAjuste(item)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault()
-                e.currentTarget.blur()
-              }
-            }}
-          />
+          <div className="space-y-1">
+            <MoneyInput
+              aria-label={`Ajustar ${item.name}`}
+              aria-describedby={saidas.length ? `ajuste-de-${id}` : undefined}
+              value={digitados[id] ?? item.amount}
+              className="rounded-xl h-9 text-sm"
+              disabled={recalculando || gerando}
+              onValueChange={(valor) => setDigitados((atuais) => ({ ...atuais, [id]: valor ?? "" }))}
+              onBlur={() => void aplicarAjuste(item)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault()
+                  e.currentTarget.blur()
+                }
+              }}
+            />
+            {/* SALARIO-30 e SALARIO-66: o ajuste troca o valor da parte, e as saídas saem dele depois */}
+            {saidas.length > 0 && (
+              <p id={`ajuste-de-${id}`} className="text-[11px] font-medium text-muted-foreground">
+                Valor da parte antes de descontar as saídas
+              </p>
+            )}
+          </div>
         )}
       </li>
     )
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    // Enquanto gera, a janela não fecha, como no desfazer
+    <Dialog open={open} onOpenChange={(aberta) => !gerando && onOpenChange(aberta)}>
       <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px] bg-background">
         {/* Rolagem nativa: o ScrollArea do Radix põe o conteúdo num display: table, que cresce até o texto mais longo e corta a janela */}
         <div className="max-h-[90vh] overflow-y-auto overflow-x-hidden">
@@ -508,7 +531,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
 
                 <Button
                   className="w-full rounded-2xl font-black text-sm h-12 shadow-lg shadow-primary/20"
-                  disabled={!confirmado || transacoes.length === 0 || gerando || recalculando}
+                  disabled={!confirmado || transacoes.length === 0 || semDestino || gerando || recalculando}
                   onClick={gerar}
                 >
                   {gerando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

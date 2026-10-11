@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import SalarioPage from "@/app/(app)/salario/page"
+import { RevisaoDaDivisao as Revisao } from "@/components/salario/RevisaoDaDivisao"
 import type { User } from "@/contexts/auth-context"
 import { api } from "@/services/apiClient"
 import type { PlanoDoSalario, RevisaoDaDivisao } from "@/types/salario"
@@ -175,6 +176,58 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     expect(corpo).toMatchObject({ receipt: "rec-1", adjustments: { "p-gua": "450.00" } })
   })
 
+  it("limpar o ajuste tira a parte de \"Ajustada\" e recalcula sem o ajuste", async () => {
+    const janela = await abrirRevisao()
+    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    const ajuste = within(janela).getByLabelText("Ajustar Guardar")
+    await userEvent.clear(ajuste)
+    await userEvent.type(ajuste, "450")
+    await userEvent.tab()
+    await vi.waitFor(() => expect(within(janela).getByTestId("total-da-divisao")).toHaveTextContent("R$ 450,00"))
+    const guardar = () => within(within(janela).getByRole("list", { name: "Transações que serão criadas" })).getByRole("listitem", { name: "Guardar" })
+    expect(guardar()).toHaveTextContent("Ajustada")
+
+    await userEvent.clear(within(janela).getByLabelText("Ajustar Guardar"))
+    await userEvent.tab()
+
+    await vi.waitFor(() => expect(within(janela).getByTestId("total-da-divisao")).toHaveTextContent("R$ 600,00"))
+    expect(guardar()).not.toHaveTextContent("Ajustada")
+    expect(post.mock.calls.filter(([url]) => url === "/salary/divisions/preview/").at(-1)?.[1]).toEqual({ receipt: "rec-1" })
+    expect((within(janela).getByLabelText("Ajustar Guardar") as HTMLInputElement).value).toMatch(/600,00/)
+  })
+
+  it("a parte sem destino com algo a transferir não deixa gerar", async () => {
+    comRespostasDoPost({
+      previa: revisao({
+        items: revisao().items.map((item) =>
+          item.part_id === "p-gua" ? { ...item, destination_type: null, destination_name: null } : item,
+        ),
+      }),
+    })
+    const janela = await abrirRevisao()
+    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
+
+    expect(within(janela).getByText("Escolha o destino de todas as partes no plano antes de gerar.")).toBeInTheDocument()
+    expect(botaoGerar()).toBeDisabled()
+  })
+
+  it("enquanto gera, a janela não fecha", async () => {
+    let terminar: (valor: unknown) => void = () => {}
+    comRespostasDoPost({ geracao: () => new Promise((resolve) => (terminar = resolve)) })
+    const janela = await abrirRevisao()
+    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
+    await userEvent.click(botaoGerar())
+
+    await userEvent.keyboard("{Escape}")
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+
+    terminar({ data: divisao() })
+    expect(await within(janela).findByRole("heading", { name: "Divisão gerada" })).toBeInTheDocument()
+  })
+
   it("repetir depois de um erro de rede envia a mesma chave; reabrir gera outra", async () => {
     let tentativas = 0
     comRespostasDoPost({
@@ -255,5 +308,28 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     const janela = await dialogo()
     expect(within(janela).getByRole("heading", { name: "Revisar a divisão" })).toBeInTheDocument()
     await vi.waitFor(() => expect(post).toHaveBeenCalledWith("/salary/divisions/preview/", { receipt: "rec-9" }))
+  })
+})
+
+// SALARIO-44: a resposta da geração de um salário não entra na revisão de outro
+describe("Geração com outro salário aberto", { timeout: 15000 }, () => {
+  it("a resposta que chega depois de trocar o salário não mostra o resultado", async () => {
+    let terminar: (valor: unknown) => void = () => {}
+    comRespostasDoPost({ geracao: () => new Promise((resolve) => (terminar = resolve)) })
+    const onGerada = vi.fn()
+    const props = { onOpenChange: vi.fn(), onGerada, onDesfazer: vi.fn() }
+    const { rerender } = render(<Revisao recebimentoId="rec-1" {...props} />)
+    const janela = await dialogo()
+    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
+    await userEvent.click(botaoGerar())
+
+    rerender(<Revisao recebimentoId="rec-2" {...props} />)
+    terminar({ data: divisao() })
+
+    await vi.waitFor(() => expect(onGerada).toHaveBeenCalledTimes(1))
+    expect(screen.getByRole("heading", { name: "Revisar a divisão" })).toBeInTheDocument()
+    expect(screen.queryByRole("heading", { name: "Divisão gerada" })).not.toBeInTheDocument()
+    expect(toast.success).not.toHaveBeenCalled()
   })
 })

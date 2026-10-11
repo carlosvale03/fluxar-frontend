@@ -207,6 +207,8 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(guardar).toHaveTextContent("Transferir R$ 500,00")
     expect(parteNaRevisao(janela, "Essenciais")).toHaveTextContent("Já gasto R$ 130,00")
     expect(parteNaRevisao(janela, "Dispensáveis")).not.toHaveTextContent("Já gasto")
+    // O ajuste troca o valor da parte antes de descontar as saídas
+    expect(within(guardar).getByLabelText("Ajustar Guardar")).toHaveAccessibleDescription("Valor da parte antes de descontar as saídas")
 
     expect(within(janela).getByTestId("recebido-da-divisao")).toHaveTextContent("R$ 3.000,00")
     expect(within(janela).getByTestId("gasto-da-divisao")).toHaveTextContent("R$ 230,00")
@@ -263,7 +265,10 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
       expect(within(parteNaRevisao(janela, "Guardar")).getByRole("status")).toHaveTextContent("Passou R$ 150,00 do valor da parte"),
     )
     const ficam = within(janela).getByRole("list", { name: "Partes que ficam na conta do salário" })
-    expect(within(ficam).getByRole("listitem", { name: "Guardar" })).toHaveTextContent("Transferir R$ 0,00")
+    // Sem transação, a parte não diz "Transferir": mostra o que resta dela
+    expect(within(ficam).getByRole("listitem", { name: "Guardar" })).toHaveTextContent("Resta R$ 0,00")
+    expect(within(ficam).getByRole("listitem", { name: "Guardar" })).not.toHaveTextContent("Transferir")
+    expect(within(ficam).getByRole("listitem", { name: "Dispensáveis" })).toHaveTextContent("Fica na conta R$ 900,00")
     expect(within(janela).queryByRole("list", { name: "Transações que serão criadas" })).not.toBeInTheDocument()
     expect(within(janela).getByText("Nenhuma parte do plano gera transação.")).toBeInTheDocument()
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
