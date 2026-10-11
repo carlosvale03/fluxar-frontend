@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { lerData } from "@/lib/datas"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
+import { novoIdentificador } from "@/lib/identificador"
 import { quantidadeDeTransacoes, resumoDoDesconto } from "@/lib/salario"
 import { salarioService } from "@/services/salario"
 import type {
@@ -92,8 +93,9 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   const [resultado, setResultado] = useState<DivisaoDoSalario | null>(null)
   const [todasAsSaidas, setTodasAsSaidas] = useState(false)
 
-  // SALARIO-37 e AD-007: uma chave por abertura da revisão, reenviada em
-  // toda nova tentativa até o sucesso; fechar e abrir de novo gera outra
+  // SALARIO-37, SALARIO-79 e AD-007: uma chave nova a cada abertura da
+  // revisão, reenviada em toda nova tentativa até o sucesso; fechar e abrir
+  // de novo gera outra, e a chave de uma divisão desfeita recebe 409
   const chaveDaTentativa = useRef("")
   // Ajustes e saídas do último pedido e os da revisão na tela; a geração
   // envia os da tela, iguais aos do pedido fora do recálculo
@@ -148,7 +150,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   useEffect(() => {
     recebimentoAberto.current = recebimentoId
     if (!recebimentoId) return
-    chaveDaTentativa.current = crypto.randomUUID()
+    chaveDaTentativa.current = novoIdentificador()
     clearTimeout(espera.current)
     pedido.current = VAZIO
     aplicado.current = VAZIO

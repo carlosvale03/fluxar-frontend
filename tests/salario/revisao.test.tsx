@@ -264,6 +264,19 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     expect(chaveDaGeracao(2)).not.toBe(chaveDaGeracao(0))
   })
 
+  it("a chave de uma divisão desfeita recebe 409, e a revisão mostra o motivo", async () => {
+    const motivo = "Esta divisão foi desfeita. Abra a revisão de novo para dividir."
+    comRespostasDoPost({ geracao: () => Promise.reject({ response: { status: 409, data: { detail: motivo } } }) })
+    const janela = await abrirRevisao()
+    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
+
+    await userEvent.click(botaoGerar())
+
+    await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith(motivo))
+    expect(within(janela).getByRole("heading", { name: "Revisar a divisão" })).toBeInTheDocument()
+  })
+
   it("depois da geração, mostra as transações criadas e \"Desfazer divisão\", e atualiza os salários a dividir", async () => {
     const janela = await abrirRevisao()
     await within(janela).findByRole("list", { name: "Transações que serão criadas" })
