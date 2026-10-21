@@ -3,196 +3,202 @@
 
 
 @theme {
-  /* Primitive Palette Colors */
-  --color-brand-100: var(--palette-brand-100);
-  --color-brand-200: var(--palette-brand-200);
-  --color-brand-500: var(--palette-brand-500);
-  --color-brand-600: var(--palette-brand-600);
-  --color-brand-900: var(--palette-brand-900);
+  /* Fontes (AZ-03): as variáveis vêm do next/font no <html> */
+  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, SFMono-Regular, monospace;
+  --font-display: var(--font-archivo), var(--font-plex-sans), ui-sans-serif, sans-serif;
 
-  --color-neutral-0: var(--palette-neutral-0);
-  --color-neutral-50: var(--palette-neutral-50);
-  --color-neutral-100: var(--palette-neutral-100);
-  --color-neutral-200: var(--palette-neutral-200);
-  --color-neutral-300: var(--palette-neutral-300);
-  --color-neutral-500: var(--palette-neutral-500);
-  --color-neutral-700: var(--palette-neutral-700);
-  --color-neutral-900: var(--palette-neutral-900);
+  /* Semânticos do Azimute (DESIGN.md §3) */
+  --color-canvas: var(--az-canvas);
+  --color-surface: var(--az-surface);
+  --color-elevated: var(--az-elevated);
 
-  /* Semantic Colors mapping to Utilities */
-  --color-background: var(--bg-page);
-  --color-foreground: var(--text-primary);
-  
-  --color-card: var(--bg-card);
-  --color-card-foreground: var(--text-primary);
-  
-  --color-popover: var(--bg-card);
-  --color-popover-foreground: var(--text-primary);
-  
-  --color-primary: var(--btn-primary-bg);
-  --color-primary-foreground: var(--btn-primary-text);
-  
-  --color-secondary: var(--palette-neutral-100);
-  --color-secondary-foreground: var(--palette-neutral-900);
-  
-  --color-muted: var(--palette-neutral-100);
-  --color-muted-foreground: var(--text-secondary);
-  
-  --color-accent: var(--palette-neutral-100);
-  --color-accent-foreground: var(--palette-neutral-900);
-  
-  --color-destructive: var(--palette-salmon-500);
-  --color-destructive-foreground: var(--palette-neutral-0);
+  --color-border-subtle: var(--az-border-subtle);
+  --color-border-strong: var(--az-border-strong);
+  --color-border-input: var(--az-border-input);
 
-  --color-border: var(--border-default);
-  --color-input: var(--bg-input);
-  --color-ring: var(--border-focus);
+  --color-fg: var(--az-text-primary);
+  --color-fg-secondary: var(--az-text-secondary);
+  --color-fg-muted: var(--az-text-muted);
 
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
+  /* O ouro é "gold" porque "accent" já é o realce de hover do shadcn */
+  --color-gold: var(--az-gold);
+  --color-gold-hover: var(--az-gold-hover);
+  --color-gold-ink: var(--az-gold-ink);
+  --color-gold-line: var(--az-gold-line);
+
+  --color-inflow: var(--az-inflow);
+  --color-outflow: var(--az-outflow);
+  --color-warn: var(--az-warn);
+  --color-info: var(--az-info);
+
+  /* Compatibilidade com os nomes do shadcn (DESIGN.md §3.5) */
+  --color-background: var(--az-canvas);
+  --color-foreground: var(--az-text-primary);
+
+  --color-card: var(--az-surface);
+  --color-card-foreground: var(--az-text-primary);
+
+  --color-popover: var(--az-elevated);
+  --color-popover-foreground: var(--az-text-primary);
+
+  --color-primary: var(--az-gold);
+  --color-primary-foreground: var(--az-gold-ink);
+
+  --color-secondary: var(--az-elevated);
+  --color-secondary-foreground: var(--az-text-primary);
+
+  --color-muted: var(--az-elevated);
+  --color-muted-foreground: var(--az-text-secondary);
+
+  --color-accent: var(--az-elevated);
+  --color-accent-foreground: var(--az-text-primary);
+
+  --color-destructive: var(--az-outflow);
+  --color-destructive-foreground: var(--az-outflow-ink);
+
+  --color-border: var(--az-border-subtle);
+  --color-input: var(--az-border-input);
+  --color-ring: var(--az-gold-line);
+
+  /* Legado do Fluxar: brand e neutral, até a revisão dos componentes (AZ-10 a AZ-20) */
+  --color-brand-100: color-mix(in srgb, var(--az-gold) 14%, transparent);
+  --color-brand-200: color-mix(in srgb, var(--az-gold) 32%, transparent);
+  --color-brand-500: var(--az-gold);
+  --color-brand-600: var(--az-gold-hover);
+  --color-brand-900: var(--az-gold-line);
+
+  --color-neutral-0: var(--az-neutral-0);
+  --color-neutral-50: var(--az-neutral-50);
+  --color-neutral-100: var(--az-neutral-100);
+  --color-neutral-200: var(--az-neutral-200);
+  --color-neutral-300: var(--az-neutral-300);
+  --color-neutral-500: var(--az-neutral-500);
+  --color-neutral-700: var(--az-neutral-700);
+  --color-neutral-900: var(--az-neutral-900);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
 }
 
-/* 
+/*
    ========================================================================
-   FLUXAR DESIGN SYSTEM - CONCEITO 2: FLUXO & FLUIDEZ
-   ======================================================================== 
+   AZIMUTE DESIGN SYSTEM — instrumento de precisão à noite
+   Valores e contrastes: DESIGN.md §3. Escuro é o tema da classe .dark.
+   ========================================================================
 */
 
 :root {
   /* ----------------------------------------------------------------------
-     1. PRIMITIVOS (A Paleta Crua)
+     1. PRIMITIVOS (iguais nos dois temas)
      ---------------------------------------------------------------------- */
-  
-  /* Brand Colors (Azul Oceano) */
-  --palette-brand-100: #E0F7FA;
-  --palette-brand-200: #81D4FA;
-  --palette-brand-500: #00A8E8; /* Cor Principal */
-  --palette-brand-600: #008DC2; /* Hover */
-  --palette-brand-900: #004D6B;
+  --az-neutral-0:   #FFFFFF;
+  --az-neutral-50:  #F4F5F7;
+  --az-neutral-100: #ECEFF3;
+  --az-neutral-200: #E2E6EC;
+  --az-neutral-300: #CBD2DC;
+  --az-neutral-500: #5E6A7D;
+  --az-neutral-700: #2E3A52;
+  --az-neutral-900: #0B1220;
 
-  /* Accent Colors */
-  --palette-aqua-500:   #55D8C1; /* Receita/Sucesso */
-  --palette-salmon-500: #FF8F5E; /* Despesa/Erro */
-  --palette-mustard-500:#FFD166; /* Alerta/Foco */
-  
-  /* Neutrals (Slate Blue - Para manter a vibe 'fria' e tech) */
-  --palette-neutral-0:   #FFFFFF;
-  --palette-neutral-50:  #F8FAFC;
-  --palette-neutral-100: #F1F5F9;
-  --palette-neutral-200: #E2E8F0;
-  --palette-neutral-300: #CBD5E1;
-  --palette-neutral-500: #64748B;
-  --palette-neutral-700: #334155;
-  --palette-neutral-900: #0F172A; /* Quase preto */
+  --az-ink: #0A0D14;
 
   /* ----------------------------------------------------------------------
-     2. SEMÂNTICOS - TEMA CLARO (LIGHT MODE)
+     2. SEMÂNTICOS — TEMA CLARO (DESIGN.md §3.2)
      ---------------------------------------------------------------------- */
+  --az-canvas:   #F4F5F7;
+  --az-surface:  #FFFFFF;
+  --az-elevated: #ECEFF3;
 
-  /* --- BACKGROUNDS (Fundos) --- */
-  --bg-page:        var(--palette-neutral-50);  /* Fundo da tela inteira */
-  --bg-card:        var(--palette-neutral-0);   /* Fundo de containers/cards */
-  --bg-modal:       var(--palette-neutral-0);   /* Fundo de modais */
-  --bg-input:       var(--palette-neutral-50);  /* Fundo de inputs de texto */
-  --bg-hover:       var(--palette-neutral-100); /* Fundo ao passar o mouse em listas */
-  --bg-active:      var(--palette-brand-100);   /* Item selecionado no menu */
+  --az-border-subtle: #E2E6EC;
+  --az-border-strong: #CBD2DC;
+  --az-border-input:  #7D8798;
 
-  /* --- TYPOGRAPHY (Textos) --- */
-  --text-primary:   var(--palette-neutral-900); /* Títulos, valores principais */
-  --text-secondary: var(--palette-neutral-500); /* Legendas, descrições */
-  --text-tertiary:  var(--palette-neutral-300); /* Placeholders, textos desabilitados */
-  --text-inverse:   var(--palette-neutral-0);   /* Texto sobre fundos escuros/coloridos */
-  --text-brand:     var(--palette-brand-600);   /* Texto colorido (links, destaques) */
+  --az-text-primary:   #0B1220;
+  --az-text-secondary: #4A5568;
+  --az-text-muted:     #5E6A7D;
 
-  /* --- BORDERS & DIVIDERS (Bordas) --- */
-  --border-subtle:  var(--palette-neutral-100); /* Divisores muito leves */
-  --border-default: var(--palette-neutral-200); /* Bordas de cards e inputs */
-  --border-strong:  var(--palette-neutral-300); /* Bordas com mais contraste */
-  --border-focus:   var(--palette-brand-500);   /* Foco em inputs (outline) */
+  /* O ouro puro só serve de fundo no claro; traços e letras usam gold-line */
+  --az-gold:       #F5A524;
+  --az-gold-hover: #E8960F;
+  --az-gold-ink:   var(--az-ink);
+  --az-gold-line:  #9A5B00;
 
-  /* --- BUTTONS & ACTIONS (Botões) --- */
-  /* Primary Button (Azul) */
-  --btn-primary-bg:    var(--palette-brand-500);
-  --btn-primary-text:  var(--palette-neutral-0);
-  --btn-primary-hover: var(--palette-brand-600);
-  
-  /* Secondary/Ghost Button (Fundo transparente, borda ou texto azul) */
-  --btn-ghost-bg:      transparent;
-  --btn-ghost-text:    var(--palette-neutral-700);
-  --btn-ghost-hover:   var(--palette-neutral-100);
+  --az-inflow:      #0B7A55;
+  --az-outflow:     #C62F2F;
+  --az-outflow-ink: #FFFFFF;
+  --az-warn:        #B93F0A;
+  --az-info:        #1F5FD6;
 
-  /* --- FINANCE SPECIFIC (O coração do Fluxar) --- */
-  --finance-income:         #10b981;
-  --finance-income-light:   rgba(16, 185, 129, 0.1); 
-  --finance-expense:        #f43f5e;
-  --finance-expense-light:  rgba(244, 63, 94, 0.1);
-  --finance-chart-1:        var(--palette-brand-500);
-  --finance-chart-2:        #10b981;
-  --finance-chart-3:        var(--palette-mustard-500);
-  --finance-chart-4:        #f43f5e;
+  /* Auxiliares (DESIGN.md §3.3) */
+  --az-tolerance: rgba(31, 95, 214, 0.08);
+  --az-sheen:     rgba(255, 255, 255, 0);
+  --az-scrim:     rgba(11, 18, 32, 0.40);
 
-  /* --- MISC --- */
-  --radius-sm: 4px;
-  --radius-md: 8px; /* Padrão para cards */
-  --radius-lg: 16px;
+  /* Séries de gráfico (DESIGN.md §3.4) */
+  --az-serie-1: #9A5B00;
+  --az-serie-2: #1F5FD6;
+  --az-serie-3: #7A4FD0;
+  --az-serie-4: #B8336A;
+  --az-serie-5: #0E7490;
+  --az-serie-outros: #4A5568;
+
+  /* Nomes antigos ainda usados inline nos gráficos (troca na AZ-44) */
+  --finance-income:        var(--az-inflow);
+  --finance-income-light:  color-mix(in srgb, var(--az-inflow) 12%, transparent);
+  --finance-expense:       var(--az-outflow);
+  --finance-expense-light: color-mix(in srgb, var(--az-outflow) 12%, transparent);
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 8px 24px rgba(11, 18, 32, 0.08);
 }
 
 /* ----------------------------------------------------------------------
-   3. SEMÂNTICOS - TEMA ESCURO (DARK MODE)
+   3. SEMÂNTICOS — TEMA ESCURO (DESIGN.md §3.1)
    ---------------------------------------------------------------------- */
 [data-theme='dark'], .dark {
-  /* Redefinindo Primitivos para Dark Mode (Ajuste de contraste) */
-  --palette-brand-dark-bg: #0B1120; /* Deep Ocean */
-  --palette-surface-dark:  #1E293B; /* Lighter Ocean */
+  --az-canvas:   #07090F;
+  --az-surface:  #0D121C;
+  --az-elevated: #151C2B;
 
-  /* --- BACKGROUNDS --- */
-  --bg-page:        var(--palette-brand-dark-bg);
-  --bg-card:        var(--palette-surface-dark);
-  --bg-modal:       #253045;
-  --bg-input:       #0F172A;
-  --bg-hover:       #334155;
-  --bg-active:      rgba(0, 168, 232, 0.2); /* Azul com transparência */
+  --az-border-subtle: #1E2738;
+  --az-border-strong: #2E3A52;
+  --az-border-input:  #5C6882;
 
-  /* --- TYPOGRAPHY --- */
-  --text-primary:   #F8FAFC; /* Branco quase puro */
-  --text-secondary: #94A3B8; /* Cinza azulado claro */
-  --text-tertiary:  #475569;
-  --text-inverse:   #0F172A; /* Texto escuro (para botões claros) */
-  --text-brand:     #38BDF8; /* Azul mais claro e neon para ler no escuro */
+  --az-text-primary:   #ECEEF2;
+  --az-text-secondary: #A4ADBE;
+  --az-text-muted:     #7A8599;
 
-  /* --- BORDERS --- */
-  --border-subtle:  #1E293B;
-  --border-default: #334155;
-  --border-strong:  #475569;
-  --border-focus:   #38BDF8;
+  --az-gold:       #F5A524;
+  --az-gold-hover: #FFB84D;
+  --az-gold-ink:   var(--az-ink);
+  --az-gold-line:  #F5A524;
 
-  --color-muted:    var(--palette-neutral-700);
-  --color-muted-foreground: var(--text-secondary);
+  --az-inflow:      #3ED6A0;
+  --az-outflow:     #FF6B6B;
+  --az-outflow-ink: var(--az-ink);
+  --az-warn:        #FF8A3D;
+  --az-info:        #6EA8FF;
 
-  /* --- BUTTONS --- */
-  --btn-primary-bg:    #00A8E8;
-  --btn-primary-text:  #FFFFFF;
-  --btn-primary-hover: #38BDF8; /* Fica mais claro no hover em dark mode */
-  
-  --btn-ghost-text:    #E2E8F0;
-  --btn-ghost-hover:   rgba(255,255,255, 0.05);
+  --az-tolerance: rgba(110, 168, 255, 0.10);
+  --az-sheen:     rgba(236, 238, 242, 0.14);
+  --az-scrim:     rgba(7, 9, 15, 0.72);
 
-  /* --- FINANCE SPECIFIC (Ajuste de brilho/neon) --- */
-  --finance-income:         #10b981; 
-  --finance-expense:        #f43f5e;
-  --finance-income-light:   rgba(16, 185, 129, 0.1);
-  --finance-expense-light:  rgba(244, 63, 94, 0.1);
-  
-  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.5); /* Sombra mais pesada */
+  --az-serie-1: #F5A524;
+  --az-serie-2: #6EA8FF;
+  --az-serie-3: #C39BFF;
+  --az-serie-4: #FF8FB1;
+  --az-serie-5: #8FD0E8;
+  --az-serie-outros: #A4ADBE;
+
+  --shadow-card: none;
 }
 
 /* GLOBAL RESET */
 body {
-  background-color: var(--bg-page);
-  color: var(--text-primary);
+  background-color: var(--az-canvas);
+  color: var(--az-text-primary);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -200,8 +206,8 @@ body {
 
 
 @utility bg-avatar-premium {
-  background: linear-gradient(135deg, var(--palette-brand-100) 0%, var(--palette-neutral-50) 100%);
-  @apply dark:bg-none dark:bg-zinc-900/50 dark:border dark:border-white/5;
+  background: var(--az-elevated);
+  border: 1px solid var(--az-border-strong);
 }
 
 @utility animate-spin-slow {
@@ -228,16 +234,16 @@ body {
     background: transparent;
   }
   &::-webkit-scrollbar-thumb {
-    background: var(--palette-neutral-500);
+    background: var(--az-border-strong);
     border-radius: 20px;
     border: 1px solid transparent;
     background-clip: content-box;
   }
   &::-webkit-scrollbar-thumb:hover {
-    background: var(--palette-brand-500);
+    background: var(--az-border-input);
   }
-  
+
   /* Firefox */
   scrollbar-width: thin;
-  scrollbar-color: var(--palette-neutral-500) transparent;
+  scrollbar-color: var(--az-border-strong) transparent;
 }
