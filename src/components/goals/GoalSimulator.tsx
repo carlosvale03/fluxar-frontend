@@ -158,6 +158,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                     <span className="value-m text-gold-line">+{formatCurrency(extraMonthly)}</span>
                   </div>
                   <Slider
+                    aria-label="Esforço mensal extra"
                     value={[extraMonthly]}
                     onValueChange={(vals) => setExtraMonthly(vals[0])}
                     max={alvo * 0.5}
@@ -180,6 +181,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                     <span className="value-m text-gold-line">+{formatCurrency(initialLumpSum)}</span>
                   </div>
                   <Slider
+                    aria-label="Aporte inicial extra"
                     value={[initialLumpSum]}
                     onValueChange={(vals) => setInitialLumpSum(vals[0])}
                     max={alvo}
