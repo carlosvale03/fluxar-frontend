@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils"
 import { ChartEmptyState } from "./ChartEmptyState"
 import { BarChart3, TrendingUp } from "lucide-react"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import { PROPS_DA_GRADE } from "@/lib/graficos"
 
 interface MonthlyComparisonChartProps {
     data: MonthlyComparisonData[]
@@ -87,18 +88,18 @@ export function MonthlyComparisonChart({
                     {showNumericalLabels && (
                         <div className="flex flex-row lg:flex-col justify-between lg:justify-start gap-4 lg:gap-6 min-w-full lg:min-w-[140px] shrink-0 border-b lg:border-b-0 lg:border-r border-border/10 pb-4 lg:pb-0 lg:pr-6 mb-2 lg:mb-0">
                             <div className="space-y-0.5 group">
-                                <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--finance-income)', opacity: 0.7 }}>Ganhos</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--az-inflow)', opacity: 0.7 }}>Ganhos</span>
                                 <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatarMoeda(currentEntry.income)}</p>
                             </div>
                             <div className="space-y-0.5 group">
-                                <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--finance-expense)', opacity: 0.7 }}>Gastos</span>
+                                <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--az-outflow)', opacity: 0.7 }}>Gastos</span>
                                 <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatarMoeda(currentEntry.expense)}</p>
                             </div>
                             <div className="space-y-0.5 group hidden sm:block lg:block lg:pt-2 lg:border-t lg:border-border/10">
                                 <span className="text-[9px] font-black uppercase tracking-widest text-primary/70 block">Resultado</span>
                                 <p 
                                     className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter"
-                                    style={{ color: paraCentavos(currentEntry.balance) >= 0 ? 'var(--finance-income)' : 'var(--finance-expense)' }}
+                                    style={{ color: paraCentavos(currentEntry.balance) >= 0 ? 'var(--az-inflow)' : 'var(--az-outflow)' }}
                                 >
                                     {formatarMoeda(currentEntry.balance)}
                                 </p>
@@ -112,15 +113,15 @@ export function MonthlyComparisonChart({
                                 <BarChart data={dadosDoGrafico} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="incomeGradientBars" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="var(--finance-income)" stopOpacity={0.8}/>
-                                            <stop offset="100%" stopColor="var(--finance-income)" stopOpacity={0.1}/>
+                                            <stop offset="0%" stopColor="var(--az-inflow)" stopOpacity={0.8}/>
+                                            <stop offset="100%" stopColor="var(--az-inflow)" stopOpacity={0.1}/>
                                         </linearGradient>
                                         <linearGradient id="expenseGradientBars" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="var(--finance-expense)" stopOpacity={0.8}/>
-                                            <stop offset="100%" stopColor="var(--finance-expense)" stopOpacity={0.1}/>
+                                            <stop offset="0%" stopColor="var(--az-outflow)" stopOpacity={0.8}/>
+                                            <stop offset="100%" stopColor="var(--az-outflow)" stopOpacity={0.1}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
+                                    <CartesianGrid {...PROPS_DA_GRADE} />
                                     <XAxis 
                                         dataKey="month" 
                                         axisLine={false} 
@@ -173,9 +174,9 @@ export function MonthlyComparisonChart({
                                     <Bar 
                                         dataKey="expense" 
                                         name="Despesas" 
-                                        fill="var(--finance-expense)" 
+                                        fill="var(--az-outflow)" 
                                         fillOpacity={0.8}
-                                        stroke="var(--finance-expense)"
+                                        stroke="var(--az-outflow)"
                                         strokeWidth={2}
                                         radius={[4, 4, 0, 0]} 
                                         barSize={showNumericalLabels ? 40 : 30}
@@ -183,9 +184,9 @@ export function MonthlyComparisonChart({
                                     <Bar 
                                         dataKey="income" 
                                         name="Receitas" 
-                                        fill="var(--finance-income)" 
+                                        fill="var(--az-inflow)" 
                                         fillOpacity={0.8}
-                                        stroke="var(--finance-income)"
+                                        stroke="var(--az-inflow)"
                                         strokeWidth={2}
                                         radius={[4, 4, 0, 0]} 
                                         barSize={showNumericalLabels ? 40 : 30}
@@ -195,11 +196,11 @@ export function MonthlyComparisonChart({
                                 <AreaChart data={dadosDoGrafico} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="balanceGradientPremium" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="var(--az-gold-line)" stopOpacity={0.2}/>
+                                            <stop offset="95%" stopColor="var(--az-gold-line)" stopOpacity={0}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
+                                    <CartesianGrid {...PROPS_DA_GRADE} />
                                     <XAxis 
                                         dataKey="month" 
                                         axisLine={false} 
@@ -230,7 +231,7 @@ export function MonthlyComparisonChart({
                                                             <div className="w-1.5 h-1.5 rounded-full bg-primary" />
                                                             <p 
                                                                 className="text-sm font-black"
-                                                                style={{ color: val >= 0 ? '#10b981' : '#ef4444' }}
+                                                                style={{ color: val >= 0 ? 'var(--az-inflow)' : 'var(--az-outflow)' }}
                                                             >
                                                                 {formatarMoeda(val)}
                                                             </p>
@@ -244,13 +245,13 @@ export function MonthlyComparisonChart({
                                     <Area 
                                         type="monotone" 
                                         dataKey="balance" 
-                                        stroke="#2563eb" 
+                                        stroke="var(--az-gold-line)" 
                                         strokeWidth={4} 
                                         fillOpacity={1} 
                                         fill="url(#balanceGradientPremium)"
                                         connectNulls={true}
-                                        dot={{ fill: 'white', strokeWidth: 3, r: 4, stroke: '#2563eb' }}
-                                        activeDot={{ r: 6, strokeWidth: 0, fill: '#2563eb' }}
+                                        dot={{ fill: 'var(--az-surface)', strokeWidth: 2, r: 4, stroke: 'var(--az-gold-line)' }}
+                                        activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--az-gold)', stroke: 'var(--az-surface)' }}
                                         animationDuration={1500}
                                     />
                                 </AreaChart>

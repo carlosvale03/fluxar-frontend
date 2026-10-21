@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ChartEmptyState } from "./ChartEmptyState"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import { PROPS_DA_GRADE } from "@/lib/graficos"
 
 // CONTRATO-16: os valores chegam como texto ("1234.56")
 interface DailyCashFlowData {
@@ -110,7 +111,7 @@ export function DailyCashFlowChart({
             <CardHeader className="flex flex-row items-center justify-between pb-2 text-wrap">
                 <div className="min-w-0">
                     <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" style={{ color: 'var(--finance-income)' }} />
+                        <TrendingUp className="h-4 w-4" style={{ color: 'var(--az-inflow)' }} />
                         <span className="truncate">Fluxo de Caixa Diário</span>
                     </CardTitle>
                     <CardDescription className="text-[10px] font-medium text-muted-foreground mt-0.5 truncate uppercase tracking-widest opacity-50">Movimentação detalhada dia por dia</CardDescription>
@@ -154,11 +155,11 @@ export function DailyCashFlowChart({
 
                     <div className="flex items-center gap-3">
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--finance-income)' }} />
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--az-inflow)' }} />
                             <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">Receita</span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--finance-expense)' }} />
+                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--az-outflow)' }} />
                             <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">Despesa</span>
                         </div>
                     </div>
@@ -184,7 +185,7 @@ export function DailyCashFlowChart({
                                         margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
                                         barGap={4}
                                     >
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
+                                        <CartesianGrid {...PROPS_DA_GRADE} />
                                         <XAxis 
                                             dataKey="label" 
                                             axisLine={false} 
@@ -215,7 +216,7 @@ export function DailyCashFlowChart({
                                                                 {payload.map((entry: any, index: number) => (
                                                                     <div key={index} className="flex items-center justify-between gap-8">
                                                                         <div className="flex items-center gap-2">
-                                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || (index === 0 ? 'var(--finance-income)' : 'var(--finance-expense)') }} />
+                                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || (index === 0 ? 'var(--az-inflow)' : 'var(--az-outflow)') }} />
                                                                             <span className="text-xs font-bold text-muted-foreground">{entry.name === 'income' ? 'Receita' : entry.name === 'expense' ? 'Despesa' : entry.name}</span>
                                                                         </div>
                                                                         <span className="text-xs font-black">
@@ -233,18 +234,18 @@ export function DailyCashFlowChart({
                                         <Bar 
                                             dataKey="income" 
                                             name="Receitas" 
-                                            fill="var(--finance-income)" 
+                                            fill="var(--az-inflow)" 
                                             fillOpacity={0.75}
-                                            stroke="var(--finance-income)"
+                                            stroke="var(--az-inflow)"
                                             strokeWidth={1.5}
                                             radius={[4, 4, 0, 0]} 
                                         />
                                         <Bar 
                                             dataKey="expense" 
                                             name="Despesas" 
-                                            fill="var(--finance-expense)" 
+                                            fill="var(--az-outflow)" 
                                             fillOpacity={0.75}
-                                            stroke="var(--finance-expense)"
+                                            stroke="var(--az-outflow)"
                                             strokeWidth={1.5}
                                             radius={[4, 4, 0, 0]} 
                                         />
