@@ -5,15 +5,9 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "sonner"
-import { 
-  Loader2, 
-  Plus, 
-  CreditCard as CreditCardIcon, 
-  Banknote, 
-  Calendar as CalendarIcon, 
-  Palette, 
-  Info,
-  Check,
+import {
+  CreditCard as CreditCardIcon,
+  Palette,
   ChevronDown,
   ChevronUp
 } from "lucide-react"
@@ -25,7 +19,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -39,7 +32,7 @@ import {
 } from "@/components/ui/select"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
+import { cn } from "@/lib/utils"
 import { api } from "@/services/apiClient"
 import { CreditCard } from "@/types/cards"
 import { BANKS } from "@/data/banks"
@@ -204,254 +197,209 @@ export function CreditCardFormDialog({
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
-      
-      <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl shadow-2xl">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[480px]">
         <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Header com Preview */}
-            <div className="relative p-6 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 border-b border-border/40">
-                <DialogHeader className="mb-6">
-                    <DialogTitle className="text-2xl font-black tracking-tight flex items-center gap-2">
+            {/* Cabeçalho com a prévia do cartão */}
+            <div className="border-b border-border p-6">
+                <DialogHeader className="mb-5">
+                    <DialogTitle>
                         {isEditing ? "Editar Cartão" : "Novo Cartão"}
                     </DialogTitle>
-                    <DialogDescription className="font-medium">
+                    <DialogDescription>
                         {isEditing ? "Altere os dados do seu cartão de crédito." : "Cadastre um novo cartão de crédito vinculado a uma conta."}
                     </DialogDescription>
                 </DialogHeader>
 
-                {/* Card Preview Visualization */}
-                <div className="relative mx-auto w-full max-w-[340px] aspect-[1.586] rounded-2xl p-6 overflow-hidden shadow-2xl transition-all duration-500 group"
-                    style={{ 
-                        background: `linear-gradient(135deg, ${watchedColor || '#6366f1'} 0%, ${watchedColor ? watchedColor + 'CC' : '#4f46e5'} 100%)`,
-                    }}
-                >
-                    {/* Glass Overlay */}
-                    <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity" />
-                    
-                    {/* Chip & Logo */}
-                    <div className="flex justify-between items-start mb-8">
-                        <div className="w-10 h-7 bg-gradient-to-br from-amber-200 to-amber-500 rounded-md shadow-inner flex flex-col gap-1 p-1">
-                            <div className="h-full border-r border-amber-600/20" />
+                {/* Prévia: superfície sóbria; a cor do cartão (dado do usuário, P-08) fica na faixa lateral */}
+                <div aria-hidden="true" className="relative overflow-hidden rounded-lg border border-border bg-card p-4 pl-5">
+                    <span className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: watchedColor || "var(--az-text-muted)" }} />
+                    <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                            <p className="label text-muted-foreground">{selectedBank?.label || "Meu cartão"}</p>
+                            <p className="display-s mt-1 truncate">{watchedName || "Nome do cartão"}</p>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black tracking-[0.2em] text-white/50 uppercase italic">
-                                {selectedBank?.label || "Meu cartão"}
-                            </p>
-                            <CreditCardIcon className="h-6 w-6 text-white/80 mt-1 ml-auto" />
-                        </div>
+                        <CreditCardIcon className="h-5 w-5 shrink-0 text-muted-foreground" />
                     </div>
-
-                    {/* Card Details */}
-                    <div className="space-y-4">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-bold text-white/40 tracking-widest uppercase">Nome no Cartão</p>
-                            <p className="text-sm font-black text-white tracking-widest uppercase truncate max-w-full min-h-[1.25rem]">
-                                {watchedName || "NOME DO CLIENTE"}
-                            </p>
-                        </div>
-
-                        <div className="flex items-end justify-between">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-bold text-white/40 tracking-widest uppercase">Limite Total</p>
-                                <p className="text-lg font-black text-white leading-none">
-                                    {formatarMoeda(watchedLimit)}
-                                </p>
-                            </div>
-                            <div className="flex -space-x-3 opacity-80">
-                                <div className="h-8 w-8 rounded-full bg-white/20 border border-white/10" />
-                                <div className="h-8 w-8 rounded-full bg-white/10 border border-white/5" />
-                            </div>
-                        </div>
+                    <div className="mt-4">
+                        <p className="label text-muted-foreground">Limite total</p>
+                        <p className="value-l">{formatarMoeda(watchedLimit)}</p>
                     </div>
                 </div>
             </div>
 
-            {/* Form Fields - Scrollable area */}
-            <div className="p-8 space-y-8 max-h-[50vh] overflow-y-auto custom-scrollbar">
-                
+            {/* Campos */}
+            <div className="max-h-[50vh] space-y-6 overflow-y-auto p-6">
+
                 {/* Seção 1: Identidade */}
-                <div className="space-y-8">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center ring-1 ring-primary/20 shadow-sm shrink-0">
-                            <Info className="h-6 w-6 text-primary" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-primary/60">Passo 01</h3>
-                            <p className="text-base font-black tracking-tight leading-none">Identidade do Cartão</p>
-                        </div>
-                    </div>
+                <fieldset className="space-y-4">
+                    <legend className="label mb-3 text-muted-foreground">Identificação</legend>
 
-                    <div className="grid grid-cols-1 gap-6 px-1">
-                        <div className="space-y-2">
-                            <Label htmlFor="name" className="text-xs font-bold pl-1">Apelido do Cartão</Label>
-                            <Input 
-                                id="name" 
-                                placeholder="Ex: Nubank Principal" 
-                                {...register("name")} 
-                                className="h-12 rounded-xl border-border/60 font-bold bg-muted/5 hover:bg-muted/10 focus-visible:ring-primary/20 transition-all"
-                            />
-                            {errors.name && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.name.message}</span>}
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label className="text-xs font-bold pl-1">Conta de Pagamento (Fatura)</Label>
-                            <Select 
-                                onValueChange={(val) => setValue("account_id", val, { shouldValidate: true })}
-                                value={watch("account_id")}
-                            >
-                                <SelectTrigger className={`h-12 rounded-xl border-border/60 cursor-pointer bg-muted/5 hover:bg-muted/10 transition-colors ${errors.account_id ? "ring-2 ring-red-500/20 border-red-500" : ""}`}>
-                                    <SelectValue placeholder="Selecione a conta para débito" />
-                                </SelectTrigger>
-                                <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                    {accounts
-                                        .filter(acc => acc.is_active && (acc.type === AccountType.CHECKING || acc.type === AccountType.WALLET))
-                                        .map(acc => (
-                                            <SelectItem key={acc.id} value={acc.id} className="rounded-xl font-bold">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: acc.color || "#6366f1" }} />
-                                                    {acc.name}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                </SelectContent>
-                            </Select>
-                            {errors.account_id && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.account_id.message}</span>}
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-start">
-                            <div className="space-y-2">
-                                <Label className="text-xs font-bold pl-1">Instituição</Label>
-                                    <Select 
-                                        onValueChange={(val) => {
-                                            setValue("institution", val)
-                                            const bankColor = BANKS.find(b => b.value === val)?.color
-                                            if (bankColor) {
-                                                setValue("color", bankColor)
-                                                setIsVisualOpen(false) 
-                                            } else {
-                                                setIsVisualOpen(true)
-                                            }
-                                        }} 
-                                        value={watch("institution")}
-                                    >
-                                    <SelectTrigger className="h-12 rounded-xl border-border/60 cursor-pointer bg-muted/5 hover:bg-muted/10 transition-colors">
-                                        <SelectValue placeholder="Opcional" />
-                                    </SelectTrigger>
-                                    <SelectContent className="rounded-2xl border-border/40">
-                                        {BANKS.map((bank) => (
-                                            <SelectItem key={bank.value} value={bank.value} className="rounded-lg">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="h-3 w-3 rounded-full" style={{ background: bank.color }} />
-                                                    {bank.label}
-                                                </div>
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between pl-1">
-                                    <Label className="text-xs font-bold">Aparência do Cartão</Label>
-                                    <button 
-                                        type="button"
-                                        onClick={() => setIsVisualOpen(!isVisualOpen)}
-                                        className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-tighter text-primary/60 hover:text-primary transition-colors cursor-pointer"
-                                    >
-                                        {isVisualOpen ? "Recolher" : "Personalizar"}
-                                        {isVisualOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                                    </button>
-                                </div>
-                                
-                                <div className={`p-1.5 rounded-xl border border-border/60 bg-muted/5 flex items-center h-12 transition-all ${isVisualOpen ? 'ring-2 ring-primary/10 bg-card' : ''}`}>
-                                    <div className="relative flex-1 flex items-center px-3 h-full">
-                                        <input 
-                                            type="color" 
-                                            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
-                                            value={watch("color") || "#6366f1"}
-                                            onChange={(e) => setValue("color", e.target.value)}
-                                        />
-                                        <div className="h-4 w-4 rounded-full mr-3 shadow-sm shrink-0" style={{ background: watchedColor }} />
-                                        <span className="text-xs font-mono font-bold uppercase tracking-tight">{watchedColor}</span>
-                                        <Palette className="h-3.5 w-3.5 ml-auto text-muted-foreground/30" />
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <Separator className="bg-border/40" />
-
-                {/* Seção 2: Ciclo e Limites */}
-                <div className="space-y-8 px-1 pb-4">
-                    <div className="flex items-center gap-4 mb-4">
-                        <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center ring-1 ring-emerald-500/20 shadow-sm shrink-0">
-                            <Banknote className="h-6 w-6 text-emerald-500" />
-                        </div>
-                        <div className="space-y-1">
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-emerald-600">Passo 02</h3>
-                            <p className="text-base font-black tracking-tight leading-none">Ciclo e Limites</p>
-                        </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="name">Apelido do Cartão</Label>
+                        <Input
+                            id="name"
+                            placeholder="Ex.: Nubank Principal"
+                            aria-invalid={!!errors.name}
+                            aria-describedby={errors.name ? "name-erro" : undefined}
+                            {...register("name")}
+                        />
+                        {errors.name && <p id="name-erro" className="text-xs text-outflow">{errors.name.message}</p>}
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="limit" className="text-xs font-bold pl-1">Limite Total de Crédito</Label>
-                        <div className="relative">
-                            <MoneyInput 
-                                value={watch("limit")}
-                                onValueChange={(val) => setValue("limit", val ?? "")}
-                                className="h-12 pl-12 rounded-xl border-border/60 font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
-                            />
-                        </div>
-                        {errors.limit && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.limit.message}</span>}
+                        <Label htmlFor="account_id">Conta de Pagamento (Fatura)</Label>
+                        <Select
+                            onValueChange={(val) => setValue("account_id", val, { shouldValidate: true })}
+                            value={watch("account_id")}
+                        >
+                            <SelectTrigger
+                                id="account_id"
+                                aria-invalid={!!errors.account_id}
+                                aria-describedby={errors.account_id ? "account_id-erro" : undefined}
+                                className={cn(errors.account_id && "border-outflow")}
+                            >
+                                <SelectValue placeholder="Selecione a conta para débito" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {accounts
+                                    .filter(acc => acc.is_active && (acc.type === AccountType.CHECKING || acc.type === AccountType.WALLET))
+                                    .map(acc => (
+                                        <SelectItem key={acc.id} value={acc.id}>
+                                            <div className="flex items-center gap-2">
+                                                <span aria-hidden="true" className="h-3 w-3 rounded-full" style={{ backgroundColor: acc.color || "var(--az-text-muted)" }} />
+                                                {acc.name}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                            </SelectContent>
+                        </Select>
+                        {errors.account_id && <p id="account_id-erro" className="text-xs text-outflow">{errors.account_id.message}</p>}
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label htmlFor="closing_day" className="flex items-center gap-1.5 text-xs font-bold pl-1">
-                                Fechamento <Info className="h-3 w-3 text-muted-foreground/40" />
-                            </Label>
-                            <Input 
-                                id="closing_day" 
-                                type="number" 
-                                min="1" 
-                                max="31"
-                                {...register("closing_day")} 
-                                className="h-12 rounded-xl border-border/60 text-center font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
-                            />
-                            {errors.closing_day && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.closing_day.message}</span>}
+                            <Label>Instituição</Label>
+                                <Select
+                                    onValueChange={(val) => {
+                                        setValue("institution", val)
+                                        const bankColor = BANKS.find(b => b.value === val)?.color
+                                        if (bankColor) {
+                                            setValue("color", bankColor)
+                                            setIsVisualOpen(false)
+                                        } else {
+                                            setIsVisualOpen(true)
+                                        }
+                                    }}
+                                    value={watch("institution")}
+                                >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Opcional" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {BANKS.map((bank) => (
+                                        <SelectItem key={bank.value} value={bank.value}>
+                                            <div className="flex items-center gap-2">
+                                                <span aria-hidden="true" className="h-3 w-3 rounded-full" style={{ background: bank.color }} />
+                                                {bank.label}
+                                            </div>
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
                         </div>
+
                         <div className="space-y-2">
-                            <Label htmlFor="due_day" className="flex items-center gap-1.5 text-xs font-bold pl-1">
-                                Vencimento <CalendarIcon className="h-3 w-3 text-muted-foreground/40" />
-                            </Label>
-                            <Input 
-                                id="due_day" 
-                                type="number" 
-                                min="1" 
-                                max="31"
-                                {...register("due_day")} 
-                                className="h-12 rounded-xl border-border/60 text-center font-black bg-muted/5 hover:bg-muted/10 focus-visible:ring-emerald-500/20 transition-all"
-                            />
-                            {errors.due_day && <span className="text-[10px] font-bold text-red-500 uppercase">{errors.due_day.message}</span>}
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="cor-do-cartao">Cor do cartão</Label>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsVisualOpen(!isVisualOpen)}
+                                    aria-expanded={isVisualOpen}
+                                    className="flex cursor-pointer items-center gap-1 rounded-sm text-xs text-fg-secondary transition-colors duration-fast hover:text-foreground"
+                                >
+                                    {isVisualOpen ? "Recolher" : "Personalizar"}
+                                    {isVisualOpen ? <ChevronUp className="h-3.5 w-3.5" aria-hidden="true" /> : <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />}
+                                </button>
+                            </div>
+
+                            <div className={cn(
+                                "relative flex h-9 items-center rounded-md border border-input px-3 transition-colors duration-fast focus-within:ring-2 focus-within:ring-ring",
+                                isVisualOpen && "bg-elevated"
+                            )}>
+                                <input
+                                    id="cor-do-cartao"
+                                    type="color"
+                                    className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+                                    value={watch("color") || "#6366f1"}
+                                    onChange={(e) => setValue("color", e.target.value)}
+                                />
+                                <span aria-hidden="true" className="mr-2 h-4 w-4 shrink-0 rounded-full" style={{ background: watchedColor }} />
+                                <span className="font-mono text-xs uppercase">{watchedColor}</span>
+                                <Palette className="ml-auto h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
+                            </div>
                         </div>
                     </div>
-                </div>
+                </fieldset>
+
+                {/* Seção 2: Ciclo e Limites */}
+                <fieldset className="space-y-4 border-t border-border pt-6">
+                    <legend className="label mb-3 text-muted-foreground">Ciclo e limite</legend>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="limit">Limite Total de Crédito</Label>
+                        <MoneyInput
+                            id="limit"
+                            value={watch("limit")}
+                            onValueChange={(val) => setValue("limit", val ?? "")}
+                            aria-invalid={!!errors.limit}
+                            aria-describedby={errors.limit ? "limit-erro" : undefined}
+                        />
+                        {errors.limit && <p id="limit-erro" className="text-xs text-outflow">{errors.limit.message}</p>}
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="closing_day">Dia do fechamento</Label>
+                            <Input
+                                id="closing_day"
+                                type="number"
+                                inputMode="numeric"
+                                min="1"
+                                max="31"
+                                className="font-mono"
+                                aria-invalid={!!errors.closing_day}
+                                aria-describedby={errors.closing_day ? "closing_day-erro" : undefined}
+                                {...register("closing_day")}
+                            />
+                            {errors.closing_day && <p id="closing_day-erro" className="text-xs text-outflow">{errors.closing_day.message}</p>}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="due_day">Dia do vencimento</Label>
+                            <Input
+                                id="due_day"
+                                type="number"
+                                inputMode="numeric"
+                                min="1"
+                                max="31"
+                                className="font-mono"
+                                aria-invalid={!!errors.due_day}
+                                aria-describedby={errors.due_day ? "due_day-erro" : undefined}
+                                {...register("due_day")}
+                            />
+                            {errors.due_day && <p id="due_day-erro" className="text-xs text-outflow">{errors.due_day.message}</p>}
+                        </div>
+                    </div>
+                </fieldset>
             </div>
 
-            {/* Footer com Botão */}
-            <div className="p-6 bg-muted/30 border-t border-border/40 flex justify-end">
-                <Button 
-                    type="submit" 
-                    disabled={isLoading} 
-                    className="w-full sm:w-auto min-w-[200px] h-12 rounded-full font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/25 transition-all hover:scale-[1.05] active:scale-[0.95]"
+            {/* Rodapé */}
+            <div className="flex justify-end border-t border-border p-4">
+                <Button
+                    type="submit"
+                    loading={isLoading}
+                    className="w-full sm:w-auto"
                 >
-                    {isLoading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                        <Check className="mr-2 h-4 w-4" />
-                    )}
-                    {isEditing ? "Gravar Alterações" : "Ativar Cartão"}
+                    {isEditing ? "Salvar alterações" : "Criar cartão"}
                 </Button>
             </div>
         </form>

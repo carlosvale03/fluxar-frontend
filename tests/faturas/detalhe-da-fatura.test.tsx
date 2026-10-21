@@ -62,11 +62,11 @@ describe("Detalhe da fatura com todas as compras", () => {
 
     render(<InvoiceDetailsDialog open onOpenChange={vi.fn()} invoice={FATURA} />)
 
-    const comData = (await screen.findByText("Compra 1")).closest("div.rounded-2xl") as HTMLElement
+    const comData = (await screen.findByText("Compra 1")).closest("tr") as HTMLElement
     expect(comData).toHaveTextContent("01 de setembro")
     expect(comData).not.toHaveTextContent("10 de outubro")
 
-    const semData = screen.getByText("Compra 2").closest("div.rounded-2xl") as HTMLElement
+    const semData = screen.getByText("Compra 2").closest("tr") as HTMLElement
     expect(semData).toHaveTextContent("10 de outubro")
   })
 })
