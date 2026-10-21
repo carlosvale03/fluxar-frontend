@@ -1,5 +1,6 @@
 "use client"
 
+import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { ChevronDown, Loader2, LogOut, MoreHorizontal, Settings, Sparkles, User, LayoutDashboard } from "lucide-react"
@@ -41,17 +42,26 @@ function AvatarDoUsuario({ user, tamanho = "h-8 w-8" }: { user: Usuario; tamanho
   )
 }
 
-// Item da lista do menu "Mais" e do painel do celular: ícone, nome e linha de apoio
-function ItemDaLista({ item, ativo }: { item: ItemDeNavegacao; ativo: boolean }) {
+interface ItemDaListaProps extends Omit<React.ComponentPropsWithoutRef<typeof Link>, "href"> {
+  item: ItemDeNavegacao
+  ativo: boolean
+}
+
+// Item da lista do menu "Mais" e do painel do celular: ícone, nome e linha de apoio.
+// Repassa ref e props para o Link, porque é usado com asChild (menuitem do Radix, SheetClose).
+const ItemDaLista = React.forwardRef<HTMLAnchorElement, ItemDaListaProps>(({ item, ativo, className, ...props }, ref) => {
   const Icone = item.icone
   return (
     <Link
+      ref={ref}
       href={item.href}
       aria-current={ativo ? "page" : undefined}
       className={cn(
         "flex items-center gap-3 rounded-md px-3 py-2 transition-colors duration-fast",
-        ativo ? "bg-elevated text-foreground" : "text-fg-secondary hover:bg-elevated hover:text-foreground"
+        ativo ? "bg-elevated text-foreground" : "text-fg-secondary hover:bg-elevated hover:text-foreground",
+        className
       )}
+      {...props}
     >
       <Icone className={cn("h-4 w-4 shrink-0", ativo ? "text-gold-line" : "text-muted-foreground")} aria-hidden="true" />
       <span className="flex min-w-0 flex-col">
@@ -60,7 +70,8 @@ function ItemDaLista({ item, ativo }: { item: ItemDeNavegacao; ativo: boolean })
       </span>
     </Link>
   )
-}
+})
+ItemDaLista.displayName = "ItemDaLista"
 
 // AZ-21 (PRODUCT.md §4, D-12): cinco destinos na barra, o resto no menu "Mais",
 // conta e saída no avatar. No celular, menu inferior com quatro destinos e "Mais".
@@ -216,6 +227,7 @@ export function Header() {
             <SheetTrigger asChild>
               <button
                 type="button"
+                aria-label="Mais módulos e conta"
                 className={cn(
                   "flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground",
                   (ativoMais || ativoPrincipal === "/relatorios") && "text-foreground shadow-[inset_0_2px_0_var(--az-gold)]"

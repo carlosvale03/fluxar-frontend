@@ -207,7 +207,7 @@ describe("Painel só para o papel ADMIN (PERM-03)", () => {
     auth.user = usuario({ role, is_admin: temLink })
     render(<Header />)
 
-    await userEvent.click(screen.getByRole("button", { name: "A" }))
+    await userEvent.click(screen.getByRole("button", { name: "Menu da conta" }))
     expect(await screen.findByRole("menuitem", { name: /Meu Perfil/ })).toBeInTheDocument()
     const links = screen.queryAllByRole("menuitem", { name: /Painel Admin/ })
     expect(links).toHaveLength(temLink ? 1 : 0)
