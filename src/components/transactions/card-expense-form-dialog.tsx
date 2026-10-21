@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Loader2, CreditCard, AlertCircle, PlusCircle, CornerDownRight } from "lucide-react"
+import { Calendar as CalendarIcon, CreditCard, AlertCircle, PlusCircle, CornerDownRight } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -206,7 +206,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           Object.assign(finalPayload, { purchase_date: payload.date })
 
           await api.put(`/transactions/${initialData.id}/`, finalPayload)
-          toast.success("Despesa atualizada com sucesso!")
+          toast.success("Despesa atualizada.")
       } else {
           // Create - Installments matters here
           // Re-add installments for Create
@@ -214,7 +214,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
            if (principalDoNovo) Object.assign(finalPayload, { principal: principalDoNovo.id })
 
           await api.post("/transactions/credit-card-expense/", finalPayload)
-          toast.success("Despesa registrada com sucesso!")
+          toast.success("Despesa registrada.")
       }
 
       onSuccess()
@@ -246,20 +246,18 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px]">
-        <div className="h-2 w-full bg-orange-500" />
-        
-        <div className="p-8 pt-6">
-          <DialogHeader className="mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-orange-100 text-orange-600 dark:bg-orange-500/10 animate-in zoom-in-50 duration-500">
-                <CreditCard className="h-6 w-6" />
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
+        <div className="p-6">
+          <DialogHeader className="mb-6">
+            <div className="flex items-center gap-3">
+              <div aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated text-outflow">
+                <CreditCard className="h-5 w-5" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <DialogTitle className="text-2xl font-bold tracking-tight">
+                <DialogTitle>
                   {initialData ? "Editar Despesa" : "Novo Gasto no Cartão"}
                 </DialogTitle>
-                <DialogDescription className="text-sm font-medium opacity-70">
+                <DialogDescription>
                   {initialData ? "Atualize os detalhes da transação no cartão." : "Registre uma compra feita no crédito."}
                 </DialogDescription>
               </div>
@@ -268,7 +266,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
 
           {/* VINCULO-01 */}
           {principalDoNovo && !compraBloqueada && (
-            <div role="note" className="mb-6 px-4 py-3 rounded-2xl bg-primary/5 border border-primary/15 text-xs font-bold text-primary">
+            <div role="note" className="mb-6 rounded-sm border border-l-[3px] border-border border-l-info bg-card px-4 py-2 text-sm text-fg-secondary">
               {textoDaPrincipal(principalDoNovo)}
             </div>
           )}
@@ -288,15 +286,15 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Descrição do Gasto</FormLabel>
+                      <FormLabel>Descrição do Gasto</FormLabel>
                       <FormControl>
                         <Input 
                           placeholder="Ex: Assinatura Netflix, Jantar..." 
                           {...field} 
-                          className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base"
+
                         />
                       </FormControl>
-                      <FormMessage className="ml-1 text-[11px]" />
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
@@ -306,14 +304,15 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                     control={form.control}
                     name="tags"
                     render={({ field }) => (
-                        <FormItem className="space-y-2 !mb-2">
+                        <FormItem className="space-y-2">
+                        <FormLabel>Tags</FormLabel>
                         <FormControl>
                             <TagSelector
                                 selectedTagIds={field.value}
                                 onChange={field.onChange}
                             />
                         </FormControl>
-                        <FormMessage className="ml-1 text-[11px]" />
+                        <FormMessage />
                         </FormItem>
                     )}
                 />
@@ -325,17 +324,14 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                         name="amount"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Valor Total</FormLabel>
+                            <FormLabel>Valor Total</FormLabel>
                             <FormControl>
-                                <div className="relative">
-                                  <MoneyInput 
-                                      value={field.value ?? ""}
-                                      onValueChange={(valor) => field.onChange(valor ?? "")}
-                                      className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
-                                  />
-                                </div>
+                                <MoneyInput
+                                    value={field.value ?? ""}
+                                    onValueChange={(valor) => field.onChange(valor ?? "")}
+                                />
                             </FormControl>
-                            <FormMessage className="ml-1 text-[11px]" />
+                            <FormMessage />
                             </FormItem>
                         )}
                     />
@@ -345,14 +341,14 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                     name="date"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">Data da Compra</FormLabel>
+                        <FormLabel>Data da Compra</FormLabel>
                         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                             <FormControl>
                                 <Button
                                 variant={"outline"}
                                 className={cn(
-                                    "h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 hover:bg-muted/30 focus:ring-2 focus:ring-primary/20 transition-all text-left font-normal",
+                                    "w-full justify-start font-normal",
                                     !field.value && "text-muted-foreground"
                                 )}
                                 >
@@ -361,11 +357,11 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                 ) : (
                                     <span>Data</span>
                                 )}
-                                <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                <CalendarIcon className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                 </Button>
                             </FormControl>
                             </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-muted/60" align="start">
+                            <PopoverContent className="w-auto p-0" align="start">
                             <Calendar
                                 mode="single"
                                 selected={field.value}
@@ -381,7 +377,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             />
                             </PopoverContent>
                         </Popover>
-                        <FormMessage className="ml-1 text-[11px]" />
+                        <FormMessage />
                         </FormItem>
                     )}
                     />
@@ -393,28 +389,30 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                         name="card_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Cartão Utilizado</FormLabel>
+                            <FormLabel>Cartão Utilizado</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-2xl shadow-xl">
+                                <SelectContent>
                                     {cards.map((card) => (
-                                        <SelectItem key={card.id} value={card.id} className="rounded-xl">
+                                        <SelectItem key={card.id} value={card.id}>
                                             <div className="flex items-center gap-2">
-                                                <div 
-                                                    className="w-3 h-3 rounded-full border border-black/5" 
-                                                    style={{ backgroundColor: card.color || "#ccc" }} 
+                                                {/* Cor do cartão: dado do usuário */}
+                                                <span
+                                                    aria-hidden="true"
+                                                    className={cn("h-2.5 w-2.5 rounded-full", !card.color && "bg-muted-foreground")}
+                                                    style={card.color ? { backgroundColor: card.color } : undefined}
                                                 />
-                                                <span className="font-medium">{card.name}</span>
+                                                <span>{card.name}</span>
                                             </div>
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <FormMessage className="ml-1 text-[11px]" />
+                            <FormMessage />
                             </FormItem>
                         )}
                     />
@@ -424,33 +422,31 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                         name="category_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Categoria</FormLabel>
+                            <FormLabel>Categoria</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
-                                <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                <SelectContent className="max-h-[450px] p-2">
                                     <div className="flex flex-col">
                                         <Button 
                                             type="button"
                                             variant="ghost" 
-                                            className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                            className="mb-1 w-full justify-start gap-2"
                                             onClick={(e) => {
                                                 e.preventDefault()
                                                 e.stopPropagation()
                                                 setIsCategoryDialogOpen(true)
                                             }}
                                         >
-                                            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
-                                                <PlusCircle className="h-5 w-5" />
-                                            </div>
+                                            <PlusCircle aria-hidden="true" />
                                             Nova Categoria
                                         </Button>
 
                                         <div className="px-2 mb-2">
-                                            <Separator className="bg-muted/20" />
+                                            <Separator />
                                         </div>
 
                                         {categories.map((cat: any, index: number) => {
@@ -462,15 +458,15 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                                     <div key={cat.id}>
                                                         {showSeparator && (
                                                             <div className="px-2 my-2">
-                                                                <Separator className="bg-muted/20" />
+                                                                <Separator />
                                                             </div>
                                                         )}
                                                         <SelectItem 
                                                             key={cat.id} 
                                                             value={cat.id} 
                                                             className={cn(
-                                                                "group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30",
-                                                                cat.isSubcategory ? "pl-2 py-2" : "py-3"
+                                                                "group",
+                                                                cat.isSubcategory ? "py-1.5" : "py-2"
                                                             )}
                                                         >
                                                             <div className={cn(
@@ -479,32 +475,31 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                                             )}>
                                                                 {cat.isSubcategory && (
                                                                     <div className="flex items-center shrink-0">
-                                                                        <CornerDownRight className="h-3 w-3 text-muted-foreground/30 mr-2" />
+                                                                        <CornerDownRight className="mr-2 h-3 w-3 text-muted-foreground" aria-hidden="true" />
                                                                     </div>
                                                                 )}
                                                                 
                                                                 <div 
-                                                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
                                                                     style={{ 
                                                                         backgroundColor: `${cat.color}15`, 
                                                                         color: cat.color 
                                                                     }}
                                                                 >
-                                                                    <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
-                                                                    <LucideIcon name={cat.icon || "Tag"} className="h-5 w-5 relative z-10" />
+                                                                    <LucideIcon name={cat.icon || "Tag"} className="h-4 w-4" />
                                                                 </div>
 
                                                                 <div className="flex flex-col">
                                                                     <span className={cn(
-                                                                        "tracking-tight transition-colors",
+                                                                        "transition-colors duration-fast",
                                                                         cat.isSubcategory 
-                                                                            ? "font-black text-[10px] uppercase text-muted-foreground/50 group-data-[highlighted]:text-slate-900" 
-                                                                            : "font-black text-sm uppercase group-data-[highlighted]:text-slate-950"
+                                                                            ? "text-sm text-fg-secondary group-data-[highlighted]:text-foreground" 
+                                                                            : "text-sm font-medium"
                                                                     )}>
                                                                         {cat.name}
                                                                     </span>
                                                                     {!cat.isSubcategory && (
-                                                                        <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">Categoria Master</span>
+                                                                        <span className="text-xs text-muted-foreground">Categoria Master</span>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -515,7 +510,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                     </div>
                                 </SelectContent>
                             </Select>
-                            <FormMessage className="ml-1 text-[11px]" />
+                            <FormMessage />
                             </FormItem>
                         )}
                     />
@@ -528,7 +523,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             name="installments"
                             render={({ field }) => (
                                 <FormItem className="col-span-2">
-                                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Parcelas</FormLabel>
+                                <FormLabel>Parcelas</FormLabel>
                                 <FormControl>
                                     <Input
                                         type="number"
@@ -538,11 +533,11 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                         {...field}
                                         value={parceladasLiberadas ? field.value : 1}
                                         disabled={!parceladasLiberadas}
-                                        className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base"
+              
                                     />
                                 </FormControl>
                                 {!parceladasLiberadas && <AvisoCompacto className="mt-2" />}
-                                <FormMessage className="ml-1 text-[11px]" />
+                                <FormMessage />
                                 </FormItem>
                             )}
                         />
@@ -554,22 +549,22 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                       control={form.control}
                       name="update_scope"
                       render={({ field }) => (
-                        <div className="space-y-3 p-5 rounded-[32px] bg-amber-500/15 border border-amber-500/40 animate-in slide-in-from-top-2 duration-300 shadow-sm">
-                            <div className="flex items-center gap-2">
-                               <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
-                               <Label className="text-xs font-bold uppercase tracking-tight text-amber-700 dark:text-amber-400">Edição de Parcelas</Label>
+                        <div className="space-y-3 rounded-sm border border-l-[3px] border-border border-l-warn bg-card p-4">
+                            <div className="flex items-center gap-2 text-sm font-medium">
+                               <AlertCircle className="h-4 w-4 text-warn" aria-hidden="true" />
+                               Edição de Parcelas
                             </div>
                             <div className="flex items-center justify-between gap-4">
-                                <Label className="text-[13px] opacity-80">Aplicar alterações para:</Label>
+                                <Label htmlFor="escopo-das-parcelas">Aplicar alterações para:</Label>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
-                                      <SelectTrigger className="h-9 w-[180px] rounded-xl bg-background border-amber-500/20">
+                                      <SelectTrigger id="escopo-das-parcelas" className="w-[200px]">
                                           <SelectValue />
                                       </SelectTrigger>
                                     </FormControl>
-                                    <SelectContent className="rounded-xl shadow-xl border-amber-500/20 text-xs text-balance">
-                                        <SelectItem value="SINGLE" className="rounded-lg">Apenas nesta parcela</SelectItem>
-                                        <SelectItem value="ALL_FUTURE" className="rounded-lg">Nesta e nas próximas</SelectItem>
+                                    <SelectContent>
+                                        <SelectItem value="SINGLE">Apenas nesta parcela</SelectItem>
+                                        <SelectItem value="ALL_FUTURE">Nesta e nas próximas</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -579,21 +574,15 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                 )}
               </div>
 
-              <DialogFooter className="gap-2 sm:gap-0 pt-2">
-                <Button 
-                    type="button" 
-                    variant="ghost" 
+              <DialogFooter className="pt-2">
+                <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => onOpenChange(false)}
-                    className="h-12 px-6 rounded-2xl font-semibold hover:bg-muted"
                 >
                   Cancelar
                 </Button>
-                <Button 
-                    type="submit" 
-                    disabled={isLoading}
-                    className="h-12 px-8 rounded-2xl font-bold bg-orange-500 hover:bg-orange-600 shadow-lg shadow-orange-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                >
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                <Button type="submit" loading={isLoading}>
                   {initialData ? "Salvar Alterações" : "Adicionar Despesa"}
                 </Button>
               </DialogFooter>
@@ -605,19 +594,12 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
 
       {/* Modal Secundário: Nova Categoria */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent className="sm:max-w-[480px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
+        <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
           <ScrollArea className="max-h-[85vh]">
-            <div className="p-8">
-                <DialogHeader className="mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
-                            <PlusCircle className="h-6 w-6" />
-                        </div>
-                        <div className="flex flex-col">
-                            <DialogTitle className="text-2xl font-black tracking-tight">Nova Categoria</DialogTitle>
-                            <DialogDescription className="text-xs font-bold opacity-50 tracking-tight">Crie uma categoria personalizada agora mesmo.</DialogDescription>
-                        </div>
-                    </div>
+            <div className="p-6">
+                <DialogHeader className="mb-6">
+                    <DialogTitle>Nova Categoria</DialogTitle>
+                    <DialogDescription>Crie uma categoria sem sair do lançamento.</DialogDescription>
                 </DialogHeader>
 
                 <CategoryForm 
