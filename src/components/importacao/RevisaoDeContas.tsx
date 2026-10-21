@@ -89,7 +89,7 @@ export function RevisaoDeContas({ plano, contasAtivas, erros = {}, onAlterar }: 
   }
 
   if (contas.length === 0) {
-    return <p className="text-xs font-medium text-muted-foreground py-6 text-center">Nenhuma conta encontrada nas abas usadas.</p>
+    return <p className="py-6 text-center text-sm text-muted-foreground">Nenhuma conta encontrada nas abas usadas.</p>
   }
 
   return (
@@ -102,28 +102,28 @@ export function RevisaoDeContas({ plano, contasAtivas, erros = {}, onAlterar }: 
           <section
             key={nome}
             aria-label={`Conta ${nome}`}
-            className="p-4 rounded-3xl bg-muted/5 border border-border/40 space-y-3"
+            className="space-y-3 rounded-lg border border-border bg-card p-4"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <Landmark className="h-4 w-4 text-primary shrink-0" />
-                  <h4 className="text-sm font-black truncate">{nome}</h4>
+                  <Landmark className="h-4 w-4 shrink-0 text-fg-secondary" aria-hidden="true" />
+                  <h4 className="truncate text-sm font-semibold">{nome}</h4>
                 </div>
-                <p className="text-[10px] font-medium text-muted-foreground mt-1 tabular-nums">{descricaoDoArquivo(acao.arquivo)}</p>
+                <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">{descricaoDoArquivo(acao.arquivo)}</p>
               </div>
-              <div role="group" aria-label={`Ação da conta ${nome}`} className="grid grid-cols-2 gap-1 p-1 rounded-2xl bg-muted/20 border border-border/40 shrink-0">
+              <div role="group" aria-label={`Ação da conta ${nome}`} className="grid shrink-0 grid-cols-2 gap-1 rounded-md border border-border p-1">
                 <button
                   type="button"
                   aria-pressed={acao.acao === "vincular"}
                   disabled={contasAtivas.length === 0}
                   onClick={() => acao.acao !== "vincular" && vincular(nome, acao)}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 px-3 h-8 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed",
-                    acao.acao === "vincular" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                    "flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45",
+                    acao.acao === "vincular" ? "bg-elevated text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <Link2 className="h-3.5 w-3.5" /> Vincular
+                  <Link2 className="h-3.5 w-3.5" aria-hidden="true" /> Vincular
                 </button>
                 <button
                   type="button"
@@ -131,65 +131,64 @@ export function RevisaoDeContas({ plano, contasAtivas, erros = {}, onAlterar }: 
                   disabled={acao.acao !== "criar" && noLimite}
                   onClick={() => acao.acao !== "criar" && criar(nome, acao)}
                   className={cn(
-                    "flex items-center justify-center gap-1.5 px-3 h-8 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-40 disabled:cursor-not-allowed",
-                    acao.acao === "criar" ? "bg-background shadow-sm text-foreground" : "text-muted-foreground",
+                    "flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-sm px-3 text-sm font-medium transition-colors duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-45",
+                    acao.acao === "criar" ? "bg-elevated text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]" : "text-muted-foreground hover:text-foreground",
                   )}
                 >
-                  <Plus className="h-3.5 w-3.5" /> Criar
+                  <Plus className="h-3.5 w-3.5" aria-hidden="true" /> Criar
                 </button>
               </div>
             </div>
 
             {acao.acao === "vincular" && (
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta no Azimute</Label>
+                <Label className="text-xs font-normal text-muted-foreground">Conta no Azimute</Label>
                 <Select value={acao.id} onValueChange={(id) => trocarConta(nome, { ...acao, id }, true)}>
-                  <SelectTrigger aria-label={`Conta do Azimute para ${nome}`} className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                  <SelectTrigger aria-label={`Conta do Azimute para ${nome}`}>
                     <SelectValue placeholder="Escolha a conta" />
                   </SelectTrigger>
-                  <SelectContent className="rounded-xl">
+                  <SelectContent>
                     {contasAtivas.map((conta) => (
-                      <SelectItem key={conta.id} value={conta.id} className="rounded-lg font-bold text-xs">
+                      <SelectItem key={conta.id} value={conta.id}>
                         {conta.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-                {erro("id") && <p className="text-[10px] font-bold text-rose-600 pl-1">{erro("id")}</p>}
+                {erro("id") && <p className="text-xs text-outflow">{erro("id")}</p>}
               </div>
             )}
 
             {acao.acao === "criar" && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Nome</Label>
+                  <Label className="text-xs font-normal text-muted-foreground">Nome</Label>
                   <Input
                     aria-label={`Nome da nova conta ${nome}`}
                     value={acao.nome}
                     maxLength={100}
                     onChange={(e) => editar(nome, acao, { nome: e.target.value })}
-                    className="h-10 rounded-xl font-bold text-xs"
                   />
-                  {erro("nome") && <p className="text-[10px] font-bold text-rose-600 pl-1">{erro("nome")}</p>}
+                  {erro("nome") && <p className="text-xs text-outflow">{erro("nome")}</p>}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Tipo</Label>
+                  <Label className="text-xs font-normal text-muted-foreground">Tipo</Label>
                   <Select value={acao.tipo} onValueChange={(tipo) => editar(nome, acao, { tipo: tipo as AccountType })}>
-                    <SelectTrigger aria-label={`Tipo da nova conta ${nome}`} className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                    <SelectTrigger aria-label={`Tipo da nova conta ${nome}`}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
+                    <SelectContent>
                       {Object.values(AccountType).map((tipo) => (
-                        <SelectItem key={tipo} value={tipo} className="rounded-lg font-bold text-xs">
+                        <SelectItem key={tipo} value={tipo}>
                           {AccountTypeLabels[tipo]}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {erro("tipo") && <p className="text-[10px] font-bold text-rose-600 pl-1">{erro("tipo")}</p>}
+                  {erro("tipo") && <p className="text-xs text-outflow">{erro("tipo")}</p>}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Instituição</Label>
+                  <Label className="text-xs font-normal text-muted-foreground">Instituição</Label>
                   <Select
                     value={acao.institution || NENHUMA}
                     onValueChange={(valor) => {
@@ -197,33 +196,32 @@ export function RevisaoDeContas({ plano, contasAtivas, erros = {}, onAlterar }: 
                       editar(nome, acao, { institution: banco ? banco.value : null, color: banco ? banco.color : null })
                     }}
                   >
-                    <SelectTrigger aria-label={`Instituição da nova conta ${nome}`} className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                    <SelectTrigger aria-label={`Instituição da nova conta ${nome}`}>
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl">
-                      <SelectItem value={NENHUMA} className="rounded-lg text-xs text-muted-foreground">
+                    <SelectContent>
+                      <SelectItem value={NENHUMA} className="text-muted-foreground">
                         Nenhuma
                       </SelectItem>
                       {BANKS.map((banco) => (
-                        <SelectItem key={banco.value} value={banco.value} className="rounded-lg font-bold text-xs">
+                        <SelectItem key={banco.value} value={banco.value}>
                           {banco.label}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
-                  {erro("institution") && <p className="text-[10px] font-bold text-rose-600 pl-1">{erro("institution")}</p>}
+                  {erro("institution") && <p className="text-xs text-outflow">{erro("institution")}</p>}
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Saldo atual</Label>
+                  <Label className="text-xs font-normal text-muted-foreground">Saldo atual</Label>
                   <MoneyInput
                     aria-label={`Saldo atual da nova conta ${nome}`}
                     value={acao.saldo_atual}
                     permitirNegativo
                     // Enquanto o texto não é um valor, fica o último valor lido
                     onValueChange={(valor) => valor !== null && editar(nome, acao, { saldo_atual: valor })}
-                    className="h-10 rounded-xl font-bold text-xs"
                   />
-                  {erro("saldo_atual") && <p className="text-[10px] font-bold text-rose-600 pl-1">{erro("saldo_atual")}</p>}
+                  {erro("saldo_atual") && <p className="text-xs text-outflow">{erro("saldo_atual")}</p>}
                 </div>
               </div>
             )}

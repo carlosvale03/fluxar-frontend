@@ -116,7 +116,7 @@ describe("Assistente de planilha: resultado", { timeout: 20_000 }, () => {
       "href",
       `/transacoes?import_batch=${LOTE}&suggested_category=true`,
     )
-    expect(toast.success).toHaveBeenCalledWith("Importação concluída!")
+    expect(toast.success).toHaveBeenCalledWith("Importação concluída.")
   })
 
   it("as rejeitadas aparecem como \"<aba>, linha <n>: <motivo>\"", async () => {
