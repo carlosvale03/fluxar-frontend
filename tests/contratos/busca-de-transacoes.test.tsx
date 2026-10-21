@@ -121,7 +121,7 @@ describe("Busca da lista de transações", () => {
       return Promise.resolve({ data: url.startsWith("/transactions/") ? pagina() : [] })
     }) as typeof api.get)
 
-    await userEvent.type(screen.getByLabelText("Buscar lançamentos"), "mercado")
+    await userEvent.type(screen.getByLabelText("Buscar transações"), "mercado")
     const ultimaTecla = Date.now()
     expect(chamadasDeTransacoes().length).toBe(antes)
     await esperar(500)

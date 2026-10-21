@@ -209,7 +209,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       </SheetTrigger>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader className="border-b border-border pb-4">
-          <SheetTitle className="display-m">Filtrar lançamentos</SheetTitle>
+          <SheetTitle className="display-m">Filtrar transações</SheetTitle>
           <SheetDescription>
             Escolha o que aparece na lista. Os filtros ativos ficam visíveis acima dela.
           </SheetDescription>

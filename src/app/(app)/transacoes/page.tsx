@@ -198,7 +198,7 @@ export default function TransactionsPage() {
       } else if (transaction.type === "CREDIT_CARD_EXPENSE" || transaction.type === "CREDIT_CARD") {
           setIsCardExpenseOpen(true)
       } else {
-          toast.info("Este tipo de lançamento ainda não pode ser editado pela lista.")
+          toast.info("Este tipo de transação ainda não pode ser editado pela lista.")
       }
   }
 
@@ -419,7 +419,7 @@ export default function TransactionsPage() {
   const handleConfirm = async (transaction: Transaction) => {
       try {
           const resposta = await api.patch<Transaction>(`/transactions/${transaction.id}/`, { status: "COMPLETED" })
-          toast.success("Lançamento efetivado.")
+          toast.success("Transação efetivada.")
           fetchTransactions()
           void conferirSalario(resposta.data)
       } catch (error) {
@@ -620,8 +620,8 @@ export default function TransactionsPage() {
           <Inbox className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
           <p className="text-sm text-fg-secondary">
               {filtrosAtivos
-                  ? "Nenhum lançamento com estes filtros."
-                  : "Nenhum lançamento neste período. Registre o primeiro ou importe um extrato."}
+                  ? "Nenhuma transação com estes filtros."
+                  : "Nenhuma transação neste período. Registre a primeira ou importe um extrato."}
           </p>
       </div>
   )
@@ -663,7 +663,7 @@ export default function TransactionsPage() {
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[220px]">
-                  <DropdownMenuLabel className="label text-muted-foreground">Tipo de lançamento</DropdownMenuLabel>
+                  <DropdownMenuLabel className="label text-muted-foreground">Tipo de transação</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleOpenForm("INCOME")}>
                      <ArrowUpCircle className="mr-2 h-4 w-4 text-inflow" aria-hidden="true" /> Nova Receita
@@ -709,7 +709,7 @@ export default function TransactionsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
                 type="search"
-                aria-label="Buscar lançamentos"
+                aria-label="Buscar transações"
                 placeholder="Buscar por descrição"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -1119,7 +1119,7 @@ export default function TransactionsPage() {
                 pagina={page}
                 totalDePaginas={totalPages}
                 total={total}
-                rotulo="lançamentos"
+                rotulo="transações"
                 carregando={isLoading}
                 onMudarPagina={setPage}
             />
