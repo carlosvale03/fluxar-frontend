@@ -17,17 +17,17 @@ interface ErroDoBlocoProps {
 export function ErroDoBloco({ titulo, onTentarDeNovo, className }: ErroDoBlocoProps) {
     return (
         <section aria-label={titulo} className={className}>
-            <Card className="h-full border border-dashed border-destructive/30 bg-card shadow-md rounded-[32px] overflow-hidden">
+            <Card className="h-full">
                 <CardContent className="flex flex-col items-center justify-center gap-4 py-12 px-6 text-center">
-                    <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center text-destructive">
-                        <AlertCircle className="h-6 w-6" />
+                    <div className="flex h-11 w-11 items-center justify-center rounded-full border border-border-strong bg-elevated text-outflow">
+                        <AlertCircle className="h-5 w-5" aria-hidden="true" />
                     </div>
                     <div>
-                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70">{titulo}</h3>
+                        <h3 className="label text-muted-foreground">{titulo}</h3>
                         <p className="text-sm text-muted-foreground mt-2">Não foi possível carregar este bloco.</p>
                     </div>
-                    <Button variant="outline" className="rounded-xl font-bold gap-2" onClick={onTentarDeNovo}>
-                        <RotateCw className="h-4 w-4" /> {ROTULO_TENTAR_DE_NOVO}
+                    <Button variant="outline" onClick={onTentarDeNovo}>
+                        <RotateCw aria-hidden="true" /> {ROTULO_TENTAR_DE_NOVO}
                     </Button>
                 </CardContent>
             </Card>

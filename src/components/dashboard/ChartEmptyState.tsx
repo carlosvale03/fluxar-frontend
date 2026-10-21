@@ -98,30 +98,27 @@ export function ChartEmptyState({
 
   return (
     <div 
-      className={cn("relative w-full flex items-center justify-center overflow-hidden group/empty transition-colors duration-500", className)} 
+      className={cn("relative w-full flex items-center justify-center overflow-hidden", className)} 
       style={{ height: typeof height === 'number' ? `${height}px` : height }}
     >
       {/* Ghost Chart Layer - Usar cor de texto muda do sistema como base sem opacidade no container */}
-      <div className="absolute inset-0 pointer-events-none select-none text-muted-foreground/30 dark:text-muted-foreground/40">
+      <div className="absolute inset-0 pointer-events-none select-none text-border-strong" aria-hidden="true">
         {renderGhostChart()}
       </div>
 
       {/* Message Layer - Design limpo focado em legibilidade e contraste */}
       <div className="relative z-10 flex flex-col items-center text-center px-4 max-w-[280px] space-y-4 pointer-events-none">
         
-        {/* Ícone com fundo mais nítido */}
-        <div className="w-14 h-14 rounded-2xl bg-white dark:bg-card flex items-center justify-center border border-border/60 shadow-lg mb-1 ring-4 ring-muted/50 dark:ring-muted/5 transition-all">
-          <Icon className="h-6 w-6 text-muted-foreground" />
+        <div className="mb-1 flex h-11 w-11 items-center justify-center rounded-full border border-border-strong bg-elevated">
+          <Icon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
         </div>
 
-        <div className="space-y-1.5 animate-in fade-in slide-in-from-bottom-2 duration-700">
-          {/* Título com contraste máximo */}
-          <p className="text-[11px] font-black uppercase tracking-[0.25em] text-foreground leading-none">
+        <div className="space-y-1.5">
+          <p className="text-sm font-semibold text-foreground">
             {title}
           </p>
           
-          {/* Descrição legível em ambos os temas */}
-          <p className="text-[11px] font-bold text-muted-foreground leading-relaxed italic opacity-90 max-w-[200px]">
+          <p className="max-w-[240px] text-sm leading-relaxed text-muted-foreground">
             {description}
           </p>
         </div>
