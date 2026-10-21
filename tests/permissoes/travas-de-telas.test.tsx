@@ -128,11 +128,11 @@ describe("Telas travadas", () => {
     expect(getBudgets).not.toHaveBeenCalled()
   })
 
-  it("tags fechado: a tela Tags mostra o aviso sem chamar /tags/", () => {
+  it("tags fechado: a tela Marcadores mostra o aviso sem chamar /tags/", () => {
     comAcesso(["tags"])
     render(<TagsPage />)
 
-    expect(screen.getByRole("heading", { name: "Tags" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Marcadores" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
     expect(getTags).not.toHaveBeenCalled()
   })
