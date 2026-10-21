@@ -9,11 +9,11 @@ export function SeloDeSugerida({ className }: { className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[8px] font-black uppercase tracking-widest",
+        "inline-flex items-center gap-1 rounded-full border border-border-strong px-2 py-0.5 text-xs text-info",
         className,
       )}
     >
-      <History className="h-2.5 w-2.5" aria-hidden />
+      <History className="h-3 w-3" aria-hidden />
       {TEXTO_DO_SELO}
     </span>
   )

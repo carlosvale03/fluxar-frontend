@@ -1,18 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Repeat, Calendar } from "lucide-react"
+import { Edit, Plus, Repeat } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import {
     Table,
     TableBody,
@@ -22,6 +15,8 @@ import {
     TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
+import { Valor } from "@/components/ui/valor"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
 
 import { api } from "@/services/apiClient"
 import { Transaction } from "@/types/transactions"
@@ -29,7 +24,6 @@ import { TransactionFormDialog } from "@/components/transactions/transaction-for
 import { Paginacao } from "@/components/ui/paginacao"
 import { lerData } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
-import { formatarMoeda } from "@/lib/dinheiro"
 
 export default function RecurringTransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -40,7 +34,7 @@ export default function RecurringTransactionsPage() {
   const [page, setPage] = useState(1)
   const [total, setTotal] = useState(0)
   const [totalPages, setTotalPages] = useState(1)
-  
+
   const fetchTransactions = async () => {
     try {
       setIsLoading(true)
@@ -76,79 +70,74 @@ export default function RecurringTransactionsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Transações Recorrentes</h1>
-          <p className="text-muted-foreground mt-1">
-            Gerencie suas receitas e despesas fixas.
-          </p>
-        </div>
-        <Button onClick={() => { setSelectedTransaction(null); setIsCreateOpen(true) }}>
-          <Plus className="mr-2 h-4 w-4" /> Nova Recorrência
-        </Button>
-      </div>
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-6 md:px-6 md:py-8">
+      <CabecalhoDePagina
+        titulo="Recorrentes"
+        apoio="Lançamentos que se repetem"
+        acoes={
+          <Button onClick={() => { setSelectedTransaction(null); setIsCreateOpen(true) }}>
+            <Plus aria-hidden="true" /> Nova Recorrência
+          </Button>
+        }
+      />
 
-      <Separator className="my-6" />
-
-      <Card>
-          <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                  <Repeat className="h-5 w-5" /> Listagem
-              </CardTitle>
-          </CardHeader>
-          <CardContent>
+      <Card className="overflow-hidden">
             <Table>
                 <TableHeader>
-                    <TableRow>
+                    <TableRow className="hover:bg-transparent">
                         <TableHead>Descrição</TableHead>
-                        <TableHead>Frequência</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Próxima Data</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="hidden sm:table-cell">Frequência</TableHead>
+                        <TableHead>Próxima data</TableHead>
+                        <TableHead className="text-right">Valor</TableHead>
+                        <TableHead className="w-px"><span className="sr-only">Ações</span></TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
                     {isLoading ? (
                         Array.from({ length: 5 }).map((_, i) => (
-                            <TableRow key={i}>
+                            <TableRow key={i} className="hover:bg-transparent">
                                 <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                                <TableCell className="hidden sm:table-cell"><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
                                 <TableCell><Skeleton className="h-4 w-20" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                                <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                                <TableCell><Skeleton className="ml-auto h-4 w-24" /></TableCell>
+                                <TableCell><Skeleton className="h-8 w-8" /></TableCell>
                             </TableRow>
                         ))
                     ) : transactions.length === 0 ? (
-                        <TableRow>
-                            <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                                Nenhuma transação recorrente encontrada.
+                        <TableRow className="hover:bg-transparent">
+                            <TableCell colSpan={5} className="py-16">
+                                <div className="flex flex-col items-center justify-center gap-2 text-center">
+                                    <Repeat className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                                    <p className="text-sm text-fg-secondary">Nenhuma transação recorrente encontrada.</p>
+                                </div>
                             </TableCell>
                         </TableRow>
                     ) : (
                         transactions.map((t) => (
                             <TableRow key={t.id}>
-                                <TableCell className="font-medium">{t.description}</TableCell>
                                 <TableCell>
+                                    <div className="flex flex-col gap-1">
+                                        <span className="text-sm font-medium">{t.description}</span>
+                                        {/* No celular, a frequência fica sob a descrição */}
+                                        <span className="text-xs text-muted-foreground sm:hidden">{getFrequencyLabel(t.frequency)}</span>
+                                    </div>
+                                </TableCell>
+                                <TableCell className="hidden sm:table-cell">
                                     <Badge variant="secondary">
                                         {getFrequencyLabel(t.frequency)}
                                     </Badge>
                                 </TableCell>
-                                <TableCell className={t.type === 'EXPENSE' ? 'text-red-500' : 'text-emerald-500'}>
-                                    {t.type === 'EXPENSE' ? '- ' : '+ '}
-                                    {formatarMoeda(t.amount)}
-                                </TableCell>
-                                <TableCell>
-                                    {/* Assuming date is the next occurrence or start date */}
-                                    <div className="flex items-center gap-2">
-                                        <Calendar className="h-3 w-3 opacity-70" />
-                                        {/* CONTRATO-24: data sem hora, no dia gravado */}
-                                        {lerData(t.date).toLocaleDateString('pt-BR')}
-                                    </div>
+                                <TableCell className="font-mono text-sm text-muted-foreground">
+                                    {/* CONTRATO-24: data sem hora, no dia gravado */}
+                                    {lerData(t.date).toLocaleDateString('pt-BR')}
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="sm" onClick={() => handleEdit(t)}>
-                                        Editar
+                                    <Valor valor={t.amount} direcao={t.type === 'EXPENSE' ? "saida" : "entrada"} />
+                                </TableCell>
+                                <TableCell className="pr-2">
+                                    <Button variant="ghost" size="sm" onClick={() => handleEdit(t)} aria-label={`Editar ${t.description}`}>
+                                        <Edit aria-hidden="true" />
+                                        <span className="hidden sm:inline">Editar</span>
                                     </Button>
                                 </TableCell>
                             </TableRow>
@@ -156,7 +145,6 @@ export default function RecurringTransactionsPage() {
                     )}
                 </TableBody>
             </Table>
-          </CardContent>
           <Paginacao
               pagina={page}
               totalDePaginas={totalPages}
@@ -167,18 +155,12 @@ export default function RecurringTransactionsPage() {
           />
       </Card>
 
-      <TransactionFormDialog 
-        open={isCreateOpen} 
-        onOpenChange={setIsCreateOpen} 
+      <TransactionFormDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
         onSuccess={fetchTransactions}
-        type="EXPENSE" // Default to expense, but form handles switching? Actually FormDialog takes a strict type prop.
-                       // Does form allow changing type? The current dialog implementation FIXES the type passed in props.
-                       // We might need to allow changing type inside the form OR have two buttons.
-                       // For now, let's pass "EXPENSE" but maybe we need a generic form?
-                       // Checking TransactionFormDialog... it sets default type but doesn't seem to allow changing it efficiently if it's fixed.
-                       // Wait, TransactionFormDialog takes `type` prop.
-                       // If I want to create Income, I need another button or a Type selector inside the form.
-                       // The current form seems designed for ONE type.
+        // O formulário trabalha com um tipo por vez; a recorrência nova começa como despesa
+        type="EXPENSE"
         initialData={selectedTransaction}
       />
     </div>

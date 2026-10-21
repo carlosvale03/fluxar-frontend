@@ -256,7 +256,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           }
 
           await api.put(`/transactions/${initialData.id}/`, editPayload)
-          toast.success("Transferência atualizada com sucesso!")
+          toast.success("Transferência atualizada.")
       } else {
           // Create - Expects different field names
           const createPayload = {
@@ -270,7 +270,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           }
 
           await api.post("/transactions/transfer/", createPayload)
-          toast.success("Transferência realizada com sucesso!")
+          toast.success("Transferência realizada.")
       }
 
       onSuccess()
@@ -298,20 +298,18 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px]">
-        <div className="h-2 w-full bg-blue-500" />
-        
-        <div className="p-8 pt-6">
-          <DialogHeader className="mb-8">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-500/10 animate-in zoom-in-50 duration-500">
-                <ArrowRightCircle className="h-6 w-6" />
+      <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden">
+        <div className="p-6">
+          <DialogHeader className="mb-6">
+            <div className="flex items-center gap-3">
+              <div aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated text-info">
+                <ArrowRightCircle className="h-5 w-5" />
               </div>
               <div className="flex flex-col gap-0.5">
-                <DialogTitle className="text-2xl font-bold tracking-tight">
+                <DialogTitle>
                   {initialData ? "Editar Transferência" : "Nova Transferência"}
                 </DialogTitle>
-                <DialogDescription className="text-sm font-medium opacity-70">
+                <DialogDescription>
                   {initialData ? "Atualize os detalhes da movimentação." : "Mova valores entre suas contas de forma simples."}
                 </DialogDescription>
               </div>
@@ -319,8 +317,8 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           </DialogHeader>
           {isFetchingDetails ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
-                  <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-                  <p className="text-sm font-medium text-muted-foreground animate-pulse">Carregando detalhes...</p>
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                  <p className="text-sm text-muted-foreground" role="status">Carregando detalhes...</p>
               </div>
           ) : (
             <Form {...form}>
@@ -335,15 +333,14 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Motivo / Descrição</FormLabel>
+                        <FormLabel>Motivo / Descrição</FormLabel>
                         <FormControl>
                           <Input 
                             placeholder="Ex: Reserva, Investimento..." 
-                            {...field} 
-                            className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base"
+                            {...field}
                           />
                         </FormControl>
-                        <FormMessage className="ml-1 text-[11px]" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -353,14 +350,15 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                     control={form.control}
                     name="tags"
                     render={({ field }) => (
-                      <FormItem className="space-y-2 !mb-2">
+                      <FormItem className="space-y-2">
+                        <FormLabel>Tags</FormLabel>
                         <FormControl>
                           <TagSelector
                             selectedTagIds={field.value}
                             onChange={field.onChange}
                           />
                         </FormControl>
-                        <FormMessage className="ml-1 text-[11px]" />
+                        <FormMessage />
                       </FormItem>
                     )}
                   />
@@ -373,17 +371,14 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                           name="amount"
                           render={({ field }) => (
                               <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Quanto?</FormLabel>
+                              <FormLabel>Quanto?</FormLabel>
                               <FormControl>
-                                  <div className="relative">
-                                    <MoneyInput 
-                                        value={field.value ?? ""}
-                                        onValueChange={(valor) => field.onChange(valor ?? "")}
-                                        className="h-12 pl-10 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
-                                    />
-                                  </div>
+                                  <MoneyInput
+                                      value={field.value ?? ""}
+                                      onValueChange={(valor) => field.onChange(valor ?? "")}
+                                  />
                               </FormControl>
-                              <FormMessage className="ml-1 text-[11px]" />
+                              <FormMessage />
                               </FormItem>
                           )}
                       />
@@ -393,14 +388,14 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                       name="date"
                       render={({ field }) => (
                           <FormItem className="flex flex-col">
-                          <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1 mb-2">Quando?</FormLabel>
+                          <FormLabel>Quando?</FormLabel>
                           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                               <PopoverTrigger asChild>
                               <FormControl>
                                   <Button
                                   variant={"outline"}
                                   className={cn(
-                                      "h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 hover:bg-muted/30 focus:ring-2 focus:ring-primary/20 transition-all text-left font-normal",
+                                      "w-full justify-start font-normal",
                                       !field.value && "text-muted-foreground"
                                   )}
                                   >
@@ -409,11 +404,11 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                   ) : (
                                       <span>Data</span>
                                   )}
-                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                  <CalendarIcon className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                   </Button>
                               </FormControl>
                               </PopoverTrigger>
-                              <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-muted/60" align="start">
+                              <PopoverContent className="w-auto p-0" align="start">
                               <Calendar
                                   mode="single"
                                   selected={field.value}
@@ -429,32 +424,32 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                               />
                               </PopoverContent>
                           </Popover>
-                          <FormMessage className="ml-1 text-[11px]" />
+                          <FormMessage />
                           </FormItem>
                       )}
                       />
                   </div>
 
                   {/* Visual Flow Container */}
-                  <div className="relative flex flex-col gap-4 p-6 rounded-[32px] bg-muted/10 border border-muted/30 overflow-hidden">
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30 z-10">
+                  <div className="relative rounded-lg border border-border p-4">
+                    <div aria-hidden="true" className="absolute left-1/2 top-1/2 z-10 hidden h-7 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-border-strong bg-elevated text-info sm:flex">
                       <ArrowRightCircle className="h-4 w-4" />
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 relative">
+                    <div className="relative grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-10">
                       <FormField
                           control={form.control}
                           name="source_account_id"
                           render={({ field }) => (
                               <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-rose-500 ml-1">Sai de:</FormLabel>
+                              <FormLabel>Sai de:</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
-                                  <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-background focus:ring-2 focus:ring-rose-500/20 transition-all">
+                                  <SelectTrigger>
                                       <SelectValue placeholder="Origem..." />
                                   </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                  <SelectContent className="max-h-[450px] p-2">
                                        <div className="flex flex-col">
                                            <AccountFormDialog 
                                                onSuccess={() => fetchAccounts()}
@@ -462,18 +457,16 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                    <Button 
                                                        type="button"
                                                        variant="ghost" 
-                                                       className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                       className="mb-1 w-full justify-start gap-2"
                                                    >
-                                                       <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
-                                                           <PlusCircle className="h-5 w-5" />
-                                                       </div>
+                                                       <PlusCircle aria-hidden="true" />
                                                        Nova Conta
                                                    </Button>
                                                }
                                            />
 
                                            <div className="px-2 mb-2">
-                                               <Separator className="bg-muted/20" />
+                                               <Separator />
                                            </div>
 
                                            {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
@@ -484,11 +477,11 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                    <div key={type}>
                                                        {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
                                                            <div className="px-2 my-2">
-                                                               <Separator className="bg-muted/20" />
+                                                               <Separator />
                                                            </div>
                                                        )}
                                                        <div className="px-3 py-1 mb-1">
-                                                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                           <span className="label text-muted-foreground">
                                                                {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
                                                            </span>
                                                        </div>
@@ -496,25 +489,24 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                            <SelectItem 
                                                                key={acc.id} 
                                                                value={acc.id} 
-                                                               className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                               className="group py-2"
                                                            >
                                                                <div className="flex items-center gap-3">
                                                                    <div 
-                                                                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
                                                                        style={{ 
                                                                            backgroundColor: `${acc.color}15`, 
                                                                            color: acc.color 
                                                                        }}
                                                                    >
-                                                                       <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
-                                                                       <Wallet className="h-5 w-5 relative z-10" />
+                                                                       <Wallet className="h-4 w-4" />
                                                                    </div>
 
                                                                    <div className="flex flex-col text-left">
-                                                                       <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                       <span className="text-sm font-medium">
                                                                            {acc.name}
                                                                        </span>
-                                                                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                       <span className="text-xs text-muted-foreground">
                                                                            {AccountTypeLabels[acc.type] || "Conta"}
                                                                        </span>
                                                                    </div>
@@ -527,7 +519,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                        </div>
                                    </SelectContent>
                               </Select>
-                              <FormMessage className="ml-1 text-[11px]" />
+                              <FormMessage />
                               </FormItem>
                           )}
                       />
@@ -537,14 +529,14 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                           name="target_account_id"
                           render={({ field }) => (
                               <FormItem>
-                              <FormLabel className="text-xs font-bold uppercase tracking-wider text-emerald-500 ml-1">Entra em:</FormLabel>
+                              <FormLabel>Entra em:</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
-                                  <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-background focus:ring-2 focus:ring-emerald-500/20 transition-all">
+                                  <SelectTrigger>
                                       <SelectValue placeholder="Destino..." />
                                   </SelectTrigger>
                                   </FormControl>
-                                  <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                  <SelectContent className="max-h-[450px] p-2">
                                        <div className="flex flex-col">
                                            <AccountFormDialog 
                                                onSuccess={() => fetchAccounts()}
@@ -552,18 +544,16 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                    <Button 
                                                        type="button"
                                                        variant="ghost" 
-                                                       className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                       className="mb-1 w-full justify-start gap-2"
                                                    >
-                                                       <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
-                                                           <PlusCircle className="h-5 w-5" />
-                                                       </div>
+                                                       <PlusCircle aria-hidden="true" />
                                                        Nova Conta
                                                    </Button>
                                                }
                                            />
 
                                            <div className="px-2 mb-2">
-                                               <Separator className="bg-muted/20" />
+                                               <Separator />
                                            </div>
 
                                            {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
@@ -574,11 +564,11 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                    <div key={type}>
                                                        {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
                                                            <div className="px-2 my-2">
-                                                               <Separator className="bg-muted/20" />
+                                                               <Separator />
                                                            </div>
                                                        )}
                                                        <div className="px-3 py-1 mb-1">
-                                                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                           <span className="label text-muted-foreground">
                                                                {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
                                                            </span>
                                                        </div>
@@ -586,25 +576,24 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                            <SelectItem 
                                                                key={acc.id} 
                                                                value={acc.id} 
-                                                               className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                               className="group py-2"
                                                            >
                                                                <div className="flex items-center gap-3">
                                                                    <div 
-                                                                       className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                       className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
                                                                        style={{ 
                                                                            backgroundColor: `${acc.color}15`, 
                                                                            color: acc.color 
                                                                        }}
                                                                    >
-                                                                       <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
-                                                                       <Wallet className="h-5 w-5 relative z-10" />
+                                                                       <Wallet className="h-4 w-4" />
                                                                    </div>
 
                                                                    <div className="flex flex-col text-left">
-                                                                       <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                       <span className="text-sm font-medium">
                                                                            {acc.name}
                                                                        </span>
-                                                                       <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                       <span className="text-xs text-muted-foreground">
                                                                            {AccountTypeLabels[acc.type] || "Conta"}
                                                                        </span>
                                                                    </div>
@@ -617,7 +606,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                        </div>
                                    </SelectContent>
                               </Select>
-                              <FormMessage className="ml-1 text-[11px]" />
+                              <FormMessage />
                               </FormItem>
                           )}
                       />
@@ -625,21 +614,15 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                   </div>
                 </div>
 
-                <DialogFooter className="gap-2 sm:gap-0 pt-2">
-                  <Button 
-                      type="button" 
-                      variant="ghost" 
+                <DialogFooter className="pt-2">
+                  <Button
+                      type="button"
+                      variant="outline"
                       onClick={() => onOpenChange(false)}
-                      className="h-12 px-6 rounded-2xl font-semibold hover:bg-muted"
                   >
                     Cancelar
                   </Button>
-                  <Button 
-                      type="submit" 
-                      disabled={isLoading}
-                      className="h-12 px-8 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                  >
-                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Button type="submit" loading={isLoading}>
                     {initialData ? "Salvar Alterações" : "Efetuar Transferência"}
                   </Button>
                 </DialogFooter>

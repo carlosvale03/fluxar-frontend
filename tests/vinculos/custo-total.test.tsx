@@ -58,7 +58,7 @@ const esperar = (ms: number) => act(() => new Promise((r) => setTimeout(r, ms)))
 const linha = (descricao: string) => screen.getAllByText(descricao).map((el) => el.closest("tr")).find(Boolean)!
 // O cartão do celular com a descrição
 const cartao = (descricao: string) =>
-  screen.getAllByText(descricao).find((el) => !el.closest("tr"))!.closest(".rounded-\\[28px\\]") as HTMLElement
+  screen.getAllByText(descricao).find((el) => !el.closest("tr"))!.closest("[data-testid=lancamento-no-celular]") as HTMLElement
 
 beforeEach(() => {
   vi.clearAllMocks()

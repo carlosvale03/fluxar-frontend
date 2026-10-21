@@ -197,86 +197,76 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
   return (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="h-10 relative md:rounded-[32px] font-black uppercase tracking-widest text-[10px] px-3 md:px-6 border-primary/20 hover:bg-primary/5 text-primary transition-all flex items-center justify-center shrink-0"
-        >
-            <Filter className="md:mr-2 h-4 w-4" /> 
-            <span className="hidden md:inline">Refinar Seleção</span>
+        <Button variant="outline" className="relative shrink-0 px-3 md:px-4">
+            <Filter aria-hidden="true" />
+            <span className="sr-only md:not-sr-only">Refinar seleção</span>
             {activeFilterCount > 0 && (
-                <Badge className={cn(
-                    "h-5 w-5 p-0 flex items-center justify-center rounded-full bg-primary text-primary-foreground text-[10px] animate-in zoom-in duration-300",
-                    "md:ml-2 absolute -top-1.5 -right-1.5 md:static md:top-0 md:right-0"
-                )}>
+                <Badge className="absolute -right-1.5 -top-1.5 h-5 min-w-5 justify-center px-1 md:static">
                     {activeFilterCount}
                 </Badge>
             )}
         </Button>
       </SheetTrigger>
-      <SheetContent className="w-full sm:max-w-md overflow-y-auto border-l border-border/40 bg-background/95 backdrop-blur-xl">
-        <SheetHeader className="pb-6 border-b border-border/40">
-          <div className="w-12 h-12 rounded-[20px] bg-primary/10 flex items-center justify-center mb-4">
-             <Filter className="h-6 w-6 text-primary" />
-          </div>
-          <SheetTitle className="text-2xl font-black uppercase tracking-tight">Filtros de Exportação</SheetTitle>
-          <SheetDescription className="font-medium">
-            Personalize exatamente quais dados serão exportados para o arquivo final.
+      <SheetContent className="w-full overflow-y-auto sm:max-w-md">
+        <SheetHeader className="border-b border-border pb-4">
+          <SheetTitle className="display-m">Filtrar transações</SheetTitle>
+          <SheetDescription>
+            Escolha o que aparece na lista. Os filtros ativos ficam visíveis acima dela.
           </SheetDescription>
         </SheetHeader>
-        
-        <div className="grid gap-8 py-8">
-            
+
+        <div className="grid gap-6 py-6">
+
             {/* Period Filter */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <CalendarIcon className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Período de Competência</Label>
-                </div>
+            <fieldset className="space-y-2">
+                <legend className="mb-2 flex items-center gap-2 text-sm font-medium">
+                   <CalendarIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Período
+                </legend>
                 <div className="grid grid-cols-2 gap-3">
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-[24px] border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !startDate && "text-muted-foreground")}>
+                            <Button variant="outline" aria-label={startDate ? `Início: ${format(startDate, "dd/MM/yyyy")}` : "Escolher o início"} className={cn("w-full justify-start font-mono font-normal", !startDate && "text-muted-foreground")}>
                                 {startDate ? format(startDate, "dd/MM/yyyy") : "Início"}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-border/40" align="start">
+                        <PopoverContent className="w-auto p-0" align="start">
                             <Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus locale={ptBR} />
                         </PopoverContent>
                     </Popover>
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="outline" className={cn("h-12 w-full justify-start text-left font-bold text-xs px-4 rounded-[24px] border-border/40 bg-muted/20 hover:bg-muted/30 transition-all", !endDate && "text-muted-foreground")}>
+                            <Button variant="outline" aria-label={endDate ? `Fim: ${format(endDate, "dd/MM/yyyy")}` : "Escolher o fim"} className={cn("w-full justify-start font-mono font-normal", !endDate && "text-muted-foreground")}>
                                 {endDate ? format(endDate, "dd/MM/yyyy") : "Fim"}
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-border/40" align="start">
+                        <PopoverContent className="w-auto p-0" align="start">
                             <Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus locale={ptBR} />
                         </PopoverContent>
                     </Popover>
                 </div>
-            </div>
+            </fieldset>
 
             {/* Type Filter */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <Layers className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Tipo de Lançamento</Label>
-                </div>
+            <div className="space-y-2">
+                <Label htmlFor="filtro-tipo" className="flex items-center gap-2">
+                   <Layers className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Tipo de lançamento
+                </Label>
                 <Select value={type} onValueChange={setType}>
-                    <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                    <SelectTrigger id="filtro-tipo">
                         <SelectValue placeholder="Todos os tipos" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl shadow-xl">
-                        <SelectItem value="ALL" className="rounded-xl font-bold">Todas as movimentações</SelectItem>
-                        <SelectItem value="INCOME" className="rounded-xl font-bold">
+                    <SelectContent>
+                        <SelectItem value="ALL">Todas as movimentações</SelectItem>
+                        <SelectItem value="INCOME">
                            <div className="flex items-center gap-2">
-                              <ArrowUpCircle className="h-4 w-4 text-emerald-500" /> Receitas
+                              <ArrowUpCircle className="h-4 w-4 text-inflow" aria-hidden="true" /> Receitas
                            </div>
                         </SelectItem>
-                        <SelectItem value="EXPENSE" className="rounded-xl font-bold">
+                        <SelectItem value="EXPENSE">
                            <div className="flex items-center gap-2">
-                              <ArrowDownCircle className="h-4 w-4 text-rose-500" /> Despesas
+                              <ArrowDownCircle className="h-4 w-4 text-outflow" aria-hidden="true" /> Despesas
                            </div>
                         </SelectItem>
                     </SelectContent>
@@ -284,53 +274,36 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
             </div>
 
             {/* Account Filter */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <Wallet className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Conta / Origem</Label>
-                </div>
+            <div className="space-y-2">
+                <Label htmlFor="filtro-conta" className="flex items-center gap-2">
+                   <Wallet className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Conta
+                </Label>
                 <Select value={accountId} onValueChange={setAccountId}>
-                    <SelectTrigger className="h-12 rounded-[24px] border-border/40 bg-muted/20 focus:ring-primary/20 font-bold text-xs">
+                    <SelectTrigger id="filtro-conta">
                         <SelectValue placeholder="Todas as contas" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-[32px] shadow-2xl border-border/40 p-2 bg-background/95 backdrop-blur-xl max-h-[400px]">
-                        <SelectItem value="ALL" className="rounded-2xl font-black uppercase tracking-widest text-[10px] mb-2 py-3">
+                    <SelectContent className="max-h-[400px]">
+                        <SelectItem value="ALL">
                             Todas as contas
                         </SelectItem>
-                        
+
                         {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
                             const groupAccounts = accounts.filter(acc => acc.is_active && acc.type === type);
                             if (groupAccounts.length === 0) return null;
 
                             return (
                                 <div key={type}>
-                                    {typeIndex > 0 && (
-                                        <div className="px-2 my-2">
-                                            <Separator className="bg-muted/20" />
-                                        </div>
-                                    )}
-                                    <div className="px-3 py-1 mb-1">
-                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
-                                            {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
-                                        </span>
+                                    {typeIndex > 0 && <Separator className="my-1" />}
+                                    <div className="label px-2 py-1.5 text-muted-foreground">
+                                        {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
                                     </div>
                                     {groupAccounts.map((acc: Account) => (
-                                        <SelectItem 
-                                            key={acc.id} 
-                                            value={acc.id} 
-                                            className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
-                                        >
-                                            <div className="flex items-center gap-3">
-                                                <div 
-                                                    className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 transition-all"
-                                                    style={{ 
-                                                        backgroundColor: `${acc.color}15`, 
-                                                        color: acc.color 
-                                                    }}
-                                                >
-                                                    <Wallet className="h-4 w-4" />
-                                                </div>
-                                                <span className="font-bold text-sm tracking-tight">{acc.name}</span>
+                                        <SelectItem key={acc.id} value={acc.id}>
+                                            <div className="flex items-center gap-2">
+                                                {/* Cor da conta: dado do usuário */}
+                                                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: acc.color }} aria-hidden="true" />
+                                                <span>{acc.name}</span>
                                             </div>
                                         </SelectItem>
                                     ))}
@@ -342,21 +315,23 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
             </div>
 
             {/* Category Filter */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <Layers className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Categoria</Label>
-                </div>
+            <fieldset className="space-y-2">
+                <legend className="mb-2 flex items-center gap-2 text-sm font-medium">
+                   <Layers className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Categoria
+                </legend>
                 {/* CONTRATO-10: seleção de várias categorias */}
-                <div className="max-h-[300px] overflow-y-auto rounded-[24px] border border-border/40 bg-muted/20 p-2 space-y-1">
+                <div className="max-h-[300px] space-y-0.5 overflow-y-auto rounded-md border border-border p-1">
                     {categories.map((cat: Category) => {
                         const marcada = categoryIds.includes(String(cat.id))
+                        const sub = cat.name.startsWith("↳")
                         return (
                             <label
                                 key={cat.id}
                                 className={cn(
-                                    "flex items-center gap-2 rounded-xl px-2 py-1.5 cursor-pointer transition-colors hover:bg-muted/40",
-                                    marcada && "bg-primary/5"
+                                    "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors duration-fast hover:bg-elevated",
+                                    marcada && "bg-elevated",
+                                    sub && "pl-6"
                                 )}
                             >
                                 <Checkbox
@@ -364,39 +339,32 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                                     onCheckedChange={(valor) => alternarCategoria(String(cat.id), valor === true)}
                                     aria-label={cat.name.replace("↳ ", "")}
                                 />
-                                <div 
-                                    className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
-                                    style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                                >
-                                    <LucideIcon name={cat.icon} className="h-4 w-4" />
-                                </div>
-                                <span className={cn(
-                                    "font-bold text-xs",
-                                    cat.name.startsWith("↳") ? "text-muted-foreground ml-1 font-medium" : ""
-                                )}>
-                                    {cat.name}
+                                {/* Cor e ícone da categoria: dados do usuário */}
+                                <LucideIcon name={cat.icon} className="h-4 w-4 shrink-0" style={{ color: cat.color }} aria-hidden="true" />
+                                <span className={cn(sub && "text-muted-foreground")}>
+                                    {cat.name.replace("↳ ", "")}
                                 </span>
                             </label>
                         )
                     })}
                 </div>
-            </div>
+            </fieldset>
 
             {/* CLASSE-34 e CLASSE-35: várias classes e "Sem classe"; só despesas e compras no cartão */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <Shapes className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Classe da Despesa</Label>
-                </div>
-                <div className="rounded-[24px] border border-border/40 bg-muted/20 p-2 space-y-1">
+            <fieldset className="space-y-2">
+                <legend className="mb-2 flex items-center gap-2 text-sm font-medium">
+                   <Shapes className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Classe da despesa
+                </legend>
+                <div className="space-y-0.5 rounded-md border border-border p-1">
                     {opcoesDeClasse.map((classe) => {
                         const marcada = classIds.includes(classe.id)
                         return (
                             <label
                                 key={classe.id}
                                 className={cn(
-                                    "flex items-center gap-2 rounded-xl px-2 py-1.5 cursor-pointer transition-colors hover:bg-muted/40",
-                                    marcada && "bg-primary/5"
+                                    "flex cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-sm transition-colors duration-fast hover:bg-elevated",
+                                    marcada && "bg-elevated"
                                 )}
                             >
                                 <Checkbox
@@ -404,25 +372,25 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                                     onCheckedChange={(valor) => alternarClasse(classe.id, valor === true)}
                                     aria-label={`Classe ${classe.nome}`}
                                 />
-                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: classe.cor }} />
-                                <span className="font-bold text-xs">{classe.nome}</span>
+                                <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: classe.cor }} aria-hidden="true" />
+                                <span>{classe.nome}</span>
                             </label>
                         )
                     })}
                 </div>
-            </div>
+            </fieldset>
 
             {/* VINCULO-30: só as transações com vínculo; travado pelo plano (VINCULO-20) */}
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <Link2 className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Vínculo</Label>
-                </div>
+            <fieldset className="space-y-2">
+                <legend className="mb-2 flex items-center gap-2 text-sm font-medium">
+                   <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Vínculo
+                </legend>
                 <label
                     className={cn(
-                        "flex items-center gap-2 rounded-[24px] border border-border/40 bg-muted/20 px-4 py-3 transition-colors",
-                        vinculosLiberados ? "cursor-pointer hover:bg-muted/40" : "cursor-not-allowed opacity-70",
-                        vinculosLiberados && linked && "bg-primary/5"
+                        "flex items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors duration-fast",
+                        vinculosLiberados ? "cursor-pointer hover:bg-elevated" : "cursor-not-allowed opacity-70",
+                        vinculosLiberados && linked && "bg-elevated"
                     )}
                     title={vinculosLiberados ? undefined : MENSAGEM_RECURSO_BLOQUEADO}
                 >
@@ -432,19 +400,19 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                         onCheckedChange={(valor) => setLinked(valor === true)}
                         aria-label="Com vínculo"
                     />
-                    <span className="font-bold text-xs">Com vínculo</span>
+                    <span>Com vínculo</span>
                     {!vinculosLiberados && (
-                        <Lock className="ml-auto h-3.5 w-3.5 text-amber-600" aria-label="Travado pelo plano" />
+                        <Lock className="ml-auto h-4 w-4 text-warn" aria-label="Travado pelo plano" />
                     )}
                 </label>
-            </div>
+            </fieldset>
 
             {/* Tags Filter: só com `tags` aberto (PERM-19) */}
             {tagsLiberadas && (
-            <div className="space-y-3">
-                <div className="flex items-center gap-2 mb-1">
-                   <TagIcon className="h-3.5 w-3.5 text-primary opacity-70" />
-                   <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Etiquetas (Tags)</Label>
+            <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium">
+                   <TagIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                   Tags
                 </div>
                 <TagSelector
                    selectedTagIds={tagIds}
@@ -455,15 +423,58 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
 
         </div>
 
-        <SheetFooter className="flex-col sm:flex-col gap-3 pt-6 border-t border-border/40">
-            <Button className="w-full h-12 rounded-[24px] font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20" onClick={handleApply}>
-                Aplicar Filtros
+        <SheetFooter className="flex-col gap-2 border-t border-border pt-4 sm:flex-col">
+            <Button className="w-full" onClick={handleApply}>
+                Aplicar filtros
             </Button>
-            <Button variant="ghost" className="w-full h-10 rounded-xl font-black uppercase tracking-widest text-[10px] opacity-60 hover:opacity-100" onClick={handleClear}>
-                Limpar Todos os Filtros
+            <Button variant="ghost" className="w-full" onClick={handleClear}>
+                Limpar todos os filtros
             </Button>
         </SheetFooter>
       </SheetContent>
     </Sheet>
+  )
+}
+
+export interface ChipDeFiltro {
+  chave: string
+  // O valor do filtro em texto: "Despesas", "Conta: Nubank"
+  rotulo: string
+  remover: () => void
+}
+
+interface FiltrosAtivosProps {
+  chips: ChipDeFiltro[]
+  onLimpar: () => void
+  className?: string
+}
+
+// AZ-24 (DESIGN.md §5, Pílulas): os filtros ativos ficam à vista, cada um com
+// "×" para remover, e "Limpar filtros" no fim da lista
+export function FiltrosAtivos({ chips, onLimpar, className }: FiltrosAtivosProps) {
+  if (chips.length === 0) return null
+
+  return (
+    <div className={cn("flex flex-wrap items-center gap-2", className)}>
+      <span className="sr-only">Filtros ativos:</span>
+      <ul className="contents">
+        {chips.map((chip) => (
+          <li key={chip.chave} className="inline-flex items-center gap-1 rounded-full border border-border-strong py-0.5 pl-3 pr-1 text-sm text-fg-secondary">
+            {chip.rotulo}
+            <button
+              type="button"
+              onClick={chip.remover}
+              aria-label={`Remover o filtro ${chip.rotulo}`}
+              className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors duration-fast hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden="true" />
+            </button>
+          </li>
+        ))}
+      </ul>
+      <Button variant="link" size="sm" className="h-7 px-1" onClick={onLimpar}>
+        Limpar filtros
+      </Button>
+    </div>
   )
 }

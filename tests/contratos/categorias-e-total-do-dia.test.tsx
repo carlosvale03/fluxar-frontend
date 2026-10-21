@@ -88,8 +88,13 @@ describe("Várias categorias e total do dia", () => {
     render(<TransactionsPage />)
     await screen.findAllByText("Padaria")
 
-    expect(screen.getByText(/^Saldo do Dia:\s+-R\$\s250,00$/)).toBeInTheDocument()
-    expect(screen.queryByText(/Saldo do Dia:.*10,00/)).not.toBeInTheDocument()
+    // O total aparece na lista do celular e na tabela, com o sinal de menos
+    const totais = screen.getAllByTestId("total-do-dia")
+    expect(totais).toHaveLength(2)
+    for (const total of totais) {
+      expect(total.textContent).toMatch(/^Saldo do dia−\sR\$\s250,00$/)
+      expect(total).not.toHaveTextContent(/10,00/)
+    }
   })
 
   it("um dia com saldo positivo mostra o sinal de mais e o valor de day_totals", async () => {
@@ -100,6 +105,8 @@ describe("Várias categorias e total do dia", () => {
     render(<TransactionsPage />)
     await screen.findAllByText("Padaria")
 
-    expect(screen.getByText(/^Saldo do Dia:\s\+\sR\$\s1\.500,00$/)).toBeInTheDocument()
+    for (const total of screen.getAllByTestId("total-do-dia")) {
+      expect(total.textContent).toMatch(/^Saldo do dia\+\sR\$\s1\.500,00$/)
+    }
   })
 })
