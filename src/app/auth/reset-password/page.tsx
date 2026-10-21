@@ -116,7 +116,7 @@ function ResetPasswordContent() {
   return (
     <AuthShell 
       title="Nova Senha" 
-      description="Escolha uma senha forte para proteger sua conta no Fluxar."
+      description="Escolha uma senha forte para proteger sua conta no Azimute."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <motion.div 

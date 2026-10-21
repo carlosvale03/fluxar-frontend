@@ -42,7 +42,7 @@ export default function PlanosPage() {
     <div className="container mx-auto py-8 px-4 max-w-7xl animate-in fade-in duration-500 space-y-8">
       <div>
         <h1 className="text-3xl font-black tracking-tight uppercase">Planos</h1>
-        <p className="text-sm text-muted-foreground mt-1">O que cada plano do Fluxar libera.</p>
+        <p className="text-sm text-muted-foreground mt-1">O que cada plano do Azimute libera.</p>
         {liberacaoDeTestes && (
           <p className="mt-3 text-xs font-medium text-amber-700 dark:text-amber-400">
             Todos os recursos estão liberados durante a fase de testes.

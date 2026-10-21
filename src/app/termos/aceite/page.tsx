@@ -86,7 +86,7 @@ export default function AceiteDosTermosPage() {
         </CardHeader>
         <CardContent className="px-8 py-4 space-y-4">
           <p className="text-sm text-muted-foreground">
-            Para continuar usando o Fluxar, aceite a versão nova dos Termos de Uso e da Política de Privacidade. O que mudou:
+            Para continuar usando o Azimute, aceite a versão nova dos Termos de Uso e da Política de Privacidade. O que mudou:
           </p>
           {termos && (
             <ul className="text-sm space-y-2 list-disc list-inside">

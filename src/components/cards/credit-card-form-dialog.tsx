@@ -234,7 +234,7 @@ export function CreditCardFormDialog({
                         </div>
                         <div className="text-right">
                             <p className="text-[10px] font-black tracking-[0.2em] text-white/50 uppercase italic">
-                                {selectedBank?.label || "Fluxar Pay"}
+                                {selectedBank?.label || "Meu cartão"}
                             </p>
                             <CreditCardIcon className="h-6 w-6 text-white/80 mt-1 ml-auto" />
                         </div>

@@ -81,7 +81,7 @@ export function ServerWakeupOverlay() {
                 </h2>
                 
                 <p className="text-sm font-medium text-muted-foreground/80 leading-relaxed mb-8">
-                    Como o <span className="text-foreground font-bold italic">Fluxar</span> ainda está em fase de testes e utilizando recursos gratuitos, nosso servidor entra em "hibernação" após algum tempo de inatividade.
+                    Como o <span className="text-foreground font-bold italic">Azimute</span> ainda está em fase de testes e utilizando recursos gratuitos, nosso servidor entra em "hibernação" após algum tempo de inatividade.
                     <br /><br />
                     <span className="text-primary font-bold">Só um instantinho!</span> Ele já está preparando o café e estará pronto para você em alguns segundos.
                 </p>

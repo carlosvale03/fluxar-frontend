@@ -142,7 +142,7 @@ export default function RegisterPage() {
   return (
     <AuthShell 
       title="Crie sua conta" 
-      description="Comece a controlar suas finanças hoje mesmo com a inteligência do Fluxar."
+      description="Comece a controlar suas finanças hoje mesmo com a inteligência do Azimute."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <motion.div 
@@ -252,7 +252,7 @@ export default function RegisterPage() {
                   Eu li e concordo com os <Link href="/termos" target="_blank" className="text-primary hover:underline underline-offset-4 decoration-2">Termos de Uso e Política de Privacidade</Link>.
                 </label>
                 <p className="text-[10px] text-muted-foreground font-medium">
-                  A conexão com o Fluxar é criptografada, e CPF, telefone, data de nascimento e renda ficam criptografados no banco.
+                  A conexão com o Azimute é criptografada, e CPF, telefone, data de nascimento e renda ficam criptografados no banco.
                 </p>
               </div>
             </div>

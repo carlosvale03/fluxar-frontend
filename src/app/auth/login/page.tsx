@@ -54,7 +54,7 @@ export default function LoginPage() {
       setCancelando(true)
       const response = await api.post("/auth/cancel-deletion/", { cancel_token: exclusaoPendente.cancel_token })
       await login(response.data.access)
-      toast.success("A exclusão foi cancelada. Bem-vindo de volta ao Fluxar!")
+      toast.success("A exclusão foi cancelada. Bem-vindo de volta ao Azimute!")
     } catch (error) {
       setExclusaoPendente(null)
       tratarErro(error, { mensagemPadrao: "Não foi possível cancelar a exclusão. Entre de novo." })
@@ -74,7 +74,7 @@ export default function LoginPage() {
       setExclusaoPendente(null)
       const response = await api.post("/auth/login/", data)
       await login(response.data.access, response.data.user)
-      toast.success("Bem-vindo de volta ao Fluxar!")
+      toast.success("Bem-vindo de volta ao Azimute!")
     } catch (error) {
       const msg = mensagemDeErro(error, "E-mail ou senha incorretos. Tente novamente.")
       setError("root", { message: msg })
@@ -98,7 +98,7 @@ export default function LoginPage() {
   return (
     <AuthShell 
       title="Acesse sua conta" 
-      description="Entre com seus dados para continuar sua jornada financeira no Fluxar."
+      description="Entre com seus dados para continuar sua jornada financeira no Azimute."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         <motion.div 
@@ -135,7 +135,7 @@ export default function LoginPage() {
               <p className="text-sm font-medium">
                 A exclusão definitiva desta conta está marcada para{" "}
                 <strong>{dataDaExclusao(exclusaoPendente.deletion_scheduled_for)}</strong>. Cancele a exclusão para
-                voltar a usar o Fluxar com todos os seus dados.
+                voltar a usar o Azimute com todos os seus dados.
               </p>
               <Button
                 type="button"

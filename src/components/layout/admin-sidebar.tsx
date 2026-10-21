@@ -21,7 +21,7 @@ export function AdminSidebar() {
           <ShieldCheck className="h-5 w-5 text-primary" />
         </div>
         <div>
-          <h2 className="text-sm font-black uppercase tracking-tight">Fluxar Admin</h2>
+          <h2 className="text-sm font-black uppercase tracking-tight">Azimute Admin</h2>
           <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-50">Gestão de Sistema</p>
         </div>
       </div>

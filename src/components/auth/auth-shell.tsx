@@ -3,8 +3,8 @@
 import { ReactNode } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
-import Image from "next/image"
 import Link from "next/link"
+import { Logo } from "@/components/layout/logo"
 
 interface AuthShellProps {
   children: ReactNode
@@ -36,27 +36,8 @@ export function AuthShell({ children, className, title, description, showLogo = 
       >
         {showLogo && (
           <div className="flex flex-col items-center justify-center space-y-2 mb-2">
-             <Link href="/" className="flex items-center gap-2 transition-transform hover:scale-105 active:scale-95 duration-300">
-                <div className="relative h-12 w-48 hidden dark:block">
-                  <Image 
-                    src="/logo/logo-dark-clean-1630x700.png" 
-                    alt="Fluxar Logo" 
-                    fill
-                    sizes="200px"
-                    className="object-contain"
-                    priority
-                  />
-                </div>
-                <div className="relative h-12 w-48 dark:hidden">
-                  <Image 
-                    src="/logo/logo-light-clean-1630x700.png" 
-                    alt="Fluxar Logo" 
-                    fill
-                    sizes="200px"
-                    className="object-contain"
-                    priority
-                  />
-                </div>
+             <Link href="/" aria-label="Azimute, página inicial" className="flex items-center gap-2">
+                <Logo tamanho={36} />
               </Link>
           </div>
         )}

@@ -102,7 +102,7 @@ function VerifyEmailContent() {
               </div>
               <div className="text-center space-y-2 px-4">
                 <h3 className="text-xl font-black tracking-tight">Tudo pronto!</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Seu e-mail foi validado e sua conta está **totalmente ativa** no Fluxar.</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">Seu e-mail foi validado e sua conta está **totalmente ativa** no Azimute.</p>
               </div>
               <Button 
                 onClick={handleAccessAccount} 

@@ -82,7 +82,7 @@ export function PageHelp({ title, description, sections, className }: PageHelpPr
         
         <div className="p-8 pt-4 bg-muted/10 border-t border-border/10">
           <p className="text-[10px] font-black uppercase tracking-widest text-center opacity-40">
-            Fluxar • Gestão Inteligente
+            Azimute • Rumo exato para o seu dinheiro
           </p>
         </div>
       </DialogContent>

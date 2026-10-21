@@ -77,7 +77,7 @@ export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) 
         <div className="flex flex-col items-end">
             <div className="flex items-center gap-2">
                 <span className="text-[9px] font-black tracking-[0.2em] text-white/60 uppercase italic">
-                    {BANKS.find(b => b.value === card.institution)?.label || "Fluxar Pay"}
+                    {BANKS.find(b => b.value === card.institution)?.label || "Meu cartão"}
                 </span>
                 <CardIcon className="h-4 w-4 text-white/60" />
             </div>
