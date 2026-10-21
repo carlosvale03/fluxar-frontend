@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { formatarMoeda, formatarPercentual, paraCentavos } from "@/lib/dinheiro"
 
 type Direcao = "entrada" | "saida" | "transferencia" | "neutro"
 
@@ -40,8 +40,6 @@ export function Valor({ valor, direcao, tamanho = "m", semMoeda = false, classNa
   )
 }
 
-const PERCENTUAL = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 })
-
 interface VariacaoProps {
   // Variação em %, ou null quando não há base para comparar
   percentual: number | null | undefined
@@ -69,7 +67,7 @@ export function Variacao({ percentual, subirEBom = true, referencia, className }
       <span className={cn("value-m", cor)}>
         <span aria-hidden="true">{seta} </span>
         <span className="sr-only">{parado ? "Sem variação:" : subiu ? "Subiu" : "Caiu"} </span>
-        {PERCENTUAL.format(Math.abs(percentual))}%
+        {formatarPercentual(percentual)}
       </span>
       {referencia && <> {referencia}</>}
     </span>
