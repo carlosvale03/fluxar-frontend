@@ -126,7 +126,7 @@ describe("Página de planos", () => {
   it("o menu do usuário leva à página de planos", async () => {
     render(<Header />)
 
-    await userEvent.click(screen.getByRole("button", { name: "A" }))
+    await userEvent.click(screen.getByRole("button", { name: "Menu da conta" }))
     expect(await screen.findByRole("menuitem", { name: /Planos/ })).toHaveAttribute("href", "/planos")
   })
 })
