@@ -10,6 +10,12 @@ interface Props {
   carregando?: boolean
 }
 
+// O estado medido: verde só quando o backend respondeu "ok"; sem resposta, neutro
+function corDoEstado(medido: boolean, ok: boolean) {
+  if (!medido) return "text-muted-foreground"
+  return ok ? "text-inflow" : "text-outflow"
+}
+
 // ADMIN-02: a saúde da API e do banco como o backend mediu agora. Sem
 // resposta, a tela mostra "Sem dados", nunca um "Operacional" inventado.
 export function CardsDeSaude({ saude, carregando = false }: Props) {
@@ -20,47 +26,39 @@ export function CardsDeSaude({ saude, carregando = false }: Props) {
 
   return (
     <>
-      <Card
-        data-testid="saude-api"
-        className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]"
-      >
+      <Card data-testid="saude-api">
         <CardHeader className="pb-2">
-          <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70 flex items-center justify-between">
+          <CardDescription className="label flex items-center justify-between text-muted-foreground">
             API
-            <Activity className="h-4 w-4 text-blue-500" />
+            <Activity className="h-4 w-4 text-info" aria-hidden="true" />
           </CardDescription>
-          <CardTitle className={`text-3xl font-black ${!api ? "text-muted-foreground" : apiOk ? "text-emerald-500" : "text-red-500"}`}>
+          <CardTitle className={`value-l ${corDoEstado(!!api, apiOk)}`}>
             {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : !api ? "Sem dados" : apiOk ? "Operacional" : "Com erro"}
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">
-            Estado medido agora
-          </p>
+          <p className="mt-1 text-xs text-muted-foreground">Estado medido agora</p>
         </CardContent>
       </Card>
 
-      <Card
-        data-testid="saude-banco"
-        className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]"
-      >
+      <Card data-testid="saude-banco">
         <CardHeader className="pb-2">
-          <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70 flex items-center justify-between">
+          <CardDescription className="label flex items-center justify-between text-muted-foreground">
             Banco de dados
-            <Database className="h-4 w-4 text-blue-500" />
+            <Database className="h-4 w-4 text-info" aria-hidden="true" />
           </CardDescription>
-          <CardTitle className={`text-3xl font-black ${!banco ? "text-muted-foreground" : bancoOk ? "text-emerald-500" : "text-red-500"}`}>
+          <CardTitle className={`value-l ${corDoEstado(!!banco, bancoOk)}`}>
             {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : !banco ? "Sem dados" : bancoOk ? "Operacional" : "Com erro"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">
           {banco && (
             <>
-              <p className="text-xs font-bold text-muted-foreground">
+              <p className="font-mono text-xs text-muted-foreground">
                 {banco.latency_ms === null ? "Sem latência" : `Latência: ${banco.latency_ms} ms`}
               </p>
               {banco.version && (
-                <p className="text-xs font-bold text-muted-foreground">PostgreSQL {banco.version}</p>
+                <p className="font-mono text-xs text-muted-foreground">PostgreSQL {banco.version}</p>
               )}
             </>
           )}

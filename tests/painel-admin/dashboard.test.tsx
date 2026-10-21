@@ -31,7 +31,7 @@ function stats(banco: { status: "ok" | "error"; latency_ms: number | null; versi
 }
 
 function card(titulo: string) {
-  return screen.getByText(titulo).closest(".rounded-\\[24px\\]") as HTMLElement
+  return screen.getByText(titulo).closest(".rounded-lg") as HTMLElement
 }
 
 describe("Dashboard do admin", () => {

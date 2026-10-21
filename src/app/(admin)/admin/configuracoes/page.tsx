@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Server, FileText, AlertTriangle, RefreshCw, Loader2, Globe, FlaskConical, Layers } from "lucide-react"
+import { Server, FileText, AlertTriangle, RefreshCw, Loader2, Globe, FlaskConical, Layers, OctagonX, CircleCheck } from "lucide-react"
 import { toast } from "sonner"
 import { getAdminStats, getSystemLogs, getAdministradores, updateSystemSettings, getSystemSettings, AdminStats, SystemLog, FiltrosDoLog, getAdminPlans, updateAdminPlans, ConfiguracaoDosPlanos, MudancaDosPlanos } from "@/services/admin"
 import type { User } from "@/contexts/auth-context"
@@ -138,7 +138,7 @@ export default function AdminSettingsPage() {
         await updateSystemSettings({ maintenance_mode: checked })
         
         if (checked) {
-            toast.warning("Modo de manutenção ativado! Acesso restrito a administradores.")
+            toast.warning("Modo de manutenção ativado. Acesso restrito a administradores.")
         } else {
             toast.success("Sistema online e acessível para todos os usuários.")
         }
@@ -151,14 +151,14 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 px-4 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="container mx-auto py-10 px-4 space-y-8 max-w-7xl">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-            <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">
+            <h1 className="display-l">
             Configurações do Sistema
             </h1>
-            <p className="text-sm font-bold text-muted-foreground/60 mt-1 uppercase tracking-widest">
-            Gestão Global • Parâmetros & Auditoria
+            <p className="mt-1 text-sm text-muted-foreground">
+            Gestão global · parâmetros e auditoria
             </p>
         </div>
         <Button 
@@ -166,45 +166,44 @@ export default function AdminSettingsPage() {
             size="sm" 
             onClick={() => { loadData(); loadLogs() }} 
             disabled={isRefreshing}
-            className="rounded-full font-bold border-primary/20 hover:bg-primary/10 hover:text-primary transition-all duration-300"
         >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} aria-hidden="true" />
             Atualizar Dados
         </Button>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 lg:w-[600px] p-1 bg-muted/30 backdrop-blur-sm rounded-xl border border-white/10">
-          <TabsTrigger value="system" className="rounded-lg font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
-            <Server className="h-4 w-4 mr-2" /> Sistema
+        <TabsList className="grid w-full grid-cols-3 lg:w-[600px]">
+          <TabsTrigger value="system">
+            <Server className="mr-2 h-4 w-4" aria-hidden="true" /> Sistema
           </TabsTrigger>
-          <TabsTrigger value="logs" className="rounded-lg font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
-            <FileText className="h-4 w-4 mr-2" /> Logs
+          <TabsTrigger value="logs">
+            <FileText className="mr-2 h-4 w-4" aria-hidden="true" /> Logs
           </TabsTrigger>
-          <TabsTrigger value="plans" className="rounded-lg font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg transition-all duration-300">
-            <Layers className="h-4 w-4 mr-2" /> Planos e travas
+          <TabsTrigger value="plans">
+            <Layers className="mr-2 h-4 w-4" aria-hidden="true" /> Planos e travas
           </TabsTrigger>
         </TabsList>
 
         {/* --- SYSTEM TAB --- */}
-        <TabsContent value="system" className="mt-8 space-y-8 animate-in fade-in slide-in-from-right-4 duration-500">
+        <TabsContent value="system" className="mt-8 space-y-8">
             
             {/* ADMIN-02 e ADMIN-03: saúde e versão medidas pelo backend */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                 <CardsDeSaude saude={stats?.health} carregando={isRefreshing && !stats} />
 
-                <Card data-testid="versao-do-sistema" className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px] group hover:border-primary/30 transition-all duration-300">
+                <Card data-testid="versao-do-sistema">
                     <CardHeader className="pb-2">
-                        <CardDescription className="uppercase tracking-widest text-[10px] font-black opacity-70 flex items-center justify-between">
+                        <CardDescription className="label flex items-center justify-between text-muted-foreground">
                             Versão do sistema
-                            <Globe className="h-4 w-4 text-primary" />
+                            <Globe className="h-4 w-4 text-info" aria-hidden="true" />
                         </CardDescription>
-                        <CardTitle className={`text-3xl font-black break-all ${stats?.version ? "text-foreground" : "text-muted-foreground"}`}>
+                        <CardTitle className={`value-l break-all ${stats?.version ? "text-foreground" : "text-muted-foreground"}`}>
                             {stats?.version || "Sem dados"}
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-widest">
+                        <p className="mt-1 text-xs text-muted-foreground">
                             Deploy em execução
                         </p>
                     </CardContent>
@@ -212,57 +211,65 @@ export default function AdminSettingsPage() {
             </div>
 
             <div className="grid gap-8 lg:grid-cols-2">
-                {/* Maintenance Mode Control */}
-                <Card className={`border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${maintenanceMode ? 'border-destructive/50 bg-destructive/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                {/* Modo de manutenção: a listra lateral mostra o estado, sem pintar o card */}
+                <Card className={`overflow-hidden border-l-[3px] transition-colors duration-base ease-az-out ${maintenanceMode ? 'border-l-outflow' : 'border-l-border-strong'}`}>
                     <CardHeader>
                         <div className="flex items-center gap-3">
-                            <div className={`p-3 rounded-2xl ${maintenanceMode ? 'bg-destructive/20 text-destructive' : 'bg-orange-500/10 text-orange-500'}`}>
-                                <AlertTriangle className="h-6 w-6" />
+                            <div className={`rounded-md border border-border-strong bg-elevated p-3 ${maintenanceMode ? 'text-outflow' : 'text-warn'}`}>
+                                <AlertTriangle className="h-6 w-6" aria-hidden="true" />
                             </div>
                             <div>
-                                <CardTitle className="text-xl font-bold">Modo de Manutenção</CardTitle>
+                                <CardTitle className="display-m">Modo de Manutenção</CardTitle>
                                 <CardDescription>Bloqueio de acesso para usuários não-administradores.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent className="flex items-center justify-between p-8 pt-2">
                         <div className="space-y-2">
-                            <div className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Status Atual</div>
-                            <Badge className={`px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-full ${maintenanceMode ? "bg-destructive text-destructive-foreground hover:bg-destructive" : "bg-emerald-500/10 text-emerald-600 border-emerald-500/20 hover:bg-emerald-500/20"}`}>
-                                {maintenanceMode ? "⛔ MANUTENÇÃO ATIVA" : "✅ SISTEMA OPERACIONAL"}
-                            </Badge>
+                            <div className="label text-muted-foreground">Status atual</div>
+                            {maintenanceMode ? (
+                                <Badge variant="destructive">
+                                    <OctagonX className="h-3.5 w-3.5" aria-hidden="true" />
+                                    Manutenção ativa
+                                </Badge>
+                            ) : (
+                                <Badge variant="success">
+                                    <CircleCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                                    Sistema operacional
+                                </Badge>
+                            )}
                         </div>
                         <div className="flex items-center gap-4">
-                            <span className="text-xs font-bold text-muted-foreground hidden sm:block">
+                            <span className="hidden text-xs text-muted-foreground sm:block">
                                 {maintenanceMode ? "Desativar bloqueio" : "Ativar bloqueio"}
                             </span>
-                            <Switch 
+                            <Switch
                                 checked={maintenanceMode}
                                 onCheckedChange={handleMaintenanceToggle}
                                 disabled={isLoading}
-                                className="data-[state=checked]:bg-destructive"
+                                className="data-[state=checked]:bg-outflow"
                             />
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* PERM-24: liberação para testes, junto da manutenção */}
-                <Card className={`border shadow-xl rounded-[32px] overflow-hidden transition-all duration-500 ${planos?.testing_unlock ? 'border-amber-500/40 bg-amber-500/5' : 'border-border/40 bg-card/50 backdrop-blur-sm'}`}>
+                <Card className={`overflow-hidden border-l-[3px] transition-colors duration-base ease-az-out ${planos?.testing_unlock ? 'border-l-warn' : 'border-l-border-strong'}`}>
                     <CardHeader>
                         <div className="flex items-center gap-3">
-                            <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-500">
-                                <FlaskConical className="h-6 w-6" />
+                            <div className="rounded-md border border-border-strong bg-elevated p-3 text-warn">
+                                <FlaskConical className="h-6 w-6" aria-hidden="true" />
                             </div>
                             <div>
-                                <CardTitle className="text-xl font-bold">Liberação para testes</CardTitle>
+                                <CardTitle className="display-m">Liberação para testes</CardTitle>
                                 <CardDescription>Libera todos os recursos para todos os usuários, sem limites e sem mudar o plano de ninguém.</CardDescription>
                             </div>
                         </div>
                     </CardHeader>
                     <CardContent className="flex items-center justify-between p-8 pt-2">
                         <div className="space-y-2">
-                            <div className="font-bold text-sm uppercase tracking-wider text-muted-foreground">Status Atual</div>
-                            <Badge className={`px-4 py-1.5 text-xs font-black uppercase tracking-widest rounded-full ${planos?.testing_unlock ? "bg-amber-500 text-white hover:bg-amber-500" : "bg-muted text-muted-foreground hover:bg-muted"}`}>
+                            <div className="label text-muted-foreground">Status atual</div>
+                            <Badge variant={planos?.testing_unlock ? "warning" : "secondary"}>
                                 {planos?.testing_unlock ? "Tudo liberado" : "Valem as travas dos planos"}
                             </Badge>
                         </div>
@@ -271,7 +278,7 @@ export default function AdminSettingsPage() {
                             checked={planos?.testing_unlock ?? false}
                             onCheckedChange={handleTestingUnlockToggle}
                             disabled={!planos || isSavingUnlock}
-                            className="data-[state=checked]:bg-amber-500"
+                            className="data-[state=checked]:bg-warn"
                         />
                     </CardContent>
                 </Card>
@@ -280,10 +287,10 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         {/* --- PLANOS E TRAVAS (PERM-10 a PERM-13) --- */}
-        <TabsContent value="plans" className="mt-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden">
-                <CardHeader className="border-b border-border/40 bg-muted/20">
-                    <CardTitle className="text-xl font-bold">Planos e travas</CardTitle>
+        <TabsContent value="plans" className="mt-8">
+            <Card className="overflow-hidden">
+                <CardHeader className="border-b border-border">
+                    <CardTitle className="display-m">Planos e travas</CardTitle>
                     <CardDescription>
                         O que cada plano libera. As mudanças valem para os usuários do plano em até 30 segundos
                         {planos?.testing_unlock ? ", depois que a liberação para testes for desligada" : ""}.
@@ -294,7 +301,7 @@ export default function AdminSettingsPage() {
                         <TabelaDeTravas catalogo={planos.catalog} aoMudar={mudarPlanos} />
                     ) : (
                         <div className="p-12 flex justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
                         </div>
                     )}
                 </CardContent>
@@ -302,26 +309,26 @@ export default function AdminSettingsPage() {
         </TabsContent>
 
         {/* --- LOGS TAB (ADMIN-12 e ADMIN-13) --- */}
-        <TabsContent value="logs" className="mt-8 animate-in fade-in slide-in-from-right-4 duration-500">
-            <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] overflow-hidden">
-                <CardHeader className="border-b border-border/40 bg-muted/20 space-y-4">
+        <TabsContent value="logs" className="mt-8">
+            <Card className="overflow-hidden">
+                <CardHeader className="border-b border-border space-y-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <CardTitle className="text-xl font-bold">Logs de Auditoria</CardTitle>
+                            <CardTitle className="display-m">Logs de Auditoria</CardTitle>
                             <CardDescription>Registro imutável de atividades administrativas.</CardDescription>
                         </div>
-                        <Badge variant="outline" className="bg-background/50 font-mono text-xs">
+                        <Badge variant="secondary">
                             {logsCount} registros
                         </Badge>
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="space-y-1">
-                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Ação</Label>
+                            <Label className="label text-muted-foreground">Ação</Label>
                             <Select value={filtrosDoLog.action || "ALL"} onValueChange={(valor) => mudarFiltro("action", valor === "ALL" ? "" : valor)}>
-                                <SelectTrigger aria-label="Filtrar por ação" className="rounded-xl border-border/40 bg-background/50 text-xs font-bold">
+                                <SelectTrigger aria-label="Filtrar por ação">
                                     <SelectValue placeholder="Todas as ações" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl">
+                                <SelectContent>
                                     <SelectItem value="ALL">Todas as ações</SelectItem>
                                     {ACOES_DO_LOG.map((acao) => (
                                         <SelectItem key={acao.valor} value={acao.valor}>{acao.rotulo}</SelectItem>
@@ -330,12 +337,12 @@ export default function AdminSettingsPage() {
                             </Select>
                         </div>
                         <div className="space-y-1">
-                            <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Administrador</Label>
+                            <Label className="label text-muted-foreground">Administrador</Label>
                             <Select value={filtrosDoLog.admin || "ALL"} onValueChange={(valor) => mudarFiltro("admin", valor === "ALL" ? "" : valor)}>
-                                <SelectTrigger aria-label="Filtrar por administrador" className="rounded-xl border-border/40 bg-background/50 text-xs font-bold">
+                                <SelectTrigger aria-label="Filtrar por administrador">
                                     <SelectValue placeholder="Todos os administradores" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl">
+                                <SelectContent>
                                     <SelectItem value="ALL">Todos os administradores</SelectItem>
                                     {administradores.map((admin) => (
                                         <SelectItem key={admin.id} value={admin.id}>{admin.name} ({admin.email})</SelectItem>
@@ -344,22 +351,22 @@ export default function AdminSettingsPage() {
                             </Select>
                         </div>
                         <div className="space-y-1">
-                            <Label htmlFor="log-inicio" className="text-[10px] font-black uppercase tracking-widest opacity-50">De</Label>
+                            <Label htmlFor="log-inicio" className="label text-muted-foreground">De</Label>
                             <Input
                                 id="log-inicio"
                                 type="date"
-                                className="rounded-xl border-border/40 bg-background/50 text-xs font-bold"
+                               
                                 value={filtrosDoLog.inicio ?? ""}
                                 max={filtrosDoLog.fim || undefined}
                                 onChange={(e) => mudarFiltro("inicio", e.target.value)}
                             />
                         </div>
                         <div className="space-y-1">
-                            <Label htmlFor="log-fim" className="text-[10px] font-black uppercase tracking-widest opacity-50">Até</Label>
+                            <Label htmlFor="log-fim" className="label text-muted-foreground">Até</Label>
                             <Input
                                 id="log-fim"
                                 type="date"
-                                className="rounded-xl border-border/40 bg-background/50 text-xs font-bold"
+                               
                                 value={filtrosDoLog.fim ?? ""}
                                 min={filtrosDoLog.inicio || undefined}
                                 onChange={(e) => mudarFiltro("fim", e.target.value)}
@@ -368,23 +375,23 @@ export default function AdminSettingsPage() {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    <div className="divide-y divide-border/40">
+                    <div className="divide-y divide-border">
                         {isLoadingLogs && logs.length === 0 ? (
                             <div className="p-12 flex flex-col items-center justify-center text-muted-foreground">
-                                <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
-                                <p className="text-sm font-bold uppercase tracking-widest">Carregando logs...</p>
+                                <Loader2 className="mb-4 h-8 w-8 animate-spin" />
+                                <p className="label">Carregando logs</p>
                             </div>
                         ) : logs.length > 0 ? (
                             logs.map((log) => (
-                                <div key={log.id} className="p-4 sm:p-6 hover:bg-muted/30 transition-colors flex flex-col sm:flex-row gap-4 sm:items-center justify-between group">
+                                <div key={log.id} className="flex flex-col justify-between gap-4 p-4 transition-colors duration-fast ease-az-out hover:bg-elevated sm:flex-row sm:items-center sm:p-6">
                                     <div className="flex gap-4 items-start">
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0 text-primary font-bold uppercase">
+                                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border-strong bg-elevated font-mono uppercase" aria-hidden="true">
                                             {log.admin_email.charAt(0)}
                                         </div>
                                         <div>
                                             <div className="flex flex-wrap items-center gap-2 mb-1">
-                                                <p className="text-sm font-bold">{rotuloDaAcao(log.action)}</p>
-                                                <Badge variant="secondary" className="text-[10px] font-mono opacity-70">
+                                                <p className="text-sm font-semibold">{rotuloDaAcao(log.action)}</p>
+                                                <Badge variant="secondary">
                                                     {log.action}
                                                 </Badge>
                                             </div>
@@ -393,25 +400,25 @@ export default function AdminSettingsPage() {
                                                 <p className="text-xs text-muted-foreground mt-1">Usuário: {log.user_email}</p>
                                             )}
                                             <ValoresDoLog log={log} />
-                                            <p className="text-xs font-bold text-primary/70 mt-1 sm:hidden">
-                                                {new Date(log.timestamp).toLocaleString('pt-BR')} • por {log.admin_email}
+                                            <p className="mt-1 font-mono text-xs text-muted-foreground sm:hidden">
+                                                {new Date(log.timestamp).toLocaleString('pt-BR')} · por {log.admin_email}
                                             </p>
                                         </div>
                                     </div>
                                     <div className="text-right hidden sm:block shrink-0">
-                                        <p className="text-xs font-bold text-foreground">
+                                        <p className="font-mono text-xs text-foreground">
                                             {new Date(log.timestamp).toLocaleDateString('pt-BR')}
                                         </p>
-                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                                        <p className="font-mono text-xs text-muted-foreground">
                                             {new Date(log.timestamp).toLocaleTimeString('pt-BR')}
                                         </p>
-                                        <p className="text-[10px] text-muted-foreground mt-1">por {log.admin_email}</p>
+                                        <p className="mt-1 text-xs text-muted-foreground">por {log.admin_email}</p>
                                     </div>
                                 </div>
                             ))
                         ) : (
                             <div className="p-12 text-center text-muted-foreground">
-                                <FileText className="h-12 w-12 mx-auto mb-4 opacity-20" />
+                                <FileText className="mx-auto mb-4 h-12 w-12" aria-hidden="true" />
                                 <p>Nenhum log encontrado.</p>
                             </div>
                         )}

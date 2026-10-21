@@ -290,32 +290,32 @@ export default function UserManagementPage() {
   if (isLoading && users.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        <p className="text-sm font-black uppercase tracking-widest text-muted-foreground animate-pulse">
-          Buscando base de usuários...
+        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+        <p className="label text-muted-foreground">
+          Carregando usuários
         </p>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-8 space-y-6 sm:space-y-8 animate-in fade-in duration-700">
+    <div className="space-y-6 p-4 sm:space-y-8 sm:p-8">
       <div className="flex flex-col xl:flex-row xl:items-end justify-between gap-6">
         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
           <div className="flex flex-col">
-            <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-none uppercase">
+            <h1 className="display-l">
               Gestão de Usuários
             </h1>
-            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mt-2 opacity-50">
-              {isLoading ? "CARREGANDO..." : `${totalCount} USUÁRIOS CADASTRADOS`}
+            <p className="mt-1 text-sm text-muted-foreground">
+              {isLoading ? "Carregando" : `${totalCount} usuários cadastrados`}
             </p>
           </div>
           
-          <div className="flex gap-1 bg-muted/20 p-1 rounded-2xl border border-border/40 backdrop-blur-sm shadow-sm w-fit">
+          <div className="flex w-fit gap-1 rounded-md border border-border bg-elevated p-1">
             <Button 
               variant={!viewArchived ? "secondary" : "ghost"} 
               size="sm" 
-              className={cn("rounded-xl px-4 py-1.5 text-xs font-bold transition-all", !viewArchived && "bg-background shadow-sm")}
+              className={cn("rounded-sm px-4", !viewArchived && "bg-card text-foreground")}
               onClick={() => {
                 setViewArchived(false)
                 setPage(1)
@@ -326,7 +326,7 @@ export default function UserManagementPage() {
             <Button 
               variant={viewArchived ? "secondary" : "ghost"} 
               size="sm" 
-              className={cn("rounded-xl px-4 py-1.5 text-xs font-bold transition-all", viewArchived && "bg-background shadow-sm")}
+              className={cn("rounded-sm px-4", viewArchived && "bg-card text-foreground")}
               onClick={() => {
                 setViewArchived(true)
                 setPage(1)
@@ -339,13 +339,13 @@ export default function UserManagementPage() {
 
         <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
           <div className="relative flex-1 min-w-[200px] max-w-full sm:max-w-xs md:max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input 
               type="search"
               id="fluxar-admin-search-no-autofill"
               name="fluxar-search-query"
               placeholder="Buscar por nome ou e-mail..." 
-              className="pl-10 rounded-2xl border-border/40 bg-background/50 focus:ring-primary/20 transition-all w-full"
+              className="w-full pl-10"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               autoComplete="off"
@@ -357,10 +357,10 @@ export default function UserManagementPage() {
               setFilterRole(val)
               setPage(1)
             }}>
-              <SelectTrigger aria-label="Filtrar por cargo" className="w-[110px] sm:w-[130px] rounded-2xl border-border/40 bg-background/50 font-bold text-[10px] uppercase tracking-widest">
+              <SelectTrigger aria-label="Filtrar por cargo" className="w-[130px] sm:w-[150px]">
                 <SelectValue placeholder="Cargo" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent>
                 <SelectItem value="ALL">Todos Cargos</SelectItem>
                 <SelectItem value="ADMIN">Administradores</SelectItem>
                 <SelectItem value="USER">Usuários</SelectItem>
@@ -371,10 +371,10 @@ export default function UserManagementPage() {
               setFilterPlan(val)
               setPage(1)
             }}>
-              <SelectTrigger aria-label="Filtrar por plano" className="w-[110px] sm:w-[130px] rounded-2xl border-border/40 bg-background/50 font-bold text-[10px] uppercase tracking-widest">
+              <SelectTrigger aria-label="Filtrar por plano" className="w-[130px] sm:w-[150px]">
                 <SelectValue placeholder="Plano" />
               </SelectTrigger>
-              <SelectContent className="rounded-xl">
+              <SelectContent>
                 <SelectItem value="ALL">Todos Planos</SelectItem>
                 <SelectItem value="COMMON">{nomeDoPlano("COMMON")}</SelectItem>
                 <SelectItem value="PREMIUM">{nomeDoPlano("PREMIUM")}</SelectItem>
@@ -386,72 +386,72 @@ export default function UserManagementPage() {
           <Button 
             variant={isSelectionMode ? "secondary" : "outline"}
             className={cn(
-              "rounded-2xl font-bold gap-2 animate-in fade-in zoom-in duration-300 transition-all shrink-0 ml-auto sm:ml-0",
-              isSelectionMode && "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg shadow-primary/20 scale-105"
+              "ml-auto shrink-0 sm:ml-0",
+              isSelectionMode && "border border-gold-line text-foreground"
             )}
             onClick={() => {
               setIsSelectionMode(!isSelectionMode)
               if (isSelectionMode) setSelectedIds([])
             }}
           >
-            <ListChecks className="h-4 w-4" />
+            <ListChecks className="h-4 w-4" aria-hidden="true" />
             <span className="inline-flex">{isSelectionMode ? "Concluir" : "Seleção"}</span>
           </Button>
         </div>
       </div>
 
-      <div className="sm:border border-border/40 bg-card/30 backdrop-blur-md sm:rounded-[40px] rounded-none border-x-0 overflow-hidden shadow-2xl">
+      <div className="overflow-hidden rounded-none border-y border-border bg-card sm:rounded-lg sm:border">
         <Table>
-          <TableHeader className="bg-muted/60 dark:bg-zinc-800/50 backdrop-blur-sm">
-            <TableRow className="hover:bg-transparent border-b border-border/40">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
               {isSelectionMode && (
                 <TableHead className="w-12 py-5 pl-4">
                   <Checkbox 
                     checked={users.length > 0 && selectedIds.length === users.length}
                     onCheckedChange={toggleSelectAll}
-                    className="rounded-md border-primary data-[state=checked]:bg-primary transition-all cursor-pointer ring-offset-background"
+                    className="cursor-pointer"
                   />
                 </TableHead>
               )}
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Usuário</TableHead>
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Plano</TableHead>
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Cargo</TableHead>
-              <TableHead className="py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80 hidden sm:table-cell">Cadastro</TableHead>
-              <TableHead className="w-[80px] sm:w-[100px] text-right py-3 sm:py-5 font-black uppercase tracking-[0.2em] text-[10px] text-foreground/80">Ações</TableHead>
+              <TableHead className="label text-muted-foreground">Usuário</TableHead>
+              <TableHead className="label text-muted-foreground">Plano</TableHead>
+              <TableHead className="label text-muted-foreground">Cargo</TableHead>
+              <TableHead className="label hidden text-muted-foreground sm:table-cell">Cadastro</TableHead>
+              <TableHead className="label w-[80px] text-right text-muted-foreground sm:w-[100px]">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((user) => (
-              <TableRow key={user.id} className="border-border/40 hover:bg-primary/5 transition-colors group">
+              <TableRow key={user.id}>
                 {isSelectionMode && (
                   <TableCell className="w-12">
                      <Checkbox 
                        checked={selectedIds.includes(user.id)}
                        onCheckedChange={() => toggleSelect(user.id)}
-                       className="rounded-md border-primary data-[state=checked]:bg-primary transition-all cursor-pointer ring-offset-background"
+                       className="cursor-pointer"
                      />
                   </TableCell>
                 )}
                 <TableCell className="py-2.5 sm:py-4">
                   <div className="flex items-center gap-3 sm:gap-4">
-                    <Avatar className="h-8 w-8 sm:h-10 sm:w-10 border-2 border-primary/10 transition-transform group-hover:scale-110 duration-300">
+                    <Avatar className="h-8 w-8 border border-border-strong sm:h-10 sm:w-10">
                       <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} />
-                      <AvatarFallback className="font-black bg-primary/10 text-primary">
+                      <AvatarFallback className="bg-elevated font-mono">
                         {user.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col">
-                      <span className="font-black text-sm tracking-tight">{user.name}</span>
-                      <span className="text-xs text-muted-foreground font-medium">{user.email}</span>
+                      <span className="text-sm font-semibold">{user.name}</span>
+                      <span className="text-xs text-muted-foreground">{user.email}</span>
                     </div>
                   </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="outline" className={cn(
-                    "font-black tracking-widest text-[10px] uppercase rounded-full px-3 py-0.5",
-                    user.plan === "PREMIUM_PLUS" ? "bg-amber-500/10 text-amber-500 border-amber-500/20" :
-                    user.plan === "PREMIUM" ? "bg-primary/10 text-primary border-primary/20" :
-                    "bg-muted text-muted-foreground border-border"
+                    "px-3",
+                    user.plan === "PREMIUM_PLUS" ? "text-gold-line" :
+                    user.plan === "PREMIUM" ? "text-foreground" :
+                    "text-fg-secondary"
                   )}>
                     {user.plan.replace('_', ' ')}
                   </Badge>
@@ -459,47 +459,47 @@ export default function UserManagementPage() {
                 <TableCell>
                   <div className="flex items-center gap-2">
                     {user.role === "ADMIN" ? (
-                      <Badge className="bg-rose-500/10 text-rose-600 border-rose-500/20 font-black tracking-widest text-[10px] uppercase rounded-full">
-                        <Shield className="h-3 w-3 mr-1" /> Admin
+                      <Badge variant="info">
+                        <Shield className="h-3 w-3" aria-hidden="true" /> Admin
                       </Badge>
                     ) : (
-                      <Badge variant="secondary" className="font-black tracking-widest text-[10px] uppercase rounded-full">
-                        <UserIcon className="h-3 w-3 mr-1" /> User
+                      <Badge variant="secondary">
+                        <UserIcon className="h-3 w-3" aria-hidden="true" /> User
                       </Badge>
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="hidden sm:table-cell text-xs font-bold text-muted-foreground/70">
+                <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">
                   {new Date(user.created_at).toLocaleDateString('pt-BR')}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
-                    <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10" asChild>
+                    <Button variant="ghost" size="icon" asChild>
                       <Link href={`/admin/usuarios/${user.id}`}>
                         <Eye className="h-4 w-4" />
                       </Link>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="rounded-full hover:bg-primary/10">
+                        <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48 rounded-2xl border-border/40 bg-background/95 backdrop-blur-xl shadow-2xl">
-                      <DropdownMenuLabel className="font-black uppercase tracking-widest text-[10px] opacity-50">Ações Admin</DropdownMenuLabel>
+                      <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuLabel className="label text-muted-foreground">Ações Admin</DropdownMenuLabel>
                       <DropdownMenuSeparator />
-                      <DropdownMenuItem className="font-bold flex items-center gap-2 cursor-pointer" onClick={() => handleToggleRole(user)}>
+                      <DropdownMenuItem className="flex cursor-pointer items-center gap-2" onClick={() => handleToggleRole(user)}>
                         <Shield className="h-4 w-4" />
                         {user.role === "ADMIN" ? "Tirar Admin" : "Tornar Admin"}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="font-bold flex items-center gap-2 cursor-pointer" onClick={() => handleChangePlan(user)}>
+                      <DropdownMenuItem className="flex cursor-pointer items-center gap-2" onClick={() => handleChangePlan(user)}>
                         <Edit2 className="h-4 w-4" /> Alterar Plano
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem 
                         className={cn(
-                          "font-bold flex items-center gap-2 cursor-pointer",
-                          viewArchived ? "text-primary focus:text-primary" : "text-rose-500 focus:text-rose-500"
+                          "flex cursor-pointer items-center gap-2",
+                          viewArchived ? "text-gold-line focus:text-gold-line" : "text-outflow focus:text-outflow"
                         )}
                         onClick={() => viewArchived ? handleRestoreUser(user) : handleArchiveUser(user)}
                       >
@@ -522,8 +522,8 @@ export default function UserManagementPage() {
           </TableBody>
         </Table>
         
-        <div className="flex flex-col sm:flex-row items-center justify-between p-4 gap-4 border-t border-border/40 bg-muted/10">
-          <div className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 w-full sm:w-auto text-center sm:text-left">
+        <div className="flex flex-col items-center justify-between gap-4 border-t border-border p-4 sm:flex-row">
+          <div className="w-full text-center font-mono text-xs text-muted-foreground sm:w-auto sm:text-left">
              {users.length} de {totalCount} usuários
           </div>
           <div className="flex items-center justify-center gap-2 w-full sm:w-auto">
@@ -532,11 +532,11 @@ export default function UserManagementPage() {
               size="sm" 
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1 || isLoading}
-              className="flex-1 sm:flex-none rounded-xl h-8 px-4 font-black text-[10px] uppercase tracking-widest"
+              className="flex-1 sm:flex-none"
             >
-              <ChevronLeft className="h-3 w-3 mr-1" /> Ant.
+              <ChevronLeft className="h-3 w-3" aria-hidden="true" /> Ant.
             </Button>
-            <div className="text-[10px] font-black uppercase tracking-widest px-4 border-x border-border/20">
+            <div className="border-x border-border px-4 font-mono text-xs">
               {page}
             </div>
             <Button 
@@ -545,27 +545,27 @@ export default function UserManagementPage() {
               onClick={() => setPage(p => p + 1)}
               // CONTRATO-02: a última página vem da API (20 itens por página)
               disabled={page >= totalPages || isLoading}
-              className="flex-1 sm:flex-none rounded-xl h-8 px-4 font-black text-[10px] uppercase tracking-widest"
+              className="flex-1 sm:flex-none"
             >
-              Próx. <ChevronRight className="h-3 w-3 ml-1" />
+              Próx. <ChevronRight className="h-3 w-3" aria-hidden="true" />
             </Button>
           </div>
         </div>
 
         {users.length === 0 && !isLoading && (
           <div className="py-20 text-center space-y-4">
-             <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto opacity-20">
-                <UserIcon className="h-8 w-8" />
+             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border-strong text-muted-foreground">
+                <UserIcon className="h-8 w-8" aria-hidden="true" />
              </div>
              {erroAoCarregar ? (
                <>
-                 <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Não foi possível carregar a lista</p>
-                 <Button variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px]" onClick={loadUsers}>
+                 <p className="text-sm text-muted-foreground">Não foi possível carregar a lista</p>
+                 <Button variant="outline" onClick={loadUsers}>
                    Tentar de novo
                  </Button>
                </>
              ) : (
-               <p className="text-sm font-black uppercase tracking-widest text-muted-foreground">Nenhum usuário encontrado</p>
+               <p className="text-sm text-muted-foreground">Nenhum usuário encontrado</p>
              )}
           </div>
         )}
@@ -573,29 +573,29 @@ export default function UserManagementPage() {
 
       {/* Floating Action Bar para Seleção em Massa */}
       {selectedIds.length > 0 && (
-        <div className="fixed bottom-4 sm:bottom-8 left-0 right-0 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-50 px-4 sm:px-0 animate-in fade-in slide-in-from-bottom-4 duration-300">
-           <div className="bg-background/95 backdrop-blur-xl border border-border/40 shadow-2xl rounded-2xl sm:rounded-full px-4 sm:px-6 py-2.5 sm:py-3 flex flex-col sm:flex-row items-center gap-3 sm:gap-6 ring-1 ring-primary/20">
+        <div className="fixed bottom-4 left-0 right-0 z-sticky px-4 sm:bottom-8 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:px-0">
+           <div className="flex flex-col items-center gap-3 rounded-lg border border-border-strong bg-elevated px-4 py-2.5 sm:flex-row sm:gap-6 sm:px-6 sm:py-3">
               <div className="flex items-center gap-2">
-                 <div className="w-5 h-5 sm:w-6 sm:h-6 bg-primary rounded-full flex items-center justify-center">
-                    <span className="text-[10px] font-black text-primary-foreground">{selectedIds.length}</span>
+                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-gold">
+                    <span className="font-mono text-xs text-gold-ink">{selectedIds.length}</span>
                  </div>
-                 <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest opacity-60">Selecionados</span>
+                 <span className="label text-muted-foreground">Selecionados</span>
               </div>
-              <div className="hidden sm:block w-px h-6 bg-border/40" />
+              <div className="hidden h-6 w-px bg-border sm:block" />
               <div className="flex items-center gap-2 w-full sm:w-auto">
                  <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="flex-1 sm:flex-none rounded-full font-bold h-8 sm:h-9 hover:bg-rose-500/10 hover:text-rose-500 transition-all flex items-center justify-center gap-2 cursor-pointer bg-rose-500/5 sm:bg-transparent"
+                    className="flex-1 text-outflow hover:bg-outflow/10 hover:text-outflow sm:flex-none"
                     onClick={handleBulkArchive}
                  >
-                    <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                    <span className="text-[10px] sm:text-xs">Excluir</span>
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                    <span>Excluir</span>
                  </Button>
                  <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="flex-1 sm:flex-none rounded-full font-bold h-8 sm:h-9 opacity-50 hover:opacity-100 cursor-pointer text-[10px] sm:text-xs"
+                    className="flex-1 sm:flex-none"
                     onClick={() => {
                       setSelectedIds([])
                       setIsSelectionMode(false)
@@ -610,22 +610,22 @@ export default function UserManagementPage() {
 
       {/* Modal de Alteração de Plano (ADMIN-19: sem senha) */}
       <Dialog open={isChangePlanModalOpen} onOpenChange={setIsChangePlanModalOpen}>
-        <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tight">Alterar Plano</DialogTitle>
-            <DialogDescription className="text-xs font-medium">
+            <DialogTitle className="display-m">Alterar Plano</DialogTitle>
+            <DialogDescription>
               Selecione o novo nível de acesso para <strong>{selectedUser?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-4">
             <div className="space-y-2">
-              <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Novo Plano</Label>
+              <Label className="label text-muted-foreground">Novo Plano</Label>
               <Select value={newPlan} onValueChange={setNewPlan}>
-                <SelectTrigger aria-label="Novo plano" className="rounded-xl border-border/40 bg-muted/20">
+                <SelectTrigger aria-label="Novo plano">
                   <SelectValue placeholder="Selecione um plano" />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl border-border/40">
+                <SelectContent>
                   <SelectItem value="COMMON">COMUM</SelectItem>
                   <SelectItem value="PREMIUM">PREMIUM</SelectItem>
                   <SelectItem value="PREMIUM_PLUS">PREMIUM PLUS</SelectItem>
@@ -635,13 +635,13 @@ export default function UserManagementPage() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+            <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)} >Cancelar</Button>
             <Button
                 onClick={confirmChangePlan}
-                className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
+                
                 disabled={isSubmitting || newPlan === selectedUser?.plan}
             >
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Confirmar Alteração
             </Button>
           </DialogFooter>
@@ -650,10 +650,10 @@ export default function UserManagementPage() {
 
       {/* Modal de Alteração de Cargo (ADMIN-17: com senha) */}
       <Dialog open={isChangeRoleModalOpen} onOpenChange={setIsChangeRoleModalOpen}>
-        <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tight text-primary">Alterar Cargo</DialogTitle>
-            <DialogDescription className="text-xs font-medium">
+            <DialogTitle className="display-m">Alterar Cargo</DialogTitle>
+            <DialogDescription>
               Você está alterando o cargo de <strong>{selectedUser?.name}</strong> para <strong>{pendingRole}</strong>.
             </DialogDescription>
           </DialogHeader>
@@ -662,9 +662,9 @@ export default function UserManagementPage() {
             <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
 
             {selectedUser?.id === currentUser?.id && pendingRole !== 'ADMIN' && (
-              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 flex gap-3 animate-pulse">
-                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-                <p className="text-[10px] font-bold text-orange-500 leading-tight uppercase tracking-widest">
+              <div className="flex gap-3 rounded-r-md border border-border border-l-[3px] border-l-warn bg-card p-3">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
+                <p className="text-xs leading-tight text-foreground">
                    Cuidado: Você está prestes a remover seu próprio cargo de administrador.
                 </p>
               </div>
@@ -672,13 +672,13 @@ export default function UserManagementPage() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsChangeRoleModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+            <Button variant="ghost" onClick={() => setIsChangeRoleModalOpen(false)} >Cancelar</Button>
             <Button
                 onClick={confirmChangeRole}
-                className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
+               
                 disabled={!adminPassword || isSubmitting}
             >
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Confirmar Alteração
             </Button>
           </DialogFooter>
@@ -687,20 +687,20 @@ export default function UserManagementPage() {
 
       {/* Modal de Arquivamento Seguro (ADMIN-17: com senha) */}
       <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-        <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tight text-rose-500">Arquivar Conta</DialogTitle>
-            <DialogDescription className="text-xs font-medium">
+            <DialogTitle className="display-m">Arquivar Conta</DialogTitle>
+            <DialogDescription>
               O usuário <strong>{selectedUser?.name}</strong> perderá o acesso, mas os dados serão preservados.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="bg-rose-500/5 focus:ring-rose-500/20" />
+            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             {selectedUser?.id === currentUser?.id && (
-              <div className="p-3 rounded-xl bg-orange-500/10 border border-orange-500/20 flex gap-3 animate-pulse">
-                <AlertTriangle className="h-4 w-4 text-orange-500 shrink-0" />
-                <p className="text-[10px] font-bold text-orange-500 leading-tight uppercase tracking-widest">
+              <div className="flex gap-3 rounded-r-md border border-border border-l-[3px] border-l-warn bg-card p-3">
+                <AlertTriangle className="h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
+                <p className="text-xs leading-tight text-foreground">
                    Cuidado: Você está tentando arquivar seu próprio usuário admin.
                 </p>
               </div>
@@ -708,9 +708,9 @@ export default function UserManagementPage() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button variant="destructive" onClick={confirmArchive} className="rounded-xl font-black uppercase tracking-widest text-[10px]" disabled={!adminPassword || isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+            <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} >Cancelar</Button>
+            <Button variant="destructive" onClick={confirmArchive} disabled={!adminPassword || isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Confirmar Arquivamento
             </Button>
           </DialogFooter>
@@ -719,17 +719,17 @@ export default function UserManagementPage() {
 
       {/* Modal de Restauração (reativar não pede a senha) */}
       <Dialog open={isRestoreModalOpen} onOpenChange={setIsRestoreModalOpen}>
-        <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tight text-primary">Restaurar Conta</DialogTitle>
-            <DialogDescription className="text-xs font-medium">
+            <DialogTitle className="display-m">Restaurar Conta</DialogTitle>
+            <DialogDescription>
               Você está devolvendo o acesso à plataforma para <strong>{selectedUser?.name}</strong>.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsRestoreModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
-            <Button onClick={confirmRestore} className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90" disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+            <Button variant="ghost" onClick={() => setIsRestoreModalOpen(false)} >Cancelar</Button>
+            <Button onClick={confirmRestore}  disabled={isSubmitting}>
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Confirmar Restauração
             </Button>
           </DialogFooter>
@@ -738,27 +738,27 @@ export default function UserManagementPage() {
 
       {/* Modal de Arquivamento em Massa (ADMIN-17: com senha) */}
       <Dialog open={isBulkDeleteModalOpen} onOpenChange={setIsBulkDeleteModalOpen}>
-        <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+        <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle className="font-black uppercase tracking-tight text-rose-500">Arquivar em Massa</DialogTitle>
-            <DialogDescription className="text-xs font-medium">
+            <DialogTitle className="display-m">Arquivar em Massa</DialogTitle>
+            <DialogDescription>
               Você está prestes a arquivar <strong>{selectedIds.length} usuários</strong>. O acesso será removido, mas os dados preservados.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4 space-y-4">
-            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="bg-rose-500/5 focus:ring-rose-500/20" />
+            <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
           </div>
 
           <DialogFooter className="gap-2 sm:gap-0">
-            <Button variant="ghost" onClick={() => setIsBulkDeleteModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+            <Button variant="ghost" onClick={() => setIsBulkDeleteModalOpen(false)} >Cancelar</Button>
             <Button
                 variant="destructive"
                 onClick={confirmBulkArchive}
-                className="rounded-xl font-black uppercase tracking-widest text-[10px]"
+                
                 disabled={!adminPassword || isSubmitting || selectedIds.includes(currentUser?.id || "")}
             >
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
               Confirmar Arquivamento em Massa
             </Button>
           </DialogFooter>
