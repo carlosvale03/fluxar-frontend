@@ -43,12 +43,13 @@ export function ConfirmacaoDestrutiva({
     setConfirmando(true)
     try {
       await onConfirmar()
-      onAbertaChange(false)
     } catch {
       // Continua aberto; quem confirma mostra o erro (toast ou mensagem)
-    } finally {
       setConfirmando(false)
+      return
     }
+    setConfirmando(false)
+    onAbertaChange(false)
   }
 
   return (
