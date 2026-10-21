@@ -80,6 +80,14 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
+
+  /* Breakpoints (AZ-07): 375, 768 (md), 1024 (lg) e 1440; sm, xl e 2xl seguem o padrão do Tailwind */
+  --breakpoint-xs: 23.4375rem;
+  --breakpoint-wide: 90rem;
+
+  /* Curvas de movimento (DESIGN.md §5): entrada desacelera, saída acelera */
+  --ease-az-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-az-in: cubic-bezier(0.4, 0, 1, 1);
 }
 
 /*
@@ -152,6 +160,12 @@
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-card: 0 8px 24px rgba(11, 18, 32, 0.08);
+
+  /* Durações de movimento (DESIGN.md §5); a saída usa ~70% da entrada */
+  --az-dur-fast: 100ms;
+  --az-dur-base: 180ms;
+  --az-dur-slow: 240ms;
+  --az-dur-exit: 130ms;
 }
 
 /* ----------------------------------------------------------------------
@@ -208,6 +222,43 @@ body {
 @utility bg-avatar-premium {
   background: var(--az-elevated);
   border: 1px solid var(--az-border-strong);
+}
+
+/* Movimento (AZ-07): duration-fast | duration-base | duration-slow | duration-exit */
+@utility duration-fast {
+  transition-duration: var(--az-dur-fast);
+  --tw-duration: var(--az-dur-fast);
+}
+@utility duration-base {
+  transition-duration: var(--az-dur-base);
+  --tw-duration: var(--az-dur-base);
+}
+@utility duration-slow {
+  transition-duration: var(--az-dur-slow);
+  --tw-duration: var(--az-dur-slow);
+}
+@utility duration-exit {
+  transition-duration: var(--az-dur-exit);
+  --tw-duration: var(--az-dur-exit);
+}
+
+/* Camadas (AZ-07, DESIGN.md §5) */
+@utility z-sticky { z-index: 10; }
+@utility z-dropdown { z-index: 20; }
+@utility z-overlay { z-index: 40; }
+@utility z-modal { z-index: 50; }
+@utility z-toast { z-index: 100; }
+
+/* Quem pede menos movimento não vê animação nem transição; os indicadores de carregamento continuam girando */
+@media (prefers-reduced-motion: reduce) {
+  *:not(.animate-spin),
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 @utility animate-spin-slow {
