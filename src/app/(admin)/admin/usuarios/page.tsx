@@ -200,7 +200,7 @@ export default function UserManagementPage() {
     try {
       setIsSubmitting(true)
       await deleteAdminUser(selectedUser.id, adminPassword)
-      toast.success(`Usuário ${selectedUser.name} arquivado com sucesso.`)
+      toast.success(`Usuário ${selectedUser.name} arquivado.`)
       setIsDeleteModalOpen(false)
       loadUsers()
     } catch (error) {
@@ -217,7 +217,7 @@ export default function UserManagementPage() {
     try {
       setIsSubmitting(true)
       await updateAdminUser(selectedUser.id, { is_active: true })
-      toast.success(`Usuário ${selectedUser.name} restaurado com sucesso.`)
+      toast.success(`Usuário ${selectedUser.name} restaurado.`)
       setIsRestoreModalOpen(false)
       loadUsers()
     } catch (error) {
@@ -275,7 +275,7 @@ export default function UserManagementPage() {
     try {
       setIsSubmitting(true)
       await bulkDeleteAdminUsers(selectedIds, adminPassword)
-      toast.success(`${selectedIds.length} usuários arquivados com sucesso.`)
+      toast.success(`${selectedIds.length} usuários arquivados.`)
       setIsBulkDeleteModalOpen(false)
       setSelectedIds([])
       setIsSelectionMode(false)
