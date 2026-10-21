@@ -138,12 +138,12 @@ describe("Limites nas telas", () => {
     expect(screen.getByRole("button", { name: /Nova Tag/ })).toBeDisabled()
   })
 
-  it("metas no limite: desabilita \"Nova Meta\" e mostra o aviso", () => {
+  it("metas no limite: desabilita \"Nova meta\" e mostra o aviso", () => {
     comLimite("limite_metas", { limit: 1, used: 1 })
     render(<GoalsPage />)
 
     expect(screen.getByRole("note")).toHaveTextContent("1 de 1 metas")
-    expect(screen.getByRole("button", { name: /Nova Meta/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Nova meta/ })).toBeDisabled()
   })
 })
 

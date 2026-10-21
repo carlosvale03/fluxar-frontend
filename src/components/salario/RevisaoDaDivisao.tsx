@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { format } from "date-fns"
-import { ArrowRight, CheckCircle2, Loader2, Scissors, Undo2 } from "lucide-react"
+import { AlertTriangle, ArrowRight, CheckCircle2, Scissors, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -303,12 +303,12 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
       <li key={saida.id} aria-label={descricao} className="p-3 space-y-2 sm:flex sm:items-center sm:gap-3 sm:space-y-0">
         <div className="flex min-w-0 flex-1 items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-bold text-sm truncate" title={descricao}>{descricao}</p>
-            <p className="text-xs text-muted-foreground font-medium tabular-nums">
+            <p className="truncate text-sm font-medium" title={descricao}>{descricao}</p>
+            <p className="text-xs text-muted-foreground tabular-nums">
               {format(lerData(saida.date), "dd/MM")} · {tipoDaSaida(saida, revisao?.items ?? [])}
             </p>
           </div>
-          <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(saida.amount)}</p>
+          <p className="value-m">{formatarMoeda(saida.amount)}</p>
         </div>
         <div className="flex items-center gap-2 sm:w-56 sm:shrink-0">
           <Select
@@ -316,10 +316,10 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
             onValueChange={(valor) => escolherParte(saida.id, valor)}
             disabled={gerando}
           >
-            <SelectTrigger aria-label={`Parte de ${descricao}`} className="h-10 min-w-0 flex-1 rounded-xl text-sm">
+            <SelectTrigger aria-label={`Parte de ${descricao}`} className="h-10 min-w-0 flex-1 rounded-md text-sm">
               <SelectValue />
             </SelectTrigger>
-            <SelectContent className="rounded-xl">
+            <SelectContent>
               {partes.map((item) => (
                 <SelectItem key={item.part_id} value={item.part_id as string}>
                   {item.name}
@@ -328,7 +328,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               <SelectItem value={NAO_DESCONTAR}>Não descontar</SelectItem>
             </SelectContent>
           </Select>
-          {sugerida && <span className="text-[11px] font-medium text-muted-foreground">Sugerida</span>}
+          {sugerida && <span className="text-xs font-medium text-muted-foreground">Sugerida</span>}
         </div>
       </li>
     )
@@ -342,41 +342,41 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
     // do valor calculado depois das saídas (SALARIO-66)
     const transfere = item.destination_type === "ACCOUNT" || item.destination_type === "GOAL"
     return (
-      <li key={`${item.name}-${id}`} aria-label={item.name} className="p-3 rounded-2xl border border-border/40 bg-background/60 space-y-2">
+      <li key={`${item.name}-${id}`} aria-label={item.name} className="space-y-2 rounded-md border border-border bg-card p-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="font-bold text-sm flex flex-wrap items-center gap-2">
+            <p className="flex flex-wrap items-center gap-2 text-sm font-medium">
               {item.name}
               {item.reduced && (
-                <Badge variant="outline" className="text-[10px] rounded-full border-amber-500/40 text-amber-700 dark:text-amber-400">
+                <Badge variant="warning">
                   Reduzida
                 </Badge>
               )}
               {item.adjusted && (
-                <Badge variant="outline" className="text-[10px] rounded-full">
+                <Badge variant="secondary">
                   Ajustada
                 </Badge>
               )}
             </p>
             {gera ? (
-              <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-1">
+              <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                 <span>{item.origin_account?.name ?? revisao?.receipt.account_name}</span>
-                <ArrowRight className="h-3 w-3" />
-                <span className={item.destination_name ? "" : "text-destructive font-bold"}>
+                <ArrowRight aria-hidden="true" className="h-3 w-3" />
+                <span className={item.destination_name ? "" : "font-medium text-destructive"}>
                   {item.destination_name ?? "Sem destino"}
                 </span>
-                <span className="w-1 h-1 rounded-full bg-muted-foreground/30 mx-1" />
-                <span>{dataCurta(revisao?.date)}</span>
+                <span aria-hidden="true" className="mx-1">·</span>
+                <span className="font-mono tabular-nums">{dataCurta(revisao?.date)}</span>
               </p>
             ) : (
-              <p className="text-xs text-muted-foreground font-medium">
+              <p className="text-xs text-muted-foreground">
                 {item.destination_type === "SALARY_ACCOUNT" || !item.destination_type
                   ? "Fica na conta do salário"
                   : `${item.destination_name ?? ""}: não gera transação`}
               </p>
             )}
             {(transfere || gasto > 0) && (
-              <p className="text-xs text-muted-foreground font-medium tabular-nums">
+              <p className="text-xs text-muted-foreground tabular-nums">
                 Calculado {formatarMoeda(item.amount)}
                 {gasto > 0 && ` · Já gasto ${formatarMoeda(item.spent)}`}
               </p>
@@ -384,16 +384,17 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
           </div>
           {/* Só a parte que gera transação transfere; a que fica na conta mostra o que resta dela depois dos gastos */}
           <p className="text-right whitespace-nowrap">
-            <span className="block text-[11px] font-medium text-muted-foreground">
+            <span className="label block text-muted-foreground">
               {gera ? "Transferir" : gasto > 0 ? "Resta" : "Fica na conta"}
             </span>{" "}
-            <span className="font-black text-sm tabular-nums">
+            <span className="value-m">
               {formatarMoeda(gera || gasto > 0 ? (item.transfer ?? item.amount) : item.amount)}
             </span>
           </p>
         </div>
         {passou > 0 && (
-          <p role="status" className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-bold text-amber-700 dark:text-amber-400">
+          <p role="status" className="flex items-center gap-1.5 rounded-r-md border border-border border-l-[3px] border-l-warn bg-card px-3 py-2 text-xs font-medium text-warn">
+            <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
             Passou {formatarMoeda(item.exceeded)} do valor da parte
           </p>
         )}
@@ -403,7 +404,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               aria-label={`Ajustar ${item.name}`}
               aria-describedby={saidas.length ? `ajuste-de-${id}` : undefined}
               value={digitados[id] ?? item.amount}
-              className="rounded-xl h-9 text-sm"
+              className="h-9 text-sm"
               disabled={recalculando || gerando}
               onValueChange={(valor) => setDigitados((atuais) => ({ ...atuais, [id]: valor ?? "" }))}
               onBlur={() => void aplicarAjuste(item)}
@@ -416,7 +417,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
             />
             {/* SALARIO-30 e SALARIO-66: o ajuste troca o valor da parte, e as saídas saem dele depois */}
             {saidas.length > 0 && (
-              <p id={`ajuste-de-${id}`} className="text-[11px] font-medium text-muted-foreground">
+              <p id={`ajuste-de-${id}`} className="text-xs text-muted-foreground">
                 Valor da parte antes de descontar as saídas
               </p>
             )}
@@ -429,20 +430,22 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
   return (
     // Enquanto gera, a janela não fecha, como no desfazer
     <Dialog open={open} onOpenChange={(aberta) => !gerando && onOpenChange(aberta)}>
-      <DialogContent className="sm:max-w-[680px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px] bg-background">
+      <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[680px]">
         {/* Rolagem nativa: o ScrollArea do Radix põe o conteúdo num display: table, que cresce até o texto mais longo e corta a janela */}
         <div className="max-h-[90vh] overflow-y-auto overflow-x-hidden">
-          <div className="p-8 space-y-6">
-            <DialogHeader>
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-14 rounded-[20px] flex items-center justify-center bg-primary text-primary-foreground shadow-xl shadow-primary/20 shrink-0">
-                  {resultado ? <CheckCircle2 className="h-7 w-7" /> : <Scissors className="h-7 w-7" />}
-                </div>
+          <div className="space-y-6 p-6">
+            <DialogHeader className="pr-8">
+              <div className="flex items-start gap-3">
+                {resultado ? (
+                  <CheckCircle2 aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-inflow" />
+                ) : (
+                  <Scissors aria-hidden="true" className="mt-1 h-5 w-5 shrink-0 text-gold-line" />
+                )}
                 <div className="min-w-0 space-y-0.5 text-left">
-                  <DialogTitle className="text-2xl font-black tracking-tight">
+                  <DialogTitle>
                     {resultado ? "Divisão gerada" : "Revisar a divisão"}
                   </DialogTitle>
-                  <DialogDescription className="font-medium [overflow-wrap:anywhere]">
+                  <DialogDescription className="[overflow-wrap:anywhere]">
                     {resultado
                       ? `${resultado.receipt.description ?? "Salário"} de ${formatarMoeda(resultado.receipt.amount)}`
                       : revisao
@@ -457,29 +460,29 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               <ResultadoDaDivisao divisao={resultado} onDesfazer={() => onDesfazer(resultado)} onFechar={() => onOpenChange(false)} />
             ) : !revisao ? (
               <div className="space-y-2">
-                <Skeleton className="h-16 w-full rounded-2xl" />
-                <Skeleton className="h-16 w-full rounded-2xl" />
+                <Skeleton className="h-16 w-full rounded-lg" />
+                <Skeleton className="h-16 w-full rounded-lg" />
               </div>
             ) : (
               <>
                 <section aria-labelledby="saidas-desde-o-salario" className="space-y-2">
                   <div className="space-y-0.5">
-                    <h3 id="saidas-desde-o-salario" className="text-sm font-semibold text-foreground">
+                    <h3 id="saidas-desde-o-salario" className="label text-muted-foreground">
                       Saídas desde o salário
                     </h3>
-                    <p className="text-xs text-muted-foreground font-medium">
+                    <p className="text-xs text-muted-foreground">
                       O que já saiu da conta do salário desde que ele caiu. Escolha de qual parte saiu cada valor.
                     </p>
                   </div>
                   {saidas.length ? (
                     <>
-                      <ul className="rounded-xl border border-border/40 divide-y divide-border/40" aria-label="Saídas desde o salário">
+                      <ul className="rounded-md border border-border divide-y divide-border" aria-label="Saídas desde o salário">
                         {saidasVisiveis.map(linhaDaSaida)}
                       </ul>
                       {saidas.length > SAIDAS_VISIVEIS && (
                         <Button
                           variant="ghost"
-                          className="h-10 rounded-xl px-3 text-sm font-bold"
+                          className="h-10 px-3"
                           aria-expanded={todasAsSaidas}
                           onClick={() => setTodasAsSaidas((todas) => !todas)}
                         >
@@ -493,7 +496,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                 </section>
 
                 <div className="space-y-2">
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <h3 className="label text-muted-foreground">
                     Transações que serão criadas
                   </h3>
                   {transacoes.length ? (
@@ -507,57 +510,58 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
 
                 {ficam.length > 0 && (
                   <div className="space-y-2">
-                    <h3 className="text-sm font-semibold text-foreground">Ficam na conta do salário</h3>
+                    <h3 className="label text-muted-foreground">Ficam na conta do salário</h3>
                     <ul className="space-y-2" aria-label="Partes que ficam na conta do salário">
                       {ficam.map((item) => linhaDoItem(item, false))}
                     </ul>
                   </div>
                 )}
 
-                <div className="rounded-2xl bg-muted/30 p-4 space-y-1 text-sm tabular-nums">
+                <div className="space-y-1 rounded-md border border-border bg-elevated p-4 text-sm">
                   <div className="flex justify-between gap-3">
-                    <span className="font-medium text-muted-foreground">Recebido</span>
-                    <span className="font-black" data-testid="recebido-da-divisao">{formatarMoeda(revisao.receipt.amount)}</span>
+                    <span className="text-muted-foreground">Recebido</span>
+                    <span className="value-m" data-testid="recebido-da-divisao">{formatarMoeda(revisao.receipt.amount)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="font-medium text-muted-foreground">Já gasto</span>
-                    <span className="font-black" data-testid="gasto-da-divisao">{formatarMoeda(deCentavos(jaGasto))}</span>
+                    <span className="text-muted-foreground">Já gasto</span>
+                    <span className="value-m" data-testid="gasto-da-divisao">{formatarMoeda(deCentavos(jaGasto))}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="font-medium text-muted-foreground">Total das transações</span>
-                    <span className="font-black" data-testid="total-da-divisao">{formatarMoeda(revisao.total)}</span>
+                    <span className="text-muted-foreground">Total das transações</span>
+                    <span className="value-m" data-testid="total-da-divisao">{formatarMoeda(revisao.total)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="font-medium text-muted-foreground">Fica livre na conta do salário</span>
+                    <span className="text-muted-foreground">Fica livre na conta do salário</span>
                     {/* O livre fica negativo quando as saídas passam do que sobra; mostrado como vem */}
-                    <span className={cn("font-black", paraCentavos(revisao.free) < 0 && "text-destructive")} data-testid="livre-da-divisao">
+                    <span className={cn("value-m", paraCentavos(revisao.free) < 0 && "text-destructive")} data-testid="livre-da-divisao">
                       {formatarMoeda(revisao.free)}
                     </span>
                   </div>
                 </div>
 
                 {semDestino && (
-                  <p className="text-xs font-bold text-destructive">
+                  <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
+                    <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
                     Escolha o destino de todas as partes no plano antes de gerar.
                   </p>
                 )}
 
-                <label className="flex items-start gap-3 p-4 rounded-2xl border border-primary/20 bg-primary/5 cursor-pointer">
+                <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border-strong p-4 transition-colors duration-fast hover:bg-elevated">
                   <Checkbox
                     checked={confirmado}
                     onCheckedChange={(marcado) => setConfirmado(marcado === true)}
                     aria-label={confirmacao}
                     className="mt-0.5"
                   />
-                  <span className="text-sm font-bold">{confirmacao}</span>
+                  <span className="text-sm font-medium">{confirmacao}</span>
                 </label>
 
                 <Button
-                  className="w-full rounded-2xl font-black text-sm h-12 shadow-lg shadow-primary/20"
-                  disabled={!confirmado || (transacoes.length === 0 && !soSaidas) || semDestino || gerando || recalculando}
+                  className="h-11 w-full"
+                  disabled={!confirmado || (transacoes.length === 0 && !soSaidas) || semDestino || recalculando}
+                  loading={gerando}
                   onClick={gerar}
                 >
-                  {gerando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   {soSaidas
                     ? "Gerar a divisão sem transferências"
                     : `Gerar ${quantidadeDeTransacoes(transacoes.length)} de ${formatarMoeda(revisao.total)}`}
@@ -586,50 +590,50 @@ function ResultadoDaDivisao({
     <div className="space-y-4">
       {/* SALARIO-73: só as saídas foram descontadas, sem transação */}
       {divisao.transactions.length === 0 ? (
-        <p className="text-sm font-bold">{SAIDAS_COBRIRAM}</p>
+        <p className="text-sm font-medium">{SAIDAS_COBRIRAM}</p>
       ) : (
-        <ul className="space-y-2" aria-label="Transações criadas">
+        <ul className="divide-y divide-border rounded-md border border-border" aria-label="Transações criadas">
           {divisao.transactions.map((transacao) => (
             <li
               key={transacao.transfer_id ?? transacao.part_name}
-              className="flex items-start justify-between gap-3 p-3 rounded-2xl border border-border/40 bg-background/60"
+              className="flex items-start justify-between gap-3 p-3"
             >
               <div className="min-w-0">
-                <p className="font-bold text-sm">
+                <p className="text-sm font-medium">
                   {transacao.kind === "GOAL_DEPOSIT" ? "Aporte" : "Transferência"}: {transacao.part_name}
                 </p>
-                <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-1">
+                <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                   <span>{transacao.origin_account.name}</span>
-                  <ArrowRight className="h-3 w-3" />
+                  <ArrowRight aria-hidden="true" className="h-3 w-3" />
                   <span>{transacao.destination_name}</span>
-                  <span className="w-1 h-1 rounded-full bg-muted-foreground/30 mx-1" />
-                  <span>{dataCurta(transacao.date)}</span>
+                  <span aria-hidden="true" className="mx-1">·</span>
+                  <span className="font-mono tabular-nums">{dataCurta(transacao.date)}</span>
                 </p>
               </div>
-              <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(transacao.amount)}</p>
+              <p className="value-m">{formatarMoeda(transacao.amount)}</p>
             </li>
           ))}
         </ul>
       )}
-      {desconto && <p className="text-sm font-medium text-muted-foreground tabular-nums">{desconto}.</p>}
-      <p className="text-sm font-medium text-muted-foreground">
+      {desconto && <p className="text-sm text-muted-foreground tabular-nums">{desconto}.</p>}
+      <p className="text-sm text-muted-foreground">
         Ficou livre na conta do salário:{" "}
-        <span className={cn("font-black", paraCentavos(divisao.free) < 0 ? "text-destructive" : "text-foreground")}>
+        <span className={cn("value-m", paraCentavos(divisao.free) < 0 ? "text-destructive" : "text-foreground")}>
           {formatarMoeda(divisao.free)}
         </span>
       </p>
-      <div className="flex flex-col sm:flex-row gap-2">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         {!divisao.undone_at && (
-          <Button variant="outline" className="rounded-2xl font-bold text-xs h-11 flex-1" onClick={onDesfazer}>
-            <Undo2 className="mr-2 h-4 w-4" /> Desfazer divisão
+          <Button variant="outline" onClick={onDesfazer}>
+            <Undo2 aria-hidden="true" /> Desfazer divisão
           </Button>
         )}
-        <Button className="rounded-2xl font-bold text-xs h-11 flex-1" onClick={onFechar}>
+        <Button onClick={onFechar}>
           Concluir
         </Button>
       </div>
       {!divisao.undone_at && (
-        <p className="text-[11px] text-muted-foreground font-medium">
+        <p className="text-xs text-muted-foreground">
           Você pode desfazer até {dataCurta(divisao.can_undo_until)}.
         </p>
       )}

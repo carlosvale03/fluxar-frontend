@@ -1,11 +1,10 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { PiggyBank, Loader2, Target, ArrowRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { format } from "date-fns"
 
 import { 
   Dialog, 
@@ -108,7 +107,7 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
       }
       await goalsService.deposit(goal.id, dados)
 
-      toast.success("Aporte realizado com sucesso!")
+      toast.success("Aporte registrado.")
       onSuccess()
       onOpenChange(false)
     } catch (error) {
@@ -123,22 +122,19 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
     }
   }
 
+  const origem = form.watch("account_from")
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px] rounded-[32px] border-border/40 bg-card/95 backdrop-blur-xl p-0 overflow-hidden">
-        <DialogHeader className="p-6 pb-2">
-          <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 transition-transform hover:scale-110">
-            <PiggyBank className="h-6 w-6" />
-          </div>
-          <DialogTitle className="text-2xl font-black uppercase tracking-tight">
-            Guardar Dinheiro
-          </DialogTitle>
-          <DialogDescription className="text-sm font-medium">
-            Adicione um aporte à sua meta **{goal?.name}**.
+      <DialogContent className="gap-0 p-0 sm:max-w-[440px]">
+        <DialogHeader className="space-y-1 border-b border-border p-6">
+          <DialogTitle>Guardar dinheiro</DialogTitle>
+          <DialogDescription>
+            Aporte na meta <span className="font-medium text-foreground">{goal?.name}</span>.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[70vh] overflow-y-auto pr-1 custom-scrollbar space-y-6 px-6 py-4">
+        <div className="custom-scrollbar max-h-[70vh] overflow-y-auto px-6 py-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
@@ -146,26 +142,24 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                 name="account_from"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest opacity-40">Conta de Origem</FormLabel>
+                    <FormLabel>Conta de origem</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="rounded-2xl border-border/40 bg-muted/20 h-12 focus:ring-primary/20 transition-all">
+                        <SelectTrigger className="h-auto min-h-9 py-2">
                           <SelectValue placeholder="Selecione de onde virá o dinheiro" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl">
-                        <SelectItem value={SALDO_LIVRE} className="rounded-xl">
-                          <span className="font-bold">
-                            {cofrinho
-                              ? `Saldo livre do cofrinho (${formatarMoeda(cofrinho.free_balance)})`
-                              : "Saldo livre do cofrinho"}
-                          </span>
+                      <SelectContent>
+                        <SelectItem value={SALDO_LIVRE}>
+                          {cofrinho
+                            ? `Saldo livre do cofrinho (${formatarMoeda(cofrinho.free_balance)})`
+                            : "Saldo livre do cofrinho"}
                         </SelectItem>
                         {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id} className="rounded-xl">
+                          <SelectItem key={account.id} value={account.id}>
                             <div className="flex flex-col">
-                              <span className="font-bold">{account.name}</span>
-                              <span className="text-[10px] opacity-40">Saldo: {formatCurrency(account.balance)}</span>
+                              <span className="font-medium">{account.name}</span>
+                              <span className="text-xs text-muted-foreground">Saldo: {formatCurrency(account.balance)}</span>
                             </div>
                           </SelectItem>
                         ))}
@@ -181,64 +175,51 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest opacity-40">Valor do Aporte (R$)</FormLabel>
+                    <FormLabel>Valor do aporte</FormLabel>
                     <FormControl>
-                      <div className="relative group">
-                        <MoneyInput 
-                          name={field.name}
-                          ref={field.ref}
-                          value={field.value}
-                          onValueChange={(valor) => field.onChange(valor ?? "")}
-                          onBlur={field.onBlur}
-                          className="rounded-2xl border-border/40 bg-muted/20 px-4 focus:bg-background h-14 text-xl font-black text-emerald-600 transition-all"
-                        />
-                      </div>
+                      <MoneyInput
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value}
+                        onValueChange={(valor) => field.onChange(valor ?? "")}
+                        onBlur={field.onBlur}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="p-4 rounded-[24px] bg-muted/30 border border-border/40 space-y-3">
-                <p className="text-[10px] font-black uppercase tracking-widest opacity-40 text-center">Resumo do Movimento</p>
-                <div className="flex items-center justify-between">
-                  <div className="text-center flex-1">
-                    <p className="text-[9px] font-bold uppercase opacity-30">Origem</p>
-                    <p className="text-xs font-black truncate max-w-[100px] mx-auto">
-                      {form.watch('account_from') === SALDO_LIVRE
-                        ? "Saldo livre"
-                        : accounts.find(a => a.id === form.watch('account_from'))?.name || "Conta"}
+              <div className="space-y-3 rounded-md border border-border bg-elevated p-4">
+                <p className="label text-muted-foreground">Resumo do movimento</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-muted-foreground">Origem</p>
+                    <p className="truncate text-sm font-medium">
+                      {origem === SALDO_LIVRE ? "Saldo livre" : accounts.find((a) => a.id === origem)?.name || "Conta"}
                     </p>
                   </div>
-                  <ArrowRight className="h-4 w-4 text-primary opacity-20" />
-                  <div className="text-center flex-1">
-                    <p className="text-[9px] font-bold uppercase opacity-30">Destino (Cofrinho)</p>
-                    <p className="text-xs font-black truncate max-w-[100px] mx-auto">{goal?.name}</p>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <div className="min-w-0 flex-1 text-right">
+                    <p className="text-xs text-muted-foreground">Destino (cofrinho)</p>
+                    <p className="truncate text-sm font-medium">{goal?.name}</p>
                   </div>
                 </div>
-                <p className="text-[9px] text-center opacity-40 font-medium">
-                  {form.watch('account_from') === SALDO_LIVRE
+                <p className="text-xs text-muted-foreground">
+                  {origem === SALDO_LIVRE
                     ? "O valor sai do saldo livre do cofrinho, sem transferência."
                     : "Este valor será movido como uma transferência interna."}
                 </p>
               </div>
 
-              <div className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full rounded-2xl font-black uppercase tracking-widest text-xs h-12 shadow-lg shadow-emerald-500/20 bg-emerald-500 hover:bg-emerald-600 border-0"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    "Confirmar Aporte"
-                  )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
                 </Button>
-              </div>
+                <Button type="submit" loading={isLoading}>
+                  Confirmar aporte
+                </Button>
+              </DialogFooter>
             </form>
           </Form>
         </div>

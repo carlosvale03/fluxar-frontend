@@ -82,17 +82,14 @@ describe("Uso dos limites depois de criar ou excluir (PERM-20)", () => {
 
   it("excluir uma meta relê o /auth/me", async () => {
     vi.mocked(goalsService.deleteGoal).mockResolvedValue(undefined as never)
-    vi.stubGlobal("confirm", () => true)
     render(<GoalsPage />)
 
-    const titulo = await screen.findByText("Viagem")
-    const cartao = titulo.closest("[class*='group']") as HTMLElement
-    const botoes = within(cartao).getAllByRole("button")
-    await userEvent.click(botoes.find((b) => b.getAttribute("aria-haspopup") === "menu") as HTMLElement)
+    await userEvent.click(await screen.findByRole("button", { name: "Ações da meta Viagem" }))
     await userEvent.click(await screen.findByRole("menuitem", { name: /Excluir/ }))
+    const dialogo = await screen.findByRole("alertdialog", { name: "Excluir a meta Viagem?" })
+    await userEvent.click(within(dialogo).getByRole("button", { name: "Excluir meta" }))
 
     await vi.waitFor(() => expect(goalsService.deleteGoal).toHaveBeenCalledWith("meta-1"))
     await vi.waitFor(() => expect(auth.refreshUser).toHaveBeenCalledTimes(1))
-    vi.unstubAllGlobals()
   })
 })

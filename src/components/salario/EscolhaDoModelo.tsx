@@ -27,7 +27,7 @@ export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }
           <p className="text-sm text-muted-foreground">Comece por um modelo conhecido e ajuste as partes depois.</p>
         </div>
         {onCancelar && (
-          <Button variant="ghost" className="h-10 shrink-0 rounded-xl px-3 self-start" onClick={onCancelar}>
+          <Button variant="ghost" className="h-10 shrink-0 rounded-md px-3 self-start" onClick={onCancelar}>
             Voltar ao meu plano
           </Button>
         )}
@@ -36,18 +36,18 @@ export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }
       {modelos === null ? (
         <div className="space-y-2">
           {Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-20 w-full rounded-xl" />
+            <Skeleton key={i} className="h-20 w-full rounded-md" />
           ))}
         </div>
       ) : (
-        <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border" aria-label="Modelos">
+        <ul className="divide-y divide-border overflow-hidden rounded-md border border-border" aria-label="Modelos">
           {modelos.map((modelo) => {
             const personalizado = modelo.parts.length === 0
             return (
               <li
                 key={modelo.code}
                 aria-label={modelo.name}
-                className="relative flex flex-col gap-3 p-4 transition-colors duration-150 hover:bg-muted/40 focus-within:bg-muted/40 sm:flex-row sm:items-center"
+                className="relative flex flex-col gap-3 p-4 transition-colors duration-fast hover:bg-elevated focus-within:bg-elevated sm:flex-row sm:items-center"
               >
                 <div className="min-w-0 flex-1 space-y-2.5">
                   <div className="space-y-0.5">
@@ -95,7 +95,7 @@ export function EscolhaDoModelo({ modelos, referencias, onEscolher, onCancelar }
                 {/* O ::after cobre a linha toda, para a linha inteira escolher o modelo */}
                 <Button
                   variant="outline"
-                  className="h-10 shrink-0 rounded-xl px-4 self-start after:absolute after:inset-0 after:content-[''] sm:self-auto"
+                  className="h-10 shrink-0 rounded-md px-4 self-start after:absolute after:inset-0 after:content-[''] sm:self-auto"
                   onClick={() => onEscolher(modelo)}
                   aria-label={`Usar o modelo ${modelo.name}`}
                 >

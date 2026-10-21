@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { Target, Calendar as CalendarIcon, Loader2, ImagePlus, Camera, X, PiggyBank, Plus, Search, Check } from "lucide-react"
+import { Calendar as CalendarIcon, ImagePlus, Camera, PiggyBank } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -14,6 +14,7 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -203,10 +204,10 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
 
       if (initialData) {
         await goalsService.updateGoal(initialData.id, data)
-        toast.success("Meta atualizada com sucesso!")
+        toast.success("Meta atualizada.")
       } else {
         await goalsService.createGoal(data)
-        toast.success("Meta criada com sucesso!")
+        toast.success("Meta criada.")
         void atualizarUso()
       }
 
@@ -226,44 +227,27 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-[40px] border-border/40 bg-card/95 backdrop-blur-3xl p-0 shadow-2xl overflow-hidden">
-        <DialogHeader className="p-8 pb-4 relative">
-          <div className="absolute top-0 right-0 p-8 opacity-5">
-            <Target className="w-32 h-32 rotate-12" />
-          </div>
-          <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 ring-1 ring-primary/20 shadow-inner">
-            <Target className="h-7 w-7" />
-          </div>
-          <DialogTitle className="text-3xl font-black uppercase tracking-tighter leading-none text-foreground">
-            {initialData ? "Refinar Objetivo" : "Novo Objetivo"}
-          </DialogTitle>
-          <DialogDescription className="text-sm font-medium mt-2 text-foreground/80">
-            Cada centavo guardado é um passo mais perto do seu sonho.
-          </DialogDescription>
+      <DialogContent className="gap-0 p-0 sm:max-w-[520px]">
+        <DialogHeader className="space-y-1 border-b border-border p-6">
+          <DialogTitle>{initialData ? "Editar meta" : "Nova meta"}</DialogTitle>
+          <DialogDescription>Defina o valor, o prazo e o cofrinho onde o dinheiro fica.</DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[65vh] overflow-y-auto custom-scrollbar px-8 py-2 pb-8">
+        <div className="custom-scrollbar max-h-[65vh] overflow-y-auto px-6 py-6">
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-              {/* Seção 1: O Objetivo */}
-              <div className="space-y-6">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1 h-4 bg-primary rounded-full" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70">Informações Básicas</h3>
-                </div>
-                
+              {/* Seção 1: o objetivo */}
+              <section className="space-y-4">
+                <h3 className="label text-muted-foreground">Informações básicas</h3>
+
                 <FormField
                   control={form.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Nome da Meta</FormLabel>
+                      <FormLabel>Nome da meta</FormLabel>
                       <FormControl>
-                        <Input 
-                          placeholder="Ex: Viagem de Férias 2026" 
-                          {...field} 
-                          className="rounded-[20px] border-border/40 bg-muted/20 h-12 focus:bg-background/80 focus:ring-primary/20 transition-all font-bold"
-                        />
+                        <Input placeholder="Ex.: Viagem de férias 2026" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -276,18 +260,15 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                     name="target_amount"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Valor Alvo (R$)</FormLabel>
+                        <FormLabel>Valor alvo</FormLabel>
                         <FormControl>
-                          <div className="relative group">
-                            <MoneyInput 
-                              name={field.name}
-                              ref={field.ref}
-                              value={field.value}
-                              onValueChange={(valor) => field.onChange(valor ?? "")}
-                              onBlur={field.onBlur}
-                              className="rounded-[20px] border-border/40 bg-muted/20 h-12 px-4 focus:bg-background/80 transition-all font-black text-primary placeholder:text-foreground/50"
-                            />
-                          </div>
+                          <MoneyInput
+                            name={field.name}
+                            ref={field.ref}
+                            value={field.value}
+                            onValueChange={(valor) => field.onChange(valor ?? "")}
+                            onBlur={field.onBlur}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -299,27 +280,27 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                     name="target_date"
                     render={({ field }) => (
                       <FormItem className="flex flex-col">
-                        <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Até Quando?</FormLabel>
+                        <FormLabel>Prazo</FormLabel>
                         <Popover>
                           <PopoverTrigger asChild>
                             <FormControl>
                               <Button
-                                variant={"outline"}
+                                variant="outline"
                                 className={cn(
-                                  "w-full h-12 font-bold rounded-[20px] border-border/40 bg-muted/20 hover:bg-muted/30 transition-all text-left px-4",
+                                  "w-full justify-between border-border-input px-3 font-normal",
                                   !field.value && "text-muted-foreground"
                                 )}
                               >
                                 {field.value ? (
-                                  format(field.value, "MM/yyyy", { locale: ptBR })
+                                  <span className="value-m">{format(field.value, "MM/yyyy", { locale: ptBR })}</span>
                                 ) : (
-                                  <span className="text-xs text-foreground/70">Opcional</span>
+                                  <span>Opcional</span>
                                 )}
-                                <CalendarIcon className="ml-auto h-4 w-4 text-foreground/60" />
+                                <CalendarIcon className="text-muted-foreground" aria-hidden="true" />
                               </Button>
                             </FormControl>
                           </PopoverTrigger>
-                          <PopoverContent className="w-auto p-0 rounded-[32px] border-border/40 shadow-2xl bg-card/95 backdrop-blur-xl" align="end">
+                          <PopoverContent className="w-auto p-0" align="end">
                             <Calendar
                               mode="single"
                               selected={field.value || undefined}
@@ -333,39 +314,28 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                     )}
                   />
                 </div>
-              </div>
+              </section>
 
-              {/* Seção 2: O Cofrinho (A parte nova) */}
-              <div className="space-y-6 pt-2">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-4 bg-emerald-500 rounded-full" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600 font-bold">Gestão do Cofrinho</h3>
-                </div>
+              {/* Seção 2: o cofrinho */}
+              <section className="space-y-4">
+                <h3 className="label text-muted-foreground">Cofrinho</h3>
 
                 {!initialData ? (
-                  <Tabs value={cofrinhoType} onValueChange={(val) => setCofrinhoType(val as any)} className="w-full">
-                    <TabsList className="grid grid-cols-2 rounded-[20px] bg-muted/30 h-11 p-1 mb-6">
-                      <TabsTrigger value="new" className="rounded-[16px] text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                        Novo Cofrinho
-                      </TabsTrigger>
-                      <TabsTrigger value="existing" className="rounded-[16px] text-[10px] font-black uppercase tracking-wider data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                        Usar Existente
-                      </TabsTrigger>
+                  <Tabs value={cofrinhoType} onValueChange={(val) => setCofrinhoType(val as "new" | "existing")} className="w-full">
+                    <TabsList className="mb-4 grid w-full grid-cols-2">
+                      <TabsTrigger value="new">Novo cofrinho</TabsTrigger>
+                      <TabsTrigger value="existing">Usar existente</TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="new" className="space-y-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <TabsContent value="new" className="space-y-4">
                       <FormField
                         control={form.control}
                         name="cofrinho_name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Nome do Cofrinho</FormLabel>
+                            <FormLabel>Nome do cofrinho</FormLabel>
                             <FormControl>
-                              <Input 
-                                placeholder="Ex: Cofrinho Viagem" 
-                                {...field} 
-                                className="rounded-[20px] border-border/40 bg-muted/20 h-12 focus:bg-background/80 font-bold"
-                              />
+                              <Input placeholder="Ex.: Cofrinho viagem" {...field} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -377,17 +347,17 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                           name="institution"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Instituição</FormLabel>
+                              <FormLabel>Instituição</FormLabel>
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
-                                  <SelectTrigger className="rounded-[20px] border-border/40 bg-muted/20 h-12 font-bold">
+                                  <SelectTrigger>
                                     <SelectValue placeholder="Selecione..." />
                                   </SelectTrigger>
                                 </FormControl>
-                                <SelectContent className="rounded-[24px] border-border/40 bg-card/95 backdrop-blur-xl max-h-[200px]">
-                                  <SelectItem value="other" className="rounded-xl">Outro</SelectItem>
+                                <SelectContent className="max-h-[200px]">
+                                  <SelectItem value="other">Outro</SelectItem>
                                   {BANKS.map((bank) => (
-                                    <SelectItem key={bank.value} value={bank.value} className="rounded-xl">
+                                    <SelectItem key={bank.value} value={bank.value}>
                                       {bank.label}
                                     </SelectItem>
                                   ))}
@@ -402,25 +372,22 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                           name="color"
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Cor</FormLabel>
+                              <FormLabel>Cor</FormLabel>
                               <FormControl>
-                                <div className="flex gap-2 h-12">
-                                  <div 
-                                    className="relative w-12 h-12 rounded-[20px] border border-border/40 shadow-inner transition-colors duration-300"
+                                <div className="flex gap-2">
+                                  {/* A cor do cofrinho é dado do usuário */}
+                                  <div
+                                    className="relative h-9 w-9 shrink-0 rounded-md border border-border-input"
                                     style={{ backgroundColor: field.value }}
                                   >
-                                    <Input 
-                                      type="color" 
-                                      {...field} 
-                                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    <Input
+                                      type="color"
+                                      {...field}
+                                      aria-label="Escolher a cor"
+                                      className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
                                     />
                                   </div>
-                                  <Input 
-                                    {...field} 
-                                    className="rounded-[20px] border-border/40 bg-muted/20 flex-1 font-mono uppercase text-[10.5px] font-black"
-                                    maxLength={7}
-                                    placeholder="#000000"
-                                  />
+                                  <Input {...field} className="flex-1 font-mono uppercase" maxLength={7} placeholder="#000000" />
                                 </div>
                               </FormControl>
                             </FormItem>
@@ -429,43 +396,41 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                       </div>
                     </TabsContent>
 
-                    <TabsContent value="existing" className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+                    <TabsContent value="existing">
                       <FormField
                         control={form.control}
                         name="account"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Cofrinhos Disponíveis</FormLabel>
+                            <FormLabel>Cofrinhos disponíveis</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
-                                <SelectTrigger className="rounded-[20px] border-border/40 bg-muted/20 h-14 font-bold">
+                                <SelectTrigger className="h-auto min-h-9 py-2">
                                   <SelectValue placeholder="Selecione um cofrinho..." />
                                 </SelectTrigger>
                               </FormControl>
-                            <SelectContent className="rounded-[24px] border-border/40 bg-card/95 backdrop-blur-xl">
-                              {piggyBanks.length > 0 ? (
-                                piggyBanks.map((bank) => (
-                                  <SelectItem 
-                                    key={bank.id} 
-                                    value={bank.id} 
-                                    className="rounded-xl py-3 px-4 focus:bg-primary focus:text-primary-foreground group"
-                                  >
-                                    <div className="flex items-center gap-3">
-                                      <div 
-                                        className="w-3 h-3 rounded-full flex-shrink-0" 
-                                        style={{ backgroundColor: bank.color }} 
-                                      />
-                                      <div className="flex flex-col">
-                                        <span className="font-black text-xs group-focus:text-primary-foreground transition-colors">{bank.name}</span>
-                                        <span className="text-[8px] font-bold uppercase opacity-70 group-focus:text-primary-foreground/80 transition-colors">Saldo real: {formatarMoeda(bank.balance)}</span>
+                              <SelectContent>
+                                {piggyBanks.length > 0 ? (
+                                  piggyBanks.map((bank) => (
+                                    <SelectItem key={bank.id} value={bank.id} className="py-2">
+                                      <div className="flex items-center gap-3">
+                                        {/* A cor do cofrinho é dado do usuário */}
+                                        <span
+                                          aria-hidden="true"
+                                          className="h-3 w-3 shrink-0 rounded-full"
+                                          style={{ backgroundColor: bank.color }}
+                                        />
+                                        <div className="flex flex-col">
+                                          <span className="text-sm font-medium">{bank.name}</span>
+                                          <span className="text-xs text-muted-foreground">Saldo real: {formatarMoeda(bank.balance)}</span>
+                                        </div>
                                       </div>
-                                    </div>
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <div className="p-4 text-center text-xs opacity-50 font-bold italic text-foreground">Nenhum cofrinho encontrado</div>
-                              )}
-                            </SelectContent>
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum cofrinho encontrado</div>
+                                )}
+                              </SelectContent>
                             </Select>
                             <FormMessage />
                           </FormItem>
@@ -474,60 +439,46 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                     </TabsContent>
                   </Tabs>
                 ) : (
-                  <div className="p-5 rounded-[24px] bg-muted/20 border border-border/40 flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
-                      <PiggyBank className="w-5 h-5" />
-                    </div>
+                  <div className="flex items-center gap-3 rounded-md border border-border bg-elevated p-4">
+                    <PiggyBank className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-foreground/70">Conta Vinculada</p>
-                      <p className="text-sm font-black text-foreground">{piggyBanks.find(b => b.id === initialData.account)?.name || "Cofrinho vinculado"}</p>
+                      <p className="label text-muted-foreground">Conta vinculada</p>
+                      <p className="text-sm font-medium">{piggyBanks.find(b => b.id === initialData.account)?.name || "Cofrinho vinculado"}</p>
                     </div>
                   </div>
                 )}
-              </div>
+              </section>
 
-              {/* Seção 3: Outros Detalhes */}
-              <div className="space-y-6 pt-2">
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-1 h-4 bg-amber-500 rounded-full" />
-                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-600 font-bold">Personalização</h3>
-                </div>
+              {/* Seção 3: personalização */}
+              <section className="space-y-4">
+                <h3 className="label text-muted-foreground">Personalização</h3>
 
-                <div className="space-y-4">
-                  <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Capa da Meta (Inspiracional)</FormLabel>
-                  <div 
+                <div className="space-y-2">
+                  <p className="text-sm font-medium" id="capa-da-meta">Capa da meta</p>
+                  <button
+                    type="button"
+                    aria-labelledby="capa-da-meta"
+                    aria-describedby="capa-da-meta-ajuda"
                     className={cn(
-                      "relative group h-40 rounded-[32px] border-2 border-dashed transition-all duration-500 flex flex-col items-center justify-center overflow-hidden cursor-pointer",
-                      imagePreview 
-                        ? "border-transparent text-white" 
-                        : "border-border/40 bg-muted/10 hover:bg-muted/20 hover:border-primary/40 text-foreground"
+                      "relative flex h-32 w-full cursor-pointer flex-col items-center justify-center overflow-hidden rounded-lg border border-dashed transition-colors duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                      imagePreview ? "border-border" : "border-border-strong hover:bg-elevated"
                     )}
                     onClick={() => fileInputRef.current?.click()}
                   >
                     {imagePreview ? (
-                      <>
-                        <img 
-                          src={imagePreview} 
-                          alt="Preview" 
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                        />
-                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-md">
-                          <div className="flex flex-col items-center gap-2">
-                            <Camera className="h-8 w-8 animate-in zoom-in duration-300" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Alterar Foto</span>
-                          </div>
-                        </div>
-                      </>
+                      <img src={imagePreview} alt="Prévia da capa" className="absolute inset-0 h-full w-full object-cover" />
                     ) : (
-                      <div className="text-center space-y-2 px-6">
-                        <div className="w-12 h-12 rounded-2xl bg-primary/20 text-primary flex items-center justify-center mx-auto mb-2 group-hover:rotate-12 transition-transform duration-500">
-                          <ImagePlus className="h-6 w-6" />
-                        </div>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-foreground/80">Moodboard Visual</p>
-                      </div>
+                      <span className="flex flex-col items-center gap-2 text-muted-foreground">
+                        <ImagePlus className="h-5 w-5" aria-hidden="true" />
+                        <span className="text-sm">Escolher imagem</span>
+                      </span>
                     )}
-                    <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
-                  </div>
+                  </button>
+                  <p id="capa-da-meta-ajuda" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    {imagePreview && <Camera className="h-3.5 w-3.5" aria-hidden="true" />}
+                    {imagePreview ? "Clique na imagem para trocar." : "Opcional. Aparece no topo do card da meta."}
+                  </p>
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
                 </div>
 
                 <FormField
@@ -535,39 +486,27 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-[10px] font-bold uppercase tracking-widest text-foreground/80 ml-1">Notas e Sonhos</FormLabel>
+                      <FormLabel>Notas</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Detalhe o que esta meta significa para você..." 
-                          className="resize-none rounded-[24px] border-border/40 bg-muted/20 focus:bg-background/80 h-28 transition-all font-medium" 
-                          {...field} 
+                        <Textarea
+                          placeholder="O que esta meta significa para você"
+                          className="h-24 resize-none"
+                          {...field}
                         />
                       </FormControl>
                     </FormItem>
                   )}
                 />
-              </div>
+              </section>
 
-              {/* Botão de Submit */}
-              <div className="pt-4">
-                <Button 
-                  type="submit" 
-                  className="w-full rounded-[24px] font-black uppercase tracking-[0.2em] text-xs h-16 shadow-xl shadow-primary/20 bg-primary hover:bg-primary/90 hover:scale-[1.02] active:scale-[0.98] transition-all border-0"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <div className="flex items-center gap-3">
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      <span className="animate-pulse">Criando Sonho...</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <Plus className="w-5 h-5 mr-1" />
-                      {initialData ? "Atualizar Objetivo" : "Ativar Meta Agora"}
-                    </div>
-                  )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
                 </Button>
-              </div>
+                <Button type="submit" loading={isLoading}>
+                  {initialData ? "Atualizar objetivo" : "Criar meta"}
+                </Button>
+              </DialogFooter>
             </form>
           </Form>
         </div>
