@@ -18,6 +18,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Label } from "@/components/ui/label"
 import { PasswordInput } from "@/components/ui/password-input"
 import { dataDaExclusao } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
@@ -87,40 +88,37 @@ export function ExcluirConta() {
   }
 
   return (
-    <Card className="rounded-[32px] border-destructive/30 shadow-sm bg-card overflow-hidden">
-      <CardHeader className="p-8 pb-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-destructive/5 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-            <Trash2 className="h-5 w-5 text-destructive" />
-          </div>
+    <Card>
+      <CardHeader className="p-5 pb-4">
+        <div className="flex items-center gap-3">
+          <Trash2 className="h-5 w-5 shrink-0 text-outflow" aria-hidden="true" />
           <div>
-            <CardTitle className="text-xl font-bold tracking-tight">Excluir minha conta</CardTitle>
+            <CardTitle>Excluir minha conta</CardTitle>
             <CardDescription>
               A conta é desativada na hora e apagada de vez depois de 30 dias. Até lá, você pode desistir entrando de novo.
             </CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-8 pb-8 pt-2 space-y-4">
+      <CardContent className="space-y-4 px-5 pb-5 pt-0">
         <p className="text-sm text-muted-foreground">
           Antes de excluir, baixe os seus dados financeiros (transações, contas, cartões, metas e orçamentos) em uma planilha.
         </p>
-        <div className="flex flex-col sm:flex-row gap-3">
+        {/* A destrutiva fica separada da outra ação (DESIGN.md §5, Botões) */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
           <Button
             type="button"
             variant="outline"
             onClick={baixarDados}
             loading={baixando}
             disabled={baixando}
-            className="rounded-full h-11 font-bold"
           >
-            <Download className="mr-2 h-4 w-4" /> Baixar meus dados (XLSX)
+            <Download aria-hidden="true" /> Baixar meus dados (XLSX)
           </Button>
           <Button
             type="button"
             variant="destructive"
             onClick={() => setAberto(true)}
-            className="rounded-full h-11 font-bold"
           >
             Excluir minha conta
           </Button>
@@ -128,7 +126,7 @@ export function ExcluirConta() {
       </CardContent>
 
       <Dialog open={aberto} onOpenChange={aoMudarAbertura}>
-        <DialogContent className="sm:max-w-md rounded-[28px]">
+        <DialogContent className="sm:max-w-md">
           <form onSubmit={handleSubmit(confirmar)} className="space-y-6">
             <DialogHeader>
               <DialogTitle>Confirmar a exclusão da conta</DialogTitle>
@@ -138,30 +136,25 @@ export function ExcluirConta() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-2">
-              <label
-                htmlFor="senha-da-exclusao"
-                className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/70 ml-1"
-              >
-                Senha atual
-              </label>
+              <Label htmlFor="senha-da-exclusao">Senha atual</Label>
               <PasswordInput
                 id="senha-da-exclusao"
+                autoComplete="current-password"
                 {...register("password")}
                 placeholder="Digite a sua senha"
-                className={cn(
-                  "rounded-2xl h-11",
-                  errors.password ? "border-destructive focus-visible:ring-destructive/20" : "focus-visible:ring-primary/20",
-                )}
+                aria-invalid={errors.password ? true : undefined}
+                aria-describedby={errors.password ? "senha-da-exclusao-erro" : undefined}
+                className={cn(errors.password && "border-outflow")}
               />
               {errors.password && (
-                <p className="text-[10px] font-bold text-destructive uppercase ml-1">{errors.password.message}</p>
+                <p id="senha-da-exclusao-erro" className="text-xs text-outflow">{errors.password.message}</p>
               )}
             </div>
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" className="rounded-full" onClick={() => aoMudarAbertura(false)}>
+              <Button type="button" variant="outline" onClick={() => aoMudarAbertura(false)}>
                 Voltar
               </Button>
-              <Button type="submit" variant="destructive" className="rounded-full font-bold" loading={enviando} disabled={enviando}>
+              <Button type="submit" variant="destructive" loading={enviando} disabled={enviando}>
                 Confirmar exclusão
               </Button>
             </DialogFooter>

@@ -38,7 +38,7 @@ export function ConsentimentoDeMelhoria() {
       const atual = await privacidadeService.definirConsentimento(ligado)
       setConsentiu(atual.consent)
       setDecididoEm(atual.decided_at)
-      toast.success(atual.consent ? "Consentimento dado. Obrigado!" : "Consentimento retirado.")
+      toast.success(atual.consent ? "Consentimento dado." : "Consentimento retirado.")
       await refreshUser()
     } catch (error) {
       setConsentiu(anterior)
@@ -49,20 +49,18 @@ export function ConsentimentoDeMelhoria() {
   }
 
   return (
-    <Card className="rounded-[32px] border-border/60 shadow-sm bg-card overflow-hidden">
-      <CardHeader className="p-8 pb-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary/5 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-            <Sparkles className="h-5 w-5 text-primary" />
-          </div>
+    <Card>
+      <CardHeader className="p-5 pb-4">
+        <div className="flex items-center gap-3">
+          <Sparkles className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <CardTitle className="text-xl font-bold tracking-tight">Melhoria do produto</CardTitle>
+            <CardTitle>Melhoria do produto</CardTitle>
             <CardDescription>Opcional. Você pode mudar de ideia a qualquer momento.</CardDescription>
           </div>
         </div>
       </CardHeader>
-      <CardContent className="px-8 pb-8 pt-2 space-y-3">
-        <div className="flex items-center justify-between gap-4 rounded-2xl border border-border/40 px-4 py-3">
+      <CardContent className="space-y-3 px-5 pb-5 pt-0">
+        <div className="flex items-center justify-between gap-4 rounded-md border border-border px-4 py-3">
           <label htmlFor="consentimento-melhoria" className="text-sm font-medium">
             Usar meus dados, anonimizados, para melhorar o produto e treinar modelos de previsão e de categorização
           </label>
