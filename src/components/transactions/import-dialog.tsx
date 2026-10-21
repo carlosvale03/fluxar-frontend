@@ -260,7 +260,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
       setSummary(result)
       setStep("SUMMARY")
-      toast.success("Processamento concluído!")
+      toast.success("Processamento concluído.")
     } catch (error) {
       tratarErro(error, { mensagemPadrao: "Erro ao importar dados." })
     } finally {
@@ -270,18 +270,18 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] rounded-[32px] border-border/60 bg-card shadow-2xl overflow-hidden p-0">
+      <DialogContent className="sm:max-w-[550px] overflow-hidden p-0">
         <div className="p-6">
           <DialogHeader className="mb-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-primary/10 text-primary">
-                {type === "OFX" ? <FileText className="h-6 w-6" /> : <TableIcon className="h-6 w-6" />}
+            <div className="flex items-center gap-3">
+              <div aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated text-fg-secondary">
+                {type === "OFX" ? <FileText className="h-5 w-5" /> : <TableIcon className="h-5 w-5" />}
               </div>
-              <div>
-                <DialogTitle className="text-2xl font-black tracking-tight">
+              <div className="flex flex-col gap-0.5">
+                <DialogTitle>
                   {step === "SUMMARY" ? "Importação Concluída" : `Importar ${type}`}
                 </DialogTitle>
-                <DialogDescription className="text-xs font-medium text-muted-foreground mt-1">
+                <DialogDescription>
                   {step === "CONFIG" && "Escolha o arquivo e o tipo de movimentação."}
                   {step === "MAPPING" && "Identifique as colunas da sua planilha."}
                   {step === "ACCOUNT_ASSOCIATION" && "Associe as contas da planilha com as do sistema."}
@@ -295,14 +295,14 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
           
           {/* STEP 1: CONFIG */}
           {step === "CONFIG" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="space-y-6 animate-in fade-in duration-base">
               {type === "SPREADSHEET" && (
                 <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Tipo de Importação</Label>
+                    <Label>Tipo de Importação</Label>
                     <Tabs value={importSubType} onValueChange={(v) => setImportSubType(v as ImportSubType)} className="w-full">
-                        <TabsList className="grid grid-cols-2 h-12 bg-muted/20 rounded-2xl p-1 border border-border/40">
-                            <TabsTrigger value="INCOME_EXPENSE" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Receitas / Despesas</TabsTrigger>
-                            <TabsTrigger value="TRANSFER" className="rounded-xl font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm">Transferências</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="INCOME_EXPENSE">Receitas / Despesas</TabsTrigger>
+                            <TabsTrigger value="TRANSFER">Transferências</TabsTrigger>
                         </TabsList>
                     </Tabs>
                 </div>
@@ -310,16 +310,16 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
               {type === "OFX" && (
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">
+                  <Label htmlFor="conta-do-ofx">
                       Conta de Destino
                   </Label>
                   <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                    <SelectTrigger className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold">
+                    <SelectTrigger id="conta-do-ofx">
                       <SelectValue placeholder="Selecione a conta" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-2xl">
+                    <SelectContent>
                       {accounts.map(acc => (
-                        <SelectItem key={acc.id} value={acc.id} className="rounded-xl font-bold">{acc.name}</SelectItem>
+                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -327,66 +327,63 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="arquivo-da-importacao" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Arquivo ({type === "OFX" ? ".ofx" : ".csv, .xlsx"})</Label>
+                <Label htmlFor="arquivo-da-importacao">Arquivo ({type === "OFX" ? ".ofx" : ".csv, .xlsx"})</Label>
                 <Input
                   id="arquivo-da-importacao"
                   type="file"
                   accept={ACEITOS[type]}
-                  className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold file:bg-primary file:text-primary-foreground file:font-black file:uppercase file:text-[10px] file:tracking-widest file:rounded-xl file:border-0 file:mr-4 file:px-4 file:h-full cursor-pointer p-0"
+                  className="cursor-pointer py-1.5 file:mr-3 file:cursor-pointer file:rounded-sm file:border file:border-border-strong file:bg-transparent file:px-3 file:text-sm file:font-medium file:text-foreground"
                   onChange={handleFileChange}
                 />
               </div>
 
-              <Button 
-                className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-14 shadow-xl shadow-primary/20 transition-all active:scale-95"
+              <Button
+                className="w-full"
                 onClick={goToMapping}
                 disabled={!file || (type === "OFX" && !selectedAccountId)}
               >
                 {type === "OFX" ? "Processar Arquivo" : "Próximo Passo"}
-                <ArrowRight className="h-4 w-4 ml-2" />
+                <ArrowRight aria-hidden="true" />
               </Button>
             </div>
           )}
 
           {/* STEP 2: MAPPING */}
           {step === "MAPPING" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-               <div className="flex flex-col gap-1.5">
-                  <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-4 bg-primary rounded-full" />
-                    <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">Mapeamento de Colunas</h4>
-                  </div>
-                  <p className="text-[10px] text-muted-foreground/60 leading-tight pl-3.5 font-medium">
+            <div className="space-y-6 animate-in fade-in duration-base">
+               <div className="flex flex-col gap-1">
+                  <h4 className="label text-muted-foreground">Mapeamento de Colunas</h4>
+                  <p className="text-sm text-fg-secondary">
                     Identifique o nome exato das colunas na sua planilha.
                   </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Data *</Label>
-                      <Input value={mapping.date_column} onChange={e => setMapping({...mapping, date_column: e.target.value})} className="h-10 rounded-xl font-bold text-xs" />
+                      <Label htmlFor="coluna-date">Data *</Label>
+                      <Input id="coluna-date" value={mapping.date_column} onChange={e => setMapping({...mapping, date_column: e.target.value})} />
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Valor *</Label>
-                      <Input value={mapping.amount_column} onChange={e => setMapping({...mapping, amount_column: e.target.value})} className="h-10 rounded-xl font-bold text-xs" />
+                      <Label htmlFor="coluna-amount">Valor *</Label>
+                      <Input id="coluna-amount" value={mapping.amount_column} onChange={e => setMapping({...mapping, amount_column: e.target.value})} />
                     </div>
 
                     {importSubType === "INCOME_EXPENSE" ? (
                         <>
                             <div className="col-span-full space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Descrição *</Label>
-                                <Input value={mapping.description_column} onChange={e => setMapping({...mapping, description_column: e.target.value})} className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-description">Descrição *</Label>
+                                <Input id="coluna-description" value={mapping.description_column} onChange={e => setMapping({...mapping, description_column: e.target.value})} />
                             </div>
                         </>
                     ) : (
                         <>
                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta Origem *</Label>
-                                <Input value={mapping.source_account_column} onChange={e => setMapping({...mapping, source_account_column: e.target.value})} className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-source-account">Conta Origem *</Label>
+                                <Input id="coluna-source-account" value={mapping.source_account_column} onChange={e => setMapping({...mapping, source_account_column: e.target.value})} />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta Destino *</Label>
-                                <Input value={mapping.dest_account_column} onChange={e => setMapping({...mapping, dest_account_column: e.target.value})} className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-dest-account">Conta Destino *</Label>
+                                <Input id="coluna-dest-account" value={mapping.dest_account_column} onChange={e => setMapping({...mapping, dest_account_column: e.target.value})} />
                             </div>
                         </>
                     )}
@@ -396,23 +393,23 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                     <>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Tipo</Label>
-                                <Input value={mapping.type_column} onChange={e => setMapping({...mapping, type_column: e.target.value})} placeholder="Tipo (Receita/Despesa)" className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-type">Coluna de Tipo</Label>
+                                <Input id="coluna-type" value={mapping.type_column} onChange={e => setMapping({...mapping, type_column: e.target.value})} placeholder="Tipo (Receita/Despesa)" />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Situação</Label>
-                                <Input value={mapping.status_column} onChange={e => setMapping({...mapping, status_column: e.target.value})} placeholder="Situação" className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-status">Coluna de Situação</Label>
+                                <Input id="coluna-status" value={mapping.status_column} onChange={e => setMapping({...mapping, status_column: e.target.value})} placeholder="Situação" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Categoria</Label>
-                                <Input value={mapping.category_column} onChange={e => setMapping({...mapping, category_column: e.target.value})} placeholder="Categoria" className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-category">Coluna de Categoria</Label>
+                                <Input id="coluna-category" value={mapping.category_column} onChange={e => setMapping({...mapping, category_column: e.target.value})} placeholder="Categoria" />
                             </div>
                             <div className="space-y-1.5">
-                                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Subcategoria</Label>
-                                <Input value={mapping.subcategory_column} onChange={e => setMapping({...mapping, subcategory_column: e.target.value})} placeholder="Subcategoria" className="h-10 rounded-xl font-bold text-xs" />
+                                <Label htmlFor="coluna-subcategory">Coluna de Subcategoria</Label>
+                                <Input id="coluna-subcategory" value={mapping.subcategory_column} onChange={e => setMapping({...mapping, subcategory_column: e.target.value})} placeholder="Subcategoria" />
                             </div>
                         </div>
                     </>
@@ -420,13 +417,13 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Tags</Label>
-                        <Input value={mapping.tags_column} onChange={e => setMapping({...mapping, tags_column: e.target.value})} placeholder="Tags" className="h-10 rounded-xl font-bold text-xs" />
+                        <Label htmlFor="coluna-tags">Coluna de Tags</Label>
+                        <Input id="coluna-tags" value={mapping.tags_column} onChange={e => setMapping({...mapping, tags_column: e.target.value})} placeholder="Tags" />
                     </div>
                     {importSubType === "INCOME_EXPENSE" && (
                         <div className="space-y-1.5">
-                            <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Coluna de Conta</Label>
-                            <Input value={mapping.account_column} onChange={e => setMapping({...mapping, account_column: e.target.value})} placeholder="Nome da Conta" className="h-10 rounded-xl font-bold text-xs" />
+                            <Label htmlFor="coluna-account">Coluna de Conta</Label>
+                            <Input id="coluna-account" value={mapping.account_column} onChange={e => setMapping({...mapping, account_column: e.target.value})} placeholder="Nome da Conta" />
                         </div>
                     )}
                 </div>
@@ -434,14 +431,14 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 {/* IMPORT-22: sem coluna de conta, as linhas vão para a conta padrão */}
                 {importSubType === "INCOME_EXPENSE" && (
                     <div className="space-y-1.5">
-                        <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta padrão (linhas sem conta)</Label>
+                        <Label>Conta padrão (linhas sem conta)</Label>
                         <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                            <SelectTrigger className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Selecione a conta" />
                             </SelectTrigger>
-                            <SelectContent className="rounded-xl">
+                            <SelectContent>
                                 {accounts.map(acc => (
-                                    <SelectItem key={acc.id} value={acc.id} className="rounded-lg font-bold text-xs">{acc.name}</SelectItem>
+                                    <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -449,11 +446,11 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 )}
 
                 <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 rounded-full font-black uppercase text-[10px] h-12" onClick={() => setStep("CONFIG")}>
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+                    <Button variant="outline" className="flex-1" onClick={() => setStep("CONFIG")}>
+                        <ArrowLeft aria-hidden="true" /> Voltar
                     </Button>
-                    <Button className="flex-[2] rounded-full font-black uppercase text-[10px] h-12 shadow-lg shadow-primary/20" onClick={handlePreflight} disabled={isLoading}>
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : "Analisar Planilha"}
+                    <Button className="flex-[2]" onClick={handlePreflight} loading={isLoading}>
+                        Analisar Planilha
                     </Button>
                 </div>
             </div>
@@ -461,29 +458,29 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
           {/* STEP 3: ACCOUNT ASSOCIATION */}
           {step === "ACCOUNT_ASSOCIATION" && (
-             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/10 flex gap-3">
-                    <Users className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-                    <div>
-                        <h4 className="text-xs font-bold text-amber-700">Associação de Contas</h4>
-                        <p className="text-[10px] text-amber-600 font-medium">Identificamos {uniqueSpreadsheetAccounts.length} contas diferentes na sua planilha. Associe-as às contas do sistema.</p>
+             <div className="space-y-6 animate-in fade-in duration-base">
+                <div className="flex gap-3 rounded-sm border border-l-[3px] border-border border-l-info bg-card p-4">
+                    <Users className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+                    <div className="space-y-0.5">
+                        <h4 className="text-sm font-medium">Associação de Contas</h4>
+                        <p className="text-sm text-fg-secondary">Identificamos{uniqueSpreadsheetAccounts.length} contas diferentes na sua planilha. Associe-as às contas do sistema.</p>
                     </div>
                 </div>
 
                 <div className="space-y-4 max-h-[300px] overflow-y-auto px-1 custom-scrollbar">
                     {uniqueSpreadsheetAccounts.map((accName) => (
-                        <div key={accName} className="p-3 rounded-2xl bg-muted/5 border border-border/40 flex flex-col gap-2">
-                            <Label className="text-[10px] font-black uppercase text-muted-foreground/60">{accName}</Label>
+                        <div key={accName} className="p-3 rounded-lg border border-border flex flex-col gap-2">
+                            <Label>{accName}</Label>
                             <Select 
                                 value={accountMapping[accName] || ""} 
                                 onValueChange={(val) => setAccountMapping({...accountMapping, [accName]: val})}
                             >
-                                <SelectTrigger className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Escolha a conta no sistema" />
                                 </SelectTrigger>
-                                <SelectContent className="rounded-xl">
+                                <SelectContent>
                                     {accounts.map(acc => (
-                                        <SelectItem key={acc.id} value={acc.id} className="rounded-lg font-bold text-xs">{acc.name}</SelectItem>
+                                        <SelectItem key={acc.id} value={acc.id}>{acc.name}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -492,15 +489,15 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 </div>
 
                 <div className="flex gap-3">
-                    <Button variant="outline" className="flex-1 rounded-full font-black uppercase text-[10px] h-12" onClick={() => setStep("MAPPING")}>
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Voltar
+                    <Button variant="outline" className="flex-1" onClick={() => setStep("MAPPING")}>
+                        <ArrowLeft aria-hidden="true" /> Voltar
                     </Button>
-                    <Button 
-                        className="flex-[2] rounded-full font-black uppercase text-[10px] h-12 shadow-lg shadow-primary/20" 
+                    <Button
+                        className="flex-[2]"
                         onClick={handleImport}
                         disabled={isLoading || (importSubType === "TRANSFER" && Object.keys(accountMapping).length < 1)}
                     >
-                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCcw className="h-4 w-4 mr-2" />}
+                        {isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <RefreshCcw aria-hidden="true" />}
                         {isLoading ? "Processando..." : "Finalizar Importação"}
                     </Button>
                 </div>
@@ -509,53 +506,53 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
           {/* STEP 4: SUMMARY: lidas, gravadas, ignoradas e rejeitadas (IMPORT-33) */}
           {step === "SUMMARY" && summary && (
-             <div className="animate-in slide-in-from-bottom-4 duration-500 space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="p-4 rounded-3xl bg-muted border border-border text-center space-y-1">
-                    <div className="h-5 flex items-center justify-center font-black opacity-30">Σ</div>
-                    <p className="text-2xl font-black text-foreground leading-none">{summary.total}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest opacity-50">Lidas</p>
+             <div className="animate-in fade-in duration-base space-y-6">
+                <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1 rounded-lg border border-border p-4 text-center">
+                    <div aria-hidden="true" className="flex h-5 items-center justify-center text-muted-foreground">Σ</div>
+                    <p className="value-l">{summary.total}</p>
+                    <p className="label text-muted-foreground">Lidas</p>
                     </div>
-                    <div className="p-4 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 text-center space-y-1">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-500 mx-auto" />
-                    <p className="text-2xl font-black text-emerald-600 leading-none">{summary.imported}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600/70">Gravadas</p>
+                    <div className="space-y-1 rounded-lg border border-border p-4 text-center">
+                    <CheckCircle2 className="mx-auto h-5 w-5 text-inflow" aria-hidden="true" />
+                    <p className="value-l text-inflow">{summary.imported}</p>
+                    <p className="label text-muted-foreground">Gravadas</p>
                     </div>
-                    <div className="p-4 rounded-3xl bg-blue-500/10 border border-blue-500/20 text-center space-y-1">
-                    <AlertCircle className="h-5 w-5 text-blue-500 mx-auto" />
-                    <p className="text-2xl font-black text-blue-600 leading-none">{summary.ignored}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-blue-600/70">Ignoradas</p>
+                    <div className="space-y-1 rounded-lg border border-border p-4 text-center">
+                    <AlertCircle className="mx-auto h-5 w-5 text-info" aria-hidden="true" />
+                    <p className="value-l text-info">{summary.ignored}</p>
+                    <p className="label text-muted-foreground">Ignoradas</p>
                     </div>
-                    <div className="p-4 rounded-3xl bg-rose-500/10 border border-rose-500/20 text-center space-y-1">
-                    <XCircle className="h-5 w-5 text-rose-500 mx-auto" />
-                    <p className="text-2xl font-black text-rose-600 leading-none">{summary.rejected}</p>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-rose-500/70">Rejeitadas</p>
+                    <div className="space-y-1 rounded-lg border border-border p-4 text-center">
+                    <XCircle className="mx-auto h-5 w-5 text-outflow" aria-hidden="true" />
+                    <p className="value-l text-outflow">{summary.rejected}</p>
+                    <p className="label text-muted-foreground">Rejeitadas</p>
                     </div>
                 </div>
 
                 {/* IMPORT-45: as sugeridas, com o atalho para a lista filtrada */}
                 {summary.suggested > 0 && (
-                  <div className="p-4 rounded-3xl bg-primary/5 border border-primary/10 flex items-center justify-between gap-3">
-                    <p className="text-xs font-bold text-primary">{textoDasSugeridas(summary.suggested)}</p>
+                  <div className="flex items-center justify-between gap-3 rounded-sm border border-l-[3px] border-border border-l-info bg-card p-4">
+                    <p className="text-sm text-fg-secondary">{textoDasSugeridas(summary.suggested)}</p>
                     <Link
                       href={`/transacoes?import_batch=${encodeURIComponent(summary.batch_id)}&suggested_category=true`}
                       onClick={() => onOpenChange(false)}
-                      className="text-[10px] font-black uppercase tracking-widest text-primary underline-offset-4 hover:underline shrink-0"
+                      className="shrink-0 text-sm font-medium text-gold-line underline-offset-4 hover:underline"
                     >
-                      Revisar sugeridas
+                      Revisar sugeridas →
                     </Link>
                   </div>
                 )}
 
                 {/* IMPORT-30: cada rejeitada com o número no arquivo e o motivo */}
                 {summary.rejected_rows.length > 0 && (
-                  <div className="p-4 rounded-3xl bg-rose-500/5 border border-rose-500/10 space-y-2">
-                    <h5 className="text-[10px] font-black uppercase tracking-widest text-rose-600 px-1">Linhas rejeitadas</h5>
+                  <div className="space-y-2 rounded-sm border border-l-[3px] border-border border-l-outflow bg-card p-4">
+                    <h5 className="label text-outflow">Linhas rejeitadas</h5>
                     <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
                         <ul className="space-y-1">
                             {summary.rejected_rows.map((linha) => (
-                                <li key={linha.line} className="text-[9px] font-medium text-rose-500/80 leading-tight flex gap-2">
-                                    <span className="shrink-0">•</span>
+                                <li key={linha.line} className="flex gap-2 text-sm text-fg-secondary">
+                                    <span className="shrink-0" aria-hidden="true">•</span>
                                     <span>Linha {linha.line}: {linha.reason}</span>
                                 </li>
                             ))}
@@ -564,8 +561,8 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                   </div>
                 )}
 
-                <Button 
-                    className="w-full rounded-full font-black uppercase tracking-widest text-[10px] h-14 bg-primary"
+                <Button
+                    className="w-full"
                     onClick={() => onOpenChange(false)}
                 >
                     Fechar e Ver Dashboard
