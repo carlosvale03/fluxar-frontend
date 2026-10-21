@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import Link from "next/link"
 import { getDashboardSummary, getSimpleCharts, getMonthlyComparison, getTagDistribution } from "@/services/reports"
 import { DashboardReport, SimpleChartsReport, MonthlyComparisonData, TagDistributionReport } from "@/types/reports"
 import { DashboardKPIs } from "@/components/dashboard/DashboardKPIs"
@@ -9,41 +10,46 @@ import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparison
 import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
 import { BudgetSummary } from "@/components/dashboard/BudgetSummary"
 import { toast } from "sonner"
-import { tratarErro } from "@/lib/erros"
+import { tratarErro, ROTULO_TENTAR_DE_NOVO } from "@/lib/erros"
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { Skeleton } from "@/components/ui/skeleton"
 import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
 import { ClassDistributionChart } from "@/components/dashboard/ClassDistributionChart"
 import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
-import { 
-    AlertCircle, 
-    ChevronLeft, 
-    ChevronRight, 
-    CreditCard as CreditCardIcon, 
-    Calendar, 
-    LayoutDashboard, 
-    PieChart as PieChartIcon, 
-    Settings2, 
-    Sparkles, 
-    TrendingUp as TrendingUpIcon,
-    TrendingDown,
-    Target,
-    Plus,
-    ArrowUpCircle,
+import {
+    AlertCircle,
+    AlertTriangle,
     ArrowDownCircle,
+    ArrowRight,
     ArrowRightLeft,
+    ArrowUpCircle,
+    ChevronLeft,
+    ChevronRight,
+    CreditCard as CreditCardIcon,
+    Plus,
+    Receipt,
+    RotateCw,
+    Settings2,
+    Sparkles,
+    Tag,
+    Target,
     Wallet,
-    Tag
 } from "lucide-react"
 import { MonthPicker } from "@/components/ui/month-picker"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import { formatarMoeda } from "@/lib/dinheiro"
 import { HelpInfo } from "@/components/ui/help-info"
+import { Valor } from "@/components/ui/valor"
+import { AnelDeProgresso } from "@/components/ui/medicao"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { NAVEGACAO_PRINCIPAL } from "@/components/layout/navegacao"
 import { DashboardCustomizer, DashboardModuleConfig, DEFAULT_CONFIG, getInitialConfig } from "@/components/dashboard/dashboard-customizer"
-import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { CreditCardItem } from "@/components/cards/credit-card-item"
+import type { CreditCard } from "@/types/cards"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,6 +65,9 @@ import { CardExpenseFormDialog } from "@/components/transactions/card-expense-fo
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
 
+// Título e linha de apoio da página vêm da navegação (PRODUCT.md §3)
+const PAGINA = NAVEGACAO_PRINCIPAL.find((item) => item.href === "/dashboard")!
+
 const LARGE_MODULES = ["DAILY_CASH_FLOW", "BALANCE_EVOLUTION", "CREDIT_MANAGEMENT", "GOALS_JOURNEY"]
 const MEDIUM_MODULES = ["EXPENSE_DISTRIBUTION", "CLASS_DISTRIBUTION", "INCOME_SOURCE", "TAG_EXPENSE_DISTRIBUTION", "TAG_INCOME_SOURCE"]
 const SMALL_MODULES = ["MONTHLY_BALANCE", "BUDGET_SUMMARY"]
@@ -66,16 +75,16 @@ const SMALL_MODULES = ["MONTHLY_BALANCE", "BUDGET_SUMMARY"]
 function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
     const result: { module: DashboardModuleConfig; span: number }[] = []
     let i = 0
-    
+
     while (i < modules.length) {
         const current = modules[i]
         const next = modules[i + 1]
         const nextNext = modules[i + 2]
 
         // 3 Pequenos -> 4 + 4 + 4
-        if (next && nextNext && 
-            SMALL_MODULES.includes(current.id) && 
-            SMALL_MODULES.includes(next.id) && 
+        if (next && nextNext &&
+            SMALL_MODULES.includes(current.id) &&
+            SMALL_MODULES.includes(next.id) &&
             SMALL_MODULES.includes(nextNext.id)
         ) {
             result.push({ module: current, span: 4 }, { module: next, span: 4 }, { module: nextNext, span: 4 })
@@ -94,7 +103,7 @@ function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
                 i += 2; continue
             }
             // Médio/Pequeno + Médio/Pequeno -> 6 + 6
-            if ((MEDIUM_MODULES.includes(current.id) || SMALL_MODULES.includes(current.id)) && 
+            if ((MEDIUM_MODULES.includes(current.id) || SMALL_MODULES.includes(current.id)) &&
                 (MEDIUM_MODULES.includes(next.id) || SMALL_MODULES.includes(next.id))) {
                 result.push({ module: current, span: 6 }, { module: next, span: 6 })
                 i += 2; continue
@@ -105,7 +114,7 @@ function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
                 i += 2; continue
             }
         }
-        
+
         // Sozinho ou fallback
         result.push({ module: current, span: 12 })
         i++
@@ -113,11 +122,14 @@ function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
     return result
 }
 
+// "1 orçamento" / "3 orçamentos"
+const orcamentos = (n: number) => `${n} ${n === 1 ? "orçamento" : "orçamentos"}`
+
 export default function DashboardPage() {
     const currentDate = new Date()
     const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1)
     const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear())
-    
+
     const [report, setReport] = useState<DashboardReport | null>(null)
     const [charts, setCharts] = useState<SimpleChartsReport | null>(null)
     const [tagCharts, setTagCharts] = useState<TagDistributionReport | null>(null)
@@ -157,7 +169,7 @@ export default function DashboardPage() {
     useEffect(() => {
         setLayoutConfig(getInitialConfig())
     }, [])
-    
+
     const fetchData = async () => {
         // Sem o acesso carregado, espera (PERM-18)
         if (comparacaoMensal === null || analisePorTag === null) return
@@ -169,7 +181,7 @@ export default function DashboardPage() {
                 comparacaoMensal ? getMonthlyComparison(6, selectedMonth, selectedYear) : Promise.resolve([]),
                 analisePorTag ? getTagDistribution(selectedMonth, selectedYear) : Promise.resolve(null)
             ])
-            
+
             const normalizedCharts = {
                 income_vs_expense: chartsData?.income_vs_expense || [],
                 expense_by_category: chartsData?.expense_by_category || [],
@@ -177,7 +189,7 @@ export default function DashboardPage() {
                 expense_by_class: chartsData?.expense_by_class || [],
                 period: chartsData?.period
             }
-            
+
             setReport(reportData)
             setCharts(normalizedCharts)
             setMonthlyComparison(comparisonData)
@@ -197,7 +209,7 @@ export default function DashboardPage() {
         setLayoutConfig(newConfig)
         localStorage.setItem("dashboard_layout_config", JSON.stringify(newConfig))
         toast.success("Layout atualizado", {
-            description: "Suas preferências foram salvas localmente."
+            description: "Suas preferências foram salvas neste navegador."
         })
     }
 
@@ -223,19 +235,96 @@ export default function DashboardPage() {
         }
     }
 
+    // O período fica sempre à vista no cabeçalho (DESIGN.md §2, princípio 5)
+    const periodo = (
+        <div className="flex items-center gap-1">
+            <Button variant="ghost" size="icon" aria-label="Mês anterior" title="Mês anterior" onClick={handlePrevMonth}>
+                <ChevronLeft aria-hidden="true" />
+            </Button>
+            <MonthPicker
+                currentMonth={selectedMonth}
+                currentYear={selectedYear}
+                onSelect={(month: number, year: number) => {
+                    setSelectedMonth(month)
+                    setSelectedYear(year)
+                }}
+            />
+            <Button variant="ghost" size="icon" aria-label="Próximo mês" title="Próximo mês" onClick={handleNextMonth}>
+                <ChevronRight aria-hidden="true" />
+            </Button>
+        </div>
+    )
+
+    // A única ação primária da página: o menu Registrar com os quatro formulários
+    const acoes = (
+        <>
+            <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button>
+                        <Plus aria-hidden="true" /> Registrar
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-60">
+                    <DropdownMenuLabel className="label text-muted-foreground">Nova Transação</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => handleOpenForm("INCOME")} className="gap-3">
+                        <ArrowUpCircle className="h-4 w-4 text-inflow" aria-hidden="true" />
+                        Receita
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleOpenForm("EXPENSE")} className="gap-3">
+                        <ArrowDownCircle className="h-4 w-4 text-outflow" aria-hidden="true" />
+                        Despesa
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsTransferOpen(true)} className="gap-3">
+                        <ArrowRightLeft className="h-4 w-4 text-fg-secondary" aria-hidden="true" />
+                        Transferência
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsCardExpenseOpen(true)} className="gap-3">
+                        <CreditCardIcon className="h-4 w-4 text-fg-secondary" aria-hidden="true" />
+                        Gasto no Cartão
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setIsInvoicePaymentOpen(true)} className="gap-3">
+                        <Receipt className="h-4 w-4 text-fg-secondary" aria-hidden="true" />
+                        Pagamento de Fatura
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+            </DropdownMenu>
+
+            <RecursoBloqueado chave="personalizar_dashboard" compacto>
+                <Button
+                    variant="outline"
+                    size="icon"
+                    aria-label="Personalizar dashboard"
+                    title="Personalizar blocos"
+                    onClick={() => setIsCustomizerOpen(true)}
+                >
+                    <Settings2 aria-hidden="true" />
+                </Button>
+            </RecursoBloqueado>
+        </>
+    )
+
+    const cabecalho = (
+        <CabecalhoDePagina titulo={PAGINA.nome} apoio={PAGINA.apoio} periodo={periodo} acoes={acoes} />
+    )
+
     if (isLoading) {
         return (
-            <div className="container mx-auto py-10 px-4 space-y-8 max-w-7xl">
-                <div className="flex flex-col gap-2">
-                    <Skeleton className="h-10 w-48" />
-                    <Skeleton className="h-4 w-72" />
+            <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-6 md:px-6 md:py-8" aria-busy="true">
+                <div className="space-y-2">
+                    <Skeleton className="h-8 w-56" />
+                    <Skeleton className="h-4 w-40" />
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-32 w-full rounded-2xl" />)}
+                <div className="space-y-2">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-12 w-72" />
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <Skeleton className="h-[400px] lg:col-span-2 rounded-2xl" />
-                    <Skeleton className="h-[400px] rounded-2xl" />
+                <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                    {[1, 2, 3, 4].map(i => <Skeleton key={i} className="h-28 w-full" />)}
+                </div>
+                <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                    <Skeleton className="h-[400px] lg:col-span-2" />
+                    <Skeleton className="h-[400px]" />
                 </div>
             </div>
         )
@@ -243,119 +332,83 @@ export default function DashboardPage() {
 
     if (!report) {
         return (
-             <div className="container mx-auto py-20 px-4 text-center">
-                <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h2 className="text-xl font-bold">Ops! Algo deu errado.</h2>
-                <p className="text-muted-foreground mt-2">Não conseguimos carregar as informações do seu painel.</p>
-             </div>
+            <div className="mx-auto w-full max-w-[1240px] px-4 py-6 md:px-6 md:py-8">
+                {cabecalho}
+                <Card>
+                    <CardContent className="flex flex-col items-center gap-4 px-6 py-16 text-center">
+                        <AlertCircle className="h-5 w-5 text-outflow" aria-hidden="true" />
+                        <div className="space-y-1">
+                            <h2 className="display-s">Não foi possível carregar a visão geral do mês.</h2>
+                            <p className="text-sm text-muted-foreground">Verifique a conexão e tente de novo.</p>
+                        </div>
+                        <Button variant="outline" onClick={fetchData}>
+                            <RotateCw aria-hidden="true" /> {ROTULO_TENTAR_DE_NOVO}
+                        </Button>
+                    </CardContent>
+                </Card>
+            </div>
         )
     }
 
+    const resumo = report.summary
+    const acimaDoLimite = report.budgets?.over_limit_count ?? 0
+    const pertoDoLimite = report.budgets?.near_limit_count ?? 0
+
     return (
-        <div className="container mx-auto py-6 sm:py-10 px-2 sm:px-4 space-y-8 sm:space-y-10 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-            {/* Header com Contexto */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div>
-                    <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">
-                        Dashboard
-                    </h1>
-                    <p className="text-sm font-bold text-muted-foreground/60 mt-1 uppercase tracking-widest">
-                        Resumo Financeiro • {selectedMonth}/{selectedYear}
-                    </p>
-                </div>
+        <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-6 md:px-6 md:py-8">
+            {cabecalho}
 
-                <div className="flex items-center gap-2 sm:gap-4 md:ml-auto w-full md:w-auto justify-end">
-                    <div className="flex items-center gap-1 sm:gap-2 bg-card p-1 sm:p-1.5 rounded-2xl sm:rounded-2xl border border-border/60 shadow-sm shrink-0">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl hover:bg-primary/10 transition-all active:scale-90"
-                            onClick={handlePrevMonth}
-                        >
-                            <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </Button>
-                        
-                        <div className="px-1 sm:px-2">
-                            <MonthPicker 
-                                currentMonth={selectedMonth}
-                                currentYear={selectedYear}
-                                onSelect={(month: number, year: number) => {
-                                    setSelectedMonth(month)
-                                    setSelectedYear(year)
-                                }}
-                            />
+            {/* 1. Posição: o número mais importante da tela (DESIGN.md §7) */}
+            <section aria-labelledby="titulo-posicao" className="space-y-1">
+                <div className="flex items-center gap-1.5">
+                    <h2 id="titulo-posicao" className="label text-muted-foreground">Posição</h2>
+                    <HelpInfo topic="TOTAL_BALANCE" />
+                </div>
+                <p className="display-xl text-foreground">
+                    {formatarMoeda(resumo.total_liquid_balance ?? resumo.total_balance ?? "0.00")}
+                </p>
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                    <span>Saldo em contas</span>
+                    <span aria-hidden="true">·</span>
+                    <span>Resultado do mês</span>
+                    <Valor valor={resumo.net_result ?? "0.00"} />
+                    <HelpInfo topic="NET_RESULT" />
+                </p>
+            </section>
+
+            {/* 2. Indicadores do mês */}
+            <DashboardKPIs data={resumo} />
+
+            {/* 3. Alertas: o mais grave e a contagem dos demais */}
+            {(acimaDoLimite > 0 || pertoDoLimite > 0) && (
+                <Alert variant="warning">
+                    <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                            <AlertTitle>
+                                {acimaDoLimite > 0
+                                    ? `${orcamentos(acimaDoLimite)} acima do limite neste mês.`
+                                    : `${orcamentos(pertoDoLimite)} perto do limite neste mês.`}
+                            </AlertTitle>
+                            {acimaDoLimite > 0 && pertoDoLimite > 0 && (
+                                <AlertDescription>Mais {orcamentos(pertoDoLimite)} perto do limite.</AlertDescription>
+                            )}
                         </div>
-
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 sm:h-10 sm:w-10 rounded-xl sm:rounded-2xl hover:bg-primary/10 transition-all active:scale-90"
-                            onClick={handleNextMonth}
+                        <Link
+                            href="/orcamentos"
+                            className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-fg-secondary transition-colors duration-fast hover:text-foreground"
                         >
-                            <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
-                        </Button>
+                            Ver orçamentos <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                        </Link>
                     </div>
-
-                    <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                            <Button 
-                                className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg shadow-primary/20 transition-all active:scale-95 flex items-center justify-center p-0 shrink-0"
-                            >
-                                <Plus className="h-6 w-6" />
-                            </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-2xl border-border/40 bg-background/95 backdrop-blur-xl">
-                            <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 px-3 py-2">Nova Transação</DropdownMenuLabel>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleOpenForm("INCOME")} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-emerald-500/10 transition-colors">
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <ArrowUpCircle className="h-4 w-4 text-emerald-500" />
-                                </div>
-                                <span className="font-bold text-sm">Receita</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleOpenForm("EXPENSE")} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-rose-500/10 transition-colors">
-                                <div className="w-8 h-8 rounded-lg bg-rose-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <ArrowDownCircle className="h-4 w-4 text-rose-500" />
-                                </div>
-                                <span className="font-bold text-sm">Despesa</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setIsTransferOpen(true)} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-blue-500/10 transition-colors">
-                                <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <ArrowRightLeft className="h-4 w-4 text-blue-500" />
-                                </div>
-                                <span className="font-bold text-sm">Transferência</span>
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setIsCardExpenseOpen(true)} className="rounded-xl flex items-center gap-3 p-3 cursor-pointer group hover:bg-amber-500/10 transition-colors">
-                                <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                                    <CreditCardIcon className="h-4 w-4 text-amber-500" />
-                                </div>
-                                <span className="font-bold text-sm">Gasto no Cartão</span>
-                            </DropdownMenuItem>
-                        </DropdownMenuContent>
-                    </DropdownMenu>
-
-                    <RecursoBloqueado chave="personalizar_dashboard" compacto>
-                    <Button 
-                        variant="outline" 
-                        size="icon"
-                        aria-label="Personalizar dashboard"
-                        className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl sm:rounded-2xl border-dashed border-2 bg-card border-border/60 hover:bg-muted/30 hover:border-primary/20 hover:text-primary transition-all duration-300 shadow-sm shrink-0"
-                        onClick={() => setIsCustomizerOpen(true)}
-                    >
-                        <Settings2 className="h-5 w-5 sm:h-6 sm:w-6" />
-                    </Button>
-                    </RecursoBloqueado>
-                </div>
-            </div>
-
-            {/* KPIs de Balanço */}
-            <DashboardKPIs data={report.summary} />
+                </Alert>
+            )}
 
             {/* Patrimônio separado em disponível, reservas, investimentos e faturas (REL-15) */}
-            <NetWorthBreakdown total={report.summary.net_worth} partes={report.summary.net_worth_breakdown} />
+            <NetWorthBreakdown total={resumo.net_worth} partes={resumo.net_worth_breakdown} />
 
-            {/* SEÇÃO DINÂMICA: Módulos Personalizáveis */}
-            <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            {/* 4 e 5. Blocos personalizáveis (DESIGN.md §7, Personalização) */}
+            <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-12">
                 {getAdaptiveLayout((personalizar === false ? DEFAULT_CONFIG : layoutConfig).filter(m => m.visible)).map(({ module, span }) => {
                     const spanClass = {
                         4: "md:col-span-6 lg:col-span-4",
@@ -368,7 +421,7 @@ export default function DashboardPage() {
                     switch (module.id) {
                         case "DAILY_CASH_FLOW":
                             return (
-                                <DailyCashFlowChart 
+                                <DailyCashFlowChart
                                     key={module.id}
                                     data={charts?.income_vs_expense || []}
                                     selectedMonth={selectedMonth}
@@ -380,26 +433,27 @@ export default function DashboardPage() {
                         case "MONTHLY_BALANCE":
                             return (
                                 <RecursoBloqueado key={module.id} chave="comparacao_mensal" titulo="Comparação mensal" className={spanClass}>
-                                <MonthlyComparisonChart 
-                                    data={monthlyComparison.length > 0 ? [monthlyComparison[monthlyComparison.length - 1]] : []} 
+                                <MonthlyComparisonChart
+                                    data={monthlyComparison.length > 0 ? [monthlyComparison[monthlyComparison.length - 1]] : []}
                                     title="Balanço Mensal"
                                     description="Resumo Ganhos vs Gastos"
+                                    granularidade="no mês"
                                     showNumericalLabels={span >= 6}
                                     height="100%"
-                                    className={cn(spanClass, "h-full border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}
+                                    className={cn(spanClass, "h-full")}
                                 />
                                 </RecursoBloqueado>
                             )
                         case "BALANCE_EVOLUTION":
                             return (
                                 <RecursoBloqueado key={module.id} chave="comparacao_mensal" titulo="Comparação mensal" className={spanClass}>
-                                <MonthlyComparisonChart 
-                                    data={monthlyComparison} 
+                                <MonthlyComparisonChart
+                                    data={monthlyComparison}
                                     title="Evolução de Saldo"
                                     description={`Acompanhamento dos ${monthlyComparison.length} meses`}
                                     variant="line"
                                     height="100%"
-                                    className={cn(spanClass, "h-full border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden")}
+                                    className={cn(spanClass, "h-full")}
                                 />
                                 </RecursoBloqueado>
                             )
@@ -411,14 +465,13 @@ export default function DashboardPage() {
                             )
                         case "EXPENSE_DISTRIBUTION":
                             return (
-                                <CategoryDistributionChart 
+                                <CategoryDistributionChart
                                     key={module.id}
                                     title="Distribuição de Gastos"
                                     description="Percentual por categoria"
                                     data={charts?.expense_by_category || []}
                                     isLoading={isLoading}
                                     icon={Wallet}
-                                    iconColor="text-blue-500"
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
@@ -438,14 +491,13 @@ export default function DashboardPage() {
                             )
                         case "INCOME_SOURCE":
                             return (
-                                <CategoryDistributionChart 
+                                <CategoryDistributionChart
                                     key={module.id}
                                     title="Distribuição de Ganhos"
                                     description="Origem das receitas por categoria"
                                     data={charts?.income_by_category || []}
                                     isLoading={isLoading}
                                     icon={Sparkles}
-                                    iconColor="text-emerald-500"
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
@@ -454,13 +506,12 @@ export default function DashboardPage() {
                         case "TAG_EXPENSE_DISTRIBUTION":
                             return (
                                 <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por tag" className={spanClass}>
-                                <TagDistributionChart 
+                                <TagDistributionChart
                                     title="Despesas por Tag"
                                     description="Distribuição de gastos por etiqueta"
                                     data={tagCharts?.expense_by_tag || []}
                                     isLoading={isLoading}
                                     icon={Tag}
-                                    iconColor="text-rose-500"
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
@@ -470,13 +521,12 @@ export default function DashboardPage() {
                         case "TAG_INCOME_SOURCE":
                             return (
                                 <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por tag" className={spanClass}>
-                                <TagDistributionChart 
+                                <TagDistributionChart
                                     title="Ganhos por Tag"
                                     description="Origem das receitas por etiqueta"
                                     data={tagCharts?.income_by_tag || []}
                                     isLoading={isLoading}
                                     icon={Tag}
-                                    iconColor="text-emerald-500"
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
@@ -486,51 +536,41 @@ export default function DashboardPage() {
 
                         case "CREDIT_MANAGEMENT":
                             return (
-                                <div key={module.id} className={cn(spanClass, "space-y-6")}>
-                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-2">
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10 shrink-0">
-                                                <CreditCardIcon className="h-6 w-6 text-amber-500" />
+                                <section key={module.id} aria-labelledby="titulo-credito" className={cn(spanClass, "space-y-4")}>
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <h2 id="titulo-credito" className="display-m">Gestão de Crédito</h2>
+                                                <HelpInfo topic="CREDIT_MANAGEMENT" />
                                             </div>
-                                            <div>
-                                                <div className="flex items-center gap-2">
-                                                    <h2 className="text-2xl font-black tracking-tight uppercase">Gestão de Crédito</h2>
-                                                    <HelpInfo topic="CREDIT_MANAGEMENT" iconClassName="h-4 w-4" />
-                                                </div>
-                                                <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-50">Controle de limites e faturas</p>
-                                            </div>
+                                            <p className="text-sm text-muted-foreground">Controle de limites e faturas</p>
                                         </div>
 
                                         {report.credit_cards && report.credit_cards.length > 0 && (
-                                            <Button 
-                                                onClick={() => setIsCardFormOpen(true)}
-                                                variant="outline"
-                                                className="rounded-full px-5 h-10 font-bold border-border/60 hover:bg-amber-500/5 hover:border-amber-500/20 text-xs transition-all flex items-center gap-2"
-                                            >
-                                                <Plus className="h-4 w-4" /> Novo Cartão
+                                            <Button variant="outline" onClick={() => setIsCardFormOpen(true)}>
+                                                <Plus aria-hidden="true" /> Novo Cartão
                                             </Button>
                                         )}
                                     </div>
 
                                     {!report.credit_cards || report.credit_cards.length === 0 ? (
-                                        <div className="flex flex-col items-center justify-center py-20 text-center rounded-[40px] border-2 border-dashed border-border/60 bg-card shadow-sm hover:shadow-md transition-all">
-                                            <div className="w-16 h-16 rounded-[24px] bg-background shadow-lg border border-border/40 flex items-center justify-center mb-6">
-                                                <CreditCardIcon className="h-8 w-8 text-amber-500 opacity-40" />
-                                            </div>
-                                            <h3 className="text-lg font-black uppercase tracking-widest text-foreground/80">Nenhum cartão encontrado</h3>
-                                            <p className="text-[11px] text-muted-foreground max-w-xs mt-3 mb-8 leading-relaxed font-bold uppercase tracking-wider opacity-60">
-                                                Cadastre seus cartões de crédito para centralizar o acompanhamento de faturas e limites.
-                                            </p>
-                                            <Button 
-                                                onClick={() => setIsCardFormOpen(true)} 
-                                                className="rounded-full px-8 h-11 font-black uppercase tracking-widest text-[10px] shadow-lg shadow-amber-500/10 transition-all hover:scale-105 active:scale-95 bg-amber-500 hover:bg-amber-600"
-                                            >
-                                                <Plus className="mr-2 h-4 w-4" /> Começar agora
-                                            </Button>
-                                        </div>
+                                        <Card>
+                                            <CardContent className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+                                                <CreditCardIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                                                <div className="space-y-1">
+                                                    <h3 className="display-s">Nenhum cartão cadastrado.</h3>
+                                                    <p className="max-w-sm text-sm text-muted-foreground">
+                                                        Cadastre seus cartões de crédito para acompanhar faturas e limites num só lugar.
+                                                    </p>
+                                                </div>
+                                                <Button variant="outline" onClick={() => setIsCardFormOpen(true)}>
+                                                    <Plus aria-hidden="true" /> Cadastrar cartão
+                                                </Button>
+                                            </CardContent>
+                                        </Card>
                                     ) : (
                                         <div className={cn(
-                                            "grid grid-cols-1 gap-6",
+                                            "grid grid-cols-1 gap-4",
                                             span >= 12 ? "md:grid-cols-2 lg:grid-cols-3" : (span >= 8 ? "md:grid-cols-2" : "md:grid-cols-1")
                                         )}>
                                             {report.credit_cards?.map((card) => {
@@ -541,77 +581,68 @@ export default function DashboardPage() {
                                                     closing_day: 0,
                                                     created_at: "",
                                                     updated_at: ""
-                                                } as any
-                                                
+                                                } as CreditCard
+
                                                 return (
                                                     <div key={card.id} className="w-full">
-                                                        <CreditCardItem 
-                                                            card={mappedCard} 
-                                                            onEdit={() => {}} 
-                                                            onDelete={() => {}} 
+                                                        <CreditCardItem
+                                                            card={mappedCard}
+                                                            onEdit={() => {}}
+                                                            onDelete={() => {}}
                                                         />
                                                     </div>
                                                 )
                                             })}
                                         </div>
                                     )}
-                                </div>
+                                </section>
                             )
-                        case "GOALS_JOURNEY":
-                            return report.goals ? (
-                                <Card key={module.id} className={cn(spanClass, "border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden p-8")}>
-                                    <div className="flex items-center gap-4 mb-8">
-                                        <div className="w-14 h-14 rounded-[20px] bg-primary/10 flex items-center justify-center">
-                                            <Target className="h-7 w-7 text-primary" />
+                        case "GOALS_JOURNEY": {
+                            if (!report.goals) return null
+                            const progresso = report.goals.average_progress ?? 0
+                            return (
+                                <Card key={module.id} className={spanClass}>
+                                    <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
+                                        <div className="space-y-1">
+                                            <CardTitle className="flex items-center gap-2">
+                                                <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <h2>Metas</h2>
+                                            </CardTitle>
+                                            <p className="text-sm text-muted-foreground">Objetivos financeiros</p>
                                         </div>
-                                        <div>
-                                            <h2 className="text-2xl font-black tracking-tight uppercase">Metas</h2>
-                                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest opacity-50">Objetivos financeiros</p>
-                                        </div>
-                                    </div>
-                                    <div className={cn(
-                                        "grid grid-cols-1 gap-8 p-6 bg-primary/5 rounded-[28px] border border-primary/10",
-                                        span >= 12 ? "lg:grid-cols-4" : (span >= 8 ? "md:grid-cols-2 lg:grid-cols-2" : "grid-cols-1")
-                                    )}>
-                                        <div className="space-y-2">
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70 border-b border-primary/20 pb-1 block">Ativas</span>
-                                            <p className="text-4xl font-black pt-2 text-foreground">{report.goals?.active_count ?? 0}</p>
-                                        </div>
-                                        <div className={cn("space-y-2", span >= 12 ? "lg:col-span-2" : "")}>
-                                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-70 border-b border-primary/20 pb-1 block">Progresso</span>
-                                            <div className="pt-3">
-                                                <div className="flex justify-between mb-2">
-                                                    <span className="text-2xl font-black text-primary">{(report.goals?.average_progress ?? 0).toFixed(1)}%</span>
-                                                </div>
-                                                <div className="h-3 w-full bg-primary/10 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-primary transition-all duration-1000" style={{ width: `${report.goals?.average_progress ?? 0}%` }} />
+                                        <Link
+                                            href="/metas"
+                                            className="inline-flex shrink-0 items-center gap-1 text-sm text-fg-secondary transition-colors duration-fast hover:text-foreground"
+                                        >
+                                            Ver metas <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                                        </Link>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <dl className="flex flex-wrap items-center gap-x-10 gap-y-4">
+                                            <div className="space-y-1">
+                                                <dt className="label text-muted-foreground">Ativas</dt>
+                                                <dd className="value-l">{report.goals.active_count ?? 0}</dd>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <AnelDeProgresso percentual={progresso} nome="Progresso médio das metas" />
+                                                <div className="space-y-1">
+                                                    <dt className="label text-muted-foreground">Progresso médio</dt>
+                                                    <dd className="value-l">{progresso.toFixed(1).replace(".", ",")}%</dd>
                                                 </div>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center justify-center">
-                                            <Button className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] bg-primary text-primary-foreground">
-                                                Ver metas
-                                            </Button>
-                                        </div>
-                                    </div>
+                                        </dl>
+                                    </CardContent>
                                 </Card>
-                            ) : null
+                            )
+                        }
                         default:
                             return null
                     }
                 })}
             </div>
 
-            {/* Footer de Respiro */}
-            <div className="py-10 text-center">
-                <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30 flex items-center justify-center gap-2">
-                    <Sparkles className="h-3 w-3" />
-                    Azimute IA • Seu parceiro financeiro
-                </p>
-            </div>
-
             {personalizar && (
-                <DashboardCustomizer 
+                <DashboardCustomizer
                     open={isCustomizerOpen}
                     onOpenChange={setIsCustomizerOpen}
                     config={layoutConfig}
@@ -620,8 +651,8 @@ export default function DashboardPage() {
             )}
 
             {/* Diálogos de Transação */}
-            <TransactionFormDialog 
-                open={isFormOpen} 
+            <TransactionFormDialog
+                open={isFormOpen}
                 onOpenChange={setIsFormOpen}
                 type={formType}
                 onSuccess={(criada) => {
@@ -631,25 +662,25 @@ export default function DashboardPage() {
             />
             {avisoDoSalario}
 
-            <TransferFormDialog 
+            <TransferFormDialog
                 open={isTransferOpen}
                 onOpenChange={setIsTransferOpen}
                 onSuccess={handleFormSuccess}
             />
 
-            <CardExpenseFormDialog 
+            <CardExpenseFormDialog
                 open={isCardExpenseOpen}
                 onOpenChange={setIsCardExpenseOpen}
                 onSuccess={handleFormSuccess}
             />
 
-            <InvoicePaymentDialog 
+            <InvoicePaymentDialog
                 open={isInvoicePaymentOpen}
                 onOpenChange={setIsInvoicePaymentOpen}
                 onSuccess={handleFormSuccess}
             />
 
-            <CreditCardFormDialog 
+            <CreditCardFormDialog
                 open={isCardFormOpen}
                 onOpenChange={setIsCardFormOpen}
                 onSuccess={handleFormSuccess}
@@ -657,4 +688,3 @@ export default function DashboardPage() {
         </div>
     )
 }
-

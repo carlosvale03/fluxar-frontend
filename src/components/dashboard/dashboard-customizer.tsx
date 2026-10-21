@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { 
     Dialog, 
     DialogContent, 
@@ -13,19 +13,17 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { cn } from "@/lib/utils"
 import { 
-    Eye, 
-    EyeOff, 
     ArrowUp, 
     ArrowDown, 
     GripVertical, 
     RotateCcw,
-    LayoutDashboard,
     TrendingUp,
     Wallet,
     Target,
     CreditCard,
     PieChart,
-    BarChart3
+    BarChart3,
+    type LucideIcon,
 } from "lucide-react"
 
 export type DashboardModuleId = 
@@ -45,17 +43,18 @@ export interface DashboardModuleConfig {
     id: DashboardModuleId
     label: string
     visible: boolean
-    icon: any
+    icon: LucideIcon
     color: string
 }
 
+// Cores das séries do tema (DESIGN.md §3.4); o campo fica para o layout salvo
 const COLORS = {
-    green: "#10b981",
-    blue: "#0ea5e9",
-    indigo: "#6366f1",
-    purple: "#8b5cf6",
-    rose: "#f43f5e",
-    amber: "#f59e0b",
+    green: "var(--az-inflow)",
+    blue: "var(--az-serie-2)",
+    indigo: "var(--az-serie-5)",
+    purple: "var(--az-serie-3)",
+    rose: "var(--az-serie-4)",
+    amber: "var(--az-serie-1)",
 }
 
 // Exportado para o dashboard usar o layout padrão com personalizar_dashboard fechado (PERM-19)
@@ -84,49 +83,53 @@ interface DashboardCustomizerProps {
 export function DashboardCustomizer({ open, onOpenChange, config, onConfigChange }: DashboardCustomizerProps) {
     const [localConfig, setLocalConfig] = useState<DashboardModuleConfig[]>([])
     const [draggedIndex, setDraggedIndex] = useState<number | null>(null)
+    // Anúncio para leitor de tela depois de mover um bloco pelos botões
+    const [anuncio, setAnuncio] = useState("")
+    // Depois de mover pelo teclado, o foco segue o bloco na nova posição
+    const focoPendente = useRef<{ id: DashboardModuleId; direcao: "subir" | "descer" } | null>(null)
+    const botoes = useRef(new Map<string, HTMLButtonElement | null>())
 
     useEffect(() => {
         if (open) {
             setLocalConfig([...config])
+            setAnuncio("")
         }
     }, [open, config])
 
+    useEffect(() => {
+        const pendente = focoPendente.current
+        if (!pendente) return
+        focoPendente.current = null
+        const outro = pendente.direcao === "subir" ? "descer" : "subir"
+        const alvo = botoes.current.get(`${pendente.id}-${pendente.direcao}`)
+        // Na ponta da lista o botão fica desabilitado: o foco vai para o outro
+        if (alvo && !alvo.disabled) alvo.focus()
+        else botoes.current.get(`${pendente.id}-${outro}`)?.focus()
+    }, [localConfig])
+
     const handleToggle = (id: DashboardModuleId) => {
-        setLocalConfig(prev => prev.map(m => 
+        setLocalConfig(prev => prev.map(m =>
             m.id === id ? { ...m, visible: !m.visible } : m
         ))
     }
 
-    const moveUp = (index: number) => {
-        if (index === 0) return
+    const mover = (index: number, destino: number, direcao: "subir" | "descer") => {
+        if (destino < 0 || destino >= localConfig.length) return
         const newConfig = [...localConfig]
-        const temp = newConfig[index]
-        newConfig[index] = newConfig[index - 1]
-        newConfig[index - 1] = temp
+        const [modulo] = newConfig.splice(index, 1)
+        newConfig.splice(destino, 0, modulo)
+        focoPendente.current = { id: modulo.id, direcao }
         setLocalConfig(newConfig)
+        setAnuncio(`${modulo.label} na posição ${destino + 1} de ${newConfig.length}.`)
     }
 
-    const moveDown = (index: number) => {
-        if (index === localConfig.length - 1) return
-        const newConfig = [...localConfig]
-        const temp = newConfig[index]
-        newConfig[index] = newConfig[index + 1]
-        newConfig[index + 1] = temp
-        setLocalConfig(newConfig)
-    }
+    const moveUp = (index: number) => mover(index, index - 1, "subir")
+    const moveDown = (index: number) => mover(index, index + 1, "descer")
 
-    // Drag and Drop Logic
+    // Arrastar nativo, além dos botões de subir e descer
     const onDragStart = (e: React.DragEvent, index: number) => {
         setDraggedIndex(index)
         e.dataTransfer.effectAllowed = "move"
-        
-        // Add a slight delay to the visual change so it doesn't look weird when starting to drag
-        setTimeout(() => {
-            const target = e.target as HTMLElement
-            if (target && target.classList) {
-                target.classList.add("opacity-50")
-            }
-        }, 0)
     }
 
     const onDragOver = (e: React.DragEvent, index: number) => {
@@ -141,16 +144,13 @@ export function DashboardCustomizer({ open, onOpenChange, config, onConfigChange
         setDraggedIndex(index)
     }
 
-    const onDragEnd = (e: React.DragEvent) => {
+    const onDragEnd = () => {
         setDraggedIndex(null)
-        const target = e.target as HTMLElement
-        if (target && target.classList) {
-            target.classList.remove("opacity-50")
-        }
     }
 
     const handleReset = () => {
         setLocalConfig([...DEFAULT_CONFIG])
+        setAnuncio("Ordem padrão restaurada.")
     }
 
     const handleSave = () => {
@@ -160,120 +160,88 @@ export function DashboardCustomizer({ open, onOpenChange, config, onConfigChange
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="w-[95vw] sm:w-full sm:max-w-[500px] rounded-[24px] sm:rounded-[32px] border-border/40 bg-card/95 backdrop-blur-2xl p-0 overflow-hidden shadow-2xl mx-auto">
-                <div className="p-6 sm:p-8 pb-4">
-                    <DialogHeader>
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner shrink-0">
-                                <LayoutDashboard className="h-5 w-5 sm:h-6 sm:h-6" />
-                            </div>
-                            <div className="min-w-0">
-                                <DialogTitle className="text-xl sm:text-2xl font-black tracking-tight truncate">Personalizar Painel</DialogTitle>
-                                <DialogDescription className="text-[10px] sm:text-xs font-bold text-muted-foreground uppercase tracking-widest mt-0.5">Organize sua visualização</DialogDescription>
-                            </div>
-                        </div>
-                    </DialogHeader>
-                </div>
+            <DialogContent className="mx-auto w-[95vw] gap-0 p-0 sm:w-full sm:max-w-[520px]">
+                <DialogHeader className="p-6 pb-4">
+                    <DialogTitle>Personalizar Painel</DialogTitle>
+                    <DialogDescription>
+                        Escolha os blocos visíveis e a ordem. Arraste ou use os botões de subir e descer.
+                    </DialogDescription>
+                </DialogHeader>
 
-                <div className="px-4 sm:px-8 pb-6 sm:pb-8 space-y-3 max-h-[60vh] sm:max-h-[450px] overflow-y-auto custom-scrollbar">
+                <p className="sr-only" aria-live="polite">{anuncio}</p>
+
+                <ul className="custom-scrollbar max-h-[60vh] space-y-2 overflow-y-auto px-4 pb-6 sm:max-h-[450px] sm:px-6">
                     {localConfig.map((module, index) => {
                         const Icon = module.icon
                         const isBeingDragged = draggedIndex === index
-                        
+
                         return (
-                            <div 
-                                key={module.id} 
+                            <li
+                                key={module.id}
                                 draggable
                                 onDragStart={(e) => onDragStart(e, index)}
                                 onDragOver={(e) => onDragOver(e, index)}
                                 onDragEnd={onDragEnd}
                                 className={cn(
-                                    "flex items-center justify-between p-4 rounded-3xl bg-background/40 border border-border/10 group transition-all duration-300 hover:border-primary/20 hover:bg-background/60 cursor-move relative",
-                                    isBeingDragged && "border-primary/50 shadow-2xl scale-[1.02] z-10 bg-background/80"
+                                    "flex items-center justify-between gap-3 rounded-md border border-border bg-card p-3 transition-colors duration-fast",
+                                    isBeingDragged ? "border-border-strong bg-elevated opacity-60" : "hover:bg-elevated"
                                 )}
                             >
-                                <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                                    <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                                        <div className="text-muted-foreground/30 group-hover:text-primary/50 transition-colors shrink-0">
-                                            <GripVertical className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        </div>
-                                        <div 
-                                            className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl flex items-center justify-center transition-all duration-500 shadow-sm shrink-0"
-                                            style={{ 
-                                                backgroundColor: `${module.color}15`,
-                                                color: module.color
-                                            }}
-                                        >
-                                            <Icon className="h-4 w-4 sm:h-5 sm:w-5" />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-xs sm:text-sm font-black transition-colors truncate">{module.label}</p>
-                                            <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground/50 uppercase tracking-widest">Módulo</p>
-                                        </div>
-                                    </div>
+                                <div className="flex min-w-0 items-center gap-3">
+                                    <GripVertical className="h-4 w-4 shrink-0 cursor-grab text-muted-foreground" aria-hidden="true" />
+                                    <Icon className="h-4 w-4 shrink-0 text-fg-secondary" aria-hidden="true" />
+                                    <Label htmlFor={`visible-${module.id}`} className="truncate text-sm font-medium">
+                                        {module.label}
+                                    </Label>
                                 </div>
-                                <div className="flex items-center gap-2 sm:gap-4 shrink-0">
-                                    <div className="flex items-center gap-0.5 sm:gap-1 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg hover:text-primary hover:bg-primary/10"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                moveUp(index)
-                                            }}
-                                            disabled={index === 0}
-                                        >
-                                            <ArrowUp className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        </Button>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-7 w-7 sm:h-8 sm:w-8 rounded-lg hover:text-primary hover:bg-primary/10"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                moveDown(index)
-                                            }}
-                                            disabled={index === localConfig.length - 1}
-                                        >
-                                            <ArrowDown className="h-3 w-3 sm:h-4 sm:w-4" />
-                                        </Button>
-                                    </div>
-                                    <div className="flex items-center gap-2 sm:gap-3 border-l border-border/10 pl-2 sm:pl-4 ml-1 sm:ml-2">
-                                        <Switch 
+                                <div className="flex shrink-0 items-center gap-1">
+                                    <Button
+                                        ref={(el) => { botoes.current.set(`${module.id}-subir`, el) }}
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        aria-label={`Subir ${module.label}`}
+                                        title="Subir"
+                                        onClick={() => moveUp(index)}
+                                        disabled={index === 0}
+                                    >
+                                        <ArrowUp aria-hidden="true" />
+                                    </Button>
+                                    <Button
+                                        ref={(el) => { botoes.current.set(`${module.id}-descer`, el) }}
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        aria-label={`Descer ${module.label}`}
+                                        title="Descer"
+                                        onClick={() => moveDown(index)}
+                                        disabled={index === localConfig.length - 1}
+                                    >
+                                        <ArrowDown aria-hidden="true" />
+                                    </Button>
+                                    <div className="ml-1 border-l border-border pl-3">
+                                        <Switch
                                             id={`visible-${module.id}`}
                                             checked={module.visible}
                                             onCheckedChange={() => handleToggle(module.id)}
-                                            className="data-[state=checked]:bg-primary scale-75 sm:scale-100"
                                         />
                                     </div>
                                 </div>
-                            </div>
+                            </li>
                         )
                     })}
-                </div>
+                </ul>
 
-                <div className="p-6 sm:p-8 pt-4 bg-muted/20 border-t border-border/10 flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <Button 
-                        variant="ghost" 
-                        onClick={handleReset}
-                        className="rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest opacity-60 hover:opacity-100 h-10"
-                    >
-                        <RotateCcw className="mr-2 h-3 w-3 sm:h-4 sm:w-4" /> Resetar
+                <div className="flex flex-col items-center justify-between gap-3 border-t border-border p-6 sm:flex-row">
+                    <Button variant="ghost" onClick={handleReset}>
+                        <RotateCcw aria-hidden="true" /> Restaurar padrão
                     </Button>
-                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
-                        <Button 
-                            variant="outline" 
-                            onClick={() => onOpenChange(false)}
-                            className="w-full sm:w-auto rounded-2xl border-border/40 font-black text-[10px] sm:text-xs uppercase tracking-widest h-11 sm:h-12 px-6"
-                        >
+                    <div className="flex w-full flex-col items-center gap-2 sm:w-auto sm:flex-row">
+                        <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
                             Cancelar
                         </Button>
-                        <Button 
-                            onClick={handleSave}
-                            className="w-full sm:w-auto rounded-2xl bg-primary hover:bg-primary/90 font-black text-[10px] sm:text-xs uppercase tracking-widest h-11 sm:h-12 px-8 shadow-lg shadow-primary/20"
-                        >
-                            Salvar Layout
+                        <Button onClick={handleSave} className="w-full sm:w-auto">
+                            Salvar layout
                         </Button>
                     </div>
                 </div>
@@ -313,7 +281,7 @@ export const getInitialConfig = (): DashboardModuleConfig[] => {
             config.splice(posicao === -1 ? config.length : posicao + 1, 0, def)
         })
         return config
-    } catch (e) {
+    } catch {
         return DEFAULT_CONFIG
     }
 }
