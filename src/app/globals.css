@@ -1,4 +1,6 @@
 @import "tailwindcss";
+/* animate-in, animate-out, fade-in, zoom-in, slide-in-from-* usados pelos componentes (AZ-40) */
+@import "tw-animate-css";
 @custom-variant dark (&:where(.dark, .dark *));
 
 
