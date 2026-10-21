@@ -161,7 +161,7 @@ describe("Calendário", () => {
 
     expect(screen.getByRole("heading", { name: "Calendário" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
-    expect(screen.queryByText("Fluxo Financeiro Mensal")).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Mês anterior" })).not.toBeInTheDocument()
     expect(r.getCalendarReport).not.toHaveBeenCalled()
   })
 
@@ -169,7 +169,7 @@ describe("Calendário", () => {
     comAcesso()
     render(<CalendarPage />)
 
-    expect(screen.getByText(/Fluxo Financeiro Mensal/)).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Mês anterior" })).toBeInTheDocument()
     await vi.waitFor(() => expect(r.getCalendarReport).toHaveBeenCalledTimes(1))
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
   })
