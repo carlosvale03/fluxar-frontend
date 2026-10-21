@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Avisos } from "@/components/layout/avisos";
+import { FocoNaTrocaDeRota } from "@/components/layout/foco-na-troca-de-rota";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
@@ -59,10 +60,19 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
+            {/* AZ-21.7: primeiro item do teclado */}
+            <a
+              href="#conteudo"
+              className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-toast focus:rounded-md focus:bg-gold focus:px-4 focus:py-2 focus:text-gold-ink"
+            >
+              Pular para o conteúdo
+            </a>
             <Header />
-            <main className="flex-1">
+            {/* max-md:pb-20: espaço para o menu inferior do celular */}
+            <main id="conteudo" tabIndex={-1} className="flex-1 outline-none max-md:pb-20">
               {children}
             </main>
+            <FocoNaTrocaDeRota />
             <Footer />
             <ServerWakeupOverlay />
             <Avisos />

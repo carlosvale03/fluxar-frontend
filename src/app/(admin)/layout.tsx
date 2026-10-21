@@ -10,9 +10,10 @@ export default function AdminLayout({
     <AdminGuard>
         <div className="flex flex-1">
             <AdminSidebar />
-            <main className="flex-1 w-full bg-muted/10">
+            {/* O <main> é o do layout raiz (#conteudo) */}
+            <div className="w-full flex-1">
                 {children}
-            </main>
+            </div>
         </div>
     </AdminGuard>
   )
