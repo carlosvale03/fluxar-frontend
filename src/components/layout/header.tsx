@@ -213,7 +213,7 @@ export function Header() {
                 href={item.href}
                 aria-current={ativo ? "page" : undefined}
                 className={cn(
-                  "flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-[11px] leading-tight transition-colors duration-fast",
+                  "flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-xs leading-tight transition-colors duration-fast",
                   ativo ? "text-foreground shadow-[inset_0_2px_0_var(--az-gold)]" : "text-muted-foreground"
                 )}
               >
@@ -229,7 +229,7 @@ export function Header() {
                 type="button"
                 aria-label="Mais módulos e conta"
                 className={cn(
-                  "flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 text-[11px] text-muted-foreground",
+                  "flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 text-xs text-muted-foreground",
                   (ativoMais || ativoPrincipal === "/relatorios") && "text-foreground shadow-[inset_0_2px_0_var(--az-gold)]"
                 )}
               >

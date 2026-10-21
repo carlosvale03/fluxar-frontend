@@ -34,7 +34,7 @@ export function PageHelp({ title, description, sections, className }: PageHelpPr
           variant="ghost" 
           size="icon" 
           className={cn(
-            "h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/10 transition-all",
+            "h-8 w-8 rounded-full text-muted-foreground hover:text-foreground",
             className
           )}
         >
@@ -42,7 +42,7 @@ export function PageHelp({ title, description, sections, className }: PageHelpPr
           <span className="sr-only">Ajuda da página</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[500px] rounded-[40px] border-border/40 bg-card/60 backdrop-blur-3xl p-0 shadow-2xl overflow-hidden">
+      <DialogContent className="overflow-hidden p-0 sm:max-w-[500px]">
         <DialogHeader className="p-8 pb-4 relative">
           <div className="absolute top-0 right-0 p-8 opacity-5">
             <Info className="w-32 h-32 rotate-12" />
@@ -50,7 +50,7 @@ export function PageHelp({ title, description, sections, className }: PageHelpPr
           <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-6 ring-1 ring-primary/20 shadow-inner">
             <Sparkles className="h-6 w-6" />
           </div>
-          <DialogTitle className="text-2xl font-black uppercase tracking-tighter leading-none">
+          <DialogTitle className="display-m">
             Como funciona: {title}
           </DialogTitle>
           {description && (
@@ -63,12 +63,12 @@ export function PageHelp({ title, description, sections, className }: PageHelpPr
         <ScrollArea className="max-h-[60vh] px-8 pb-8">
           <div className="space-y-6 pt-2">
             {sections.map((section, index) => (
-              <div key={index} className="space-y-3 p-5 rounded-[24px] bg-muted/20 border border-border/40 hover:bg-muted/30 transition-colors group">
+              <div key={index} className="space-y-3 rounded-lg border border-border bg-card p-5">
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-xl bg-primary/10 text-primary group-hover:rotate-12 transition-transform">
                     {section.icon || <Zap className="h-4 w-4" />}
                   </div>
-                  <h4 className="font-black uppercase tracking-widest text-xs text-foreground/80">
+                  <h4 className="label text-foreground">
                     {section.title}
                   </h4>
                 </div>
@@ -81,7 +81,7 @@ export function PageHelp({ title, description, sections, className }: PageHelpPr
         </ScrollArea>
         
         <div className="p-8 pt-4 bg-muted/10 border-t border-border/10">
-          <p className="text-[10px] font-black uppercase tracking-widest text-center opacity-40">
+          <p className="label text-center text-muted-foreground">
             Azimute • Rumo exato para o seu dinheiro
           </p>
         </div>

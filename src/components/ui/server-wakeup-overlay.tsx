@@ -15,34 +15,14 @@ export function ServerWakeupOverlay() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-background/80 backdrop-blur-xl"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[var(--az-scrim)]"
         >
           <motion.div 
             initial={{ scale: 0.9, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
-            className="max-w-md w-[90%] p-8 rounded-[40px] bg-card border border-border/40 shadow-2xl shadow-primary/10 text-center relative overflow-hidden"
+            className="relative w-[90%] max-w-md overflow-hidden rounded-lg border border-border bg-card p-8 text-center"
           >
-            {/* Background Spells */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none opacity-20">
-                <motion.div 
-                    animate={{ 
-                        rotate: [0, 360],
-                        scale: [1, 1.2, 1]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                    className="absolute -top-1/2 -left-1/2 w-full h-full bg-gradient-to-br from-primary/30 to-transparent rounded-full blur-[100px]"
-                />
-                <motion.div 
-                    animate={{ 
-                        rotate: [360, 0],
-                        scale: [1, 1.3, 1]
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-                    className="absolute -bottom-1/2 -right-1/2 w-full h-full bg-gradient-to-tl from-emerald-500/20 to-transparent rounded-full blur-[100px]"
-                />
-            </div>
-
             {/* CONTRATO-35: o aviso pode ser fechado */}
             <button
                 type="button"
@@ -76,7 +56,7 @@ export function ServerWakeupOverlay() {
                     </div>
                 </div>
 
-                <h2 className="text-2xl font-black tracking-tight text-foreground mb-4">
+                <h2 className="display-m mb-4">
                     Estamos acordando o servidor...
                 </h2>
                 
@@ -94,7 +74,7 @@ export function ServerWakeupOverlay() {
                             className="absolute top-0 bottom-0 w-1/2 bg-gradient-to-r from-transparent via-primary to-transparent"
                         />
                     </div>
-                    <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
+                    <div className="label flex items-center gap-2 text-muted-foreground">
                         <Loader2 className="w-3 h-3 animate-spin" />
                         Reinicialização em curso
                     </div>

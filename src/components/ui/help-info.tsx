@@ -37,12 +37,12 @@ export function HelpInfo({ topic, className, iconClassName }: HelpInfoProps) {
                     <HelpCircle className={cn("h-3.5 w-3.5", iconClassName)} />
                 </button>
             </DialogTrigger>
-            <DialogContent className="max-w-[400px] rounded-[32px] p-8 border-none bg-background shadow-2xl">
+            <DialogContent className="max-w-[400px] p-8">
                 <DialogHeader className="space-y-4">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2">
                         <HelpCircle className="h-6 w-6" />
                     </div>
-                    <DialogTitle className="text-xl font-black tracking-tight">
+                    <DialogTitle className="display-m">
                         {content.title}
                     </DialogTitle>
                     <DialogDescription className="text-sm leading-relaxed font-medium text-muted-foreground/80">
