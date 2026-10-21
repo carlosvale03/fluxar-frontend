@@ -13,7 +13,7 @@ describe("Bussola", () => {
   it("fora da tolerância, o número fica em alerta", () => {
     render(<Bussola desvio={-22.5} tolerancia={15} />)
     expect(screen.getByRole("img", { name: /22,5% abaixo do plano, fora da tolerância/ })).toBeInTheDocument()
-    expect(screen.getByText("22,5%")).toHaveClass("text-warn")
+    expect(screen.getByText("−22,5%")).toHaveClass("text-warn")
   })
 })
 

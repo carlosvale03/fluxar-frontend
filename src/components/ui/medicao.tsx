@@ -59,7 +59,10 @@ export function Bussola({ desvio, tolerancia, tamanho = 64, className }: Bussola
         <line x1="32" y1="1" x2="32" y2="11" className="stroke-foreground" strokeWidth="2" />
       </svg>
       <div aria-hidden="true">
-        <p className={cn("value-l", !dentro && "text-warn")}>{formatarPercentual(desvio)}</p>
+        <p className={cn("value-l", !dentro && "text-warn")}>
+          {desvio < 0 ? "−" : ""}
+          {formatarPercentual(desvio)}
+        </p>
         <p className="text-xs text-muted-foreground">tolerância {formatarPercentual(tolerancia)}</p>
       </div>
     </div>
