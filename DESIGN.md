@@ -144,10 +144,10 @@ O projeto já organiza as cores em três camadas em `src/app/globals.css` (primi
   --color-fg: var(--az-text-primary);
   --color-fg-secondary: var(--az-text-secondary);
   --color-fg-muted: var(--az-text-muted);
-  --color-accent: var(--az-accent);
-  --color-accent-hover: var(--az-accent-hover);
-  --color-accent-ink: var(--az-accent-ink);
-  --color-accent-line: var(--az-accent-line);
+  --color-gold: var(--az-gold);
+  --color-gold-hover: var(--az-gold-hover);
+  --color-gold-ink: var(--az-gold-ink);
+  --color-gold-line: var(--az-gold-line);
   --color-inflow: var(--az-inflow);
   --color-outflow: var(--az-outflow);
   --color-warn: var(--az-warn);
@@ -169,19 +169,24 @@ O projeto já organiza as cores em três camadas em `src/app/globals.css` (primi
 }
 ```
 
-Os nomes do shadcn que os componentes já usam (`background`, `card`, `primary`, `muted`, `destructive`, `border`, `input`, `ring`) passam a apontar para os tokens novos, para que nada quebre antes da revisão de cada componente:
+**No código, o ouro se chama `gold`.** Os tokens `accent`, `accent-hover`, `accent-ink` e `accent-line` deste documento viram as utilidades `gold`, `gold-hover`, `gold-ink` e `gold-line` (`bg-gold`, `text-gold-line` …), porque `accent` já é o realce de hover dos componentes shadcn (menus, select, calendário). Os valores crus ficam em variáveis `--az-*` no `globals.css`.
+
+Os nomes do shadcn que os componentes já usam (`background`, `card`, `primary`, `muted`, `accent`, `destructive`, `border`, `input`, `ring`) passam a apontar para os tokens novos, para que nada quebre antes da revisão de cada componente:
 
 | Nome atual | Aponta para |
 |---|---|
 | `background` | `canvas` |
 | `card`, `popover` | `surface`, `elevated` |
 | `foreground` | `text-primary` |
-| `primary` / `primary-foreground` | `accent` / `accent-ink` |
-| `muted` / `muted-foreground` | `elevated` / `text-secondary` |
-| `destructive` | `outflow` |
+| `primary` / `primary-foreground` | `gold` / `gold-ink` |
+| `secondary`, `muted`, `accent` | `elevated` |
+| `muted-foreground` | `text-secondary` |
+| `destructive` / `destructive-foreground` | `outflow` / texto escuro `#0A0D14` no escuro (7,0:1) e branco no claro (5,46:1) |
 | `border` | `border-subtle` |
-| `input` | `border-input` |
-| `ring` | `accent-line` |
+| `input` | `border-input` (o `Input` passa a usar `border-input`, como o `Select` e o `Textarea`) |
+| `ring` | `gold-line` |
+| `brand-*`, `neutral-*` (legado do Fluxar) | escala do ouro e neutros novos, até a revisão dos componentes |
+| `--finance-income`, `--finance-expense` (legado, usados inline nos gráficos) | `inflow`, `outflow` |
 
 ---
 

@@ -233,7 +233,7 @@ export default function AccountsPage() {
                 className={cn(
                     "rounded-full px-5 h-9 font-bold text-[10px] uppercase tracking-wider transition-all whitespace-nowrap border-border/40",
                     filterTypes.length === 0 
-                      ? "bg-primary/10 text-primary border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
+                      ? "bg-primary/10 text-primary border-primary/40" 
                       : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -251,7 +251,7 @@ export default function AccountsPage() {
                         className={cn(
                             "rounded-full px-5 h-9 font-bold text-[10px] uppercase tracking-wider transition-all whitespace-nowrap",
                             isActive 
-                              ? "bg-primary/10 text-primary border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
+                              ? "bg-primary/10 text-primary border-primary/40" 
                               : "text-muted-foreground hover:text-foreground border-border/40"
                         )}
                     >
@@ -306,7 +306,7 @@ export default function AccountsPage() {
                                             className={cn(
                                                 "rounded-xl h-12 font-bold text-[10px] uppercase tracking-tight transition-all justify-start px-4 border",
                                                 isActive 
-                                                    ? "bg-primary/10 text-primary border-primary/40 shadow-[0_0_15px_rgba(var(--primary-rgb),0.1)]" 
+                                                    ? "bg-primary/10 text-primary border-primary/40" 
                                                     : "text-muted-foreground/60 hover:bg-muted/50 border-border/10"
                                             )}
                                           >

@@ -244,7 +244,7 @@ export function ImportBudgetsDialog({
                                 <div key={key} className="space-y-3">
                                     <div className="flex items-center justify-between sticky top-0 z-20 py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl bg-background/95 backdrop-blur-xl border border-border/60 shadow-md">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-2.5 h-2.5 rounded-full bg-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" />
+                                            <div className="w-2.5 h-2.5 rounded-full bg-primary" />
                                             <span className="text-xs sm:text-sm font-black text-foreground">{group.label}</span>
                                         </div>
                                         <div className="flex items-center gap-2 sm:gap-3">
