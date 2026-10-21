@@ -1,22 +1,8 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { 
-  Target, 
-  TrendingUp, 
-  Wallet, 
-  Calendar,
-  History,
-  PiggyBank,
-  CheckCircle2,
-  X,
-  ArrowUpRight,
-  ExternalLink,
-  Zap,
-  Clock,
-  ChevronRight
-} from "lucide-react"
-import { format, differenceInDays, differenceInCalendarDays, addDays, isAfter, parseISO } from "date-fns"
+import { TrendingUp, History, PiggyBank, ExternalLink, Zap, Clock, AlertTriangle, RefreshCw } from "lucide-react"
+import { format, differenceInDays, differenceInCalendarDays, addDays, isAfter } from "date-fns"
 import { lerData } from "@/lib/datas"
 import { ptBR } from "date-fns/locale"
 import { 
@@ -30,24 +16,24 @@ import {
   ReferenceLine
 } from "recharts"
 
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogClose
 } from "@/components/ui/dialog"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
+import { AnelDeProgresso } from "@/components/ui/medicao"
 import { Goal, GoalTransaction } from "@/types/goals"
 import { goalsService } from "@/services/goals"
 import { cn, getAbsoluteUrl } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useAuth } from "@/hooks/use-auth"
-import { AlertCircle, RefreshCw } from "lucide-react"
-import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { formatarMoeda, formatarPercentual, paraCentavos } from "@/lib/dinheiro"
+import { COR_DO_PREVISTO, COR_DO_REAL, CURSOR_DO_TOOLTIP, PROPS_DA_GRADE, PROPS_DO_EIXO } from "@/lib/graficos"
 import { tratarErro } from "@/lib/erros"
 
 interface GoalDetailsProps {
@@ -220,269 +206,178 @@ export function GoalDetails({
 
   if (!goal) return null
 
+  const concluida = goal.status === 'COMPLETED'
+  const percentual = goal.progress_percentage || 0
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background/80 backdrop-blur-3xl border-border/40 rounded-[32px] md:rounded-[40px] shadow-2xl">
+      <DialogContent className="max-w-3xl gap-0 overflow-hidden p-0">
         <ScrollArea className="max-h-[90vh]">
-          <div className="flex flex-col md:flex-row h-full">
-            {/* Lado Esquerdo: Imagem/Visual */}
-            <div className="relative w-full md:w-[40%] h-64 md:h-auto min-h-[300px] bg-muted/20 overflow-hidden">
-              {goal.image ? (
-                <div 
-                  className="absolute inset-0 bg-cover bg-center transition-transform duration-[2000ms] hover:scale-110"
-                  style={{ backgroundImage: `url(${getAbsoluteUrl(goal.image)})` }}
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-primary/5 to-background flex items-center justify-center">
-                  <Target className="h-24 w-24 text-primary/20 animate-pulse" />
+          {goal.image && (
+            <div
+              aria-hidden="true"
+              className="h-32 w-full border-b border-border bg-cover bg-center"
+              style={{ backgroundImage: `url(${getAbsoluteUrl(goal.image)})` }}
+            />
+          )}
+
+          <div className="space-y-6 p-6">
+            <DialogHeader className="space-y-2 pr-8">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={concluida ? "success" : "destino"}>{concluida ? 'Finalizada' : 'Em andamento'}</Badge>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Criada em {format(new Date(goal.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                </span>
+              </div>
+              <DialogTitle>{goal.name}</DialogTitle>
+              <DialogDescription>{goal.description || 'Nenhuma descrição adicionada.'}</DialogDescription>
+            </DialogHeader>
+
+            {goal.correction && !correcaoVista && (
+              <Alert variant="warning" role="status" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+                <AlertDescription>
+                  <p>{`O valor desta meta foi corrigido de ${formatarMoeda(goal.correction.before)} para ${formatarMoeda(goal.correction.after)}.`}</p>
+                </AlertDescription>
+                <Button size="sm" variant="outline" className="shrink-0" onClick={confirmarCorrecao}>
+                  Entendi
+                </Button>
+              </Alert>
+            )}
+
+            {/* Posição da meta: anel, percentual e valores */}
+            <div className="grid gap-4 sm:grid-cols-[auto_1fr_1fr] sm:items-center">
+              <div className="flex items-center gap-4">
+                <AnelDeProgresso percentual={percentual} nome={goal.name} tamanho={64} />
+                <div>
+                  <p className={cn("value-l", concluida && "text-inflow")}>{formatarPercentual(Math.min(percentual, 100))}</p>
+                  <p className="text-sm text-muted-foreground">Faltam {formatarMoeda(goal.amount_remaining)}</p>
                 </div>
-              )}
-              
-              {/* Overlay Glassmorphic */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-8">
-                <Badge className="w-fit mb-4 bg-primary/20 backdrop-blur-md text-primary-foreground border-white/10 font-black uppercase tracking-widest text-[10px]">
-                  {goal.status === 'COMPLETED' ? 'Finalizada' : 'Em Andamento'}
-                </Badge>
-                <h2 className="text-4xl font-black text-white uppercase tracking-tighter leading-none mb-2 drop-shadow-lg">
-                  {goal.name}
-                </h2>
-                <p className="text-white/70 text-sm font-medium line-clamp-2 pr-4 italic">
-                  "{goal.description || 'Nenhuma descrição adicionada.'}"
-                </p>
+              </div>
+              <div className="rounded-md border border-border p-4">
+                <p className="label text-muted-foreground">Objetivo</p>
+                <p className="value-l mt-1">{formatarMoeda(goal.target_amount)}</p>
+              </div>
+              <div className="rounded-md border border-border p-4">
+                <p className="label text-muted-foreground">Já guardado</p>
+                <p className="value-l mt-1">{formatarMoeda(goal.current_amount)}</p>
               </div>
             </div>
 
-            {/* Lado Direito: Conteúdo */}
-            <div className="flex-1 p-6 md:p-10 space-y-8">
-              <DialogHeader className="flex flex-row items-start justify-between space-y-0">
-                <div className="space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 flex items-center gap-2">
-                    <Clock className="h-3 w-3" /> Criada em {format(new Date(goal.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
-                  </p>
-                  <DialogTitle className="text-2xl font-black uppercase tracking-tight">
-                    Panorama Geral
-                  </DialogTitle>
-                  <DialogDescription className="sr-only">
-                    Visão detalhada e evolução da meta {goal.name}
-                  </DialogDescription>
-                </div>
-              </DialogHeader>
-
-              {goal.correction && !correcaoVista && (
-                <div role="status" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-[24px] border border-orange-500/20 bg-orange-500/5">
-                  <div className="flex items-center gap-3 text-orange-600">
-                    <AlertCircle className="h-4 w-4 shrink-0" />
-                    <p className="text-xs font-bold">
-                      {`O valor desta meta foi corrigido de ${formatarMoeda(goal.correction.before)} para ${formatarMoeda(goal.correction.after)}.`}
-                    </p>
-                  </div>
-                  <Button size="sm" variant="outline" className="rounded-xl font-black text-[10px] uppercase tracking-widest" onClick={confirmarCorrecao}>
-                    Entendi
-                  </Button>
-                </div>
-              )}
-
-              {/* Stats Cards */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 rounded-[28px] bg-primary/5 border border-primary/10 space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Objetivo</p>
-                  <p className="text-2xl font-black text-primary">{formatarMoeda(goal.target_amount)}</p>
-                </div>
-                <div className="p-5 rounded-[28px] bg-emerald-500/5 border border-emerald-500/10 space-y-1">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60">Já Guardado</p>
-                  <p className="text-2xl font-black text-emerald-600">{formatarMoeda(goal.current_amount)}</p>
-                </div>
+            {/* Evolução do saldo */}
+            <section className="space-y-3" aria-labelledby="evolucao-da-meta">
+              <div className="flex items-center justify-between">
+                <h3 id="evolucao-da-meta" className="display-s">Evolução do saldo <span className="text-sm font-normal text-muted-foreground">· por dia</span></h3>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span aria-hidden="true" className="h-0.5 w-4 rounded-full bg-gold-line" /> Real
+                </span>
               </div>
-
-              {/* Progress Bar */}
-              <div className="space-y-3">
-                <div className="flex items-end justify-between">
-                  <div className="space-y-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Progresso</p>
-                    <p className="text-sm font-bold">{Math.round(goal.progress_percentage)}% Concluído</p>
-                  </div>
-                  <p className="text-sm font-black text-primary">Faltam {formatarMoeda(goal.amount_remaining)}</p>
-                </div>
-                <Progress value={goal.progress_percentage} className="h-4 rounded-full bg-muted/50 shadow-inner" />
-              </div>
-
-              {/* Gráfico de Evolução */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground">Evolução do Saldo</h4>
-                  <div className="flex items-center gap-3">
-                    <Badge variant="outline" className="text-[9px] font-bold border-emerald-500/20 text-emerald-600 bg-emerald-500/5 rounded-full">
-                      Real
-                    </Badge>
-                  </div>
-                </div>
-                <div className="h-[200px] w-full bg-muted/10 rounded-[32px] p-4 border border-border/20 min-h-[200px] flex items-center justify-center">
-                  {(open && isChartReady) ? (
-                    history.length > 0 ? (
-                      <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData}>
-                          <defs>
-                            <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="var(--az-gold-line)" stopOpacity={0.15}/>
-                              <stop offset="95%" stopColor="var(--az-gold-line)" stopOpacity={0}/>
-                            </linearGradient>
-                            <linearGradient id="strokeGradientDetails" x1="0" y1="0" x2="1" y2="0">
-                              <stop offset="0%" stopColor="var(--az-gold-line)" />
-                              <stop offset="100%" stopColor="var(--az-gold)" />
-                            </linearGradient>
-                            <filter id="shadowDetails" height="200%">
-                              <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
-                              <feOffset in="blur" dx="0" dy="4" result="offsetBlur" />
-                              <feFlood floodColor="var(--az-gold-line)" floodOpacity="0.3" result="offsetColor" />
-                              <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetBlur" />
-                              <feMerge>
-                                <feMergeNode />
-                                <feMergeNode in="SourceGraphic" />
-                              </feMerge>
-                            </filter>
-                          </defs>
-                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--az-border-subtle)" />
-                          <XAxis 
-                            dataKey="date" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{fontSize: 9, fontWeight: 700, fill: 'var(--az-text-muted)'}} 
-                            dy={10}
-                            interval="preserveStartEnd"
+              <div
+                className="flex h-[220px] min-h-[220px] w-full items-center justify-center rounded-lg border border-border p-4"
+                role="img"
+                aria-label={`Evolução do saldo da meta ${goal.name}: ${formatarMoeda(goal.current_amount)} de ${formatarMoeda(goal.target_amount)}`}
+              >
+                {(open && isChartReady) ? (
+                  history.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={chartData}>
+                        <CartesianGrid {...PROPS_DA_GRADE} />
+                        <XAxis dataKey="date" {...PROPS_DO_EIXO} dy={8} interval="preserveStartEnd" />
+                        <YAxis hide />
+                        <Tooltip
+                          cursor={CURSOR_DO_TOOLTIP}
+                          content={({ active, payload, label }) => {
+                            if (active && payload && payload.length) {
+                              return (
+                                <div className="min-w-[120px] rounded-md border border-border-strong bg-elevated p-3">
+                                  <p className="label mb-1 text-muted-foreground">{label}</p>
+                                  <p className="value-m">{formatarMoeda(payload[0].value as number)}</p>
+                                </div>
+                              )
+                            }
+                            return null
+                          }}
+                        />
+                        <Area
+                          type="monotone"
+                          dataKey="balance"
+                          stroke={COR_DO_REAL}
+                          strokeWidth={2.5}
+                          fill={COR_DO_REAL}
+                          fillOpacity={0.08}
+                          animationDuration={400}
+                        />
+                        {/* Linha do alvo se houver data alvo */}
+                        {goal.target_date && (
+                          <ReferenceLine
+                            y={goal.target_amount}
+                            stroke={COR_DO_PREVISTO}
+                            strokeDasharray="5 5"
+                            label={{ position: 'top', value: 'Alvo', fontSize: 12, fill: COR_DO_PREVISTO }}
                           />
-                          <YAxis hide />
-                          <Tooltip 
-                            cursor={{ stroke: 'var(--az-gold-line)', strokeWidth: 1, strokeDasharray: '4 4' }}
-                            content={({ active, payload, label }) => {
-                              if (active && payload && payload.length) {
-                                return (
-                                  <div className="bg-background/90 backdrop-blur-md border border-border/40 p-3 rounded-2xl shadow-xl min-w-[120px]">
-                                    <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest mb-1">{label}</p>
-                                    <div className="flex items-center gap-4">
-                                      <span className="text-[11px] font-black text-primary">{formatarMoeda(payload[0].value as number)}</span>
-                                    </div>
-                                  </div>
-                                )
-                              }
-                              return null
-                            }}
-                          />
-                          <Area 
-                            type="monotone" 
-                            dataKey="balance" 
-                            stroke="url(#strokeGradientDetails)" 
-                            strokeWidth={3}
-                            fillOpacity={1} 
-                            fill="url(#colorBalance)" 
-                            animationDuration={1500}
-                            style={{ filter: 'url(#shadowDetails)' }}
-                          />
-                          {/* Linha "Ideal" se houver data alvo */}
-                          {goal.target_date && (
-                            <ReferenceLine 
-                              y={goal.target_amount} 
-                              stroke="var(--az-text-muted)" 
-                              strokeDasharray="5 5"
-                              opacity={0.3}
-                              label={{ position: 'top', value: 'Alvo', fontSize: 10, fontWeight: 900, fill: 'var(--az-text-muted)' }} 
-                            />
-                          )}
-                        </AreaChart>
-                      </ResponsiveContainer>
-                    ) : (
-                      <div className="flex flex-col items-center gap-2 opacity-40">
-                        <History className="h-8 w-8" />
-                        <span className="text-[10px] font-black uppercase tracking-widest text-center">
-                          {authError ? "Erro de Autenticação" : "Sem histórico suficiente para o gráfico"}
-                        </span>
-                        {authError && (
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
-                            className="h-7 text-[9px] font-black uppercase tracking-tighter"
-                            onClick={fetchHistory}
-                          >
-                            <RefreshCw className="mr-1 h-3 w-3" /> Tentar Novamente
-                          </Button>
                         )}
-                      </div>
-                    )
+                      </AreaChart>
+                    </ResponsiveContainer>
                   ) : (
-                    <div className="flex flex-col items-center gap-2 opacity-20">
-                      <TrendingUp className="h-8 w-8 animate-pulse" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Calculando Evolução...</span>
+                    <div className="flex flex-col items-center gap-2 text-center text-muted-foreground">
+                      <History className="h-5 w-5" aria-hidden="true" />
+                      <span className="text-sm">
+                        {authError ? "Não foi possível carregar o histórico." : "Sem histórico suficiente para o gráfico."}
+                      </span>
+                      {authError && (
+                        <Button variant="outline" size="sm" onClick={fetchHistory}>
+                          <RefreshCw aria-hidden="true" /> Tentar de novo
+                        </Button>
+                      )}
                     </div>
-                  )}
-                </div>
+                  )
+                ) : (
+                  <div className="h-full w-full animate-pulse rounded-md bg-elevated" aria-busy="true" />
+                )}
+              </div>
+            </section>
+
+            {/* Ritmo e previsão */}
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1 rounded-md border border-border p-4">
+                <p className="label flex items-center gap-1.5 text-muted-foreground">
+                  <Zap className="h-3.5 w-3.5" aria-hidden="true" /> Velocidade
+                </p>
+                <p className="text-sm text-muted-foreground">Economia média</p>
+                <p className="value-l">{formatarMoeda(insights?.monthlyAvg || 0)}/mês</p>
               </div>
 
-              {/* Insights */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-5 rounded-[28px] border border-border/40 bg-card/40 space-y-3">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Zap className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none mt-0.5">Velocidade</span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Economia Média</p>
-                    <p className="text-lg font-black">{formatarMoeda(insights?.monthlyAvg || 0)}/mês</p>
-                  </div>
-                </div>
-
-                <div className={cn(
-                  "p-5 rounded-[28px] border space-y-3 transition-colors",
-                  insights?.status === 'positive' ? "bg-emerald-500/5 border-emerald-500/20" : 
-                  insights?.status === 'negative' ? "bg-orange-500/5 border-orange-500/20" : 
-                  "bg-card/40 border-border/40"
-                )}>
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    insights?.status === 'positive' ? "text-emerald-600" : 
-                    insights?.status === 'negative' ? "text-orange-600" : "text-muted-foreground"
-                  )}>
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-[10px] font-black uppercase tracking-widest leading-none mt-0.5">Previsão Real</span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-xs font-medium text-muted-foreground">Término Estimado</p>
-                    <p className="text-lg font-black uppercase tracking-tight">
-                      {insights?.estimatedEndDate ? format(insights.estimatedEndDate, "MMM 'de' yyyy", { locale: ptBR }) : 'Calculando...'}
-                    </p>
-                  </div>
-                </div>
+              <div className="space-y-1 rounded-md border border-border p-4">
+                <p className="label flex items-center gap-1.5 text-muted-foreground">
+                  <TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> Previsão real
+                </p>
+                <p className="text-sm text-muted-foreground">Término estimado</p>
+                <p className="value-l">
+                  {insights?.estimatedEndDate ? format(insights.estimatedEndDate, "MMM 'de' yyyy", { locale: ptBR }) : 'Sem ritmo para estimar'}
+                </p>
+                {insights?.status === 'positive' && <p className="text-sm text-inflow">Antes do prazo</p>}
+                {insights?.status === 'negative' && (
+                  <p className="flex items-center gap-1.5 text-sm text-warn">
+                    <AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" /> Depois do prazo
+                  </p>
+                )}
               </div>
+            </div>
 
-              {/* Footer Actions */}
-              <div className="pt-4 border-t border-border/40 flex flex-wrap gap-3">
-                <Button 
-                  className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-6 flex-1 shadow-lg shadow-primary/20"
-                  onClick={onOpenDeposit}
-                  disabled={goal.status === 'COMPLETED'}
-                >
-                  <PiggyBank className="mr-2 h-4 w-4" /> Guardar
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-6 flex-1 text-orange-600 border-orange-200 hover:bg-orange-50 dark:border-orange-500/20 dark:hover:bg-orange-500/5 transition-all"
-                  onClick={onOpenWithdraw}
-                >
-                  <ExternalLink className="mr-2 h-4 w-4" /> Resgatar
-                </Button>
-                <Button 
-                  variant="outline"
-                  className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 px-6"
-                  onClick={onOpenHistory}
-                >
-                  <History className="mr-2 h-4 w-4" /> Histórico
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  className="rounded-2xl font-black uppercase tracking-widest text-[10px] h-12 w-12"
-                  onClick={onOpenSimulator}
-                >
-                  <TrendingUp className="h-4 w-4" />
-                </Button>
-              </div>
+            {/* Ações: a primária é guardar; as outras ficam em contorno */}
+            <div className="flex flex-wrap gap-2 border-t border-border pt-4">
+              <Button className="flex-1" onClick={onOpenDeposit} disabled={concluida}>
+                <PiggyBank aria-hidden="true" /> Guardar
+              </Button>
+              <Button variant="outline" className="flex-1" onClick={onOpenWithdraw}>
+                <ExternalLink aria-hidden="true" /> Resgatar
+              </Button>
+              <Button variant="outline" onClick={onOpenHistory}>
+                <History aria-hidden="true" /> Histórico
+              </Button>
+              <Button variant="ghost" onClick={onOpenSimulator}>
+                <TrendingUp aria-hidden="true" /> Simular
+              </Button>
             </div>
           </div>
         </ScrollArea>

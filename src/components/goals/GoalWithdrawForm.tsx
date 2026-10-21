@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { ExternalLink, Loader2, ArrowLeft } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -11,7 +11,9 @@ import {
   DialogHeader, 
   DialogTitle, 
   DialogDescription,
+  DialogFooter,
 } from "@/components/ui/dialog"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -30,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Cofrinho, Goal, GoalWithdrawData, SALDO_LIVRE } from "@/types/goals"
-import { Account, AccountType } from "@/types/accounts"
+import { Account } from "@/types/accounts"
 import { goalsService } from "@/services/goals"
 import { accountsService } from "@/services/accounts"
 import { toast } from "sonner"
@@ -124,7 +126,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
       }
       await goalsService.withdraw(goal.id, dados)
 
-      toast.success("Resgate realizado com sucesso!")
+      toast.success("Resgate registrado.")
       onSuccess()
       onOpenChange(false)
     } catch (error) {
@@ -139,53 +141,46 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
     }
   }
 
+  const destino = form.watch("account_to")
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[450px] rounded-[32px] md:rounded-[40px] border-border/40 bg-card/95 backdrop-blur-3xl p-0 overflow-hidden shadow-2xl animate-in fade-in zoom-in-95 duration-300">
-        <DialogHeader className="p-8 pb-4 relative">
-          <div className="w-14 h-14 rounded-2xl bg-orange-500/10 text-orange-500 flex items-center justify-center mb-6 transition-all duration-500 group-hover:scale-110 shadow-lg shadow-orange-500/5 ring-1 ring-orange-500/20">
-            <ExternalLink className="h-7 w-7" />
-          </div>
-          <div className="space-y-1">
-            <DialogTitle className="text-3xl font-black uppercase tracking-tighter leading-none">
-              Resgatar <span className="text-orange-500">Dinheiro</span>
-            </DialogTitle>
-            <DialogDescription className="text-xs font-medium opacity-60 max-w-[85%] leading-relaxed uppercase tracking-widest italic">
-              Retire um valor da sua meta <span className="text-foreground font-black">"{goal?.name}"</span>
-            </DialogDescription>
-          </div>
+      <DialogContent className="gap-0 p-0 sm:max-w-[460px]">
+        <DialogHeader className="space-y-1 border-b border-border p-6">
+          <DialogTitle>Resgatar dinheiro</DialogTitle>
+          <DialogDescription>
+            Retire um valor da meta <span className="font-medium text-foreground">{goal?.name}</span>.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="max-h-[75vh] overflow-y-auto pr-1 custom-scrollbar px-8 pb-8 space-y-8">
+        <div className="custom-scrollbar max-h-[75vh] overflow-y-auto px-6 py-6">
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
               <FormField
                 control={form.control}
                 name="account_to"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50 ml-1">Conta de Destino</FormLabel>
+                  <FormItem>
+                    <FormLabel>Conta de destino</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
-                        <SelectTrigger className="rounded-[20px] border-border/40 bg-muted/20 h-14 focus:ring-primary/20 transition-all font-bold text-sm px-5 hover:bg-muted/30">
+                        <SelectTrigger className="h-auto min-h-9 py-2">
                           <SelectValue placeholder="Para onde vai o dinheiro?" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-2xl border-border/40 bg-card/95 backdrop-blur-xl">
-                        <SelectItem value={SALDO_LIVRE} className="rounded-xl transition-colors focus:bg-primary focus:text-primary-foreground">
-                          <span className="font-bold">Saldo livre do cofrinho</span>
-                        </SelectItem>
+                      <SelectContent>
+                        <SelectItem value={SALDO_LIVRE}>Saldo livre do cofrinho</SelectItem>
                         {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id} className="rounded-xl transition-colors focus:bg-primary focus:text-primary-foreground">
-                            <div className="flex flex-col py-1">
-                              <span className="font-bold">{account.name}</span>
-                              <span className="text-[9px] opacity-50 uppercase font-black tracking-widest">Saldo: {formatCurrency(account.balance)}</span>
+                          <SelectItem key={account.id} value={account.id}>
+                            <div className="flex flex-col">
+                              <span className="font-medium">{account.name}</span>
+                              <span className="text-xs text-muted-foreground">Saldo: {formatCurrency(account.balance)}</span>
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-[10px] font-bold" />
+                    <FormMessage />
                   </FormItem>
                 )}
               />
@@ -194,92 +189,57 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                 control={form.control}
                 name="amount"
                 render={({ field }) => (
-                  <FormItem className="space-y-3">
-                    <div className="flex justify-between items-end px-1">
-                        <FormLabel className="text-[10px] font-black uppercase tracking-[0.2em] opacity-50">Valor do Resgate</FormLabel>
-                        <div className="flex flex-col items-end gap-1.5">
-                            {/* META-17 e META-18: o resgate vai até o valor da meta e, para outra conta, até o saldo do cofrinho */}
-                            <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-muted/30 text-muted-foreground/60 border border-border/20">
-                                {`Na meta: ${formatarMoeda(goal?.current_amount || "0.00")}`}
-                            </span>
-                            {cofrinho && (
-                              <span className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-muted/30 text-muted-foreground/60 border border-border/20">
-                                  {`No cofrinho: ${formatarMoeda(cofrinho.balance)}`}
-                              </span>
-                            )}
-                            <Button 
-                              type="button" 
-                              variant="link" 
-                              className="p-0 h-auto text-[10px] font-black uppercase text-orange-500 hover:text-orange-600 transition-colors"
-                              onClick={handleWithdrawAll}
-                            >
-                                Resgatar Tudo
-                            </Button>
-                        </div>
+                  <FormItem>
+                    <div className="flex items-end justify-between gap-3">
+                      <FormLabel>Valor do resgate</FormLabel>
+                      <Button type="button" variant="link" className="h-auto p-0" onClick={handleWithdrawAll}>
+                        Resgatar tudo
+                      </Button>
                     </div>
                     <FormControl>
-                      <div className="relative group">
-                        <MoneyInput 
-                          name={field.name}
-                          ref={field.ref}
-                          value={field.value}
-                          onValueChange={(valor) => field.onChange(valor ?? "")}
-                          onBlur={field.onBlur}
-                          className="rounded-[20px] border-border/40 bg-muted/20 px-14 focus:bg-background h-16 text-2xl font-black text-orange-600 transition-all shadow-inner group-hover:bg-muted/30 text-center"
-                        />
-                      </div>
+                      <MoneyInput
+                        name={field.name}
+                        ref={field.ref}
+                        value={field.value}
+                        onValueChange={(valor) => field.onChange(valor ?? "")}
+                        onBlur={field.onBlur}
+                      />
                     </FormControl>
-                    <FormMessage className="text-[10px] font-bold" />
+                    {/* META-17 e META-18: o resgate vai até o valor da meta e, para outra conta, até o saldo do cofrinho */}
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant="secondary">{`Na meta: ${formatarMoeda(goal?.current_amount || "0.00")}`}</Badge>
+                      {cofrinho && <Badge variant="secondary">{`No cofrinho: ${formatarMoeda(cofrinho.balance)}`}</Badge>}
+                    </div>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="p-6 rounded-[28px] bg-muted/10 border border-border/40 space-y-4 relative overflow-hidden group/resumo shadow-inner">
-                <div className="absolute inset-0 bg-gradient-to-br from-orange-500/[0.02] to-transparent opacity-0 group-hover/resumo:opacity-100 transition-opacity duration-500" />
-                <p className="text-[9px] font-black uppercase tracking-[0.3em] opacity-30 text-center relative z-10">Fluxo da Operação</p>
-                
-                <div className="flex items-center justify-between gap-4 relative z-10 px-2">
-                  <div className="flex-1 text-center min-w-0">
-                    <p className="text-[8px] font-black uppercase opacity-20 mb-1">Origem</p>
-                    <div className="p-3 rounded-xl bg-card border border-border/40 shadow-sm transition-transform group-hover/resumo:-translate-y-1 duration-500">
-                        <p className="text-xs font-black truncate text-muted-foreground">{goal?.name}</p>
-                    </div>
+              <div className="space-y-3 rounded-md border border-border bg-elevated p-4">
+                <p className="label text-muted-foreground">Fluxo da operação</p>
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs text-muted-foreground">Origem</p>
+                    <p className="truncate text-sm font-medium">{goal?.name}</p>
                   </div>
-                  
-                  <div className="flex flex-col items-center gap-1 opacity-20">
-                    <div className="h-[1px] w-8 bg-foreground" />
-                    <ArrowLeft className="h-4 w-4" />
-                  </div>
-                  
-                  <div className="flex-1 text-center min-w-0">
-                    <p className="text-[8px] font-black uppercase opacity-20 mb-1">Conta Destino</p>
-                    <div className="p-3 rounded-xl bg-orange-500/5 border border-orange-500/10 shadow-sm transition-transform group-hover/resumo:-translate-y-1 duration-500">
-                        <p className="text-xs font-black truncate text-orange-600">
-                            {form.watch('account_to') === SALDO_LIVRE
-                              ? "Saldo livre"
-                              : accounts.find(a => a.id === form.watch('account_to'))?.name || "Escolha..."}
-                        </p>
-                    </div>
+                  <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <div className="min-w-0 flex-1 text-right">
+                    <p className="text-xs text-muted-foreground">Conta de destino</p>
+                    <p className="truncate text-sm font-medium">
+                      {destino === SALDO_LIVRE ? "Saldo livre" : accounts.find((a) => a.id === destino)?.name || "Escolha a conta"}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full rounded-[24px] font-black uppercase tracking-[0.2em] text-[11px] h-14 shadow-xl shadow-orange-500/20 bg-orange-600 hover:bg-orange-700 hover:scale-[1.02] active:scale-[0.98] border-0 transition-all duration-300"
-                  disabled={isLoading}
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Processando...
-                    </>
-                  ) : (
-                    "Confirmar Resgate"
-                  )}
+              <DialogFooter>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancelar
                 </Button>
-              </div>
+                <Button type="submit" loading={isLoading}>
+                  Confirmar resgate
+                </Button>
+              </DialogFooter>
             </form>
           </Form>
         </div>
