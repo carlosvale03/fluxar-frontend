@@ -66,8 +66,6 @@ export function Header() {
 
   const allNavItems = [...primaryNavItems, ...secondaryNavItems]
 
-  const showThemeToggle = process.env.NEXT_PUBLIC_SHOW_THEME_TOGGLE === 'true'
-
   const adminNavItems = [
     { name: "Painel Geral", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Usuários", href: "/admin/usuarios", icon: Users },
@@ -168,7 +166,7 @@ export function Header() {
 
         {/* Ações - Direita */}
         <div className="flex-1 flex items-center justify-end gap-4">
-          {showThemeToggle && <ThemeToggle />}
+          <ThemeToggle />
           
           <div className="hidden md:flex items-center gap-2">
             {isLoading ? (

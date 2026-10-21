@@ -70,7 +70,7 @@ export default function SettingsPage() {
     defaultValues: { 
       currency: "BRL",
       language: "pt-BR",
-      theme: "system",
+      theme: "dark",
       notifications_email: true,
       notifications_push: false
     }
@@ -85,7 +85,7 @@ export default function SettingsPage() {
         resetSettings({ 
           currency: user.preferences?.currency || "BRL",
           language: user.preferences?.language || "pt-BR",
-          theme: user.preferences?.theme || "system",
+          theme: user.preferences?.theme || "dark",
           notifications_email: user.preferences?.notifications?.email ?? true,
           notifications_push: user.preferences?.notifications?.push ?? false,
         })
