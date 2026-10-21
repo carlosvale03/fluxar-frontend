@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
-import { Calendar as CalendarIcon, Loader2, Receipt, AlertCircle, Sparkles, CreditCard as CardIcon, ArrowRight, Wallet, CheckCircle2, PlusCircle } from "lucide-react"
+import { Calendar as CalendarIcon, Loader2, Receipt, AlertCircle, ArrowRight, Wallet, CheckCircle2, PlusCircle } from "lucide-react"
 import { Separator } from "@/components/ui/separator"
 import { toast } from "sonner"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -209,7 +209,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
 
       await api.post(`/invoices/${targetInvoiceId}/pay/`, payload)
 
-      toast.success("Pagamento registrado!")
+      toast.success("Pagamento registrado.")
       onSuccess()
       onOpenChange(false)
     } catch (error) {
@@ -221,19 +221,19 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden border-none shadow-2xl rounded-[32px] bg-background">
+      <DialogContent className="sm:max-w-[560px] p-0 overflow-hidden">
         <ScrollArea className="max-h-[95vh]">
-            <div className="p-8">
-                <DialogHeader className="mb-10">
-                    <div className="flex items-center gap-5">
-                        <div className="w-16 h-16 rounded-[24px] flex items-center justify-center bg-purple-500 text-white shadow-xl shadow-purple-500/20 ring-4 ring-black/5 dark:ring-white/5 animate-in zoom-in-50 duration-500">
-                            <Receipt className="h-8 w-8" />
+            <div className="p-6">
+                <DialogHeader className="mb-6">
+                    <div className="flex items-center gap-3">
+                        <div aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated text-fg-secondary">
+                            <Receipt className="h-5 w-5" />
                         </div>
-                        <div className="flex flex-col gap-1">
-                            <DialogTitle className="text-3xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/60 bg-clip-text text-transparent">
+                        <div className="flex flex-col gap-0.5">
+                            <DialogTitle>
                                 Liquidar Fatura
                             </DialogTitle>
-                            <DialogDescription className="text-xs font-bold text-muted-foreground/60 uppercase tracking-[0.1em]">
+                            <DialogDescription>
                                 Baixa financeira de cartão de crédito
                             </DialogDescription>
                         </div>
@@ -243,34 +243,29 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                 <Form {...form}>
                     <form 
                         onSubmit={form.handleSubmit(onSubmit, (err) => console.error("Invoice Payment Validation Errors:", err))} 
-                        className="space-y-8"
+                        className="space-y-6"
                     >
                         {/* Seção 1: Origem e Valor */}
-                        <div className="space-y-5">
+                        <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Fluxo de Saída</h3>
-                                </div>
-                                <div className="px-3 py-1 rounded-full bg-purple-500/10 text-[9px] font-black text-purple-600 uppercase tracking-widest">
-                                    Pagamento Direto
-                                </div>
+                                <h3 className="label text-muted-foreground">Fluxo de Saída</h3>
+                                <Badge variant="secondary">Pagamento Direto</Badge>
                             </div>
 
-                            <div className="grid grid-cols-1 gap-6 p-6 rounded-[28px] bg-muted/5 border border-border/40 backdrop-blur-sm">
+                            <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4">
                                 <FormField
                                     control={form.control}
                                     name="account_id"
                                     render={({ field }) => (
                                         <FormItem className="space-y-2">
-                                            <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Pagar com a Conta</FormLabel>
+                                            <FormLabel>Pagar com a Conta</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
-                                                    <SelectTrigger className="h-12 rounded-2xl bg-card border-border/40 font-bold focus:ring-primary/20">
+                                                    <SelectTrigger>
                                                         <SelectValue placeholder="Selecione a conta..." />
                                                     </SelectTrigger>
                                                 </FormControl>
-                                                <SelectContent className="rounded-[32px] border-border/60 shadow-2xl max-h-[450px] p-2 bg-card">
+                                                <SelectContent className="max-h-[450px] p-2">
                                                     <div className="flex flex-col">
                                                         <AccountFormDialog 
                                                             onSuccess={() => fetchAccounts()}
@@ -278,18 +273,16 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                 <Button 
                                                                     type="button"
                                                                     variant="ghost" 
-                                                                    className="w-full justify-start gap-3 h-14 rounded-2xl text-primary hover:bg-primary/10 hover:text-primary transition-all font-black text-[10px] uppercase tracking-[0.1em] mb-2 group"
+                                                                    className="mb-1 w-full justify-start gap-2"
                                                                 >
-                                                                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20 group-hover:scale-110 transition-transform">
-                                                                        <PlusCircle className="h-5 w-5" />
-                                                                    </div>
+                                                                    <PlusCircle aria-hidden="true" />
                                                                     Nova Conta
                                                                 </Button>
                                                             }
                                                         />
 
                                                         <div className="px-2 mb-2">
-                                                            <Separator className="bg-muted/20" />
+                                                            <Separator />
                                                         </div>
 
                                                         {["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].map((type, typeIndex) => {
@@ -300,11 +293,11 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                 <div key={type}>
                                                                     {typeIndex > 0 && accounts.some(acc => acc.is_active && ["WALLET", "CHECKING", "SAVINGS", "PIGGY_BANK", "INVESTMENT"].slice(0, typeIndex).includes(acc.type)) && (
                                                                         <div className="px-2 my-2">
-                                                                            <Separator className="bg-muted/20" />
+                                                                            <Separator />
                                                                         </div>
                                                                     )}
                                                                     <div className="px-3 py-1 mb-1">
-                                                                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary/40">
+                                                                        <span className="label text-muted-foreground">
                                                                             {AccountTypeLabels[type as keyof typeof AccountTypeLabels]}
                                                                         </span>
                                                                     </div>
@@ -312,25 +305,24 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                         <SelectItem 
                                                                             key={acc.id} 
                                                                             value={acc.id} 
-                                                                            className="group rounded-2xl transition-all duration-300 cursor-pointer mb-1 hover:bg-muted/30 py-3"
+                                                                            className="group py-2"
                                                                         >
                                                                             <div className="flex items-center gap-3">
                                                                                 <div 
-                                                                                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 transition-all duration-300 group-data-[highlighted]:scale-110"
+                                                                                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md"
                                                                                     style={{ 
                                                                                         backgroundColor: `${acc.color}15`, 
                                                                                         color: acc.color 
                                                                                     }}
                                                                                 >
-                                                                                    <div className="absolute inset-0 rounded-xl bg-current opacity-0 group-data-[highlighted]:opacity-10 transition-opacity" />
-                                                                                    <Wallet className="h-5 w-5 relative z-10" />
+                                                                                    <Wallet className="h-4 w-4" />
                                                                                 </div>
 
                                                                                 <div className="flex flex-col text-left">
-                                                                                    <span className="font-black text-sm uppercase tracking-tight group-data-[highlighted]:text-slate-950 transition-colors">
+                                                                                    <span className="text-sm font-medium">
                                                                                         {acc.name}
                                                                                     </span>
-                                                                                    <span className="text-[8px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 group-data-[highlighted]:text-slate-800 -mt-0.5">
+                                                                                    <span className="text-xs text-muted-foreground">
                                                                                         {AccountTypeLabels[acc.type] || "Conta"}
                                                                                     </span>
                                                                                 </div>
@@ -343,7 +335,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                     </div>
                                                 </SelectContent>
                                             </Select>
-                                            <FormMessage className="text-[10px] font-bold" />
+                                            <FormMessage />
                                         </FormItem>
                                     )}
                                 />
@@ -354,17 +346,14 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         name="amount"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Valor do Pagamento</FormLabel>
+                                                <FormLabel>Valor do Pagamento</FormLabel>
                                                 <FormControl>
-                                                    <div className="relative group">
-                                                        <MoneyInput 
-                                                            value={field.value ?? ""}
-                                                            onValueChange={(valor) => field.onChange(valor ?? "")}
-                                                            className="h-14 pl-10 bg-card border-border/40 rounded-2xl focus-visible:ring-purple-500/20 font-black text-xl tracking-tighter"
-                                                        />
-                                                    </div>
+                                                    <MoneyInput
+                                                        value={field.value ?? ""}
+                                                        onValueChange={(valor) => field.onChange(valor ?? "")}
+                                                    />
                                                 </FormControl>
-                                                <FormMessage className="text-[10px] font-bold" />
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -374,23 +363,23 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         name="date"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Data Efetivada</FormLabel>
+                                                <FormLabel>Data Efetivada</FormLabel>
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
                                                             <Button
                                                                 variant="outline"
                                                                 className={cn(
-                                                                    "h-14 w-full pl-4 text-left font-black text-sm rounded-2xl border-border/40 bg-card hover:bg-muted/50 transition-all",
+                                                                    "w-full justify-start font-mono font-normal",
                                                                     !field.value && "text-muted-foreground"
                                                                 )}
                                                             >
                                                                 {field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar..."}
-                                                                <CalendarIcon className="ml-auto h-4 w-4 opacity-40" />
+                                                                <CalendarIcon className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                                             </Button>
                                                         </FormControl>
                                                     </PopoverTrigger>
-                                                    <PopoverContent className="w-auto p-0 rounded-3xl overflow-hidden shadow-2xl border-border/40" align="start">
+                                                    <PopoverContent className="w-auto p-0 overflow-hidden" align="start">
                                                         <Calendar
                                                             mode="single"
                                                             selected={field.value}
@@ -400,7 +389,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                         />
                                                     </PopoverContent>
                                                 </Popover>
-                                                <FormMessage className="text-[10px] font-bold" />
+                                                <FormMessage />
                                             </FormItem>
                                         )}
                                     />
@@ -409,23 +398,18 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                         </div>
 
                         {/* Seção 2: Detalhes da Fatura */}
-                        <div className="space-y-5">
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-purple-500 rounded-full" />
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Destino do Pagamento</h3>
-                            </div>
+                        <div className="space-y-3">
+                            <h3 className="label text-muted-foreground">Destino do Pagamento</h3>
 
                             {selectedInvoiceObject && propInvoiceId ? (
-                                <div className="p-6 rounded-[28px] border border-purple-500/20 bg-purple-500/[0.02] space-y-4 animate-in zoom-in-95 duration-500">
+                                <div className="space-y-4 rounded-lg border border-border p-4">
                                     <div className="flex items-center justify-between">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
-                                                    <Receipt className="h-4 w-4" />
-                                                </div>
+                                                <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                                 <div>
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Fatura de Referência</p>
-                                                    <p className="text-xs font-black tracking-tight">
+                                                    <p className="label text-muted-foreground">Fatura de Referência</p>
+                                                    <p className="text-sm font-medium">
                                                         {format(lerData(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
                                                     </p>
                                                 </div>
@@ -433,51 +417,48 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         </div>
                                         <div className="text-right">
                                             {selectedInvoiceObject.status === 'OVERDUE' ? (
-                                                <Badge variant="destructive" className="rounded-full px-3 py-0 text-[9px] font-black uppercase">Vencida</Badge>
+                                                <Badge variant="destructive">Vencida</Badge>
                                             ) : selectedInvoiceObject.status === 'CLOSED' ? (
-                                                <Badge className="rounded-full px-3 py-0 text-[9px] font-black uppercase bg-amber-500/10 text-amber-600 border-none">Fechada</Badge>
+                                                <Badge variant="warning">Fechada</Badge>
                                             ) : (
-                                                <Badge className="rounded-full px-3 py-0 text-[9px] font-black uppercase text-blue-600 bg-blue-500/5 border-none">Aberta</Badge>
+                                                <Badge variant="info">Aberta</Badge>
                                             )}
                                         </div>
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-4 pt-2 border-t border-purple-500/5">
+                                    <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
                                         <div>
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Vencimento</p>
-                                            <p className="text-xs font-black tracking-tight">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</p>
+                                            <p className="label text-muted-foreground">Vencimento</p>
+                                            <p className="font-mono text-sm">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/50">Total Previsto</p>
-                                            <p className="text-sm font-black text-purple-600">
+                                            <p className="label text-muted-foreground">Total Previsto</p>
+                                            <p className="value-m">
                                                 {formatarMoeda(selectedInvoiceObject.total_amount)}
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                             ) : propInvoiceId ? (
-                                <div className="h-24 w-full rounded-[28px] bg-muted/5 animate-pulse border border-border/20 flex items-center justify-center">
-                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/20" />
+                                <div className="flex h-24 w-full items-center justify-center rounded-lg border border-border">
+                                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Carregando a fatura" />
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <div className="grid grid-cols-1 gap-4 p-6 rounded-[28px] bg-muted/5 border border-border/20 group hover:border-purple-500/20 transition-all duration-500 relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                                            <CardIcon className="h-24 w-24 -rotate-12 translate-x-8 translate-y-4" />
-                                        </div>
-                                        
-                                        <div className="space-y-4 relative z-10">
+                                    <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4">
+                                        <div className="space-y-4">
                                             <div className="space-y-2">
-                                                <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Cartão de Origem</FormLabel>
+                                                <FormLabel>Cartão de Origem</FormLabel>
                                                 <Select onValueChange={setSelectedCardId} value={selectedCardId}>
-                                                    <SelectTrigger className="h-12 rounded-2xl bg-card border-border/40 font-black tracking-tight focus:ring-purple-500/20">
+                                                    <SelectTrigger>
                                                         <SelectValue placeholder="Escolher cartão..." />
                                                     </SelectTrigger>
-                                                    <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
+                                                    <SelectContent>
                                                         {cards.map((card) => (
-                                                            <SelectItem key={card.id} value={card.id} className="rounded-xl font-bold">
+                                                            <SelectItem key={card.id} value={card.id}>
                                                                 <div className="flex items-center gap-2">
-                                                                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: card.color || "#6366f1" }} />
+                                                                    {/* Cor do cartão: dado do usuário */}
+                                                                    <span aria-hidden="true" className={cn("h-2.5 w-2.5 rounded-full", !card.color && "bg-muted-foreground")} style={card.color ? { backgroundColor: card.color } : undefined} />
                                                                     {card.name}
                                                                 </div>
                                                             </SelectItem>
@@ -487,8 +468,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             </div>
 
                                             {selectedCardId && (
-                                                <div className="space-y-2 animate-in slide-in-from-top-2 duration-300">
-                                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Fatura de Referência</FormLabel>
+                                                <div className="space-y-2">
+                                                    <FormLabel>Fatura de Referência</FormLabel>
                                                     <Select onValueChange={(val) => {
                                                         setSelectedInvoiceId(val)
                                                         const inv = invoices.find(i => i.id === val)
@@ -500,12 +481,12 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                             form.setValue('description', `Fatura ${formattedDate}`)
                                                         }
                                                     }} value={selectedInvoiceId}>
-                                                        <SelectTrigger className="h-12 rounded-2xl bg-card border-border/40 font-black tracking-tight focus:ring-purple-500/20">
+                                                        <SelectTrigger>
                                                             <SelectValue placeholder="Selecionar mês..." />
                                                         </SelectTrigger>
-                                                        <SelectContent className="rounded-2xl border-border/40 shadow-2xl max-h-[250px]">
+                                                        <SelectContent className="max-h-[250px]">
                                                             {invoices.length === 0 ? (
-                                                                <SelectItem value="none" disabled className="text-xs opacity-50 italic">Nenhuma fatura disponível</SelectItem>
+                                                                <SelectItem value="none" disabled>Nenhuma fatura disponível</SelectItem>
                                                             ) : (
                                                                 invoices.map((inv) => {
                                                                     const date = lerData(inv.due_date)
@@ -514,10 +495,10 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                     const year = format(date, "yyyy")
                                                                     
                                                                     return (
-                                                                        <SelectItem key={inv.id} value={inv.id} className="rounded-xl">
-                                                                            <div className="flex items-center justify-between w-full min-w-[200px]">
-                                                                                <span className="font-black tracking-tight">{capitalizedMonth} {year}</span>
-                                                                                <span className="text-[10px] font-black text-purple-600 ml-4 bg-purple-500/5 px-2 py-1 rounded-lg">
+                                                                        <SelectItem key={inv.id} value={inv.id}>
+                                                                            <div className="flex w-full min-w-[200px] items-center justify-between">
+                                                                                <span>{capitalizedMonth} {year}</span>
+                                                                                <span className="ml-4 font-mono text-xs text-muted-foreground">
                                                                                     {formatarMoeda(inv.total_amount)}
                                                                                 </span>
                                                                             </div>
@@ -531,7 +512,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             )}
 
                                             {!targetInvoiceId && (
-                                                <p role="alert" className="text-[10px] font-bold text-destructive pl-1">
+                                                <p role="alert" className="text-sm text-outflow">
                                                     Escolha a fatura a pagar.
                                                 </p>
                                             )}
@@ -539,50 +520,48 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                     </div>
 
                                     {selectedInvoiceObject && (
-                                        <div className="p-6 rounded-[28px] border border-border/40 bg-card/50 shadow-sm space-y-6 animate-in zoom-in-95 duration-500">
-                                            <div className="flex items-center justify-between border-b border-border/10 pb-4">
+                                        <div className="space-y-4 rounded-lg border border-border p-4">
+                                            <div className="flex items-center justify-between border-b border-border pb-3">
                                                 <div className="space-y-1">
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Fatura de Referência</p>
+                                                    <p className="label text-muted-foreground">Fatura de Referência</p>
                                                     <div className="flex items-center gap-2">
-                                                        <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-600">
-                                                            <Receipt className="h-4 w-4" />
-                                                        </div>
-                                                        <p className="text-sm font-black tracking-tight">
+                                                        <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                        <p className="text-sm font-medium">
                                                             {format(lerData(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
                                                         </p>
                                                     </div>
                                                 </div>
                                                 <div className="text-right space-y-1">
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pr-1">Situação</p>
+                                                    <p className="label text-muted-foreground">Situação</p>
                                                     {selectedInvoiceObject.status === 'OVERDUE' ? (
-                                                        <Badge variant="destructive" className="rounded-full px-3 py-0 text-[9px] font-black uppercase tracking-tighter">Vencida</Badge>
+                                                        <Badge variant="destructive">Vencida</Badge>
                                                     ) : selectedInvoiceObject.status === 'CLOSED' ? (
-                                                        <Badge variant="secondary" className="rounded-full px-3 py-0 text-[9px] font-black uppercase tracking-tighter bg-amber-500/10 text-amber-600 border-none">Fechada</Badge>
+                                                        <Badge variant="warning">Fechada</Badge>
                                                     ) : (
-                                                        <Badge variant="outline" className="rounded-full px-3 py-0 text-[9px] font-black uppercase tracking-tighter text-blue-600 bg-blue-500/5 border-none">Aberta</Badge>
+                                                        <Badge variant="info">Aberta</Badge>
                                                     )}
                                                 </div>
                                             </div>
 
                                             <div className="flex items-center justify-between">
                                                 <div className="space-y-0.5">
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Vencimento</p>
-                                                    <span className="text-xs font-black tracking-tight">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</span>
+                                                    <p className="label text-muted-foreground">Vencimento</p>
+                                                    <span className="font-mono text-sm">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</span>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Total Devido</p>
-                                                    <p className="text-xl font-black tracking-tighter text-purple-600">
+                                                    <p className="label text-muted-foreground">Total Devido</p>
+                                                    <p className="value-l">
                                                         {formatarMoeda(selectedInvoiceObject.total_amount)}
                                                     </p>
                                                 </div>
                                             </div>
                                             
                                             <div className="pt-2">
-                                                <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-muted-foreground/50 mb-1.5 px-1">
+                                                <div className="label mb-1.5 flex items-center justify-between text-muted-foreground">
                                                     <span>Progresso de Quitação</span>
                                                     <span>{Math.round((paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100)}%</span>
                                                 </div>
-                                                <Progress value={(paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100} className="h-1.5 bg-muted/50 rounded-full overflow-hidden [&>div]:bg-purple-500" />
+                                                <Progress value={(paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100} className="h-1.5" />
                                             </div>
                                         </div>
                                     )}
@@ -595,38 +574,32 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                             name="description"
                             render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Memo / Descrição Opcional</FormLabel>
+                                    <FormLabel>Memo / Descrição Opcional</FormLabel>
                                     <FormControl>
                                         <Input 
                                             placeholder="Ex: Quitação parcial da fatura..." 
                                             {...field} 
-                                            className="h-12 px-4 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-tight"
+
                                         />
                                     </FormControl>
-                                    <FormMessage className="text-[10px] font-bold" />
+                                    <FormMessage />
                                 </FormItem>
                             )}
                         />
 
-                        <DialogFooter className="pt-6 border-t border-border/10">
-                            <Button 
-                                type="button" 
-                                variant="ghost" 
+                        <DialogFooter className="border-t border-border pt-4">
+                            <Button
+                                type="button"
+                                variant="outline"
                                 onClick={() => onOpenChange(false)}
-                                className="h-14 px-8 rounded-full font-black uppercase tracking-[0.2em] text-[10px] text-muted-foreground hover:bg-muted/50 transition-all"
                             >
                                 Cancelar
                             </Button>
-                            <Button 
-                                type="submit" 
-                                disabled={isLoading || !targetInvoiceId}
-                                className="h-14 px-12 rounded-full bg-purple-600 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all group relative overflow-hidden"
+                            <Button
+                                type="submit"
+                                loading={isLoading}
+                                disabled={!targetInvoiceId}
                             >
-                                {isLoading ? (
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                ) : (
-                                    <Sparkles className="mr-2 h-4 w-4" />
-                                )}
                                 Confirmar Baixa
                             </Button>
                         </DialogFooter>
