@@ -193,6 +193,8 @@ Nove destinos de primeiro nível são demais para uma barra. A navegação se di
 
 ## 6. Roadmap e backlog
 
+O detalhamento arquivo por arquivo, com os achados do inventário do código e as tarefas extras AZ-40 a AZ-44, está em [REDESIGN-BACKLOG.md](REDESIGN-BACKLOG.md).
+
 Quatro fases sequenciais. Dentro de cada fase, as tarefas sem dependência entre si podem correr em paralelo. Cada tarefa vira uma branch e um PR para a `development`.
 
 Legenda de tamanho: **P** (até meio dia), **M** (1 a 2 dias), **G** (3 dias ou mais).
