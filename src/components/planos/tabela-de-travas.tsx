@@ -26,19 +26,19 @@ export function TabelaDeTravas({ catalogo, aoMudar }: TabelaDeTravasProps) {
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-border/40 text-left">
-            <th className="py-3 pr-4 font-black uppercase tracking-widest text-[10px] text-muted-foreground">Trava</th>
+          <tr className="border-b border-border text-left">
+            <th className="label py-3 pr-4 text-muted-foreground">Trava</th>
             {PLANOS.map((plano) => (
               <th
                 key={plano}
-                className="py-3 px-4 text-center font-black uppercase tracking-widest text-[10px] text-muted-foreground"
+                className="label px-4 py-3 text-center text-muted-foreground"
               >
                 {nomeDoPlano(plano)}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border/40">
+        <tbody className="divide-y divide-border">
           <Grupo titulo="Recursos" />
           {recursos.map((trava) => (
             <tr key={trava.key}>
@@ -80,7 +80,7 @@ export function TabelaDeTravas({ catalogo, aoMudar }: TabelaDeTravasProps) {
 function Grupo({ titulo }: { titulo: string }) {
   return (
     <tr>
-      <td colSpan={PLANOS.length + 1} className="pt-6 pb-2 font-black uppercase tracking-widest text-xs text-primary">
+      <td colSpan={PLANOS.length + 1} className="label pb-2 pt-6 text-gold-line">
         {titulo}
       </td>
     </tr>
@@ -90,7 +90,7 @@ function Grupo({ titulo }: { titulo: string }) {
 function Descricao({ trava }: { trava: TravaDoCatalogo }) {
   return (
     <td className="py-3 pr-4">
-      <p className="font-bold">{trava.name}</p>
+      <p className="font-medium text-foreground">{trava.name}</p>
       <p className="text-xs text-muted-foreground">{trava.description}</p>
     </td>
   )
@@ -177,9 +177,9 @@ function CelulaDeLimite({ trava, plano, limite, aoMudar }: CelulaProps & { limit
         onKeyDown={(e) => {
           if (e.key === "Enter") confirmar()
         }}
-        className="h-9 w-24 text-center rounded-xl"
+        className="h-9 w-24 text-center font-mono tabular-nums"
       />
-      <label htmlFor={idSemLimite} className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground">
+      <label htmlFor={idSemLimite} className="flex items-center gap-1.5 text-xs text-muted-foreground">
         <Checkbox
           id={idSemLimite}
           aria-label={`Sem limite de ${nome}`}
@@ -188,7 +188,7 @@ function CelulaDeLimite({ trava, plano, limite, aoMudar }: CelulaProps & { limit
         />
         Sem limite
       </label>
-      {erro && <p className="text-[10px] font-medium text-destructive max-w-32 text-center">{erro}</p>}
+      {erro && <p className="max-w-32 text-xs text-outflow text-center">{erro}</p>}
     </div>
   )
 }

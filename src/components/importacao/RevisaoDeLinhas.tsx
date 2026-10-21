@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Pencil, RotateCcw, Search, Trash2 } from "lucide-react"
 
 import { nomeComparavel } from "@/components/importacao/plano"
+import { Badge, type BadgeProps } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -24,11 +25,12 @@ const FILTROS: { valor: Filtro; rotulo: string }[] = [
   { valor: "EXCLUIDA", rotulo: "Excluídas" },
 ]
 
-const ESTADOS: Record<EstadoDaLinha, { rotulo: string; cor: string }> = {
-  VALIDA: { rotulo: "Válida", cor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  REJEITADA: { rotulo: "Rejeitada", cor: "bg-rose-500/10 text-rose-600 border-rose-500/20" },
-  REPETIDA: { rotulo: "Repetida", cor: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  EXCLUIDA: { rotulo: "Excluída", cor: "bg-muted text-muted-foreground border-border/60" },
+// A pílula diz o estado em texto; a cor só reforça (DESIGN.md §5, Pílulas)
+const ESTADOS: Record<EstadoDaLinha, { rotulo: string; variante: BadgeProps["variant"] }> = {
+  VALIDA: { rotulo: "Válida", variante: "success" },
+  REJEITADA: { rotulo: "Rejeitada", variante: "destructive" },
+  REPETIDA: { rotulo: "Repetida", variante: "info" },
+  EXCLUIDA: { rotulo: "Excluída", variante: "secondary" },
 }
 
 const TIPOS: Record<string, string> = { INCOME: "Receita", EXPENSE: "Despesa", TRANSFER: "Transferência" }
@@ -165,7 +167,7 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
   return (
     <div className="space-y-3">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div role="group" aria-label="Filtro das linhas" className="flex flex-wrap gap-1 p-1 rounded-2xl bg-muted/20 border border-border/40">
+        <div role="group" aria-label="Filtro das linhas" className="flex flex-wrap gap-1 rounded-md border border-border p-1">
           {FILTROS.map(({ valor, rotulo }) => (
             <button
               key={valor}
@@ -173,8 +175,10 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
               aria-pressed={filtro === valor}
               onClick={() => trocarFiltro(valor)}
               className={cn(
-                "px-3 h-8 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
-                filtro === valor ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground",
+                "h-8 cursor-pointer rounded-sm px-3 text-sm font-medium transition-colors duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                filtro === valor
+                  ? "bg-elevated text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]"
+                  : "text-muted-foreground hover:text-foreground",
               )}
             >
               {rotulo}
@@ -182,7 +186,7 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
           ))}
         </div>
         <div className="relative md:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             aria-label="Buscar nas linhas"
             placeholder="Buscar descrição, conta, categoria..."
@@ -191,17 +195,17 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
               setBusca(e.target.value)
               setPagina(1)
             }}
-            className="h-9 pl-9 rounded-xl text-xs font-medium"
+            className="pl-9"
           />
         </div>
       </div>
 
-      <div className="rounded-3xl border border-border/40 overflow-hidden">
-        <Table className="text-xs">
+      <div className="overflow-hidden rounded-lg border border-border">
+        <Table>
           <TableHeader>
-            <TableRow className="bg-muted/20 hover:bg-muted/20">
+            <TableRow className="hover:bg-transparent">
               {["Aba", "Linha", "Data", "Descrição", "Conta", "Tipo", "Categoria", "Valor", "Situação", "Estado", ""].map((titulo, i) => (
-                <TableHead key={i} className="h-9 text-[9px] font-black uppercase tracking-widest whitespace-nowrap">
+                <TableHead key={i} className={cn("whitespace-nowrap", titulo === "Valor" && "text-right")}>
                   {titulo}
                 </TableHead>
               ))}
@@ -210,7 +214,7 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
           <TableBody>
             {daPagina.length === 0 && (
               <TableRow>
-                <TableCell colSpan={11} className="py-8 text-center text-muted-foreground font-medium">
+                <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
                   Nenhuma linha neste filtro.
                 </TableCell>
               </TableRow>
@@ -221,9 +225,9 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
               const transferencia = linha.tipo === "TRANSFER" || !!linha.destino
               return [
                 <TableRow key={linha.chave} data-testid={`linha-${linha.chave}`} className={cn(linha.estado === "EXCLUIDA" && "opacity-60")}>
-                  <TableCell className="whitespace-nowrap font-medium">{linha.aba}</TableCell>
-                  <TableCell className="tabular-nums">{linha.numero}</TableCell>
-                  <TableCell className="whitespace-nowrap tabular-nums">{dataDaLinha(linha.data)}</TableCell>
+                  <TableCell className="whitespace-nowrap">{linha.aba}</TableCell>
+                  <TableCell className="font-mono tabular-nums text-muted-foreground">{linha.numero}</TableCell>
+                  <TableCell className="whitespace-nowrap font-mono tabular-nums text-muted-foreground">{dataDaLinha(linha.data)}</TableCell>
                   <TableCell className="max-w-[180px] truncate">{linha.descricao}</TableCell>
                   <TableCell className="whitespace-nowrap">
                     {linha.conta}
@@ -234,39 +238,37 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
                     {linha.categoria}
                     {linha.subcategoria ? ` / ${linha.subcategoria}` : ""}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap tabular-nums font-bold text-right">{valorDaLinha(linha)}</TableCell>
+                  <TableCell className="value-m whitespace-nowrap text-right">{valorDaLinha(linha)}</TableCell>
                   <TableCell className="whitespace-nowrap">{situacaoDaLinha(linha.situacao)}</TableCell>
                   <TableCell className="min-w-[120px]">
-                    <span className={cn("inline-flex px-2 py-0.5 rounded-full border text-[9px] font-black uppercase tracking-widest", estado.cor)}>
-                      {estado.rotulo}
-                    </span>
-                    {linha.motivo && <p className="text-[10px] font-medium text-rose-600 mt-1">{linha.motivo}</p>}
+                    <Badge variant={estado.variante}>{estado.rotulo}</Badge>
+                    {linha.motivo && <p className="mt-1 text-xs text-outflow">{linha.motivo}</p>}
                   </TableCell>
                   <TableCell className="whitespace-nowrap text-right">
                     {linha.estado === "EXCLUIDA" ? (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" aria-label={`Restaurar linha ${linha.chave}`} onClick={() => restaurar(linha.chave)}>
-                        <RotateCcw className="h-3.5 w-3.5" />
+                      <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Restaurar linha ${linha.chave}`} onClick={() => restaurar(linha.chave)}>
+                        <RotateCcw aria-hidden="true" />
                       </Button>
                     ) : (
                       <>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl" aria-label={`Editar linha ${linha.chave}`} onClick={() => editar(linha)}>
-                          <Pencil className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" aria-label={`Editar linha ${linha.chave}`} onClick={() => editar(linha)}>
+                          <Pencil aria-hidden="true" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 rounded-xl text-rose-600 hover:text-rose-600"
+                          className="h-8 w-8 hover:text-outflow"
                           aria-label={`Excluir linha ${linha.chave}`}
                           onClick={() => excluir(linha.chave)}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 aria-hidden="true" />
                         </Button>
                       </>
                     )}
                   </TableCell>
                 </TableRow>,
                 emEdicao && editando && (
-                  <TableRow key={`${linha.chave}-edicao`} className="bg-muted/10 hover:bg-muted/10">
+                  <TableRow key={`${linha.chave}-edicao`} className="bg-elevated hover:bg-elevated">
                     <TableCell colSpan={11}>
                       <form
                         aria-label={`Correção da linha ${linha.chave}`}
@@ -279,23 +281,23 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                           {CAMPOS_EDITAVEIS.filter(({ campo }) => campo !== "destino" || transferencia).map(({ campo, rotulo }) => (
                             <div key={campo} className="space-y-1">
-                              <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">{rotulo}</Label>
+                              <Label className="text-xs font-normal text-muted-foreground">{rotulo}</Label>
                               <Input
                                 aria-label={`${rotulo} da linha`}
                                 value={editando.rascunho[campo]}
                                 onChange={(e) =>
                                   setEditando({ ...editando, rascunho: { ...editando.rascunho, [campo]: e.target.value } })
                                 }
-                                className="h-9 rounded-xl text-xs font-bold"
+                                className="h-9"
                               />
                             </div>
                           ))}
                         </div>
                         <div className="flex justify-end gap-2">
-                          <Button type="button" variant="outline" className="rounded-full h-9 text-[10px] font-black uppercase" onClick={() => setEditando(null)}>
+                          <Button type="button" variant="outline" size="sm" onClick={() => setEditando(null)}>
                             Cancelar
                           </Button>
-                          <Button type="submit" className="rounded-full h-9 text-[10px] font-black uppercase">
+                          <Button type="submit" size="sm">
                             Salvar correção
                           </Button>
                         </div>

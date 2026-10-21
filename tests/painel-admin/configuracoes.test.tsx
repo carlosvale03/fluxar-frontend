@@ -55,7 +55,7 @@ describe("Configurações do admin", () => {
     expect(within(banco).getByText("Latência: 12 ms")).toBeInTheDocument()
     expect(within(banco).getByText("PostgreSQL 16.4")).toBeInTheDocument()
     // A manutenção vem da configuração gravada
-    expect(screen.getByText(/MANUTENÇÃO ATIVA/)).toBeInTheDocument()
+    expect(screen.getByText(/Manutenção ativa/)).toBeInTheDocument()
   })
 
   it('não mostra "Uptime", "PostgreSQL 15.4", "Build" nem "Limpar Cache"', async () => {

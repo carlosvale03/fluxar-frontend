@@ -7,8 +7,7 @@ import { getExpenseClasses } from "@/services/expense-classes"
 import { COR_SEM_CLASSE, ROTULO_SEM_CLASSE } from "@/lib/classes"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Separator } from "@/components/ui/separator"
-import { PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag } from "lucide-react"
+import { PlusCircle, Pencil, Trash2, Search, Tag } from "lucide-react"
 import { CategoryForm } from "@/components/categories/CategoryForm"
 import { GerenciarClasses } from "@/components/categories/GerenciarClasses"
 import { usePlan } from "@/hooks/use-plan"
@@ -16,7 +15,9 @@ import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { MoreVertical, ChevronDown, ChevronRight, CornerDownRight } from "lucide-react"
+import { MoreVertical, CornerDownRight } from "lucide-react"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { ConfirmacaoDestrutiva } from "@/components/ui/confirmacao-destrutiva"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -31,16 +32,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import {
   Table,
   TableBody,
@@ -60,21 +51,50 @@ import { tratarErro } from "@/lib/erros"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// CLASSE-19: a classe efetiva com a cor dela, e "(herdada)" quando vem da mãe
+// CLASSE-19: a classe efetiva com a cor dela, e "(herdada)" quando vem da mãe.
+// A cor da classe é dado do usuário: fica no texto e no ponto, como numa pílula.
 function ClasseDaCategoria({ categoria }: { categoria: Category }) {
   const classe = categoria.effective_class
   const cor = classe?.color ?? COR_SEM_CLASSE
   const texto = classe ? `${classe.name}${categoria.class_inherited ? " (herdada)" : ""}` : ROTULO_SEM_CLASSE
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-black tracking-wide whitespace-nowrap"
-      style={{ backgroundColor: `${cor}1A`, color: cor }}
+      className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full border border-border-strong px-2 py-0.5 text-xs font-medium"
+      style={{ color: cor }}
     >
-      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: cor }} />
+      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: cor }} />
       {texto}
     </span>
   )
 }
+
+// Ícone da categoria: a cor escolhida pelo usuário fica no traço do ícone
+function IconeDaCategoria({ cor, icone, pequeno = false }: { cor: string; icone: string; pequeno?: boolean }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "flex shrink-0 items-center justify-center rounded-md border border-border bg-elevated",
+        pequeno ? "h-7 w-7" : "h-9 w-9",
+      )}
+      style={{ color: cor }}
+    >
+      <LucideIcon name={icone} className={pequeno ? "h-3.5 w-3.5" : "h-4 w-4"} />
+    </span>
+  )
+}
+
+function SemCategorias() {
+  return (
+    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
+      <Tag className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+      <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
+    </div>
+  )
+}
+
+const ACOES_DA_LINHA =
+  "flex justify-end gap-1 transition-opacity duration-fast ease-az-out sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
 
 export default function CategoriesPage() {
   const [categories, setCategories] = useState<Category[]>([])
@@ -159,20 +179,20 @@ export default function CategoriesPage() {
     }
   }
 
+  // A confirmação padrão fica aberta se a exclusão falhar
   const handleDelete = async () => {
     if (!deletingCategory) return
 
     try {
       await deleteCategory(deletingCategory.id)
-      toast.success("Categoria excluída com sucesso")
+      toast.success("Categoria excluída.")
       // PERM-20: o item excluído sai do uso dos limites do /auth/me
       void atualizarUso()
       refreshCategories()
     } catch (error) {
-       console.error(error)
-       tratarErro(error, { mensagemPadrao: "Erro ao excluir categoria. Verifique se existem transações vinculadas." })
-    } finally {
-      setDeletingCategory(null)
+      console.error(error)
+      tratarErro(error, { mensagemPadrao: "Não foi possível excluir a categoria. Verifique se há transações vinculadas a ela." })
+      throw error
     }
   }
 
@@ -189,75 +209,61 @@ export default function CategoriesPage() {
   const incomeCategories = filteredCategories.filter((cat) => cat.type === "INCOME")
   const expenseCategories = filteredCategories.filter((cat) => cat.type === "EXPENSE")
 
+  // Celular: lista de dois níveis, com as subcategorias recuadas sob a mãe
   const CategoryMobileList = ({ data, mostrarClasse = false }: { data: Category[]; mostrarClasse?: boolean }) => {
     if (data.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center py-20 text-center opacity-40">
-                <Tag className="h-12 w-12 mb-4" />
-                <p className="text-xs font-black uppercase tracking-widest">Nenhuma categoria encontrada</p>
+            <div className="rounded-lg border border-border bg-card sm:hidden">
+                <SemCategorias />
             </div>
         )
     }
 
     return (
-        <div className="sm:hidden space-y-0 bg-background rounded-none border-y border-border/40 overflow-hidden -mx-4">
-            {data.map((category, index) => (
-                <div key={category.id} className={cn(
-                    "group animate-in fade-in slide-in-from-left-2 duration-500",
-                    index !== 0 && "border-t-[8px] border-muted/20"
-                )}>
-                    {/* Parent Row */}
-                    <div className="flex items-center gap-4 p-5 bg-card hover:bg-muted/30 transition-colors active:bg-muted/50">
-                        <div 
-                            className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-lg ring-4 ring-black/5 dark:ring-white/5"
-                            style={{ 
-                                backgroundColor: category.color,
-                                boxShadow: `0 8px 16px -4px ${category.color}40`
-                            }}
-                        >
-                            <LucideIcon name={category.icon || "Tag"} className="h-6 w-6" />
-                        </div>
-                        
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-black text-base text-foreground tracking-tight">{category.name}</h3>
+        <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card sm:hidden">
+            {data.map((category) => (
+                <li key={category.id}>
+                    <div className="flex items-center gap-3 p-4">
+                        <IconeDaCategoria cor={category.color} icone={category.icon || "Tag"} />
+
+                        <div className="min-w-0 flex-1">
+                            <h3 className="truncate text-sm font-semibold text-foreground">{category.name}</h3>
                             {mostrarClasse && (
                                 <div className="mt-1">
                                     <ClasseDaCategoria categoria={category} />
                                 </div>
                             )}
                             {category.subcategories && category.subcategories.length > 0 && (
-                                <div className="flex items-center gap-1.5 mt-1">
-                                    <div className="w-1 h-1 rounded-full bg-primary" />
-                                    <p className="text-[9px] font-black uppercase tracking-[0.2em] text-primary/70">
-                                        {category.subcategories.length} subcategorias
-                                    </p>
-                                </div>
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {category.subcategories.length} subcategorias
+                                </p>
                             )}
                         </div>
 
-                        <div className="flex items-center gap-1">
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-11 w-11 rounded-full bg-muted/20 text-muted-foreground/60 active:scale-90 transition-all"
+                        <div className="flex items-center">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-11 w-11"
+                                aria-label={`Nova subcategoria em ${category.name}`}
                                 onClick={() => setCreatingSubcategoryFor(category)}
                             >
-                                <PlusCircle className="h-5.5 w-5.5" />
+                                <PlusCircle aria-hidden="true" />
                             </Button>
-                            
+
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-11 w-11 rounded-full text-muted-foreground/40">
-                                        <MoreVertical className="h-5.5 w-5.5" />
+                                    <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Ações de ${category.name}`}>
+                                        <MoreVertical aria-hidden="true" />
                                     </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="rounded-[24px] min-w-[180px] border-border/40 shadow-2xl p-2">
-                                    <DropdownMenuItem onClick={() => setEditingCategory(category)} className="rounded-xl flex items-center gap-3 py-3 font-bold transition-all focus:bg-primary/10 focus:text-primary">
-                                        <Pencil className="h-4 w-4" />
+                                <DropdownMenuContent align="end" className="min-w-[180px]">
+                                    <DropdownMenuItem onClick={() => setEditingCategory(category)} className="gap-2">
+                                        <Pencil className="h-4 w-4" aria-hidden="true" />
                                         <span>Editar Categoria</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => setDeletingCategory(category)} className="rounded-xl flex items-center gap-3 py-3 font-bold text-destructive focus:bg-destructive/10 transition-all">
-                                        <Trash2 className="h-4 w-4" />
+                                    <DropdownMenuItem onClick={() => setDeletingCategory(category)} className="gap-2 text-outflow focus:text-outflow">
+                                        <Trash2 className="h-4 w-4" aria-hidden="true" />
                                         <span>Excluir Categoria</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
@@ -265,100 +271,81 @@ export default function CategoriesPage() {
                         </div>
                     </div>
 
-                    {/* Subcategories Container */}
-                    <div className="bg-muted/5 divide-y divide-border/5">
-                        {category.subcategories?.map((child) => (
-                            <div key={child.id} className="flex items-center gap-3 py-4 pl-10 pr-5 hover:bg-muted/10 transition-colors active:bg-muted/20">
-                                <div className="flex items-center shrink-0">
-                                    <CornerDownRight className="h-4 w-4 text-muted-foreground/20 mr-3" />
-                                    <div 
-                                        className="w-3.5 h-3.5 rounded-full ring-4 ring-white/5 shadow-inner"
+                    {category.subcategories && category.subcategories.length > 0 && (
+                        <ul className="divide-y divide-border border-t border-border">
+                            {category.subcategories.map((child) => (
+                                <li key={child.id} className="flex items-center gap-3 py-3 pl-8 pr-4">
+                                    <CornerDownRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                    <span
+                                        aria-hidden="true"
+                                        className="h-2.5 w-2.5 shrink-0 rounded-full"
                                         style={{ backgroundColor: child.color }}
                                     />
-                                </div>
-                                
-                                <div className="flex-1 min-w-0 flex flex-col items-start gap-1">
-                                    <span className="text-sm font-bold text-foreground/60 tracking-tight truncate max-w-full">{child.name}</span>
-                                    {mostrarClasse && <ClasseDaCategoria categoria={child} />}
-                                </div>
-                                
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-muted-foreground/30">
-                                            <MoreVertical className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end" className="rounded-[20px] min-w-[150px] border-border/40 shadow-xl p-1.5">
-                                        <DropdownMenuItem onClick={() => setEditingCategory(child)} className="rounded-lg flex items-center gap-2.5 py-2.5 font-bold text-xs">
-                                            <Pencil className="h-3.5 w-3.5" />
-                                            <span>Editar</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setDeletingCategory(child)} className="rounded-lg flex items-center gap-2.5 py-2.5 font-bold text-xs text-destructive focus:bg-destructive/10">
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                            <span>Excluir</span>
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+
+                                    <div className="flex min-w-0 flex-1 flex-col items-start gap-1">
+                                        <span className="max-w-full truncate text-sm text-fg-secondary">{child.name}</span>
+                                        {mostrarClasse && <ClasseDaCategoria categoria={child} />}
+                                    </div>
+
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon" className="h-11 w-11" aria-label={`Ações de ${child.name}`}>
+                                                <MoreVertical aria-hidden="true" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="min-w-[150px]">
+                                            <DropdownMenuItem onClick={() => setEditingCategory(child)} className="gap-2">
+                                                <Pencil className="h-4 w-4" aria-hidden="true" />
+                                                <span>Editar</span>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => setDeletingCategory(child)} className="gap-2 text-outflow focus:text-outflow">
+                                                <Trash2 className="h-4 w-4" aria-hidden="true" />
+                                                <span>Excluir</span>
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </li>
             ))}
-        </div>
+        </ul>
     )
   }
 
+  // Desktop: tabela com a árvore (mãe e subcategorias recuadas com o conector)
   const CategoryTable = ({ data, mostrarClasse = false }: { data: Category[]; mostrarClasse?: boolean }) => {
     return (
-    <div className="hidden sm:block sm:rounded-[32px] rounded-none border border-border/40 max-sm:border-x-0 bg-card overflow-hidden shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-700 max-sm:-mx-4">
+    <div className="hidden overflow-hidden rounded-lg border border-border bg-card sm:block">
       <Table>
-        <TableHeader className="bg-muted/60 dark:bg-zinc-800/50 backdrop-blur-sm">
-          <TableRow className="hover:bg-transparent border-b border-border/80">
-            <TableHead className="w-[100px] text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px] pl-6">Ícone</TableHead>
-            <TableHead className="text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px]">Nome</TableHead>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="label text-muted-foreground">Categoria</TableHead>
             {mostrarClasse && (
-              <TableHead className="text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px]">Classe</TableHead>
+              <TableHead className="label text-muted-foreground">Classe</TableHead>
             )}
-            <TableHead className="text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px]">Cor</TableHead>
-            <TableHead className="text-right text-foreground/80 font-black uppercase tracking-[0.2em] text-[10px] pr-6">Ações</TableHead>
+            <TableHead className="label text-muted-foreground">Subcategorias</TableHead>
+            <TableHead className="label text-right text-muted-foreground">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
-            <TableRow>
-              <TableCell colSpan={mostrarClasse ? 5 : 4} className="h-32 text-center text-muted-foreground font-medium italic">
-                Nenhuma categoria encontrada.
+            <TableRow className="hover:bg-transparent">
+              <TableCell colSpan={mostrarClasse ? 4 : 3}>
+                <SemCategorias />
               </TableCell>
             </TableRow>
           ) : (
             data.map((parent) => {
-              const hasSubs = parent.subcategories && parent.subcategories.length > 0
               return (
               <Fragment key={parent.id}>
-                <TableRow key={parent.id} className={cn(
-                    "group transition-all duration-300",
-                    hasSubs ? "border-0" : "border-b border-border/40",
-                    "hover:bg-primary/[0.02]"
-                )}>
-                    <TableCell className="pl-6 py-5">
-                        <div 
-                            className="w-11 h-11 rounded-xl flex items-center justify-center text-white shadow-lg ring-1 ring-white/10 transition-transform group-hover:scale-110 duration-500"
-                            style={{ backgroundColor: parent.color }}
-                        >
-                            <LucideIcon name={getCategoryIcon(parent)} className="h-5 w-5" />
-                        </div>
-                    </TableCell>
+                <TableRow className="group">
                     <TableCell>
                         <div className="flex items-center gap-3">
-                            <span className="font-black text-foreground/90 tracking-tight text-base">{parent.name}</span>
-                            {parent.is_default && (
-                                <Badge className="rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors">
-                                    Padrão
-                                </Badge>
-                            )}
-                            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/30 ml-auto sm:ml-2">
-                                {subcategoriasAtivas(parent)}{limiteDeSubcategorias !== null && ` / ${limiteDeSubcategorias}`}
-                            </span>
+                            <IconeDaCategoria cor={parent.color} icone={getCategoryIcon(parent)} />
+                            <span className="font-semibold text-foreground">{parent.name}</span>
+                            {parent.is_default && <Badge variant="secondary">Padrão</Badge>}
                         </div>
                     </TableCell>
                     {mostrarClasse && (
@@ -367,131 +354,94 @@ export default function CategoriesPage() {
                         </TableCell>
                     )}
                     <TableCell>
-                        <div className="flex items-center gap-2">
-                            <div 
-                                className="w-5 h-5 rounded-lg border border-border/40 shadow-inner" 
-                                style={{ backgroundColor: parent.color }} 
-                            />
-                        </div>
+                        <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                            {subcategoriasAtivas(parent)}{limiteDeSubcategorias !== null && ` / ${limiteDeSubcategorias}`}
+                        </span>
                     </TableCell>
-                    <TableCell className="text-right pr-6">
-                        <div className="flex justify-end gap-1.5 transition-all duration-300 sm:opacity-0 group-hover:opacity-100">
-                            {!parent.is_default ? (
+                    <TableCell className="text-right">
+                        <div className={ACOES_DA_LINHA}>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => setCreatingSubcategoryFor(parent)}
+                                disabled={subcategoriasNoLimite(parent)}
+                                title="Nova Subcategoria"
+                            >
+                                <PlusCircle aria-hidden="true" />
+                            </Button>
+                            {!parent.is_default && (
                                 <>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-9 w-9 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90" 
-                                        onClick={() => setCreatingSubcategoryFor(parent)}
-                                        disabled={subcategoriasNoLimite(parent)}
-                                        title="Nova Subcategoria"
-                                    >
-                                        <PlusCircle className="h-4.5 w-4.5" />
-                                    </Button>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-9 w-9 rounded-xl hover:bg-muted text-foreground/60 hover:text-foreground transition-all active:scale-90" 
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        aria-label={`Editar ${parent.name}`}
+                                        title="Editar"
                                         onClick={() => setEditingCategory(parent)}
                                     >
-                                        <Pencil className="h-4 w-4" />
+                                        <Pencil aria-hidden="true" />
                                     </Button>
-                                    <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-9 w-9 rounded-xl text-destructive/60 hover:text-destructive hover:bg-destructive/10 transition-all active:scale-90" 
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-outflow hover:bg-outflow/10 hover:text-outflow"
+                                        aria-label={`Excluir ${parent.name}`}
+                                        title="Excluir"
                                         onClick={() => setDeletingCategory(parent)}
                                     >
-                                        <Trash2 className="h-4 w-4" />
+                                        <Trash2 aria-hidden="true" />
                                     </Button>
                                 </>
-                            ) : (
-                                <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-9 w-9 rounded-xl text-primary hover:bg-primary/10 transition-all active:scale-90" 
-                                    onClick={() => setCreatingSubcategoryFor(parent)}
-                                    disabled={subcategoriasNoLimite(parent)}
-                                    title="Nova Subcategoria"
-                                >
-                                    <PlusCircle className="h-4.5 w-4.5" />
-                                </Button>
                             )}
                         </div>
                     </TableCell>
                 </TableRow>
-                
-                {/* Subcategories Rendering */}
-                {parent.subcategories?.map((child, index) => {
-                    const isLast = index === (parent.subcategories?.length || 0) - 1
-                    return (
-                        <TableRow 
-                            key={child.id} 
-                            className={cn(
-                                "group transition-all duration-300",
-                                isLast ? "border-b border-border/40" : "border-0",
-                                "hover:bg-primary/[0.01]"
-                            )}
-                        >
-                            <TableCell className="py-2.5 pl-6">
-                                <div className="flex h-full items-center relative pl-8">
-                                    {/* Tree Connector L-Shape */}
-                                    <div className="absolute left-6 -top-4 w-[2px] bg-border/40 group-hover:bg-primary/20 transition-colors" 
-                                         style={{ height: isLast ? '24px' : 'calc(100% + 16px)' }} 
-                                    />
-                                    <div className="absolute left-6 top-2 w-4 border-b-2 border-border/40 rounded-bl-xl h-0 group-hover:border-primary/20 transition-colors" />
-                                    
-                                    <div 
-                                        className="relative z-10 w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-md ring-1 ring-white/5 opacity-90 transition-transform group-hover:scale-105 duration-300"
-                                        style={{ backgroundColor: child.color }}
+
+                {/* Subcategorias, recuadas sob a mãe */}
+                {parent.subcategories?.map((child) => (
+                    <TableRow key={child.id} className="group">
+                        <TableCell className="py-2">
+                            <div className="flex items-center gap-3 pl-4">
+                                <CornerDownRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                <IconeDaCategoria cor={child.color} icone={getCategoryIcon(child)} pequeno />
+                                <span className="text-sm text-fg-secondary">{child.name}</span>
+                            </div>
+                        </TableCell>
+                        {mostrarClasse && (
+                            <TableCell className="py-2">
+                                <ClasseDaCategoria categoria={child} />
+                            </TableCell>
+                        )}
+                        <TableCell className="py-2" />
+                        <TableCell className="py-2 text-right">
+                            {!child.is_default && (
+                                <div className={ACOES_DA_LINHA}>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8"
+                                        aria-label={`Editar ${child.name}`}
+                                        title="Editar"
+                                        onClick={() => setEditingCategory(child)}
                                     >
-                                        <LucideIcon name={getCategoryIcon(child)} className="h-4 w-4" />
-                                    </div>
+                                        <Pencil aria-hidden="true" />
+                                    </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-outflow hover:bg-outflow/10 hover:text-outflow"
+                                        aria-label={`Excluir ${child.name}`}
+                                        title="Excluir"
+                                        onClick={() => setDeletingCategory(child)}
+                                    >
+                                        <Trash2 aria-hidden="true" />
+                                    </Button>
                                 </div>
-                            </TableCell>
-                            <TableCell>
-                                <span className="text-sm font-bold text-muted-foreground group-hover:text-foreground/80 transition-colors">
-                                    {child.name}
-                                </span>
-                            </TableCell>
-                            {mostrarClasse && (
-                                <TableCell>
-                                    <ClasseDaCategoria categoria={child} />
-                                </TableCell>
                             )}
-                            <TableCell>
-                                <div className="flex items-center gap-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                                    <div 
-                                        className="w-4 h-4 rounded shadow-sm ring-1 ring-border/20" 
-                                        style={{ backgroundColor: child.color }} 
-                                    />
-                                </div>
-                            </TableCell>
-                            <TableCell className="text-right pr-6">
-                                {!child.is_default && (
-                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300">
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 rounded-lg hover:bg-muted text-foreground/40 hover:text-foreground transition-all" 
-                                            onClick={() => setEditingCategory(child)}
-                                        >
-                                            <Pencil className="h-3.5 w-3.5" />
-                                        </Button>
-                                        <Button 
-                                            variant="ghost" 
-                                            size="icon" 
-                                            className="h-8 w-8 rounded-lg text-destructive/40 hover:text-destructive hover:bg-destructive/10 transition-all" 
-                                            onClick={() => setDeletingCategory(child)}
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
-                                    </div>
-                                )}
-                            </TableCell>
-                        </TableRow>
-                    )
-                })}
+                        </TableCell>
+                    </TableRow>
+                ))}
               </Fragment>
               )
             })
@@ -503,194 +453,164 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-7xl animate-in fade-in duration-500">
-      {/* Premium Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10 shrink-0">
-                <Tag className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-                 <h1 className="text-3xl font-black tracking-tight text-foreground/90">Categorias</h1>
-                 <p className="text-muted-foreground mt-1.5 font-medium flex items-center gap-2">
-                   Organização Financeira
-                   <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                   <span className="text-primary/80 font-bold">{categories.length} Itens</span>
-                 </p>
-            </div>
-        </div>
-
-        <div className="flex flex-col sm:flex-row gap-3">
-        {/* CLASSE-03 a CLASSE-09: classes de despesa, ao lado de Nova Categoria */}
-        <GerenciarClasses
-          onAlterar={() => {
-            refreshCategories()
-            fetchClasses()
-          }}
-        />
-
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-            <DialogTrigger asChild>
-                <Button disabled={limiteAtingido("limite_categorias")} className="rounded-full px-6 h-12 font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95">
-                    <PlusCircle className="mr-2 h-5 w-5" />
-                    Nova Categoria
-                </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[480px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
-              <ScrollArea className="max-h-[85vh]">
-                <div className="p-8">
-                  <DialogHeader className="mb-6">
-                    <DialogTitle className="text-3xl font-black tracking-tight">Nova Categoria</DialogTitle>
-                    <DialogDescription className="text-xs font-medium text-muted-foreground/70">
-                      Crie uma nova categoria personalizada para organizar seus fluxos.
-                    </DialogDescription>
-                  </DialogHeader>
-                  <CategoryForm 
-                    classes={classes}
-                    onSuccess={() => {
-                        setIsCreateOpen(false)
-                        refreshCategories()
-                    }}
-                    onCancel={() => setIsCreateOpen(false)}
-                  />
-                </div>
-              </ScrollArea>
-            </DialogContent>
-          </Dialog>
-        </div>
-        </div>
-
-        {/* PERM-20: uso e limite de categorias principais do plano */}
-        <div className="mb-8">
-          <AvisoDeLimite chave="limite_categorias" rotulo="categorias" />
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-8 bg-card/30 backdrop-blur-sm p-4 rounded-[32px] border border-border/40">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-             <TabsList className="grid w-full sm:w-[320px] grid-cols-2 p-1 bg-muted/20 rounded-full h-11 border border-border/20">
-                <TabsTrigger 
-                    value="expenses" 
-                    className="rounded-full text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-                >
-                    Despesas
-                </TabsTrigger>
-                <TabsTrigger 
-                    value="incomes" 
-                    className="rounded-full text-xs font-black uppercase tracking-wider transition-all data-[state=active]:bg-background data-[state=active]:text-primary data-[state=active]:shadow-sm"
-                >
-                    Receitas
-                </TabsTrigger>
-            </TabsList>
-          </Tabs>
-
-          <div className="relative w-full sm:max-w-xs group">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-            <Input
-              placeholder="Buscar categoria..."
-              className="pl-10 h-11 rounded-2xl bg-muted/20 border-border/10 focus-visible:ring-primary/20 focus-visible:border-primary/40 transition-all"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+    <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-8 md:px-6">
+      <CabecalhoDePagina
+        titulo="Categorias"
+        apoio="Categorias e classes"
+        className="pb-0"
+        acoes={
+          <>
+            {/* CLASSE-03 a CLASSE-09: classes de despesa, ao lado de Nova Categoria */}
+            <GerenciarClasses
+              onAlterar={() => {
+                refreshCategories()
+                fetchClasses()
+              }}
             />
-          </div>
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+              <DialogTrigger asChild>
+                <Button disabled={limiteAtingido("limite_categorias")}>
+                  <PlusCircle aria-hidden="true" />
+                  Nova Categoria
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="overflow-hidden p-0 sm:max-w-[480px]">
+                <ScrollArea className="max-h-[85vh]">
+                  <div className="p-6">
+                    <DialogHeader className="mb-6">
+                      <DialogTitle>Nova Categoria</DialogTitle>
+                      <DialogDescription>
+                        Crie uma categoria para organizar entradas ou saídas.
+                      </DialogDescription>
+                    </DialogHeader>
+                    <CategoryForm
+                      classes={classes}
+                      onSuccess={() => {
+                          setIsCreateOpen(false)
+                          refreshCategories()
+                      }}
+                      onCancel={() => setIsCreateOpen(false)}
+                    />
+                  </div>
+                </ScrollArea>
+              </DialogContent>
+            </Dialog>
+          </>
+        }
+      />
+
+      {/* PERM-20: uso e limite de categorias principais do plano */}
+      <AvisoDeLimite chave="limite_categorias" rotulo="categorias" />
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:w-[280px]">
+            <TabsTrigger value="expenses">Despesas</TabsTrigger>
+            <TabsTrigger value="incomes">Receitas</TabsTrigger>
+          </TabsList>
+        </Tabs>
+
+        <div className="relative w-full sm:max-w-xs">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            aria-label="Buscar categoria"
+            placeholder="Buscar categoria..."
+            className="pl-9"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
+      </div>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-10 w-40" />
-            <Skeleton className="h-[400px] w-full" />
-          </div>
-        ) : (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            
-            <TabsContent value="expenses" className="mt-0 space-y-4">
-              <CategoryTable data={expenseCategories} mostrarClasse />
-              <CategoryMobileList data={expenseCategories} mostrarClasse />
-            </TabsContent>
-            <TabsContent value="incomes" className="mt-0 space-y-4">
-              <CategoryTable data={incomeCategories} />
-              <CategoryMobileList data={incomeCategories} />
-            </TabsContent>
-          </Tabs>
-        )}
+      {isLoading ? (
+        <div className="space-y-3">
+          <Skeleton className="h-10 w-full" />
+          <Skeleton className="h-[400px] w-full" />
+        </div>
+      ) : (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsContent value="expenses" className="mt-0">
+            <CategoryTable data={expenseCategories} mostrarClasse />
+            <CategoryMobileList data={expenseCategories} mostrarClasse />
+          </TabsContent>
+          <TabsContent value="incomes" className="mt-0">
+            <CategoryTable data={incomeCategories} />
+            <CategoryMobileList data={incomeCategories} />
+          </TabsContent>
+        </Tabs>
+      )}
 
-        {/* Subcategory Creation Dialog */}
-        <Dialog open={!!creatingSubcategoryFor} onOpenChange={(open) => !open && setCreatingSubcategoryFor(null)}>
-            <DialogContent className="sm:max-w-[480px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
-              <ScrollArea className="max-h-[85vh]">
-                <div className="p-8">
-                  <DialogHeader className="mb-6">
-                    <DialogTitle className="text-3xl font-black tracking-tight">Nova Subcategoria</DialogTitle>
-                    <DialogDescription className="text-xs font-medium text-muted-foreground/70">
-                      Criando uma subcategoria para <strong className="text-primary font-black uppercase tracking-widest text-[9px] bg-primary/5 px-2 py-1 rounded-full ml-1">{creatingSubcategoryFor?.name}</strong>.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {creatingSubcategoryFor && (
-                      <CategoryForm 
-                        parentCategory={creatingSubcategoryFor}
-                        classes={classes}
-                        currentSubcategoryCount={subcategoriasAtivas(creatingSubcategoryFor)}
-                        onSuccess={() => {
-                            setCreatingSubcategoryFor(null)
-                            refreshCategories()
-                        }}
-                        onCancel={() => setCreatingSubcategoryFor(null)}
-                    />
-                  )}
-                </div>
-              </ScrollArea>
-            </DialogContent>
-        </Dialog>
+      {/* Nova subcategoria */}
+      <Dialog open={!!creatingSubcategoryFor} onOpenChange={(open) => !open && setCreatingSubcategoryFor(null)}>
+        <DialogContent className="overflow-hidden p-0 sm:max-w-[480px]">
+          <ScrollArea className="max-h-[85vh]">
+            <div className="p-6">
+              <DialogHeader className="mb-6">
+                <DialogTitle>Nova Subcategoria</DialogTitle>
+                <DialogDescription>
+                  Subcategoria de <strong className="font-semibold text-foreground">{creatingSubcategoryFor?.name}</strong>.
+                </DialogDescription>
+              </DialogHeader>
+              {creatingSubcategoryFor && (
+                <CategoryForm
+                  parentCategory={creatingSubcategoryFor}
+                  classes={classes}
+                  currentSubcategoryCount={subcategoriasAtivas(creatingSubcategoryFor)}
+                  onSuccess={() => {
+                      setCreatingSubcategoryFor(null)
+                      refreshCategories()
+                  }}
+                  onCancel={() => setCreatingSubcategoryFor(null)}
+                />
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
+      {/* Edição */}
+      <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
+        <DialogContent className="overflow-hidden p-0 sm:max-w-[480px]">
+          <ScrollArea className="max-h-[85vh]">
+            <div className="p-6">
+              <DialogHeader className="mb-6">
+                <DialogTitle>Editar Categoria</DialogTitle>
+                <DialogDescription>
+                  Altere o nome, a classe ou a identidade visual da categoria.
+                </DialogDescription>
+              </DialogHeader>
+              {editingCategory && (
+                <CategoryForm
+                  category={editingCategory}
+                  categoriaMae={categories.find((c) => c.id === editingCategory.parent)}
+                  classes={classes}
+                  onSuccess={() => {
+                      setEditingCategory(null)
+                      refreshCategories()
+                  }}
+                  onCancel={() => setEditingCategory(null)}
+                />
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
 
-        {/* Edit Dialog */}
-        <Dialog open={!!editingCategory} onOpenChange={(open) => !open && setEditingCategory(null)}>
-            <DialogContent className="sm:max-w-[480px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
-              <ScrollArea className="max-h-[85vh]">
-                <div className="p-8">
-                  <DialogHeader className="mb-6">
-                    <DialogTitle className="text-3xl font-black tracking-tight">Editar Categoria</DialogTitle>
-                    <DialogDescription className="text-xs font-medium text-muted-foreground/70">
-                      Altere os detalhes da categoria selecionada para manter sua organização.
-                    </DialogDescription>
-                  </DialogHeader>
-                  {editingCategory && (
-                      <CategoryForm 
-                        category={editingCategory}
-                        categoriaMae={categories.find((c) => c.id === editingCategory.parent)}
-                        classes={classes}
-                        onSuccess={() => {
-                            setEditingCategory(null)
-                            refreshCategories()
-                        }}
-                        onCancel={() => setEditingCategory(null)}
-                    />
-                  )}
-                </div>
-              </ScrollArea>
-            </DialogContent>
-        </Dialog>
-
-        {/* Delete Alert */}
-        <AlertDialog open={!!deletingCategory} onOpenChange={(open) => !open && setDeletingCategory(null)}>
-            <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-8">
-                <AlertDialogHeader>
-                    <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mb-4 shadow-sm ring-1 ring-destructive/20">
-                        <Trash2 className="h-7 w-7" />
-                    </div>
-                    <AlertDialogTitle className="text-2xl font-black tracking-tight text-foreground/90 leading-tight">Excluir Categoria?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-sm font-medium leading-relaxed pt-2">
-                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a categoria <strong className="text-destructive font-black underline decoration-2 underline-offset-4">&quot;{deletingCategory?.name}&quot;</strong> e todas as suas vinculações.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter className="pt-6">
-                    <AlertDialogCancel className="rounded-full h-11 px-6 font-bold">Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full h-11 px-6 font-bold transition-all hover:scale-105 active:scale-95">
-                        Confirmar Exclusão
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-        
+      {/* Exclusão: confirmação padrão (AZ-15) */}
+      <ConfirmacaoDestrutiva
+        aberta={!!deletingCategory}
+        onAbertaChange={(aberta) => !aberta && setDeletingCategory(null)}
+        titulo={`Excluir a categoria ${deletingCategory?.name ?? ""}?`}
+        descricao={
+          <>
+            A categoria <strong className="font-semibold text-foreground">{deletingCategory?.name}</strong> e as
+            vinculações dela serão excluídas. Isso não pode ser desfeito.
+          </>
+        }
+        rotuloConfirmar="Excluir categoria"
+        onConfirmar={handleDelete}
+      />
     </div>
   )
 }

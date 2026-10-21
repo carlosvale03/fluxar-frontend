@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, Suspense } from "react"
-import { useSearchParams, useRouter } from "next/navigation"
+import { useSearchParams } from "next/navigation"
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { AuthShell } from "@/components/auth/auth-shell"
 import { ResendVerification } from "@/components/auth/resend-verification"
@@ -9,7 +9,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Loader2, CheckCircle2, XCircle, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
 
 import { useAuth } from "@/contexts/auth-context"
 
@@ -56,101 +55,65 @@ function VerifyEmailContent() {
   }
 
   return (
-    <AuthShell 
-      title="Verificação de Conta" 
-      description={status === "loading" ? "Validando suas credenciais..." : "Processamento finalizado."}
+    <AuthShell
+      title="Verificação de Conta"
+      description={status === "loading" ? "Validando suas credenciais." : "Processamento finalizado."}
     >
-      <div className="flex flex-col items-center justify-center space-y-8 py-4">
-        <AnimatePresence mode="wait">
-          {status === "loading" && (
-            <motion.div 
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col items-center space-y-6"
-            >
-              <div className="relative">
-                <div className="w-20 h-20 rounded-[28px] bg-primary/5 flex items-center justify-center border border-primary/10">
-                  <Loader2 className="h-10 w-10 animate-spin text-primary" />
-                </div>
-                <motion.div 
-                  animate={{ rotate: 360 }}
-                  transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-                  className="absolute -inset-2 border-2 border-dashed border-primary/20 rounded-[32px]"
-                />
-              </div>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground animate-pulse">Autenticando...</p>
-            </motion.div>
-          )}
+      <div className="flex flex-col items-center justify-center py-2">
+        {status === "loading" && (
+          <div className="flex flex-col items-center space-y-4" role="status">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
+            <p className="label text-muted-foreground">Autenticando</p>
+          </div>
+        )}
 
-          {status === "success" && (
-            <motion.div 
-              key="success"
-              initial={{ opacity: 0, scale: 0.9, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="flex flex-col items-center space-y-6 w-full"
-            >
-              <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner relative overflow-hidden">
-                <CheckCircle2 className="h-10 w-10 relative z-10" />
-                <motion.div 
-                  initial={{ scale: 0, opacity: 0.5 }}
-                  animate={{ scale: 2, opacity: 0 }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="absolute inset-0 bg-emerald-500/20 rounded-full"
-                />
-              </div>
-              <div className="text-center space-y-2 px-4">
-                <h3 className="text-xl font-black tracking-tight">Tudo pronto!</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">Seu e-mail foi validado e sua conta está **totalmente ativa** no Azimute.</p>
-              </div>
-              <Button 
-                onClick={handleAccessAccount} 
-                className="w-full h-14 rounded-full text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 group transition-all hover:scale-[1.02]"
-              >
-                <span className="flex items-center gap-2">
-                  Acessar Minha Conta
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                </span>
-              </Button>
-            </motion.div>
-          )}
+        {status === "success" && (
+          <div className="flex w-full flex-col items-center space-y-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong text-inflow">
+              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div className="space-y-2 text-center">
+              <h2 className="display-m">Tudo pronto</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Seu e-mail foi validado e sua conta está <strong className="font-semibold text-foreground">totalmente ativa</strong> no Azimute.
+              </p>
+            </div>
+            <Button onClick={handleAccessAccount} className="w-full max-md:h-11">
+              Acessar Minha Conta
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          </div>
+        )}
 
-          {status === "error" && (
-            <motion.div 
-              key="error"
-              initial={{ opacity: 0, scale: 0.9, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              className="flex flex-col items-center space-y-6 w-full"
-            >
-              <div className="w-20 h-20 rounded-[28px] bg-destructive/10 flex items-center justify-center text-destructive">
-                <XCircle className="h-10 w-10" />
-              </div>
-              <div className="text-center space-y-2 px-4">
-                <h3 className="text-xl font-black tracking-tight text-destructive">Falha na Verificação</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{mensagemErro}</p>
-              </div>
-              {/* O link não diz de qual conta é: o reenvio pede o e-mail (AUTH-09) */}
-              <div className="w-full space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="email-reenvio">
-                  Seu e-mail
-                </label>
-                <Input
-                  id="email-reenvio"
-                  type="email"
-                  placeholder="exemplo@email.com"
-                  value={emailReenvio}
-                  onChange={(event) => setEmailReenvio(event.target.value)}
-                  className="h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10 hover:border-primary/30 focus-visible:ring-primary/20"
-                />
-              </div>
-              <ResendVerification email={emailReenvio.trim()} />
-              <Button asChild variant="outline" className="w-full h-12 rounded-2xl border-border/60 font-bold transition-all hover:bg-muted">
-                <Link href="/auth/login">Voltar para o Login</Link>
-              </Button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {status === "error" && (
+          <div className="flex w-full flex-col items-center space-y-5">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong text-outflow">
+              <XCircle className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <div className="space-y-2 text-center">
+              <h2 className="display-m">Falha na Verificação</h2>
+              <p className="text-sm leading-relaxed text-muted-foreground">{mensagemErro}</p>
+            </div>
+            {/* O link não diz de qual conta é: o reenvio pede o e-mail (AUTH-09) */}
+            <div className="w-full space-y-1.5">
+              <label className="text-sm font-medium text-fg-secondary" htmlFor="email-reenvio">
+                Seu e-mail
+              </label>
+              <Input
+                id="email-reenvio"
+                type="email"
+                autoComplete="email"
+                placeholder="exemplo@email.com"
+                value={emailReenvio}
+                onChange={(event) => setEmailReenvio(event.target.value)}
+              />
+            </div>
+            <ResendVerification email={emailReenvio.trim()} />
+            <Button asChild variant="ghost" className="w-full max-md:h-11">
+              <Link href="/auth/login">Voltar para o Login</Link>
+            </Button>
+          </div>
+        )}
       </div>
     </AuthShell>
   )
@@ -158,13 +121,12 @@ function VerifyEmailContent() {
 
 export default function VerifyEmailPage() {
   return (
-     <Suspense fallback={
-       <div className="flex min-h-screen items-center justify-center bg-background">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-       </div>
-     }>
-        <VerifyEmailContent />
-     </Suspense>
+    <Suspense fallback={
+      <div className="flex min-h-screen items-center justify-center bg-background">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+      </div>
+    }>
+      <VerifyEmailContent />
+    </Suspense>
   )
 }
-

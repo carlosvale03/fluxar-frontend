@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type ReactNode } from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Loader2, PlusCircle, Pencil, Trash2, Search, Wallet, Sparkles, Tag, Info, ChevronRight } from "lucide-react"
+import { Info, ChevronRight } from "lucide-react"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { usePlan } from "@/hooks/use-plan"
 import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
@@ -34,6 +34,7 @@ import { tratarErro } from "@/lib/erros"
 import { IconPicker } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
 
+// Cores pré-definidas: são dados do usuário (P-08), não tokens do tema
 const PRESET_COLORS = [
   "#6366f1", // Indigo
   "#10b981", // Emerald
@@ -76,6 +77,10 @@ interface CategoryFormProps {
   defaultType?: "INCOME" | "EXPENSE"
   onSuccess: () => void
   onCancel?: () => void
+}
+
+function TituloDaSecao({ children }: { children: ReactNode }) {
+  return <h3 className="label text-muted-foreground">{children}</h3>
 }
 
 export function CategoryForm({ category, parentCategory, categoriaMae, classes = [], currentSubcategoryCount = 0, defaultType, onSuccess, onCancel }: CategoryFormProps) {
@@ -136,10 +141,10 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
 
       if (category) {
         await updateCategory(category.id, payload)
-        toast.success("Categoria atualizada com sucesso!")
+        toast.success("Categoria atualizada.")
       } else {
         await createCategory(payload)
-        toast.success("Categoria criada com sucesso!")
+        toast.success("Categoria criada.")
         // PERM-20: a categoria nova conta no limite do /auth/me
         void atualizarUso()
       }
@@ -158,90 +163,75 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 animate-in fade-in duration-500">
-        
-        {/* Banner de Contexto / Limite (Regra #4) */}
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+
+        {/* Contexto da subcategoria e limite do plano */}
         {parentCategory && (
-            <div className="p-5 rounded-[24px] bg-primary/[0.03] border border-primary/10 flex flex-col gap-4">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 shadow-sm ring-1 ring-primary/20">
-                        <Info className="h-5 w-5" />
-                    </div>
-                    <div>
-                        <p className="text-xs font-black uppercase tracking-wider text-primary/80">Criando Subcategoria</p>
-                        <p className="text-[10px] font-medium text-muted-foreground leading-relaxed mt-0.5">
-                            Subcategorias herdam a identidade visual da categoria pai automaticamente.
-                        </p>
-                    </div>
+            <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+                <div className="flex items-start gap-3">
+                    <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+                    <p className="text-sm text-fg-secondary">
+                        Subcategorias herdam o ícone e a cor da categoria-mãe.
+                    </p>
                 </div>
 
-                {/* Parent Preview (Regra #3) */}
-                <div className="flex items-center gap-3 p-3 bg-background/50 rounded-2xl border border-border/40">
-                    <div 
-                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
-                        style={{ backgroundColor: parentCategory.color }}
+                <div className="flex items-center gap-3 rounded-md border border-border bg-elevated p-3">
+                    <span
+                        aria-hidden="true"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-card"
+                        style={{ color: parentCategory.color }}
                     >
-                        <LucideIcon name={parentCategory.icon || "Tag"} className="h-5 w-5" />
+                        <LucideIcon name={parentCategory.icon || "Tag"} className="h-4 w-4" />
+                    </span>
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-sm font-semibold text-foreground">{parentCategory.name}</span>
+                        <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        <span className="text-sm text-fg-secondary">Nova subcategoria</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-black text-foreground/80">{parentCategory.name}</span>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground/30" />
-                        <span className="text-xs font-bold text-primary">Nova Item</span>
-                    </div>
-                    <div className="ml-auto px-2.5 py-1 rounded-full bg-muted/20 text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">
+                    <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
                         {currentSubcategoryCount}{limiteDeSubcategorias !== null && ` / ${limiteDeSubcategorias}`}
-                    </div>
+                    </span>
                 </div>
-                
+
                 <AvisoDeLimite chave="limite_subcategorias" rotulo="subcategorias" usado={currentSubcategoryCount} />
             </div>
         )}
 
-        {/* Seção 1: Dados Gerais */}
-        <div className="space-y-5">
-            <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-4 bg-primary rounded-full" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Dados Gerais</h3>
-            </div>
+        {/* Seção 1: Dados gerais */}
+        <section className="space-y-4">
+            <TituloDaSecao>Dados Gerais</TituloDaSecao>
 
-            <div className={cn(
-                "grid grid-cols-1 gap-6 p-5 bg-muted/5 rounded-[24px] border border-border/40",
-                !parentCategory && "md:grid-cols-2"
-            )}>
+            <div className={cn("grid grid-cols-1 gap-4", !parentCategory && "md:grid-cols-2")}>
                 <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Nome da Categoria</FormLabel>
+                    <FormLabel>Nome da Categoria</FormLabel>
                     <FormControl>
-                        <Input 
-                            placeholder="Ex: Alimentação" 
-                            className="bg-card border-border/40 h-11 rounded-xl focus-visible:ring-primary/20 font-medium placeholder:text-muted-foreground/30" 
-                            {...field} 
-                        />
+                        <Input placeholder="Ex: Alimentação" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
                 )}
                 />
-                
+
                 {!parentCategory && (
                     <FormField
                     control={form.control}
                     name="type"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Tipo de Fluxo</FormLabel>
+                        <FormLabel>Tipo de Fluxo</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                            <SelectTrigger className="bg-card border-border/40 h-11 rounded-xl focus:ring-primary/20">
+                            <SelectTrigger>
                                 <SelectValue placeholder="Selecione o tipo" />
                             </SelectTrigger>
                             </FormControl>
-                            <SelectContent className="rounded-xl border-border/40 shadow-xl overflow-hidden">
-                                <SelectItem value="INCOME" className="focus:bg-emerald-500/10 focus:text-emerald-600 transition-colors">Receita</SelectItem>
-                                <SelectItem value="EXPENSE" className="focus:bg-rose-500/10 focus:text-rose-600 transition-colors">Despesa</SelectItem>
+                            <SelectContent>
+                                <SelectItem value="INCOME">Receita</SelectItem>
+                                <SelectItem value="EXPENSE">Despesa</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -253,160 +243,126 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
 
             {/* CLASSE-17 e CLASSE-20: classe da despesa; a subcategoria começa herdando a da mãe */}
             {tipo === "EXPENSE" && (
-                <div className="p-5 bg-muted/5 rounded-[24px] border border-border/40">
-                    <FormField
-                    control={form.control}
-                    name="expense_class"
-                    render={({ field }) => (
-                        <FormItem>
-                        <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Classe da Despesa</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                            <FormControl>
-                            <SelectTrigger className="bg-card border-border/40 h-11 rounded-xl focus:ring-primary/20">
-                                <SelectValue placeholder="Selecione a classe" />
-                            </SelectTrigger>
-                            </FormControl>
-                            <SelectContent className="rounded-xl border-border/40 shadow-xl overflow-hidden">
-                                <SelectItem value={SEM_CLASSE_PROPRIA}>
+                <FormField
+                control={form.control}
+                name="expense_class"
+                render={({ field }) => (
+                    <FormItem>
+                    <FormLabel>Classe da Despesa</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                        <SelectTrigger>
+                            <SelectValue placeholder="Selecione a classe" />
+                        </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                            <SelectItem value={SEM_CLASSE_PROPRIA}>
+                                <div className="flex items-center gap-2">
+                                    <span
+                                        aria-hidden="true"
+                                        className="h-2.5 w-2.5 shrink-0 rounded-full"
+                                        style={{ backgroundColor: classeDaMae && ehSubcategoria ? classeDaMae.color : COR_SEM_CLASSE }}
+                                    />
+                                    {rotuloSemClassePropria}
+                                </div>
+                            </SelectItem>
+                            {classes.map((classe) => (
+                                <SelectItem key={classe.id} value={classe.id}>
                                     <div className="flex items-center gap-2">
-                                        <span
-                                            className="w-2.5 h-2.5 rounded-full shrink-0"
-                                            style={{ backgroundColor: classeDaMae && ehSubcategoria ? classeDaMae.color : COR_SEM_CLASSE }}
-                                        />
-                                        {rotuloSemClassePropria}
+                                        <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: classe.color }} />
+                                        {classe.name}
                                     </div>
                                 </SelectItem>
-                                {classes.map((classe) => (
-                                    <SelectItem key={classe.id} value={classe.id}>
-                                        <div className="flex items-center gap-2">
-                                            <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: classe.color }} />
-                                            {classe.name}
-                                        </div>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                    />
-                </div>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
             )}
-        </div>
+        </section>
 
-        {/* Seção 2: Identidade Visual */}
+        {/* Seção 2: Identidade visual */}
         {!parentCategory && (
-          <div className="space-y-5">
-            <div className="flex items-center gap-2 mb-4">
-                <div className="w-1.5 h-4 bg-primary rounded-full" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identidade Visual</h3>
-            </div>
+          <section className="space-y-4">
+            <TituloDaSecao>Identidade Visual</TituloDaSecao>
 
-            <div className="space-y-6">
-                <FormField
-                  control={form.control}
-                  name="icon"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Ícone Representativo</FormLabel>
-                      <FormControl>
-                        <IconPicker value={field.value} onChange={field.onChange} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name="icon"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Ícone</FormLabel>
+                  <FormControl>
+                    <IconPicker value={field.value} onChange={field.onChange} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Paleta de Cores</FormLabel>
-                      <FormControl>
-                        <div className="space-y-6 p-6 border border-border/40 rounded-[28px] bg-muted/5 backdrop-blur-sm animate-in zoom-in-95 duration-500">
-                          <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
-                            {PRESET_COLORS.map((color) => {
-                              const isSelected = field.value === color
-                              return (
-                                <button
-                                  key={color}
-                                  type="button"
-                                  className={cn(
-                                    "w-10 h-10 rounded-xl transition-all duration-300 cursor-pointer relative group flex items-center justify-center",
-                                    isSelected ? "scale-110 shadow-lg" : "hover:scale-110 hover:shadow-md opacity-80 hover:opacity-100"
-                                  )}
-                                  style={{ 
-                                    backgroundColor: color,
-                                    boxShadow: isSelected ? `0 12px 24px -10px ${color}cc, 0 4px 10px -4px ${color}80` : undefined,
-                                    outline: isSelected ? `2px solid ${color}40` : 'none',
-                                    outlineOffset: '3px'
-                                  }}
-                                  onClick={() => field.onChange(color)}
-                                >
-                                   {isSelected && (
-                                       <div className="w-1.5 h-1.5 rounded-full bg-white/60 shadow-inner" />
-                                   )}
-                                </button>
-                              )
-                            })}
-                          </div>
-                          
-                          <div className="flex flex-col sm:flex-row items-center gap-5 pt-6 border-t border-border/10">
-                            <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
-                                <div className="w-1.5 h-1.5 rounded-full bg-primary/40 ring-4 ring-primary/5" />
-                                <span className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-[0.2em]">Cor Custom</span>
-                            </div>
-                            
-                            <div className="flex items-center gap-4 w-full flex-1">
-                                <div className="relative group shrink-0">
-                                    <Input 
-                                        type="color" 
-                                        className="w-12 h-12 p-0 border-0 rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-3 bg-transparent" 
-                                        value={field.value || "#000000"} 
-                                        onChange={field.onChange} 
-                                    />
-                                    <div className="absolute inset-0 rounded-2xl ring-1 ring-border/20 pointer-events-none shadow-inner" />
-                                </div>
-                                <div className="relative flex-1 group">
-                                    <Tag className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/30 group-focus-within:text-primary transition-colors" />
-                                    <Input 
-                                        {...field} 
-                                        placeholder="#HEXADECIMAL" 
-                                        className="h-12 pl-10 font-mono text-sm uppercase bg-card border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-wider" 
-                                        maxLength={7}
-                                    />
-                                </div>
-                            </div>
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-            </div>
-          </div>
+            <FormField
+              control={form.control}
+              name="color"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Cor</FormLabel>
+                  <FormControl>
+                    <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+                      <div className="grid grid-cols-8 gap-2">
+                        {PRESET_COLORS.map((color) => {
+                          const isSelected = field.value === color
+                          return (
+                            <button
+                              key={color}
+                              type="button"
+                              aria-label={`Cor ${color}`}
+                              aria-pressed={isSelected}
+                              className={cn(
+                                "h-8 w-8 cursor-pointer rounded-md transition-[opacity,box-shadow] duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                                isSelected
+                                  ? "ring-2 ring-ring ring-offset-2 ring-offset-background"
+                                  : "opacity-80 hover:opacity-100"
+                              )}
+                              style={{ backgroundColor: color }}
+                              onClick={() => field.onChange(color)}
+                            />
+                          )
+                        })}
+                      </div>
+
+                      <div className="flex items-center gap-3 border-t border-border pt-4">
+                        <Input
+                          type="color"
+                          aria-label="Escolher outra cor"
+                          className="h-9 w-12 shrink-0 cursor-pointer p-1"
+                          value={field.value || "#000000"}
+                          onChange={field.onChange}
+                        />
+                        <Input
+                          {...field}
+                          aria-label="Cor em hexadecimal"
+                          placeholder="#HEXADECIMAL"
+                          className="flex-1 font-mono uppercase"
+                          maxLength={7}
+                        />
+                      </div>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </section>
         )}
 
-        {/* Footer: Ações */}
-        <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-border/10 mt-auto">
-          <Button 
-            type="button" 
-            variant="ghost" 
-            onClick={onCancel} 
-            disabled={isLoading} 
-            className="rounded-full h-12 px-6 font-bold text-muted-foreground hover:bg-muted/50 transition-all"
-          >
+        {/* Ações: secundária à esquerda, primária à direita */}
+        <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button 
-            type="submit" 
-            disabled={isLoading || subcategoriasNoLimite} 
-            className="rounded-full h-12 px-10 font-bold shadow-xl shadow-primary/25 transition-all hover:scale-105 active:scale-95 bg-primary text-primary-foreground"
-          >
-            {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-            <Sparkles className="mr-2 h-5 w-5" />
+          <Button type="submit" loading={isLoading} disabled={subcategoriasNoLimite}>
             {category ? "Gravar Alterações" : "Ativar Categoria"}
           </Button>
         </div>

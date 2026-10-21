@@ -59,12 +59,12 @@ export function ValoresDoLog({ log }: { log: Pick<SystemLog, "action" | "before"
   if (!temValores) return null
 
   return (
-    <div data-testid="antes-e-depois" className="flex flex-wrap items-center gap-2 text-xs font-bold mt-1">
+    <div data-testid="antes-e-depois" className="mt-1 flex flex-wrap items-center gap-2 text-xs">
       <span className="text-muted-foreground">Antes:</span>
-      <span className="px-2 py-0.5 rounded bg-muted/50 font-mono">{formatarValorDoLog(log.action, log.before)}</span>
-      <ArrowRight className="h-3 w-3 text-muted-foreground" />
+      <span className="rounded-sm bg-elevated px-2 py-0.5 font-mono">{formatarValorDoLog(log.action, log.before)}</span>
+      <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
       <span className="text-muted-foreground">Depois:</span>
-      <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-mono">{formatarValorDoLog(log.action, log.after)}</span>
+      <span className="rounded-sm border border-border-strong px-2 py-0.5 font-mono text-gold-line">{formatarValorDoLog(log.action, log.after)}</span>
     </div>
   )
 }

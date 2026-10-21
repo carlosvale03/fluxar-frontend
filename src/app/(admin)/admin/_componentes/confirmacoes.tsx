@@ -28,7 +28,7 @@ export function CampoDaSenhaDoAdmin({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-[10px] font-black uppercase tracking-widest opacity-50">
+      <Label htmlFor={id} className="label text-muted-foreground">
         Sua senha de administrador
       </Label>
       <div className="relative">
@@ -36,7 +36,7 @@ export function CampoDaSenhaDoAdmin({
           id={id}
           type={mostrar ? "text" : "password"}
           placeholder="Sua senha de acesso admin"
-          className={cn("rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20 pr-10", erro && "border-red-500", className)}
+          className={cn("pr-10", erro && "border-outflow", className)}
           value={valor}
           onChange={(e) => onChange(e.target.value)}
           autoComplete="new-password"
@@ -51,11 +51,11 @@ export function CampoDaSenhaDoAdmin({
           type="button"
           aria-label={mostrar ? "Esconder a senha" : "Mostrar a senha"}
         >
-          {mostrar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          {mostrar ? <EyeOff className="h-4 w-4" aria-hidden="true" /> : <Eye className="h-4 w-4" aria-hidden="true" />}
         </Button>
       </div>
       {erro && (
-        <p id={`${id}-erro`} className="text-xs font-bold text-red-500">
+        <p id={`${id}-erro`} className="text-xs text-outflow">
           {erro}
         </p>
       )}
@@ -78,17 +78,16 @@ export function CampoDoEmailDeConfirmacao({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id} className="text-[10px] font-black uppercase tracking-widest opacity-50">
+      <Label htmlFor={id} className="label text-muted-foreground">
         Digite o e-mail do usuário para confirmar
       </Label>
-      <p className="text-xs font-bold text-muted-foreground">
+      <p className="text-xs text-muted-foreground">
         E-mail: <span className="font-mono text-foreground">{email}</span>
       </p>
       <Input
         id={id}
         type="text"
         placeholder={email}
-        className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20"
         value={valor}
         onChange={(e) => onChange(e.target.value)}
         autoComplete="off"
@@ -96,7 +95,7 @@ export function CampoDoEmailDeConfirmacao({
         aria-invalid={valor !== "" && !confere}
       />
       {valor !== "" && !confere && (
-        <p className="text-xs font-bold text-red-500">O e-mail digitado não é o deste usuário.</p>
+        <p className="text-xs text-outflow">O e-mail digitado não é o deste usuário.</p>
       )}
     </div>
   )

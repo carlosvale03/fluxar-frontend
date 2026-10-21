@@ -157,7 +157,6 @@ export default function UserDetailsPage() {
       <div className="flex flex-wrap gap-3">
           <Button
             variant="outline"
-            className="font-bold border-primary/20 hover:bg-primary/10"
             onClick={() => abrir(setIsResetModalOpen)}
             disabled={!habilitados}
           >
@@ -165,27 +164,25 @@ export default function UserDetailsPage() {
           </Button>
           <Button
             variant="outline"
-            className="font-bold border-amber-500/30 text-amber-600 hover:bg-amber-500/10 hover:text-amber-700"
+            className="text-warn hover:text-warn"
             onClick={() => abrir(setIsClearDataModalOpen)}
             disabled={!habilitados}
           >
-              <Eraser className="mr-2 h-4 w-4" /> Limpar Dados
+              <Eraser className="h-4 w-4" aria-hidden="true" /> Limpar Dados
           </Button>
           <Button
             variant="secondary"
-            className="font-bold bg-muted/50 hover:bg-muted text-foreground"
             onClick={() => abrir(setIsArchiveModalOpen)}
             disabled={!habilitados}
           >
-              <Archive className="mr-2 h-4 w-4" /> Arquivar Conta
+              <Archive className="h-4 w-4" aria-hidden="true" /> Arquivar Conta
           </Button>
           <Button
             variant="destructive"
-            className="font-bold shadow-lg shadow-red-500/20"
             onClick={() => abrir(setIsHardDeleteModalOpen)}
             disabled={!habilitados}
           >
-              <Trash2 className="mr-2 h-4 w-4" /> Excluir Permanente
+              <Trash2 className="h-4 w-4" aria-hidden="true" /> Excluir Permanente
           </Button>
       </div>
   )
@@ -193,43 +190,43 @@ export default function UserDetailsPage() {
   const voltar = (
       <Button
         variant="ghost"
-        className="w-fit pl-0 hover:bg-transparent hover:text-primary transition-colors duration-200"
+        className="w-fit pl-0 hover:bg-transparent hover:text-foreground"
         onClick={() => router.back()}
       >
-          <ArrowLeft className="mr-2 h-4 w-4" /> Voltar para Lista
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Voltar para Lista
       </Button>
   )
 
   if (isLoading) {
       return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-              <Loader2 className="h-10 w-10 animate-spin text-primary" />
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Carregando Perfil...</p>
+              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+              <p className="label text-muted-foreground">Carregando perfil</p>
           </div>
       )
   }
 
   if (!user) {
       return (
-          <div className="container mx-auto py-8 px-4 space-y-8 max-w-7xl animate-in fade-in duration-500">
+          <div className="container mx-auto py-8 px-4 space-y-8 max-w-7xl">
               <div className="flex flex-col gap-6">
                   {voltar}
                   {botoesDeAcao(false)}
               </div>
-              <Card role="alert" className="border border-red-500/20 bg-red-500/5 shadow-sm rounded-[24px]">
+              <Card role="alert" className="border-l-[3px] border-l-outflow">
                   <CardContent className="flex flex-col items-center text-center gap-4 p-10">
-                      <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
-                          <AlertCircle className="h-6 w-6 text-red-600" />
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong bg-elevated">
+                          <AlertCircle className="h-6 w-6 text-outflow" aria-hidden="true" />
                       </div>
                       <div className="space-y-1">
-                          <h2 className="text-lg font-black uppercase tracking-tight">Não foi possível carregar o usuário</h2>
-                          <p className="text-sm text-muted-foreground font-medium">
+                          <h2 className="display-m">Não foi possível carregar o usuário</h2>
+                          <p className="text-sm text-muted-foreground">
                               {erroAoCarregar
                                 ? "Os dados não chegaram da API. Nenhuma ação fica disponível até eles carregarem."
                                 : "Usuário não informado."}
                           </p>
                       </div>
-                      <Button onClick={loadData} className="rounded-xl font-black uppercase tracking-widest text-[10px]">
+                      <Button onClick={loadData}>
                           Tentar de novo
                       </Button>
                   </CardContent>
@@ -260,7 +257,7 @@ export default function UserDetailsPage() {
     try {
       setIsSubmitting(true)
       await deleteAdminUser(user.id, adminPassword)
-      toast.success(`Usuário ${user.name} arquivado com sucesso.`)
+      toast.success(`Usuário ${user.name} arquivado.`)
       setIsArchiveModalOpen(false)
       setAdminPassword("")
       setUser({ ...user, is_active: false })
@@ -320,7 +317,7 @@ export default function UserDetailsPage() {
         new_password: newPassword,
         admin_password: adminPassword
       })
-      toast.success(`Senha de ${user.name} redefinida com sucesso.`)
+      toast.success(`Senha de ${user.name} redefinida.`)
       setIsResetModalOpen(false)
       setNewPassword("")
       setAdminPassword("")
@@ -338,33 +335,33 @@ export default function UserDetailsPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+    <div className="container mx-auto py-8 px-4 space-y-8 max-w-7xl">
       
       <div className="flex flex-col gap-6">
           {voltar}
 
           <div className="flex flex-col md:flex-row gap-6 items-start md:items-center justify-between">
               <div className="flex items-center gap-6">
-                 <Avatar className="h-24 w-24 border-4 border-card shadow-2xl ring-2 ring-primary/20">
+                 <Avatar className="h-24 w-24 border border-border-strong">
                     <AvatarImage src={getAbsoluteUrl(user.avatar_url)} alt={user.name} className="object-cover" />
-                    <AvatarFallback className="text-3xl font-black bg-primary/10 text-primary">
+                    <AvatarFallback className="bg-elevated font-mono text-3xl">
                         {user.name.charAt(0).toUpperCase()}
                     </AvatarFallback>
                  </Avatar>
                  <div className="space-y-1">
-                     <h1 className="text-3xl font-black tracking-tight">{user.name}</h1>
+                     <h1 className="display-l">{user.name}</h1>
                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-xs opacity-70">ID: {user.id.substring(0,8)}...</Badge>
-                        <Badge className={`${user.is_active ? 'bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20' : 'bg-red-500/10 text-red-600 hover:bg-red-500/20'} border-0`}>
+                        <Badge variant="secondary">ID: {user.id.substring(0,8)}...</Badge>
+                        <Badge variant={user.is_active ? "success" : "destructive"}>
                             {user.is_active ? 'Ativo' : 'Inativo'}
                         </Badge>
-                        <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                        <Badge variant="destino">
                             {nomeDoPlano(user.plan as Plano)}
                         </Badge>
                      </div>
                      <div className="flex items-center gap-4 text-sm text-muted-foreground pt-1">
-                        <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" /> {user.email}</span>
-                        {user.phone_number && <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" /> {user.phone_number}</span>}
+                        <span className="flex items-center gap-1.5"><Mail className="h-3 w-3" aria-hidden="true" /> {user.email}</span>
+                        {user.phone_number && <span className="flex items-center gap-1.5"><Phone className="h-3 w-3" aria-hidden="true" /> {user.phone_number}</span>}
                      </div>
                  </div>
               </div>
@@ -373,83 +370,83 @@ export default function UserDetailsPage() {
           </div>
       </div>
 
-      <Separator className="bg-border/50" />
+      <Separator />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full space-y-8">
-        <TabsList className="bg-muted/50 p-1 rounded-xl h-auto">
-          <TabsTrigger value="overview" className="rounded-lg px-6 py-2 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Visão Geral</TabsTrigger>
-          <TabsTrigger value="logs" className="rounded-lg px-6 py-2 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm transition-all">Logs de Atividade</TabsTrigger>
+        <TabsList>
+          <TabsTrigger value="overview">Visão Geral</TabsTrigger>
+          <TabsTrigger value="logs">Logs de Atividade</TabsTrigger>
         </TabsList>
 
         {/* --- OVERVIEW TAB --- */}
-        <TabsContent value="overview" className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
+        <TabsContent value="overview" className="space-y-6">
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Financial Summary Cards */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm md:col-span-3 lg:col-span-2">
+                <Card className="md:col-span-3 lg:col-span-2">
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                            <Activity className="h-5 w-5 text-primary" /> Resumo Financeiro (Média Diária)
+                        <CardTitle className="flex items-center gap-2">
+                            <Activity className="h-5 w-5 text-muted-foreground" aria-hidden="true" /> Resumo Financeiro (Média Diária)
                         </CardTitle>
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                         <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-1 group hover:bg-emerald-500/15 transition-colors">
-                             <p className="text-xs font-bold uppercase tracking-wider text-emerald-600/70">Receitas (Méd. Valor)</p>
-                             <p className="text-2xl font-black text-emerald-600 leading-tight">
+                         <div className="space-y-1 rounded-md border border-border bg-elevated p-4">
+                             <p className="label text-muted-foreground">Receitas (Méd. Valor)</p>
+                             <p className="value-l text-inflow">
                                  {formatarMoeda(financialStats?.avg_income_value)}
                              </p>
-                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-600/60 uppercase pt-1">
-                                <Activity className="h-3 w-3" /> {financialStats?.income_count_per_day?.toFixed(1) || 0} registros/dia
+                             <div className="flex items-center gap-1.5 pt-1 font-mono text-xs text-muted-foreground">
+                                <Activity className="h-3 w-3" aria-hidden="true" /> {financialStats?.income_count_per_day?.toFixed(1) || 0} registros/dia
                              </div>
                          </div>
-                         <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/20 space-y-1 group hover:bg-red-500/15 transition-colors">
-                             <p className="text-xs font-bold uppercase tracking-wider text-red-600/70">Despesas (Méd. Valor)</p>
-                             <p className="text-2xl font-black text-red-600 leading-tight">
+                         <div className="space-y-1 rounded-md border border-border bg-elevated p-4">
+                             <p className="label text-muted-foreground">Despesas (Méd. Valor)</p>
+                             <p className="value-l text-outflow">
                                  {formatarMoeda(financialStats?.avg_expense_value)}
                              </p>
-                             <div className="flex items-center gap-1.5 text-[10px] font-bold text-red-600/60 uppercase pt-1">
-                                <Activity className="h-3 w-3" /> {financialStats?.expense_count_per_day?.toFixed(1) || 0} registros/dia
+                             <div className="flex items-center gap-1.5 pt-1 font-mono text-xs text-muted-foreground">
+                                <Activity className="h-3 w-3" aria-hidden="true" /> {financialStats?.expense_count_per_day?.toFixed(1) || 0} registros/dia
                              </div>
                          </div>
-                          <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 space-y-1">
-                             <p className="text-xs font-bold uppercase tracking-wider text-blue-600/70">Saldo Total</p>
-                             <p className="text-2xl font-black text-blue-600">
+                          <div className="space-y-1 rounded-md border border-border bg-elevated p-4">
+                             <p className="label text-muted-foreground">Saldo Total</p>
+                             <p className="value-l text-foreground">
                                  {formatarMoeda(financialStats?.total_balance)}
                              </p>
-                             <Wallet className="h-4 w-4 text-blue-500 opacity-50" />
+                             <Wallet className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                          </div>
                     </CardContent>
                 </Card>
 
                 {/* Account Details Card */}
-                <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm h-fit">
+                <Card className="h-fit">
                     <CardHeader>
-                        <CardTitle className="text-lg">Detalhes da Conta</CardTitle>
+                        <CardTitle>Detalhes da Conta</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                            <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><Calendar className="h-4 w-4" /> Criado em</span>
-                            <span className="text-sm font-bold">{new Date(user.created_at).toLocaleDateString('pt-BR')}</span>
+                        <div className="flex items-center justify-between border-b border-border pb-3">
+                            <span className="flex items-center gap-2 text-sm text-muted-foreground"><Calendar className="h-4 w-4" aria-hidden="true" /> Criado em</span>
+                            <span className="font-mono text-sm">{new Date(user.created_at).toLocaleDateString('pt-BR')}</span>
                         </div>
-                        <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                            <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><MapPin className="h-4 w-4" /> CPF</span>
-                            <span className="text-sm font-bold">{user.cpf || "Não informado"}</span>
+                        <div className="flex items-center justify-between border-b border-border pb-3">
+                            <span className="flex items-center gap-2 text-sm text-muted-foreground"><MapPin className="h-4 w-4" aria-hidden="true" /> CPF</span>
+                            <span className="font-mono text-sm">{user.cpf || "Não informado"}</span>
                         </div>
-                         <div className="flex items-center justify-between border-b border-border/50 pb-3">
-                            <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><CheckCircle2 className="h-4 w-4" /> Email Verificado</span>
-                            <Badge variant={user.emailVerified ? "default" : "destructive"} className="text-[10px]">
-                                {user.emailVerified ? "SIM" : "NÃO"}
+                         <div className="flex items-center justify-between border-b border-border pb-3">
+                            <span className="flex items-center gap-2 text-sm text-muted-foreground"><CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Email Verificado</span>
+                            <Badge variant={user.emailVerified ? "success" : "destructive"}>
+                                {user.emailVerified ? "Sim" : "Não"}
                             </Badge>
                         </div>
                         {/* ADMIN-06: sem cobrança, o plano fica aqui, sem aba de assinatura */}
                         <div className="flex items-center justify-between gap-3 pb-1">
-                            <span className="text-sm font-medium text-muted-foreground flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> Plano</span>
+                            <span className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="h-4 w-4" aria-hidden="true" /> Plano</span>
                             <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold">{nomeDoPlano(user.plan as Plano)}</span>
+                                <span className="text-sm font-semibold">{nomeDoPlano(user.plan as Plano)}</span>
                                 <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 rounded-xl font-black text-[10px] uppercase tracking-widest border-primary/20 hover:bg-primary/10"
+                                    className="h-7"
                                     onClick={() => { setNewPlan(user.plan); setIsChangePlanModalOpen(true) }}
                                 >
                                     Alterar plano
@@ -463,29 +460,29 @@ export default function UserDetailsPage() {
         </TabsContent>
 
         {/* --- LOGS TAB --- */}
-         <TabsContent value="logs" className="space-y-6 animate-in fade-in slide-in-from-right-2 duration-300">
-             <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-sm">
+         <TabsContent value="logs" className="space-y-6">
+             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2">
-                        <Clock className="h-5 w-5 text-primary" /> Linha do Tempo
+                        <Clock className="h-5 w-5 text-muted-foreground" aria-hidden="true" /> Linha do Tempo
                     </CardTitle>
                     <CardDescription>Histórico de ações e eventos relacionados ao usuário.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="relative border-l border-border/50 ml-3 space-y-8 py-2">
+                    <div className="relative ml-3 space-y-8 border-l border-border py-2">
                         {Array.isArray(logs) && logs.map((log) => (
-                            <div key={log.id} className="relative pl-8 group">
-                                <span className={`absolute left-[-5px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-background ${log.action.includes('FAILED') || log.action.includes('DELETE') ? 'bg-red-500' : 'bg-primary'}`} />
+                            <div key={log.id} className="relative pl-8">
+                                <span className={`absolute left-[-5px] top-1 h-2.5 w-2.5 rounded-full ring-4 ring-card ${log.action.includes('FAILED') || log.action.includes('DELETE') ? 'bg-outflow' : 'bg-gold'}`} aria-hidden="true" />
                                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                                    <p className={`font-bold text-sm ${log.action.includes('FAILED') ? 'text-red-500' : 'text-foreground'}`}>
+                                    <p className={`text-sm font-semibold ${log.action.includes('FAILED') ? 'text-outflow' : 'text-foreground'}`}>
                                         {log.description}
                                     </p>
-                                    <span className="text-xs font-mono text-muted-foreground bg-muted/50 px-2 py-0.5 rounded">
+                                    <span className="rounded-sm bg-elevated px-2 py-0.5 font-mono text-xs text-muted-foreground">
                                         {new Date(log.timestamp).toLocaleString('pt-BR')}
                                     </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
-                                    Ação: <span className="font-bold">{rotuloDaAcao(log.action)}</span> • Autor: {log.admin_email}
+                                    Ação: <span className="font-semibold">{rotuloDaAcao(log.action)}</span> · Autor: {log.admin_email}
                                 </p>
                                 {/* ADMIN-14: o antes e o depois de cada registro */}
                                 <ValoresDoLog log={log} />
@@ -508,22 +505,22 @@ export default function UserDetailsPage() {
 
          {/* Modal de Alteração de Plano (ADMIN-19: sem senha) */}
          <Dialog open={isChangePlanModalOpen} onOpenChange={setIsChangePlanModalOpen}>
-            <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+            <DialogContent className="max-w-sm">
             <DialogHeader>
-                <DialogTitle className="font-black uppercase tracking-tight">Alterar Plano</DialogTitle>
-                <DialogDescription className="text-xs font-medium">
+                <DialogTitle className="display-m">Alterar Plano</DialogTitle>
+                <DialogDescription>
                 Selecione o novo nível de acesso para <strong>{user.name}</strong>.
                 </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">Novo Plano</Label>
+                <Label className="label text-muted-foreground">Novo Plano</Label>
                 <Select value={newPlan} onValueChange={setNewPlan}>
-                    <SelectTrigger aria-label="Novo plano" className="rounded-xl border-border/40 bg-muted/20">
+                    <SelectTrigger aria-label="Novo plano">
                     <SelectValue placeholder="Selecione um plano" />
                     </SelectTrigger>
-                    <SelectContent className="rounded-xl border-border/40">
+                    <SelectContent>
                     <SelectItem value="COMMON">COMUM</SelectItem>
                     <SelectItem value="PREMIUM">PREMIUM</SelectItem>
                     <SelectItem value="PREMIUM_PLUS">PREMIUM PLUS</SelectItem>
@@ -533,13 +530,12 @@ export default function UserDetailsPage() {
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
-                <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+                <Button variant="ghost" onClick={() => setIsChangePlanModalOpen(false)}>Cancelar</Button>
                 <Button
                     onClick={confirmChangePlan}
-                    className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
                     disabled={isSubmitting || newPlan === user.plan}
                 >
-                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
                 Confirmar Alteração
                 </Button>
             </DialogFooter>
@@ -548,27 +544,27 @@ export default function UserDetailsPage() {
 
         {/* Modal de Arquivamento (SOFT DELETE) */}
         <Dialog open={isArchiveModalOpen} onOpenChange={setIsArchiveModalOpen}>
-            <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-md">
+            <DialogContent className="max-w-md">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Archive className="h-6 w-6 text-primary" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border-strong bg-elevated">
+                        <Archive className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
                     </div>
-                    <DialogTitle className="font-black text-xl uppercase tracking-tight">Arquivar Usuário</DialogTitle>
+                    <DialogTitle className="display-m">Arquivar Usuário</DialogTitle>
                 </div>
-                <DialogDescription className="text-sm font-medium text-foreground">
+                <DialogDescription className="text-foreground">
                     Ao arquivar <strong>{user.name}</strong>, o acesso ao sistema será bloqueado, mas os dados serão preservados.
                 </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-4">
-                <div className="p-4 rounded-2xl bg-muted/30 border border-border/40 space-y-2">
-                    <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                <div className="space-y-2 rounded-md border border-border bg-elevated p-4">
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3 w-3 text-inflow" aria-hidden="true" />
                         Os dados financeiros permanecem no banco de dados.
                     </p>
-                    <p className="text-[11px] font-bold text-muted-foreground flex items-center gap-2">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                    <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <CheckCircle2 className="h-3 w-3 text-inflow" aria-hidden="true" />
                         A conta pode ser restaurada a qualquer momento pelo admin.
                     </p>
                 </div>
@@ -579,90 +575,87 @@ export default function UserDetailsPage() {
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
                 <Button
                     onClick={confirmArchive}
-                    className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-primary/20 bg-primary hover:bg-primary/90 text-primary-foreground"
                     disabled={isSubmitting || !adminPassword}
                 >
-                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Archive className="h-3 w-3 mr-2" />}
-                    CONFIRMAR ARQUIVAMENTO
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Archive className="h-3 w-3" aria-hidden="true" />}
+                    Confirmar arquivamento
                 </Button>
-                <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)} className="rounded-xl font-bold h-11">Cancelar</Button>
+                <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)}>Cancelar</Button>
             </DialogFooter>
             </DialogContent>
         </Dialog>
 
         {/* Modal de Exclusão Permanente (IRREVERSÍVEL, ADMIN-20) */}
         <Dialog open={isHardDeleteModalOpen} onOpenChange={setIsHardDeleteModalOpen}>
-            <DialogContent className="rounded-[32px] border-red-500/20 bg-background/95 backdrop-blur-xl max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center">
-                        <ShieldAlert className="h-6 w-6 text-red-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border-strong bg-elevated">
+                        <ShieldAlert className="h-6 w-6 text-outflow" aria-hidden="true" />
                     </div>
-                    <DialogTitle className="font-black text-xl uppercase tracking-tight text-red-600">Ação Irreversível</DialogTitle>
+                    <DialogTitle className="display-m text-outflow">Ação Irreversível</DialogTitle>
                 </div>
-                <DialogDescription className="text-sm font-medium text-foreground">
+                <DialogDescription className="text-foreground">
                     Você está prestes a excluir permanentemente a conta de <strong>{user.name}</strong> e todos os dados associados.
                 </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-6">
-                <div className="p-4 rounded-2xl bg-red-500/5 border border-red-500/20 space-y-3">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-red-600">O que será removido:</h4>
+                <div className="space-y-3 rounded-r-md border border-border border-l-[3px] border-l-outflow bg-card p-4">
+                    <h3 className="label text-outflow">O que será removido:</h3>
                     <ul className="space-y-2">
                         {APAGADO_NA_EXCLUSAO.map((item) => (
-                            <li key={item} className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                                <AlertTriangle className="h-3 w-3 text-red-500 shrink-0 mt-0.5" />
+                            <li key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-outflow" aria-hidden="true" />
                                 <span>{item}</span>
                             </li>
                         ))}
                     </ul>
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-tighter mt-4 text-center">
-                        ESTA AÇÃO NÃO PODE SER DESFEITA EM NENHUMA HIPÓTESE.
+                    <p className="mt-4 text-center text-sm font-semibold text-outflow">
+                        Esta ação não pode ser desfeita.
                     </p>
                 </div>
 
                 <CampoDoEmailDeConfirmacao email={user.email} valor={emailDigitado} onChange={setEmailDigitado} />
-                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="border-red-500/20 bg-red-500/5" />
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
                 <Button
                     onClick={confirmHardDelete}
                     variant="destructive"
-                    className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-red-500/20"
                     disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
-                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Trash2 className="h-3 w-3 mr-2" />}
-                    EXCLUIR PERMANENTEMENTE
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" aria-hidden="true" />}
+                    Excluir permanentemente
                 </Button>
-                <Button variant="ghost" onClick={() => setIsHardDeleteModalOpen(false)} className="rounded-xl font-bold h-11">Cancelar</Button>
+                <Button variant="ghost" onClick={() => setIsHardDeleteModalOpen(false)}>Cancelar</Button>
             </DialogFooter>
             </DialogContent>
         </Dialog>
 
         {/* Modal de Reset de Senha */}
         <Dialog open={isResetModalOpen} onOpenChange={setIsResetModalOpen}>
-            <DialogContent className="rounded-[32px] border-border/40 bg-background/95 backdrop-blur-xl max-w-sm">
+            <DialogContent className="max-w-sm">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <ShieldCheck className="h-6 w-6 text-primary" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border-strong bg-elevated">
+                        <ShieldCheck className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
                     </div>
-                    <DialogTitle className="font-black text-xl uppercase tracking-tight">Resetar Senha</DialogTitle>
+                    <DialogTitle className="display-m">Resetar Senha</DialogTitle>
                 </div>
-                <DialogDescription className="text-xs font-medium">
+                <DialogDescription>
                 Defina uma nova senha de acesso para <strong>{user.name}</strong>.
                 </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-4">
                 <div className="space-y-2">
-                <Label htmlFor="nova-senha-do-usuario" className="text-[10px] font-black uppercase tracking-widest opacity-50">Nova Senha do Usuário</Label>
+                <Label htmlFor="nova-senha-do-usuario" className="label text-muted-foreground">Nova Senha do Usuário</Label>
                 <Input
                     id="nova-senha-do-usuario"
                     type="password"
                     placeholder="Mínimo 8 caracteres"
-                    className="rounded-xl border-border/40 bg-muted/20 focus:ring-primary/20"
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     autoComplete="new-password"
@@ -673,14 +666,13 @@ export default function UserDetailsPage() {
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0">
-                <Button variant="ghost" onClick={() => setIsResetModalOpen(false)} className="rounded-xl font-bold">Cancelar</Button>
+                <Button variant="ghost" onClick={() => setIsResetModalOpen(false)}>Cancelar</Button>
                 <Button
                     onClick={confirmResetPassword}
-                    className="rounded-xl font-black uppercase tracking-widest text-[10px] bg-primary hover:bg-primary/90"
                     disabled={isSubmitting || !newPassword || !adminPassword}
                 >
-                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : null}
-                CONFIRMAR RESET
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                Confirmar reset
                 </Button>
             </DialogFooter>
             </DialogContent>
@@ -688,53 +680,53 @@ export default function UserDetailsPage() {
 
         {/* Modal de Limpar Dados (ADMIN-20 a ADMIN-23) */}
         <Dialog open={isClearDataModalOpen} onOpenChange={setIsClearDataModalOpen}>
-            <DialogContent className="rounded-[32px] border-amber-500/30 bg-background/95 backdrop-blur-xl max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto">
             <DialogHeader>
                 <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 rounded-full bg-amber-500/10 flex items-center justify-center">
-                        <Eraser className="h-6 w-6 text-amber-600" />
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-border-strong bg-elevated">
+                        <Eraser className="h-6 w-6 text-warn" aria-hidden="true" />
                     </div>
-                    <DialogTitle className="font-black text-xl uppercase tracking-tight text-amber-600">Limpar Dados do Usuário</DialogTitle>
+                    <DialogTitle className="display-m text-warn">Limpar Dados do Usuário</DialogTitle>
                 </div>
-                <DialogDescription className="text-sm font-medium text-foreground">
+                <DialogDescription className="text-foreground">
                     Você está prestes a excluir todos os registros de <strong>{user.name}</strong>, mas manterá o acesso dele ao sistema. Ele fica como um cadastro novo.
                 </DialogDescription>
             </DialogHeader>
 
             <div className="py-4 space-y-6">
-                <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 space-y-3">
-                    <h4 className="text-xs font-black uppercase tracking-widest text-amber-600">O que será apagado:</h4>
+                <div className="space-y-3 rounded-r-md border border-border border-l-[3px] border-l-warn bg-card p-4">
+                    <h3 className="label text-warn">O que será apagado:</h3>
                     <ul className="space-y-2">
                         {APAGADO_NA_LIMPEZA.map((item) => (
-                            <li key={item} className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                                <AlertTriangle className="h-3 w-3 text-amber-500 shrink-0 mt-0.5" />
+                            <li key={item} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0 text-warn" aria-hidden="true" />
                                 <span>{item}</span>
                             </li>
                         ))}
-                        <li className="flex items-start gap-2 text-[11px] font-bold text-muted-foreground">
-                            <CheckCircle2 className="h-3 w-3 text-emerald-500 shrink-0 mt-0.5" />
+                        <li className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <CheckCircle2 className="mt-0.5 h-3 w-3 shrink-0 text-inflow" aria-hidden="true" />
                             <span>Ficam: {MANTIDO_NA_LIMPEZA}</span>
                         </li>
                     </ul>
-                    <p className="text-[10px] font-black text-amber-600 uppercase tracking-tighter mt-4 text-center">
-                        ESSA EXCLUSÃO DE DADOS É IRREVERSÍVEL.
+                    <p className="mt-4 text-center text-sm font-semibold text-warn">
+                        Esta exclusão de dados não pode ser desfeita.
                     </p>
                 </div>
 
                 <CampoDoEmailDeConfirmacao email={user.email} valor={emailDigitado} onChange={setEmailDigitado} />
-                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} className="border-amber-500/20 bg-amber-500/5" />
+                <CampoDaSenhaDoAdmin valor={adminPassword} onChange={mudarSenha} erro={erroSenha} />
             </div>
 
             <DialogFooter className="gap-2 sm:gap-0 sm:flex-row-reverse">
                 <Button
+                    variant="destructive"
                     onClick={confirmClearData}
-                    className="rounded-xl font-black uppercase tracking-widest text-[10px] h-11 px-6 shadow-lg shadow-amber-500/20 bg-amber-500 hover:bg-amber-600 text-white"
                     disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
-                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin mr-2" /> : <Eraser className="h-3 w-3 mr-2" />}
-                    LIMPAR DADOS
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eraser className="h-3 w-3" aria-hidden="true" />}
+                    Limpar dados
                 </Button>
-                <Button variant="ghost" onClick={() => setIsClearDataModalOpen(false)} className="rounded-xl font-bold h-11">Cancelar</Button>
+                <Button variant="ghost" onClick={() => setIsClearDataModalOpen(false)}>Cancelar</Button>
             </DialogFooter>
             </DialogContent>
         </Dialog>
