@@ -119,11 +119,11 @@ describe("Telas travadas", () => {
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
   })
 
-  it("orcamentos fechado: a tela Orçamentos mostra o aviso sem chamar /budgets/", () => {
+  it("orcamentos fechado: a tela Rotas mostra o aviso sem chamar /budgets/", () => {
     comAcesso(["orcamentos"])
     render(<BudgetsPage />)
 
-    expect(screen.getByRole("heading", { name: "Orçamentos" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Rotas" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
     expect(getBudgets).not.toHaveBeenCalled()
   })
