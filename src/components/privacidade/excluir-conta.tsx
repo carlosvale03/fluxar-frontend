@@ -49,7 +49,7 @@ export function ExcluirConta() {
     try {
       setBaixando(true)
       const blob = await privacidadeService.baixarMeusDados()
-      salvarArquivo(blob, "meus_dados_fluxar.xlsx")
+      salvarArquivo(blob, "meus_dados_azimute.xlsx")
       toast.success("Download dos seus dados iniciado.")
     } catch (error) {
       tratarErro(error, { mensagemPadrao: "Não foi possível baixar os seus dados.", tentarDeNovo: baixarDados })
@@ -64,7 +64,7 @@ export function ExcluirConta() {
       const pedido = await privacidadeService.pedirExclusao(password)
       setAberto(false)
       toast.success(`A exclusão da sua conta está marcada para ${dataDaExclusao(pedido.deletion_scheduled_for)}.`, {
-        description: "Até lá, você pode desistir entrando de novo no Fluxar.",
+        description: "Até lá, você pode desistir entrando de novo no Azimute.",
         duration: 15_000,
       })
       // As sessões já foram encerradas no backend (LGPD-05)

@@ -202,7 +202,6 @@ function TelaDeTags() {
         <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
                 <Button disabled={tagsNoLimite} className="h-14 px-8 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group overflow-hidden relative">
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
                     <PlusCircle className="mr-2 h-5 w-5" />
                     <span className="font-black uppercase tracking-widest text-sm">Nova Tag Premium</span>
                 </Button>

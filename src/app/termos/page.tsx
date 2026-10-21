@@ -73,12 +73,12 @@ export default function TermsPage() {
             <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 text-primary">
               <ShieldCheck className="h-6 w-6" />
             </div>
-            <h2 className="text-xl font-black uppercase tracking-tight">Compromisso Fluxar</h2>
+            <h2 className="text-xl font-black uppercase tracking-tight">Compromisso Azimute</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium">
-            No Fluxar, levamos sua privacidade e a segurança dos seus dados financeiros a sério. 
+            No Azimute, levamos sua privacidade e a segurança dos seus dados financeiros a sério. 
             Este documento explica como coletamos, usamos e protegemos suas informações dentro da nossa plataforma. 
-            Ao utilizar o Fluxar, você concorda com as práticas descritas aqui.
+            Ao utilizar o Azimute, você concorda com as práticas descritas aqui.
           </p>
         </motion.div>
 
@@ -163,7 +163,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-black uppercase tracking-tight">4. Segurança</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium mb-4">
-            A conexão entre o seu navegador e o Fluxar é criptografada (HTTPS). CPF, telefone, data de nascimento e renda
+            A conexão entre o seu navegador e o Azimute é criptografada (HTTPS). CPF, telefone, data de nascimento e renda
             ficam criptografados no banco de dados.
           </p>
           <div className="flex gap-2">
@@ -203,12 +203,12 @@ export default function TermsPage() {
             <h2 className="text-xl font-black uppercase tracking-tight">6. Planos e Uso</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium mb-4">
-            O Fluxar oferece diferentes níveis de acesso. Enquanto funcionalidades de organização básica são gratuitas, recursos avançados de análise, automação e exportação de relatórios são exclusivos para planos pagos.
+            O Azimute oferece diferentes níveis de acesso. Enquanto funcionalidades de organização básica são gratuitas, recursos avançados de análise, automação e exportação de relatórios são exclusivos para planos pagos.
           </p>
           <div className="p-4 rounded-2xl bg-purple-500/5 border border-purple-500/10">
             <h4 className="text-[10px] font-black uppercase tracking-widest text-purple-700 mb-2">Responsabilidade do Usuário:</h4>
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Você é o único responsável pela veracidade dos dados inseridos e pela segurança da sua senha. O Fluxar não se responsabiliza por decisões financeiras tomadas com base nas projeções da plataforma.
+              Você é o único responsável pela veracidade dos dados inseridos e pela segurança da sua senha. O Azimute não se responsabiliza por decisões financeiras tomadas com base nas projeções da plataforma.
             </p>
           </div>
         </motion.div>
@@ -235,7 +235,7 @@ export default function TermsPage() {
             <h2 className="text-xl font-black uppercase tracking-tight">8. Alterações</h2>
           </div>
           <p className="text-sm leading-relaxed text-muted-foreground font-medium">
-            Cada versão destes termos tem número e data de vigência. Quando uma versão nova passa a valer, o Fluxar mostra o que mudou e pede o seu aceite no próximo acesso, antes de liberar as outras telas.
+            Cada versão destes termos tem número e data de vigência. Quando uma versão nova passa a valer, o Azimute mostra o que mudou e pede o seu aceite no próximo acesso, antes de liberar as outras telas.
           </p>
         </motion.div>
 

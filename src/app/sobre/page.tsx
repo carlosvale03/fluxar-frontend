@@ -30,7 +30,7 @@ export default function AboutPage() {
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary/10 text-primary mb-6 shadow-xl shadow-primary/10">
           <Rocket className="h-8 w-8" />
         </div>
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase mb-4">Sobre o Fluxar</h1>
+        <h1 className="text-4xl md:text-5xl font-black tracking-tight uppercase mb-4">Sobre o Azimute</h1>
         <p className="text-lg text-muted-foreground font-medium max-w-xl mx-auto">
           Nascemos para simplificar sua vida financeira com inteligência e elegância.
         </p>
@@ -50,7 +50,7 @@ export default function AboutPage() {
               <h2 className="text-xl font-black uppercase tracking-tight">Nossa Missão</h2>
             </div>
             <p className="text-muted-foreground leading-relaxed">
-              O Fluxar foi criado para preencher o vazio entre planilhas complexas e aplicativos financeiros genéricos. 
+              O Azimute foi criado para preencher o vazio entre planilhas complexas e aplicativos financeiros genéricos. 
               Nossa missão é fornecer ferramentas de alta fidelidade que dão a você o controle total do seu dinheiro, sem fricção.
             </p>
             <p className="text-muted-foreground leading-relaxed">
@@ -93,7 +93,7 @@ export default function AboutPage() {
           ))}
         </motion.div>
 
-        {/* Por que o Fluxar? */}
+        {/* Por que o Azimute? */}
         <motion.div variants={itemVariants} className="p-10 rounded-[48px] bg-primary text-primary-foreground shadow-2xl shadow-primary/20 relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl" />
           <div className="relative z-10 max-w-2xl">
@@ -112,7 +112,7 @@ export default function AboutPage() {
 
         <motion.div variants={itemVariants} className="text-center pb-20">
           <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
-            Fluxar S.A. • Feito com ❤️ para você
+            Azimute • Feito com ❤️ para você
           </p>
         </motion.div>
       </motion.div>

@@ -65,7 +65,7 @@ describe("Assistente de planilha: contas", { timeout: 20_000 }, () => {
     await abrirContas()
 
     expect(conta("Nubank").getByRole("button", { name: "Vincular" })).toHaveAttribute("aria-pressed", "true")
-    expect(await conta("Nubank").findByRole("combobox", { name: "Conta do Fluxar para Nubank" })).toHaveTextContent("Nubank")
+    expect(await conta("Nubank").findByRole("combobox", { name: "Conta do Azimute para Nubank" })).toHaveTextContent("Nubank")
     expect(conta("Nubank").getByText("30 linhas · -R$ 1.200,00 · 02/01/2026 a 30/03/2026")).toBeInTheDocument()
 
     expect(conta("XC - Carteira").getByRole("button", { name: "Criar" })).toHaveAttribute("aria-pressed", "true")
@@ -105,7 +105,7 @@ describe("Assistente de planilha: contas", { timeout: 20_000 }, () => {
     const usuario = await abrirContas()
 
     await usuario.click(conta("XC - Carteira").getByRole("button", { name: "Vincular" }))
-    await usuario.click(conta("XC - Carteira").getByRole("combobox", { name: "Conta do Fluxar para XC - Carteira" }))
+    await usuario.click(conta("XC - Carteira").getByRole("combobox", { name: "Conta do Azimute para XC - Carteira" }))
     await usuario.click(await screen.findByRole("option", { name: "Itaú" }))
 
     await waitFor(() =>

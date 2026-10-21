@@ -606,7 +606,7 @@ export default function DashboardPage() {
             <div className="py-10 text-center">
                 <p className="text-[10px] font-black uppercase tracking-[0.4em] text-muted-foreground/30 flex items-center justify-center gap-2">
                     <Sparkles className="h-3 w-3" />
-                    Fluxar IA • Seu parceiro financeiro
+                    Azimute IA • Seu parceiro financeiro
                 </p>
             </div>
 

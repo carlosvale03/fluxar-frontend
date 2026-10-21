@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import Image from "next/image"
 import { ThemeToggle } from "@/components/theme-toggle"
+import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { 
   User, Menu, LogOut, Loader2, MoreHorizontal, 
@@ -66,8 +66,6 @@ export function Header() {
 
   const allNavItems = [...primaryNavItems, ...secondaryNavItems]
 
-  const showThemeToggle = process.env.NEXT_PUBLIC_SHOW_THEME_TOGGLE === 'true'
-
   const adminNavItems = [
     { name: "Painel Geral", href: "/admin/dashboard", icon: LayoutDashboard },
     { name: "Usuários", href: "/admin/usuarios", icon: Users },
@@ -89,27 +87,8 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center px-4">
         {/* Logo - Esquerda */}
         <div className="flex-1 flex items-center">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="relative h-10 w-40 hidden dark:block">
-               <Image 
-                src="/logo/logo-dark-clean-1630x700.png" 
-                alt="Fluxar Logo" 
-                fill
-                sizes="160px"
-                className="object-contain object-left"
-                priority
-              />
-            </div>
-            <div className="relative h-10 w-40 dark:hidden">
-               <Image 
-                src="/logo/logo-light-clean-1630x700.png" 
-                alt="Fluxar Logo" 
-                fill
-                sizes="160px"
-                className="object-contain object-left"
-                priority
-              />
-            </div>
+          <Link href="/" aria-label="Azimute, página inicial" className="flex items-center gap-2">
+            <Logo tamanho={26} />
           </Link>
         </div>
 
@@ -168,7 +147,7 @@ export function Header() {
 
         {/* Ações - Direita */}
         <div className="flex-1 flex items-center justify-end gap-4">
-          {showThemeToggle && <ThemeToggle />}
+          <ThemeToggle />
           
           <div className="hidden md:flex items-center gap-2">
             {isLoading ? (

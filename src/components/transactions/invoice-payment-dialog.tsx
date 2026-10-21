@@ -622,7 +622,6 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                 disabled={isLoading || !targetInvoiceId}
                                 className="h-14 px-12 rounded-full bg-purple-600 text-white font-black uppercase tracking-[0.2em] text-[10px] shadow-xl shadow-purple-500/20 hover:shadow-2xl hover:shadow-purple-500/30 hover:scale-105 active:scale-95 transition-all group relative overflow-hidden"
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
                                 {isLoading ? (
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                 ) : (

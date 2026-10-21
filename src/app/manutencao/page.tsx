@@ -79,7 +79,7 @@ export default function MaintenancePage() {
                 </h1>
                 
                 <p className="text-muted-foreground text-lg md:text-xl font-medium leading-relaxed mb-12 max-w-lg mx-auto">
-                    O Fluxar está passando por uma atualização de infraestrutura para garantir mais estabilidade e velocidade na sua gestão financeira.
+                    O Azimute está passando por uma atualização de infraestrutura para garantir mais estabilidade e velocidade na sua gestão financeira.
                 </p>
 
                 {/* Actions */}

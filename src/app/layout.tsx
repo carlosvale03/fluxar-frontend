@@ -30,8 +30,9 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Fluxar - Controle Financeiro",
-  description: "Gerencie suas finanças com fluxo e fluidez.",
+  title: { default: "Azimute", template: "%s · Azimute" },
+  description: "Rumo exato para o seu dinheiro.",
+  applicationName: "Azimute",
 };
 
 import { ServerWakeupOverlay } from "@/components/ui/server-wakeup-overlay";
@@ -53,7 +54,7 @@ export default function RootLayout({
       >
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="dark"
           enableSystem
           disableTransitionOnChange
         >

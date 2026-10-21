@@ -142,9 +142,9 @@ export function RevisaoDeContas({ plano, contasAtivas, erros = {}, onAlterar }: 
 
             {acao.acao === "vincular" && (
               <div className="space-y-1">
-                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta no Fluxar</Label>
+                <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">Conta no Azimute</Label>
                 <Select value={acao.id} onValueChange={(id) => trocarConta(nome, { ...acao, id }, true)}>
-                  <SelectTrigger aria-label={`Conta do Fluxar para ${nome}`} className="h-10 rounded-xl border-border/40 font-bold text-xs">
+                  <SelectTrigger aria-label={`Conta do Azimute para ${nome}`} className="h-10 rounded-xl border-border/40 font-bold text-xs">
                     <SelectValue placeholder="Escolha a conta" />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl">

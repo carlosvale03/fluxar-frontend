@@ -850,7 +850,6 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                     isIncome ? "bg-emerald-500 text-white shadow-emerald-500/20" : "bg-rose-500 text-white shadow-rose-500/20"
                                 )}
                             >
-                                <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/10 to-white/0 -translate-x-full group-hover:animate-shimmer" />
                                 {isLoading ? (
                                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                                 ) : (
