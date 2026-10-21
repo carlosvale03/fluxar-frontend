@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { toast } from "sonner"
-import { Loader2, Plus, Wallet, Landmark, Building, User, DollarSign, Palette, Sparkles, CheckCircle2 } from "lucide-react"
+import { Wallet, Landmark, Building, Palette, Check } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -205,7 +205,7 @@ export function AccountFormDialog({
           void atualizarUso()
         }
         toast.success(
-          !mudouStatus ? "Conta atualizada com sucesso!" : querAtiva ? "Conta reativada." : "Conta inativada.",
+          !mudouStatus ? "Conta atualizada." : querAtiva ? "Conta reativada." : "Conta inativada.",
         )
         setOpen?.(false)
         onSuccess?.()
@@ -227,7 +227,7 @@ export function AccountFormDialog({
 
     try {
       await api.post("/accounts/", payload)
-      toast.success("Conta criada com sucesso!")
+      toast.success("Conta criada.")
       void atualizarUso()
       setOpen?.(false)
       onSuccess?.()
@@ -243,203 +243,186 @@ export function AccountFormDialog({
     }
   }
 
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
 
-      <DialogContent className="sm:max-w-[520px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
+      <DialogContent className="overflow-hidden p-0 sm:max-w-[520px]">
         <ScrollArea className="max-h-[90vh]">
-            <div className="p-8">
-                <DialogHeader className="mb-8">
-                    <div className="flex items-center gap-4">
-                        <div 
-                            className="w-14 h-14 rounded-2xl flex items-center justify-center text-white shadow-xl transition-all duration-500 ring-4 ring-black/5 dark:ring-white/5"
-                            style={{ 
-                                backgroundColor: watchColor,
-                                boxShadow: `0 12px 24px -8px ${watchColor}80` 
-                            }}
+            <div className="p-6">
+                <DialogHeader className="mb-6">
+                    <div className="flex items-center gap-3">
+                        {/* Prévia da cor escolhida (dado do usuário, P-08) */}
+                        <span
+                            aria-hidden="true"
+                            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md border border-border bg-elevated"
+                            style={{ color: watchColor }}
                         >
-                            <Wallet className="h-7 w-7 animate-in zoom-in-50 duration-500" />
-                        </div>
+                            <Wallet className="h-5 w-5" />
+                        </span>
                         <div>
-                            <DialogTitle className="text-3xl font-black tracking-tight">
+                            <DialogTitle>
                                 {isEditing ? "Editar Conta" : "Nova Conta"}
                             </DialogTitle>
-                            <DialogDescription className="text-xs font-medium text-muted-foreground/70 mt-1">
-                                {isEditing 
-                                    ? "Aperfeiçoe os dados da sua conta financeira." 
-                                    : "Configure uma nova conexão para seu controle master."}
+                            <DialogDescription className="mt-1">
+                                {isEditing
+                                    ? "Altere os dados da conta."
+                                    : "Cadastre uma conta bancária ou carteira."}
                             </DialogDescription>
                         </div>
                     </div>
                 </DialogHeader>
-                
-                <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+
+                <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
                     {/* Seção 1: Identificação */}
-                    <div className="space-y-5">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-4 bg-primary rounded-full transition-all" />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identificação Geral</h3>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="name" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Nome amigável da conta</Label>
-                                <div className="relative group">
-                                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                                    <Input 
-                                        id="name" 
-                                        placeholder="Ex: Nubank Pessoal, Itaú Empresa..." 
-                                        {...register("name")} 
-                                        className={cn(
-                                            "h-12 pl-10 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-tight",
-                                            errors.name && "border-destructive/50 focus-visible:ring-destructive/20"
-                                        )}
-                                    />
-                                </div>
-                                {errors.name && <p className="text-[10px] font-bold text-destructive px-1">{errors.name.message}</p>}
-                            </div>
-
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Instituição</Label>
-                                    <Select 
-                                        onValueChange={(val) => setValue("institution", val)} 
-                                        value={watchInstitution || "other"}
-                                    >
-                                        <SelectTrigger className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold focus:ring-primary/20">
-                                            <div className="flex items-center gap-3">
-                                                {(!watchInstitution || watchInstitution === "other") && (
-                                                    <Building className="h-4 w-4 text-muted-foreground/40 shrink-0" />
-                                                )}
-                                                <SelectValue placeholder="Banco ou Carteira" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                            <SelectItem value="other" className="rounded-xl font-bold">Outro / Carteira</SelectItem>
-                                            <SelectGroup>
-                                                <SelectLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Principais Bancos</SelectLabel>
-                                                {BANKS.map((bank) => (
-                                                    <SelectItem key={bank.value} value={bank.value} className="rounded-xl">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-3 h-3 rounded-full ring-2 ring-black/5 dark:ring-white/10" style={{ backgroundColor: bank.color }} />
-                                                            <span className="font-bold">{bank.label}</span>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </SelectGroup>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="space-y-2">
-                                    <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Tipo de conta</Label>
-                                    <Select 
-                                        onValueChange={(val) => setValue("type", val as AccountType)} 
-                                        value={watch("type")}
-                                    >
-                                        <SelectTrigger className="h-12 rounded-2xl bg-muted/5 border-border/40 font-bold focus:ring-primary/20">
-                                            <div className="flex items-center gap-2">
-                                                <Landmark className="h-4 w-4 text-muted-foreground/40" />
-                                                <SelectValue placeholder="Tipo" />
-                                            </div>
-                                        </SelectTrigger>
-                                        <SelectContent className="rounded-2xl border-border/40 shadow-2xl">
-                                            {Object.entries(AccountTypeLabels).map(([key, label]) => (
-                                                <SelectItem key={key} value={key} className="rounded-xl font-bold">{label}</SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Seção 2: Financeiro */}
-                    <div className="space-y-5">
-                        <div className="flex items-center gap-2">
-                            <div className="w-1.5 h-4 bg-primary rounded-full" />
-                            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Financeiro & Saldo</h3>
-                        </div>
+                    <fieldset className="space-y-4">
+                        <legend className="label mb-3 text-muted-foreground">Identificação</legend>
 
                         <div className="space-y-2">
-                            <Label htmlFor="initial_balance" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Saldo inicial disponível</Label>
-                            <div className="relative group">
-                                <DollarSign className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                                <MoneyInput 
-                                    value={watch("initial_balance")}
-                                    onValueChange={(val) => setValue("initial_balance", val ?? "")}
-                                    className="h-12 pl-10 bg-muted/5 border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-tight"
-                                />
-                            </div>
-                            {errors.initial_balance && <p className="text-[10px] font-bold text-destructive px-1">{errors.initial_balance.message}</p>}
+                            <Label htmlFor="name">Nome amigável da conta</Label>
+                            <Input
+                                id="name"
+                                placeholder="Ex.: Nubank Pessoal"
+                                aria-invalid={!!errors.name}
+                                aria-describedby={errors.name ? "name-erro" : undefined}
+                                {...register("name")}
+                            />
+                            {errors.name && <p id="name-erro" className="text-xs text-outflow">{errors.name.message}</p>}
                         </div>
-                    </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="space-y-2">
+                                <Label>Instituição</Label>
+                                <Select
+                                    onValueChange={(val) => setValue("institution", val)}
+                                    value={watchInstitution || "other"}
+                                >
+                                    <SelectTrigger>
+                                        <div className="flex items-center gap-2">
+                                            {(!watchInstitution || watchInstitution === "other") && (
+                                                <Building className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                                            )}
+                                            <SelectValue placeholder="Banco ou Carteira" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="other">Outro / Carteira</SelectItem>
+                                        <SelectGroup>
+                                            <SelectLabel className="label text-muted-foreground">Principais bancos</SelectLabel>
+                                            {BANKS.map((bank) => (
+                                                <SelectItem key={bank.value} value={bank.value}>
+                                                    <div className="flex items-center gap-2">
+                                                        <span aria-hidden="true" className="h-3 w-3 rounded-full border border-border" style={{ backgroundColor: bank.color }} />
+                                                        <span>{bank.label}</span>
+                                                    </div>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectGroup>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Tipo de conta</Label>
+                                <Select
+                                    onValueChange={(val) => setValue("type", val as AccountType)}
+                                    value={watch("type")}
+                                >
+                                    <SelectTrigger>
+                                        <div className="flex items-center gap-2">
+                                            <Landmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                            <SelectValue placeholder="Tipo" />
+                                        </div>
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {Object.entries(AccountTypeLabels).map(([key, label]) => (
+                                            <SelectItem key={key} value={key}>{label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    {/* Seção 2: Financeiro */}
+                    <fieldset className="space-y-4">
+                        <legend className="label mb-3 text-muted-foreground">Saldo</legend>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="initial_balance">Saldo inicial disponível</Label>
+                            <MoneyInput
+                                id="initial_balance"
+                                value={watch("initial_balance")}
+                                onValueChange={(val) => setValue("initial_balance", val ?? "")}
+                                aria-invalid={!!errors.initial_balance}
+                                aria-describedby={errors.initial_balance ? "initial_balance-erro" : undefined}
+                            />
+                            {errors.initial_balance && <p id="initial_balance-erro" className="text-xs text-outflow">{errors.initial_balance.message}</p>}
+                        </div>
+                    </fieldset>
 
                     {/* Seção 3: Visual */}
-                    <div className="space-y-4">
-                        <button 
+                    <div className="space-y-3">
+                        <button
                             type="button"
                             onClick={() => setIsVisualOpen(!isVisualOpen)}
-                            className="flex items-center justify-between w-full group"
+                            aria-expanded={isVisualOpen}
+                            className="flex w-full cursor-pointer items-center justify-between rounded-sm"
                         >
-                            <div className="flex items-center gap-2">
-                                <div className="w-1.5 h-4 bg-primary rounded-full" />
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Identidade Visual</h3>
-                            </div>
-                            <div className="flex items-center gap-2 text-[10px] font-bold text-primary/60 group-hover:text-primary transition-colors">
+                            <span className="label text-muted-foreground">Cor da conta</span>
+                            <span className="flex items-center gap-1 text-sm text-fg-secondary transition-colors duration-fast hover:text-foreground">
                                 {isVisualOpen ? "Recolher" : "Personalizar"}
-                                {isVisualOpen ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-                            </div>
+                                {isVisualOpen ? <ChevronUp className="h-4 w-4" aria-hidden="true" /> : <ChevronDown className="h-4 w-4" aria-hidden="true" />}
+                            </span>
                         </button>
-                        
+
                         {isVisualOpen && (
-                            <div className="space-y-6 p-6 border border-border/40 rounded-[28px] bg-muted/5 backdrop-blur-sm animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="grid grid-cols-4 sm:grid-cols-8 gap-4">
+                            <div className="space-y-4 rounded-lg border border-border p-4">
+                                <div className="grid grid-cols-8 gap-2">
                                     {PRESET_COLORS.map((color) => {
                                         const isSelected = watchColor === color
                                         return (
                                             <button
                                                 key={color}
                                                 type="button"
+                                                aria-label={`Cor ${color}`}
+                                                aria-pressed={isSelected}
                                                 className={cn(
-                                                    "w-10 h-10 rounded-xl transition-all duration-300 cursor-pointer relative group flex items-center justify-center",
-                                                    isSelected ? "scale-110 shadow-lg" : "hover:scale-110 hover:shadow-md opacity-80 hover:opacity-100"
+                                                    "relative flex h-8 w-8 cursor-pointer items-center justify-center rounded-md transition-transform duration-fast ease-az-out hover:scale-110",
+                                                    isSelected && "ring-2 ring-ring ring-offset-2 ring-offset-background"
                                                 )}
-                                                style={{ 
-                                                    backgroundColor: color,
-                                                    boxShadow: isSelected ? `0 12px 24px -10px ${color}cc, 0 4px 10px -4px ${color}80` : undefined,
-                                                    outline: isSelected ? `2px solid ${color}40` : 'none',
-                                                    outlineOffset: '3px'
-                                                }}
+                                                style={{ backgroundColor: color }}
                                                 onClick={() => setValue("color", color)}
                                             >
                                                 {isSelected && (
-                                                    <CheckCircle2 className="h-4 w-4 text-white/80 drop-shadow-sm" />
+                                                    <Check className="h-4 w-4 rounded-full bg-background p-0.5 text-foreground" aria-hidden="true" />
                                                 )}
                                             </button>
                                         )
                                     })}
                                 </div>
-                                
-                                <div className="flex flex-col sm:flex-row items-center gap-5 pt-6 border-t border-border/10">
-                                    <div className="flex items-center gap-3 w-full sm:w-auto shrink-0">
-                                        <Palette className="h-4 w-4 text-muted-foreground/30" />
-                                        <span className="text-[10px] font-black uppercase text-muted-foreground/50 tracking-[0.2em]">Cor Customizada</span>
-                                    </div>
-                                    
-                                    <div className="flex items-center gap-4 w-full flex-1">
-                                        <Input 
-                                            type="color" 
-                                            className="w-12 h-12 p-0 border-0 rounded-2xl cursor-pointer overflow-hidden transition-all duration-300 hover:scale-110 hover:rotate-3 bg-transparent" 
-                                            value={watchColor || "#000000"} 
-                                            onChange={(e) => setValue("color", e.target.value)} 
+
+                                <div className="flex flex-col items-start gap-3 border-t border-border pt-4 sm:flex-row sm:items-center">
+                                    <Label htmlFor="cor-personalizada" className="flex shrink-0 items-center gap-2 text-sm text-fg-secondary">
+                                        <Palette className="h-4 w-4" aria-hidden="true" />
+                                        Cor personalizada
+                                    </Label>
+
+                                    <div className="flex w-full flex-1 items-center gap-3">
+                                        <Input
+                                            type="color"
+                                            aria-label="Escolher cor"
+                                            className="h-9 w-12 cursor-pointer p-1"
+                                            value={watchColor || "#000000"}
+                                            onChange={(e) => setValue("color", e.target.value)}
                                         />
-                                        <Input 
-                                            placeholder="#HEXADECIMAL" 
+                                        <Input
+                                            id="cor-personalizada"
+                                            placeholder="#HEXADECIMAL"
                                             value={watchColor}
                                             onChange={(e) => setValue("color", e.target.value)}
-                                            className="flex-1 h-12 font-mono text-sm uppercase bg-card border-border/40 rounded-2xl focus-visible:ring-primary/20 transition-all font-bold tracking-wider" 
+                                            className="flex-1 font-mono uppercase"
                                             maxLength={7}
                                         />
                                     </div>
@@ -450,40 +433,22 @@ export function AccountFormDialog({
 
                     {/* SALDO-54: inativar e reativar valem só para uma conta que já existe */}
                     {isEditing && (
-                    <div className="flex items-center justify-between p-5 rounded-[24px] bg-muted/5 border border-border/20 group hover:border-primary/20 transition-all duration-500">
-                        <div className="flex items-center gap-3">
-                            <div className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500",
-                                watch("is_active") ? "bg-primary/10 text-primary shadow-sm" : "bg-muted/20 text-muted-foreground/40"
-                            )}>
-                                <CheckCircle2 className="h-5 w-5" />
-                            </div>
-                            <div className="space-y-0.5">
-                                <Label htmlFor="is_active" className="text-sm font-black tracking-tight cursor-pointer">Conta ativa</Label>
-                                <p className="text-[10px] text-muted-foreground/60 font-medium">Inativar tira a conta das listas e dos totais. O histórico continua.</p>
-                            </div>
+                    <div className="flex items-center justify-between gap-4 rounded-lg border border-border p-4">
+                        <div className="space-y-0.5">
+                            <Label htmlFor="is_active" className="cursor-pointer text-sm font-semibold">Conta ativa</Label>
+                            <p className="text-xs text-muted-foreground">Inativar tira a conta das listas e dos totais. O histórico continua.</p>
                         </div>
-                        <Switch 
-                            id="is_active" 
+                        <Switch
+                            id="is_active"
                             checked={!!watch("is_active")}
                             onCheckedChange={(checked) => setValue("is_active", checked)}
-                            className="data-[state=checked]:bg-primary shadow-sm"
                         />
                     </div>
                     )}
 
-                    <DialogFooter className="pt-4">
-                        <Button 
-                            type="submit" 
-                            disabled={isLoading}
-                            className="w-full sm:w-auto h-14 px-12 rounded-full bg-primary text-primary-foreground font-black uppercase tracking-[0.2em] shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group relative overflow-hidden"
-                        >
-                            {isLoading ? (
-                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            ) : (
-                                <Sparkles className="mr-2 h-5 w-5" />
-                            )}
-                            {isEditing ? "Salvar Alterações" : "Criar Conta Premium"}
+                    <DialogFooter>
+                        <Button type="submit" loading={isLoading} className="w-full sm:w-auto">
+                            {isEditing ? "Salvar Alterações" : "Criar conta"}
                         </Button>
                     </DialogFooter>
                 </form>
