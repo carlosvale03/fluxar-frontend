@@ -1,30 +1,31 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { format, getDaysInMonth, parseISO, differenceInDays } from "date-fns"
+import { useState, useEffect, type ReactNode } from "react"
+import { format, parseISO, differenceInDays } from "date-fns"
 import { lerData } from "@/lib/datas"
 import { ptBR } from "date-fns/locale"
 import { getSimpleCharts, getAdvancedCharts, getMonthlyComparison, getDashboardSummary, getTagDistribution } from "@/services/reports"
 import { SimpleChartsReport, AdvancedChartsReport, MonthlyComparisonData, DashboardReport, TagDistributionReport } from "@/types/reports"
 import { MonthlyComparisonChart } from "@/components/dashboard/MonthlyComparisonChart"
 import { DailyCashFlowChart } from "@/components/dashboard/DailyCashFlowChart"
-import { useAuth } from "@/contexts/auth-context"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
+import { CaixaDoTooltip, Granularidade, ItemDaLegenda, LinhaDoTooltip } from "@/components/dashboard/partes-do-grafico"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { CategoryDistributionChart } from "@/components/dashboard/CategoryDistributionChart"
 import { ClassDistributionChart } from "@/components/dashboard/ClassDistributionChart"
 import { TagDistributionChart } from "@/components/dashboard/TagDistributionChart"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AccountFormDialog } from "@/components/accounts/account-form-dialog"
 import { AccountType } from "@/types/accounts"
-import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-    LineChart, Line, AreaChart, Area,
+import {
+    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    LineChart, Line,
     PieChart, Pie, Cell
 } from 'recharts'
-import { Lock, Sparkles, TrendingUp, Wallet, Calendar, Filter, Zap, Brain, ShieldCheck, Target, Activity, Clock, ArrowUpRight, ArrowDownRight, BarChart3, PieChart as PieIcon, Eye, Plus, Search, Trash2, Tag as TagIcon, TrendingDown } from "lucide-react"
+import { Lock, Sparkles, TrendingUp, Wallet, Calendar, ShieldCheck, Target, Activity, Clock, PieChart as PieIcon, Eye, Plus, Search, Trash2, Tag as TagIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FocusSelectionModal } from "@/components/reports/focus-selection-modal"
 import { deleteFocusedMonitor } from "@/services/focused-monitors"
@@ -32,12 +33,24 @@ import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { HelpInfo } from "@/components/ui/help-info"
+import { HelpTopic } from "@/constants/help-texts"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
-import { CORES_DAS_SERIES, PROPS_DA_GRADE } from "@/lib/graficos"
+import {
+    COR_DE_ENTRADA,
+    COR_DE_SAIDA,
+    COR_DO_PREVISTO,
+    CURSOR_DO_TOOLTIP,
+    PONTO_ATUAL,
+    PROPS_DA_GRADE,
+    PROPS_DO_EIXO,
+    corDaSerie,
+} from "@/lib/graficos"
 import { tratarErro } from "@/lib/erros"
 import { formatarTaxa, percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { NAVEGACAO_PRINCIPAL } from "@/components/layout/navegacao"
 import { ErroDoBloco } from "@/components/reports/erro-do-bloco"
 import { GastosPuxados } from "@/components/reports/GastosPuxados"
 
@@ -45,8 +58,59 @@ import { GastosPuxados } from "@/components/reports/GastosPuxados"
 // a conversão é só para plotar
 const numero = (valor: string | undefined) => paraCentavos(valor) / 100
 
+// Título e linha de apoio da página vêm da navegação (PRODUCT.md §3)
+const PAGINA = NAVEGACAO_PRINCIPAL.find((item) => item.href === "/relatorios")!
+
+const PERIODOS = [
+    { label: "Mês", value: "this_month" },
+    { label: "30 dias", value: "last_30_days" },
+    { label: "90 dias", value: "last_90_days" },
+    { label: "6 meses", value: "last_6_months" },
+    { label: "Ano", value: "this_year" },
+]
+
+// Séries de categoria (DESIGN.md §3.4), fora do ouro, que marca a ação
+const COR_DOS_FIXOS = corDaSerie(1)
+const COR_DOS_VARIAVEIS = corDaSerie(2)
+const COR_DOS_HABITOS = corDaSerie(1)
+
+// A situação do monitor em texto e cor; a cor nunca vem sozinha
+const SITUACAO_DO_MONITOR: Record<string, { texto: string; cor: string; barra: string }> = {
+    success: { texto: "Econômico", cor: "text-inflow", barra: "bg-inflow" },
+    warning: { texto: "Atenção", cor: "text-warn", barra: "bg-warn" },
+    error: { texto: "Crítico", cor: "text-outflow", barra: "bg-outflow" },
+}
+
+const VARIANTE_DO_RISCO: Record<string, "info" | "warning" | "destructive"> = {
+    Baixa: "info",
+    Média: "warning",
+    Alta: "destructive",
+}
+
+interface IndicadorProps {
+    titulo: string
+    ajuda: HelpTopic
+    rodape: ReactNode
+    children: ReactNode
+}
+
+// Indicador estático dos avançados: rótulo, valor em mono e uma linha de apoio
+function Indicador({ titulo, ajuda, rodape, children }: IndicadorProps) {
+    return (
+        <Card className="flex flex-col justify-between gap-4 p-5">
+            <div className="space-y-2">
+                <div className="flex items-center gap-1.5">
+                    <p className="label text-muted-foreground">{titulo}</p>
+                    <HelpInfo topic={ajuda} />
+                </div>
+                <div className="flex flex-wrap items-baseline gap-2">{children}</div>
+            </div>
+            <div className="border-t border-border pt-3 text-xs text-muted-foreground">{rodape}</div>
+        </Card>
+    )
+}
+
 export default function ReportsPage() {
-    const { user } = useAuth()
     const [simpleData, setSimpleData] = useState<SimpleChartsReport | null>(null)
     const [advancedData, setAdvancedData] = useState<AdvancedChartsReport | null>(null)
     const [summaryData, setSummaryData] = useState<DashboardReport | null>(null)
@@ -204,9 +268,9 @@ export default function ReportsPage() {
     useEffect(() => {
         if (simpleData?.income_vs_expense && simpleData.income_vs_expense.length > 0) {
             // Pegar o último mês disponível por padrão
-            const lastDate = (simpleData.income_vs_expense as any[])
+            const lastDate = simpleData.income_vs_expense
                 .filter(d => d.full_date)
-                .map(d => d.full_date)
+                .map(d => d.full_date!)
                 .sort()
                 .pop();
             
@@ -218,76 +282,53 @@ export default function ReportsPage() {
     }, [simpleData])
 
     const availableDailyMonths = Array.from(new Set(
-        (simpleData?.income_vs_expense as any[])?.filter(d => d.full_date).map(d => d.full_date.substring(0, 7)) || []
+        simpleData?.income_vs_expense?.filter(d => d.full_date).map(d => d.full_date!.substring(0, 7)) || []
     )).sort();
 
-
-
-    const COLORS = CORES_DAS_SERIES
+    // O período fica sempre à vista no cabeçalho; cada botão diz se está ativo
+    const seletorDePeriodo = (
+        <div role="group" aria-label="Período" className="flex items-center gap-0.5 overflow-x-auto rounded-md border border-border bg-card p-0.5 no-scrollbar">
+            {PERIODOS.map((p) => (
+                <button
+                    key={p.value}
+                    type="button"
+                    aria-pressed={period === p.value}
+                    onClick={() => setPeriod(p.value)}
+                    className={cn(
+                        "h-8 shrink-0 cursor-pointer whitespace-nowrap rounded-sm px-3 text-sm transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        period === p.value
+                            ? "bg-elevated font-semibold text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]"
+                            : "text-fg-secondary hover:bg-elevated hover:text-foreground"
+                    )}
+                >
+                    {p.label}
+                </button>
+            ))}
+        </div>
+    )
 
     return (
-        <div className="container mx-auto py-6 sm:py-10 px-0 sm:px-4 max-w-7xl space-y-8 animate-in fade-in duration-700">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="px-4 sm:px-0">
-                    <h1 className="text-2xl sm:text-3xl font-black tracking-tight flex items-center gap-3">
-                        Relatórios e Gráficos
-                    </h1>
-                    <p className="text-sm sm:text-base text-muted-foreground mt-1 text-balance">Análise detalhada do seu comportamento financeiro.</p>
-                </div>
-
-                <div className="mx-4 sm:mx-0 relative flex items-center p-1 bg-card border border-border/60 rounded-full shadow-md group/filter transition-all duration-300 hover:border-primary/20 overflow-x-auto no-scrollbar scroll-smooth">
-                    <div className="absolute inset-1 z-0 pointer-events-none">
-                        <div 
-                            className="h-full bg-primary shadow-lg shadow-primary/20 rounded-full transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
-                            style={{
-                                width: `${100 / 5}%`,
-                                transform: `translateX(${["this_month", "last_30_days", "last_90_days", "last_6_months", "this_year"].indexOf(period) * 100}%)`,
-                            }}
-                        />
-                    </div>
-                    {[
-                        { label: "Mês", mobileLabel: "Mês", value: "this_month" },
-                        { label: "30 Dias", mobileLabel: "30D", value: "last_30_days" },
-                        { label: "90 Dias", mobileLabel: "90D", value: "last_90_days" },
-                        { label: "6 Meses", mobileLabel: "6M", value: "last_6_months" },
-                        { label: "Ano", mobileLabel: "Ano", value: "this_year" },
-                    ].map((p) => (
-                        <button 
-                            key={p.value}
-                            onClick={() => setPeriod(p.value)}
-                            className={cn(
-                                "relative z-10 flex-1 px-3 sm:px-4 py-2.5 text-[9px] sm:text-xs font-black uppercase tracking-[0.1em] transition-all duration-500 rounded-[20px] whitespace-nowrap cursor-pointer min-w-[60px] sm:min-w-fit",
-                                period === p.value 
-                                    ? "text-primary-foreground scale-105" 
-                                    : "text-muted-foreground hover:text-primary opacity-60 hover:opacity-100"
-                            )}
-                        >
-                            <span className="hidden sm:inline">{p.label}</span>
-                            <span className="sm:hidden">{p.mobileLabel}</span>
-                        </button>
-                    ))}
-                </div>
-            </div>
+        <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-6 md:px-6 md:py-8">
+            <CabecalhoDePagina titulo={PAGINA.nome} apoio={PAGINA.apoio} periodo={seletorDePeriodo} />
 
             <Tabs value={activeTab} className="w-full" onValueChange={(val) => {
                 setActiveTab(val)
             }}>
-                <TabsList className="grid w-full max-w-[400px] grid-cols-2 bg-muted/30 p-1 rounded-2xl h-12">
-                    <TabsTrigger value="simple" className="rounded-xl font-bold text-sm data-[state=active]:bg-background data-[state=active]:shadow-md transition-all">
+                <TabsList className="grid w-full max-w-[400px] grid-cols-2">
+                    <TabsTrigger value="simple">
                         Fundamentais
                     </TabsTrigger>
-                    <TabsTrigger value="advanced" className="rounded-xl font-bold text-sm data-[state=active]:bg-background data-[state=active]:shadow-md transition-all flex items-center gap-2">
-                        Avançados {avancados === false && <Lock className="h-3 w-3 opacity-50" />}
+                    <TabsTrigger value="advanced" className="gap-2">
+                        Avançados {avancados === false && <Lock className="h-3.5 w-3.5" aria-hidden="true" />}
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="simple" className="mt-8 space-y-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {/* Restore Daily Cash Flow */}
+                <TabsContent value="simple" className="mt-6 space-y-6">
+                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         {erroSimple ? (
                             <ErroDoBloco titulo="Fluxo e categorias" onTentarDeNovo={fetchSimple} />
                         ) : (
-                        <DailyCashFlowChart 
+                        <DailyCashFlowChart
                             data={simpleData?.income_vs_expense || []}
                             isLoading={isLoadingSimple}
                             showMonthSelector={true}
@@ -297,30 +338,26 @@ export default function ReportsPage() {
                         />
                         )}
 
-
-
-                        {/* Restoration: Monthly Comparison */}
                         <RecursoBloqueado chave="comparacao_mensal" titulo="Comparação mensal" className="lg:col-span-2">
                         {erroComparison ? (
                             <ErroDoBloco titulo="Comparação mensal" onTentarDeNovo={fetchComparison} />
                         ) : isLoadingComparison ? (
                             <>
-                                <Skeleton className="h-[350px] w-full rounded-[32px]" />
-                                <Skeleton className="h-[350px] w-full rounded-[32px] lg:col-span-2" />
+                                <Skeleton className="h-[350px] w-full" />
+                                <Skeleton className="h-[350px] w-full lg:col-span-2" />
                             </>
                         ) : (
                         <>
-                        <MonthlyComparisonChart 
-                            data={monthlyComparison} 
+                        <MonthlyComparisonChart
+                            data={monthlyComparison}
                             title="Balanço por Mês"
                             description="Ganhos vs Gastos Histórico"
                             variant="bars"
                             height={350}
                         />
 
-                        {/* Balance Evolution Line */}
-                        <MonthlyComparisonChart 
-                            data={monthlyComparison} 
+                        <MonthlyComparisonChart
+                            data={monthlyComparison}
                             title="Evolução de Saldo"
                             description="Receita - Despesa acumulada"
                             variant="line"
@@ -333,13 +370,12 @@ export default function ReportsPage() {
 
                         {!erroSimple && (
                         <>
-                        <CategoryDistributionChart 
+                        <CategoryDistributionChart
                             title="Distribuição de Gastos"
                             description="Percentual por categoria"
                             data={simpleData?.expense_by_category || []}
                             isLoading={isLoadingSimple}
                             icon={Wallet}
-                            iconColor="text-blue-500"
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />
@@ -360,7 +396,6 @@ export default function ReportsPage() {
                             data={simpleData?.income_by_category || []}
                             isLoading={isLoadingSimple}
                             icon={Sparkles}
-                            iconColor="text-emerald-500"
                             className="lg:col-span-2"
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
@@ -373,24 +408,22 @@ export default function ReportsPage() {
                             <ErroDoBloco titulo="Análise por tag" onTentarDeNovo={fetchTagDistribution} className="lg:col-span-2" />
                         ) : (
                         <>
-                        <TagDistributionChart 
+                        <TagDistributionChart
                             title="Despesas por Tag"
                             description="Distribuição de gastos por etiqueta"
                             data={tagData?.expense_by_tag || []}
                             isLoading={isLoadingTags}
                             icon={TagIcon}
-                            iconColor="text-rose-500"
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />
 
-                        <TagDistributionChart 
+                        <TagDistributionChart
                             title="Ganhos por Tag"
                             description="Origem das receitas por etiqueta"
                             data={tagData?.income_by_tag || []}
                             isLoading={isLoadingTags}
                             icon={TagIcon}
-                            iconColor="text-emerald-500"
                             startDate={advancedData?.period?.start_date}
                             endDate={advancedData?.period?.end_date}
                         />
@@ -405,421 +438,325 @@ export default function ReportsPage() {
                     </div>
                 </TabsContent>
 
-                <TabsContent value="advanced" className="mt-8 space-y-8">
+                <TabsContent value="advanced" className="mt-6 space-y-6">
                     <RecursoBloqueado chave="relatorios_avancados" titulo="Relatórios avançados">
-                        <div className="space-y-8">
-                            {/* ELITE KPI ROW */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="space-y-6">
+                            {/* Indicadores dos avançados */}
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
                                 {erroSummary ? (
                                     <ErroDoBloco titulo="Saúde financeira" onTentarDeNovo={fetchSummary} className="lg:col-span-3" />
                                 ) : (
                                 <>
-                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
-                                    <div>
-                                        <div className="flex items-center gap-1.5 mb-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Poder de Aporte</p>
-                                            <HelpInfo topic="SAVINGS_RATE" />
-                                        </div>
-                                        <div className="flex items-baseline gap-2">
-                                            <h3 className="text-2xl font-black">
-                                                {isLoadingSummary ? "..." : formatarTaxa(summaryData?.summary.savings_rate)}
-                                            </h3>
-                                            <Badge className="bg-emerald-500/10 text-emerald-600 border border-emerald-200 dark:border-emerald-900/50 rounded-full text-[10px] font-black uppercase tracking-widest px-2 h-auto py-0.5">Saudável</Badge>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-border/10 flex items-center justify-between">
-                                        <span className="text-[10px] font-bold text-muted-foreground">vs média anual</span>
-                                        <TrendingUp className="h-4 w-4 text-emerald-500" />
-                                    </div>
-                                </div>
+                                <Indicador titulo="Poder de Aporte" ajuda="SAVINGS_RATE" rodape="vs média anual">
+                                    <span className="value-l">
+                                        {isLoadingSummary ? "..." : formatarTaxa(summaryData?.summary.savings_rate)}
+                                    </span>
+                                    <Badge variant="success">Saudável</Badge>
+                                </Indicador>
 
-                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
-                                    <div>
-                                        <div className="flex items-center gap-1.5 mb-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Liquidez Imediata</p>
-                                            <HelpInfo topic="LIQUIDITY_RATIO" />
-                                        </div>
-                                        <div className="flex items-baseline gap-2">
-                                            <h3 className="text-2xl font-black">
-                                                {isLoadingSummary ? "..." : formatarMoeda(summaryData?.summary.total_liquid_balance)}
-                                            </h3>
-                                            <span className="text-[10px] bg-blue-500/10 text-blue-600 border border-blue-200 dark:border-blue-900/50 rounded-full px-2 py-0.5 font-black uppercase tracking-widest">Reserva OK</span>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-border/10">
-                                        <div className="w-full bg-muted/30 h-1 rounded-full overflow-hidden">
-                                            <div 
-                                                className="bg-blue-500 h-full transition-all duration-1000" 
-                                                style={{ width: `${Math.min(((summaryData?.summary.liquidity_ratio ?? 0) / 6) * 100, 100)}%` }} 
+                                <Indicador
+                                    titulo="Liquidez Imediata"
+                                    ajuda="LIQUIDITY_RATIO"
+                                    rodape={
+                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated">
+                                            <div
+                                                className="h-full rounded-full bg-info"
+                                                style={{ width: `${Math.min(((summaryData?.summary.liquidity_ratio ?? 0) / 6) * 100, 100)}%` }}
                                             />
                                         </div>
-                                    </div>
-                                </div>
+                                    }
+                                >
+                                    <span className="value-l">
+                                        {isLoadingSummary ? "..." : formatarMoeda(summaryData?.summary.total_liquid_balance)}
+                                    </span>
+                                    <Badge variant="info">Reserva OK</Badge>
+                                </Indicador>
 
-                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
-                                    <div>
-                                        <div className="flex items-center gap-1.5 mb-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Score de Saúde</p>
-                                            <HelpInfo topic="FINANCIAL_SCORE" />
-                                        </div>
-                                        <div className="flex items-baseline gap-2">
-                                            <h3 className="text-2xl font-black text-emerald-500">
-                                                {isLoadingSummary ? "..." : `${summaryData?.summary.financial_score ?? 0}/100`}
-                                            </h3>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-border/10">
-                                        <span className="text-[10px] font-black uppercase text-emerald-500/60 tracking-wider">
-                                            { (summaryData?.summary.financial_score ?? 0) > 80 ? "Perfil Investidor Alpha" : "Em Evolução" }
-                                        </span>
-                                    </div>
-                                </div>
+                                <Indicador
+                                    titulo="Score de Saúde"
+                                    ajuda="FINANCIAL_SCORE"
+                                    rodape={(summaryData?.summary.financial_score ?? 0) > 80 ? "Perfil Investidor Alpha" : "Em Evolução"}
+                                >
+                                    <span className="value-l">
+                                        {isLoadingSummary ? "..." : `${summaryData?.summary.financial_score ?? 0}/100`}
+                                    </span>
+                                </Indicador>
                                 </>
                                 )}
 
-                                <div className="bg-card border border-border/60 p-6 rounded-2xl shadow-md flex flex-col justify-between group hover:border-primary/20 hover:shadow-lg transition-all duration-300">
-                                    <div>
-                                        <div className="flex items-center gap-1.5 mb-2">
-                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-60">Próximo Grande Gasto</p>
-                                            <HelpInfo topic="NEXT_BIG_EXPENSE" />
-                                        </div>
-                                        <div className="flex items-baseline gap-2">
-                                            <h3 className="text-2xl font-black text-amber-500">
-                                                {advancedData?.next_big_expense ? formatarMoeda(advancedData.next_big_expense.amount) : "---"}
-                                            </h3>
-                                        </div>
-                                    </div>
-                                    <div className="mt-4 pt-4 border-t border-border/10">
-                                        <span className="text-[10px] font-bold text-muted-foreground">
-                                            {advancedData?.next_big_expense 
-                                                ? `Previsão: ${format(lerData(advancedData.next_big_expense.date), 'dd/MM/yyyy')}`
-                                                : "Nenhuma previsão de alto valor"
-                                            }
-                                        </span>
-                                    </div>
-                                </div>
+                                <Indicador
+                                    titulo="Próximo Grande Gasto"
+                                    ajuda="NEXT_BIG_EXPENSE"
+                                    rodape={advancedData?.next_big_expense
+                                        ? `Previsão: ${format(lerData(advancedData.next_big_expense.date), 'dd/MM/yyyy')}`
+                                        : "Nenhuma previsão de alto valor"}
+                                >
+                                    <span className="value-l">
+                                        {advancedData?.next_big_expense ? formatarMoeda(advancedData.next_big_expense.amount) : "—"}
+                                    </span>
+                                </Indicador>
                             </div>
 
                             {erroAdvanced ? (
                                 <ErroDoBloco titulo="Relatórios avançados" onTentarDeNovo={fetchAdvanced} />
                             ) : (
                             <>
-                            {/* INVESTMENTS SECTION */}
-                            <div className="grid grid-cols-1 gap-8 pt-4">
-                                <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
-                                    <CardHeader className="p-8 pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                                                    <Target className="h-6 w-6" />
-                                                </div>
-                                                <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <CardTitle className="text-2xl font-black tracking-tight">Análise Patrimonial</CardTitle>
-                                                        <HelpInfo topic="INVESTMENT_ANALYSIS" iconClassName="h-4 w-4" />
-                                                    </div>
-                                                    <CardDescription>
-                                                        Consolidação automática de contas do tipo 
-                                                        <Badge variant="secondary" className="font-mono text-[10px] ml-1">investimento</Badge>
-                                                        {advancedData?.investment_analysis?.has_investments_account && (
-                                                            <span className="text-emerald-500 ml-2 font-bold flex items-center gap-1 inline-flex">
-                                                                <ShieldCheck className="h-3 w-3" /> Monitorando {advancedData.investment_analysis.asset_allocation.length} contas
-                                                            </span>
-                                                        )}
-                                                    </CardDescription>
-                                                </div>
-                                            </div>
-                                            {!advancedData?.investment_analysis?.has_investments_account && (
-                                                <AccountFormDialog 
-                                                    defaultType={AccountType.INVESTMENT}
-                                                    onSuccess={recarregarInvestimentos}
-                                                    trigger={
-                                                        <Button size="sm" className="rounded-xl font-black text-xs gap-2">
-                                                            <Plus className="h-4 w-4" /> Criar Conta de Investimento
-                                                        </Button>
-                                                    }
-                                                />
-                                            )}
+                            {/* Análise Patrimonial */}
+                            <Card>
+                                <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                            <CardTitle><h2>Análise Patrimonial</h2></CardTitle>
+                                            <HelpInfo topic="INVESTMENT_ANALYSIS" />
                                         </div>
-                                    </CardHeader>
-                                    <CardContent className="p-8">
-                                        {!advancedData?.investment_analysis?.has_investments_account ? (
-                                            <div className="flex flex-col items-center justify-center py-12 text-center space-y-4 bg-muted/5 rounded-[32px] border border-dashed border-border/40">
-                                                <div className="w-16 h-16 rounded-full bg-muted/20 flex items-center justify-center text-muted-foreground/40">
-                                                    <Search className="h-8 w-8" />
-                                                </div>
-                                                <div className="max-w-md px-6">
-                                                    <h4 className="text-lg font-black">Nenhuma conta de investimento ativa</h4>
-                                                    <p className="text-sm text-muted-foreground mt-2">
-                                                        Cadastre suas contas da corretora ou banco (tipo **Investimento**) para separar seus aportes patrimoniais do seu fluxo de caixa mensal.
-                                                    </p>
-                                                    <AccountFormDialog 
-                                                        defaultType={AccountType.INVESTMENT}
-                                                        onSuccess={recarregarInvestimentos}
-                                                        trigger={
-                                                            <Button variant="outline" className="rounded-xl font-bold mt-4">Configurar Contas Agora</Button>
-                                                        }
-                                                    />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                                {/* PIE ALLOCATION */}
-                                                <div className="lg:col-span-1 space-y-6">
-                                                    <div className="h-[250px] relative" style={{ minWidth: 0 }}>
-                                                        {(!advancedData.investment_analysis.asset_allocation || advancedData.investment_analysis.asset_allocation.length === 0) ? (
-                                                            <ChartEmptyState 
-                                                                type="pie" 
-                                                                height="100%" 
-                                                                title="Alocação"
-                                                                description="Dados de ativos."
-                                                                icon={PieIcon}
-                                                            />
-                                                        ) : (
-                                                            <>
-                                                                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                                    <PieChart>
-                                                                            <Pie
-                                                                                data={advancedData.investment_analysis.asset_allocation.map(a => ({ ...a, value: numero(a.value) }))}
-                                                                                innerRadius={70}
-                                                                                outerRadius={activePieIndex !== null ? 95 : 90}
-                                                                                paddingAngle={8}
-                                                                                dataKey="value"
-                                                                                onMouseEnter={(_: any, index: number) => setActivePieIndex(index)}
-                                                                                onMouseLeave={() => setActivePieIndex(null)}
-                                                                                animationBegin={0}
-                                                                                animationDuration={800}
-                                                                            >
-                                                                                {advancedData.investment_analysis.asset_allocation.map((entry, index) => (
-                                                                                    <Cell 
-                                                                                        key={`cell-${index}`} 
-                                                                                        fill={entry.color} 
-                                                                                        stroke="none" 
-                                                                                        style={{ 
-                                                                                            filter: activePieIndex === index ? `drop-shadow(0 0 12px ${entry.color}44)` : 'none',
-                                                                                            transition: 'all 0.3s ease'
-                                                                                        }}
-                                                                                    />
-                                                                                ))}
-                                                                            </Pie>
-                                                                            <Tooltip content={() => null} />
-                                                                    </PieChart>
-                                                                </ResponsiveContainer>
-                                                                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none w-[120px]">
-                                                                    <div className="flex flex-col animate-in fade-in zoom-in duration-300">
-                                                                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60 transition-all">
-                                                                            {activePieIndex !== null 
-                                                                                ? advancedData.investment_analysis.asset_allocation[activePieIndex].name 
-                                                                                : "Total Investido"
-                                                                            }
-                                                                        </span>
-                                                                        <span className={cn(
-                                                                            "text-lg font-black transition-all",
-                                                                            activePieIndex !== null ? "text-foreground scale-110" : "text-primary"
-                                                                        )}>
-                                                                            {formatarMoeda(
-                                                                                activePieIndex !== null 
-                                                                                    ? advancedData.investment_analysis.asset_allocation[activePieIndex].value 
-                                                                                    : advancedData?.investment_analysis?.total_invested
-                                                                            )}
-                                                                        </span>
-                                                                    </div>
-                                                                </div>
-                                                            </>
-                                                        )}
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        {advancedData.investment_analysis.asset_allocation.map((item, i) => (
-                                                            <div key={i} className="flex items-center justify-between p-3 rounded-2xl bg-muted/20 border border-border/10">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                                                    <span className="text-xs font-bold">{item.name}</span>
-                                                                </div>
-                                                                <span className="text-xs font-black">{formatarMoeda(item.value)}</span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* EVOLUTION LINE */}
-                                                <div className="lg:col-span-2 space-y-4">
-                                                    <div className="flex items-center justify-between">
-                                                        <h4 className="text-sm font-black uppercase tracking-widest text-muted-foreground/60">Aportes vs Performance</h4>
-                                                    </div>
-                                                    <div className="h-[350px] bg-card border border-border/60 rounded-[32px] p-6 shadow-sm overflow-hidden" style={{ minWidth: 0 }}>
-                                                        {(!advancedData.investment_analysis.monthly_history || advancedData.investment_analysis.monthly_history.length === 0) ? (
-                                                            <ChartEmptyState 
-                                                                type="bar" 
-                                                                height="100%" 
-                                                                title="Histórico de Patrimônio"
-                                                                description="Seus aportes e resgates aparecerão aqui."
-                                                                icon={TrendingUp}
-                                                            />
-                                                        ) : (
-                                                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                                            <BarChart data={advancedData.investment_analysis.monthly_history.map(m => ({ ...m, contribution: numero(m.contribution), returns: numero(m.returns) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                                <CartesianGrid {...PROPS_DA_GRADE} />
-                                                                <XAxis 
-                                                                    dataKey="month" 
-                                                                    axisLine={false} 
-                                                                    tickLine={false} 
-                                                                    fontSize={10} 
-                                                                    dy={10} 
-                                                                    tick={{ fill: 'currentColor', opacity: 0.5 }}
-                                                                />
-                                                                <YAxis hide />
-                                                                <Tooltip 
-                                                                    cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                                                                    content={({ active, payload, label }: any) => {
-                                                                        if (active && payload && payload.length) {
-                                                                            return (
-                                                                                <div className="z-50 bg-background/95 backdrop-blur-xl border border-border/50 p-2 sm:p-3 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
-                                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1.5">{label}</p>
-                                                                                    <div className="space-y-1">
-                                                                                        <div className="flex items-center justify-between gap-6">
-                                                                                            <div className="flex items-center gap-1.5">
-                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                                                                                <span className="text-[10px] font-bold text-blue-500">Aporte:</span>
-                                                                                            </div>
-                                                                                            <span className="text-[10px] font-black">{formatarMoeda(payload[0].value)}</span>
-                                                                                        </div>
-                                                                                        <div className="flex items-center justify-between gap-6">
-                                                                                            <div className="flex items-center gap-1.5">
-                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                                                                                <span className="text-[10px] font-bold text-amber-500">Resgate:</span>
-                                                                                            </div>
-                                                                                            <span className="text-[10px] font-black">{formatarMoeda(payload[1].value)}</span>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            )
-                                                                        }
-                                                                        return null
-                                                                    }}
-                                                                />
-                                                                <Bar 
-                                                                    dataKey="contribution" 
-                                                                    name="Aportes" 
-                                                                    fill="var(--az-inflow)" 
-                                                                    radius={[6, 6, 0, 0]} 
-                                                                    barSize={12}
-                                                                />
-                                                                <Bar 
-                                                                    dataKey="returns" 
-                                                                    name="Resgates" 
-                                                                    fill="var(--az-outflow)" 
-                                                                    radius={[6, 6, 0, 0]} 
-                                                                    barSize={12}
-                                                                />
-                                                            </BarChart>
-                                                        </ResponsiveContainer>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </CardContent>
-                                </Card>
-                            </div>
-
-                            {/* CUSTOM MONITORING GRID */}
-                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                                <div className="space-y-8">
-                                    <RecursoBloqueado chave="monitor_de_foco" titulo="Monitor de foco">
-                                    <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
-                                        <CardHeader className="p-8">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                                                        <Eye className="h-6 w-6" />
-                                                    </div>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <CardTitle className="text-xl font-black">Monitor de Foco</CardTitle>
-                                                            <HelpInfo topic="FOCUSED_MONITOR" iconClassName="h-4 w-4" />
-                                                        </div>
-                                                        <CardDescription>Rastreamento técnico de itens selecionados</CardDescription>
-                                                    </div>
-                                                </div>
-                                                <Button variant="ghost" size="icon" className="rounded-xl">
-                                                    <Filter className="h-5 w-5" />
+                                        <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                                            Consolidação automática de contas do tipo
+                                            <Badge variant="secondary">investimento</Badge>
+                                            {advancedData?.investment_analysis?.has_investments_account && (
+                                                <span className="inline-flex items-center gap-1 text-inflow">
+                                                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> Monitorando {advancedData.investment_analysis.asset_allocation.length} contas
+                                                </span>
+                                            )}
+                                        </CardDescription>
+                                    </div>
+                                    {!advancedData?.investment_analysis?.has_investments_account && (
+                                        <AccountFormDialog
+                                            defaultType={AccountType.INVESTMENT}
+                                            onSuccess={recarregarInvestimentos}
+                                            trigger={
+                                                <Button size="sm">
+                                                    <Plus aria-hidden="true" /> Criar Conta de Investimento
                                                 </Button>
+                                            }
+                                        />
+                                    )}
+                                </CardHeader>
+                                <CardContent>
+                                    {!advancedData?.investment_analysis?.has_investments_account ? (
+                                        <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border-strong px-6 py-12 text-center">
+                                            <Search className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                                            <div className="max-w-md space-y-1">
+                                                <h3 className="display-s">Nenhuma conta de investimento ativa</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Cadastre suas contas da corretora ou banco (tipo Investimento) para separar seus aportes patrimoniais do seu fluxo de caixa mensal.
+                                                </p>
                                             </div>
+                                            <AccountFormDialog
+                                                defaultType={AccountType.INVESTMENT}
+                                                onSuccess={recarregarInvestimentos}
+                                                trigger={
+                                                    <Button variant="outline">Configurar contas</Button>
+                                                }
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+                                            {/* Alocação por conta */}
+                                            <div className="space-y-4 lg:col-span-1">
+                                                <div className="relative h-[250px]" style={{ minWidth: 0 }}>
+                                                    {(!advancedData.investment_analysis.asset_allocation || advancedData.investment_analysis.asset_allocation.length === 0) ? (
+                                                        <ChartEmptyState
+                                                            type="pie"
+                                                            height="100%"
+                                                            title="Alocação"
+                                                            description="Dados de ativos."
+                                                            icon={PieIcon}
+                                                        />
+                                                    ) : (
+                                                        <>
+                                                            <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                                                <PieChart>
+                                                                    <Pie
+                                                                        data={advancedData.investment_analysis.asset_allocation.map(a => ({ ...a, value: numero(a.value) }))}
+                                                                        innerRadius={70}
+                                                                        outerRadius={90}
+                                                                        paddingAngle={2}
+                                                                        dataKey="value"
+                                                                        stroke="var(--az-surface)"
+                                                                        strokeWidth={2}
+                                                                        onMouseEnter={(_: unknown, index: number) => setActivePieIndex(index)}
+                                                                        onMouseLeave={() => setActivePieIndex(null)}
+                                                                    >
+                                                                        {advancedData.investment_analysis.asset_allocation.map((entry, index) => (
+                                                                            <Cell
+                                                                                key={`cell-${index}`}
+                                                                                fill={entry.color}
+                                                                                opacity={activePieIndex === null || activePieIndex === index ? 1 : 0.5}
+                                                                            />
+                                                                        ))}
+                                                                    </Pie>
+                                                                    <Tooltip content={() => null} />
+                                                                </PieChart>
+                                                            </ResponsiveContainer>
+                                                            <div className="pointer-events-none absolute left-1/2 top-1/2 w-[120px] -translate-x-1/2 -translate-y-1/2 text-center">
+                                                                <span className="label block truncate text-muted-foreground">
+                                                                    {activePieIndex !== null
+                                                                        ? advancedData.investment_analysis.asset_allocation[activePieIndex].name
+                                                                        : "Total Investido"
+                                                                    }
+                                                                </span>
+                                                                <span className="value-m block">
+                                                                    {formatarMoeda(
+                                                                        activePieIndex !== null
+                                                                            ? advancedData.investment_analysis.asset_allocation[activePieIndex].value
+                                                                            : advancedData?.investment_analysis?.total_invested
+                                                                    )}
+                                                                </span>
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
+                                                <ul className="divide-y divide-border">
+                                                    {advancedData.investment_analysis.asset_allocation.map((item, i) => (
+                                                        <li key={i} className="flex items-center justify-between py-2">
+                                                            <span className="flex items-center gap-2 text-sm">
+                                                                <span aria-hidden="true" className="h-2 w-2 rounded-full" style={{ backgroundColor: item.color }} />
+                                                                {item.name}
+                                                            </span>
+                                                            <span className="value-m">{formatarMoeda(item.value)}</span>
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+
+                                            {/* Aportes e resgates por mês */}
+                                            <div className="space-y-3 lg:col-span-2">
+                                                <div className="flex flex-wrap items-center justify-between gap-3">
+                                                    <h3 className="flex items-center gap-2 display-s">
+                                                        Aportes vs Performance
+                                                        <Granularidade>por mês</Granularidade>
+                                                    </h3>
+                                                    <div className="flex items-center gap-3">
+                                                        <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Aportes" />
+                                                        <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Resgates" />
+                                                    </div>
+                                                </div>
+                                                <div className="h-[350px] overflow-hidden rounded-md border border-border p-4" style={{ minWidth: 0 }}>
+                                                    {(!advancedData.investment_analysis.monthly_history || advancedData.investment_analysis.monthly_history.length === 0) ? (
+                                                        <ChartEmptyState
+                                                            type="bar"
+                                                            height="100%"
+                                                            title="Histórico de Patrimônio"
+                                                            description="Seus aportes e resgates aparecerão aqui."
+                                                            icon={TrendingUp}
+                                                        />
+                                                    ) : (
+                                                        <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+                                                        <BarChart data={advancedData.investment_analysis.monthly_history.map(m => ({ ...m, contribution: numero(m.contribution), returns: numero(m.returns) }))} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                                                            <CartesianGrid {...PROPS_DA_GRADE} />
+                                                            <XAxis dataKey="month" {...PROPS_DO_EIXO} dy={10} />
+                                                            <YAxis {...PROPS_DO_EIXO} tickFormatter={formatarMoedaDoEixo} width={45} />
+                                                            <Tooltip
+                                                                cursor={{ fill: "var(--az-elevated)" }}
+                                                                content={({ active, payload, label }) => {
+                                                                    if (active && payload && payload.length) {
+                                                                        return (
+                                                                            <CaixaDoTooltip titulo={label}>
+                                                                                <LinhaDoTooltip cor={COR_DE_ENTRADA} nome="Aporte" valor={formatarMoeda(payload[0]?.value as number)} />
+                                                                                <LinhaDoTooltip cor={COR_DE_SAIDA} nome="Resgate" valor={formatarMoeda(payload[1]?.value as number)} />
+                                                                            </CaixaDoTooltip>
+                                                                        )
+                                                                    }
+                                                                    return null
+                                                                }}
+                                                            />
+                                                            <Bar dataKey="contribution" name="Aportes" fill={COR_DE_ENTRADA} radius={[2, 2, 0, 0]} barSize={12} />
+                                                            <Bar dataKey="returns" name="Resgates" fill={COR_DE_SAIDA} radius={[2, 2, 0, 0]} barSize={12} />
+                                                        </BarChart>
+                                                    </ResponsiveContainer>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </CardContent>
+                            </Card>
+
+                            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                {/* Monitor de Foco */}
+                                <div className="space-y-6">
+                                    <RecursoBloqueado chave="monitor_de_foco" titulo="Monitor de foco">
+                                    <Card>
+                                        <CardHeader>
+                                            <div className="flex items-center gap-2">
+                                                <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <CardTitle><h2>Monitor de Foco</h2></CardTitle>
+                                                <HelpInfo topic="FOCUSED_MONITOR" />
+                                            </div>
+                                            <CardDescription>Rastreamento técnico de itens selecionados</CardDescription>
                                         </CardHeader>
-                                        <CardContent className="p-8 pt-0 space-y-6">
+                                        <CardContent className="space-y-4">
                                             {advancedData?.custom_monitoring?.map((monitor, i) => {
                                                 // REL-23: média zero não vira porcentagem
                                                 const percentual = percentualDaMedia(monitor.current_month, monitor.average_month)
+                                                const situacao = SITUACAO_DO_MONITOR[monitor.status] ?? SITUACAO_DO_MONITOR.error
                                                 return (
-                                                <div key={i} className="p-6 rounded-2xl bg-card border border-border/60 shadow-sm space-y-4 group transition-all hover:shadow-md">
-                                                    <div className="flex items-center justify-between">
-                                                        <div className="flex items-center gap-3">
-                                                            <div 
-                                                                className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
-                                                                style={{ backgroundColor: monitor.color || (monitor.type === 'category' ? 'var(--az-serie-2)' : 'var(--az-serie-3)') }}
+                                                <div key={i} className="space-y-4 rounded-md border border-border p-4">
+                                                    <div className="flex items-center justify-between gap-3">
+                                                        <div className="flex min-w-0 items-center gap-3">
+                                                            {/* A cor é do usuário: fica no ícone, sobre a superfície */}
+                                                            <span
+                                                                aria-hidden="true"
+                                                                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated"
+                                                                style={{ color: monitor.color || (monitor.type === 'category' ? 'var(--az-serie-2)' : 'var(--az-serie-3)') }}
                                                             >
                                                                 {monitor.type === 'category' ? (
-                                                                    <LucideIcon name={monitor.icon || 'PieChart'} className="h-5 w-5" />
+                                                                    <LucideIcon name={monitor.icon || 'PieChart'} className="h-4 w-4" />
                                                                 ) : (
-                                                                    <TagIcon className="h-5 w-5" />
+                                                                    <TagIcon className="h-4 w-4" />
                                                                 )}
-                                                            </div>
-                                                            <div>
-                                                                <h5 className="text-sm font-black">{monitor.name}</h5>
-                                                                <p className="text-[10px] font-bold text-muted-foreground uppercase">{monitor.type === 'category' ? 'Categoria' : 'Tag'}</p>
+                                                            </span>
+                                                            <div className="min-w-0">
+                                                                <h3 className="truncate text-sm font-semibold">{monitor.name}</h3>
+                                                                <p className="text-xs text-muted-foreground">{monitor.type === 'category' ? 'Categoria' : 'Tag'}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="text-right">
-                                                                <span className={cn(
-                                                                    "text-xs font-black",
-                                                                    monitor.status === 'success' ? "text-emerald-500" : monitor.status === 'warning' ? "text-amber-500" : "text-destructive"
-                                                                )}>
-                                                                    {monitor.status === 'success' ? "Econômico" : monitor.status === 'warning' ? "Atenção" : "Crítico"}
-                                                                </span>
-                                                                <p className="text-[10px] font-bold text-muted-foreground">Status Mensal</p>
+                                                                <span className={cn("text-sm font-semibold", situacao.cor)}>{situacao.texto}</span>
+                                                                <p className="text-xs text-muted-foreground">Status Mensal</p>
                                                             </div>
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                className="h-8 w-8 text-muted-foreground/40 hover:text-destructive hover:bg-destructive/10 rounded-lg"
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 hover:text-outflow"
+                                                                aria-label={`Remover ${monitor.name} do monitor`}
+                                                                title="Remover do monitor"
                                                                 onClick={async () => {
                                                                     try {
                                                                         await deleteFocusedMonitor(monitor.id)
                                                                         toast.success("Item removido do monitor")
                                                                         fetchAdvanced()
-                                                                    } catch (error) {
-                                                                        toast.error("Erro ao remover item")
+                                                                    } catch {
+                                                                        toast.error("Não foi possível remover o item. Tente de novo.")
                                                                     }
                                                                 }}
                                                             >
-                                                                <Trash2 className="h-4 w-4" />
+                                                                <Trash2 aria-hidden="true" />
                                                             </Button>
                                                         </div>
                                                     </div>
-                                                    
-                                                    <div className="grid grid-cols-2 gap-4">
-                                                        <div className="bg-background/40 p-4 rounded-2xl border border-border/5">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Mês Atual</p>
-                                                            <p className="text-lg font-black mt-1">{formatarMoeda(monitor.current_month)}</p>
-                                                        </div>
-                                                        <div className="bg-background/40 p-4 rounded-2xl border border-border/5">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Média Histórica</p>
-                                                            <p className="text-lg font-black mt-1">{formatarMoeda(monitor.average_month)}</p>
-                                                        </div>
-                                                    </div>
 
-                                                    <div className="relative pt-2">
-                                                        <div className="flex items-center justify-between text-[10px] font-black uppercase mb-1.5 px-1">
-                                                            <span>Progressão</span>
-                                                            <span>{percentual === null ? SEM_HISTORICO : `${Math.round(percentual)}%`}</span>
+                                                    <dl className="grid grid-cols-2 gap-3">
+                                                        <div className="rounded-md bg-elevated p-3">
+                                                            <dt className="label text-muted-foreground">Mês Atual</dt>
+                                                            <dd className="value-m mt-1">{formatarMoeda(monitor.current_month)}</dd>
                                                         </div>
-                                                        <div className="w-full bg-muted/40 h-2.5 rounded-full overflow-hidden">
+                                                        <div className="rounded-md bg-elevated p-3">
+                                                            <dt className="label text-muted-foreground">Média Histórica</dt>
+                                                            <dd className="value-m mt-1">{formatarMoeda(monitor.average_month)}</dd>
+                                                        </div>
+                                                    </dl>
+
+                                                    <div className="space-y-1.5">
+                                                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                                            <span>Progressão</span>
+                                                            <span className="value-m text-foreground">{percentual === null ? SEM_HISTORICO : `${Math.round(percentual)}%`}</span>
+                                                        </div>
+                                                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated">
                                                             <div
-                                                                className={cn(
-                                                                    "h-full transition-all duration-1000",
-                                                                    monitor.status === 'success' ? "bg-emerald-500" : monitor.status === 'warning' ? "bg-amber-500" : "bg-destructive"
-                                                                )}
+                                                                className={cn("h-full rounded-full", situacao.barra)}
                                                                 style={{ width: `${percentual === null ? 0 : Math.min(percentual, 100)}%` }}
                                                             />
                                                         </div>
@@ -827,212 +764,164 @@ export default function ReportsPage() {
                                                 </div>
                                                 )
                                             })}
-                                            <Button 
-                                                variant="outline" 
-                                                className="w-full h-14 rounded-2xl border-dashed border-2 hover:bg-muted/30 font-black text-sm"
+                                            <Button
+                                                variant="outline"
+                                                className="h-11 w-full border-dashed"
                                                 onClick={() => setIsSelectionModalOpen(true)}
                                             >
-                                                <Plus className="mr-2 h-4 w-4" /> Monitorar Nova Categoria/Tag
+                                                <Plus aria-hidden="true" /> Monitorar Nova Categoria/Tag
                                             </Button>
                                         </CardContent>
                                     </Card>
                                     </RecursoBloqueado>
-
                                 </div>
 
-                                <div className="space-y-8">
-                                    <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
-                                        <CardHeader className="p-8 pb-4">
-                                            <CardTitle className="text-lg font-black flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500">
-                                                    <Activity className="h-5 w-5" />
-                                                </div>
-                                                Insights de Saúde Financeira
-                                            </CardTitle>
+                                <div className="space-y-6">
+                                    {/* Insights de Saúde Financeira */}
+                                    <Card>
+                                        <CardHeader>
+                                            <div className="flex items-center gap-2">
+                                                <Activity className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <CardTitle><h2>Insights de Saúde Financeira</h2></CardTitle>
+                                            </div>
                                         </CardHeader>
-                                        <CardContent className="p-8 pt-0 space-y-6">
-                                            {/* Note for future: technical activity flow (spending_frequency) 
+                                        <CardContent className="space-y-6">
+                                            {/* Note for future: technical activity flow (spending_frequency)
                                                 can be used here to trigger smart reminders. */}
-                                            <div className="grid grid-cols-1 gap-4">
-                                                <div className="flex items-center justify-between bg-background/40 p-5 rounded-3xl border border-border/5">
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
                                                     <div>
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Gasto Diário Seguro</p>
+                                                        <div className="mb-1 flex items-center gap-1.5">
+                                                            <p className="label text-muted-foreground">Gasto Diário Seguro</p>
                                                             <HelpInfo topic="SAFE_DAILY_SPEND" />
                                                         </div>
-                                                        <p className="text-2xl font-black text-primary">
+                                                        <p className="value-l">
                                                             {formatarMoeda(advancedData?.daily_spending_report?.safe_daily_spend)}
                                                         </p>
                                                     </div>
-                                                    <div className="text-right bg-primary/5 p-3 rounded-2xl border border-primary/10">
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase">Restam</p>
-                                                        <p className="text-xl font-black text-primary">{advancedData?.daily_spending_report?.remaining_days || 0} dias</p>
+                                                    <div className="text-right">
+                                                        <p className="label text-muted-foreground">Restam</p>
+                                                        <p className="value-l">{advancedData?.daily_spending_report?.remaining_days || 0} dias</p>
                                                     </div>
                                                 </div>
-                                                
-                                                <div className="grid grid-cols-2 gap-4">
-                                                    <div className="bg-background/20 p-4 rounded-2xl border border-border/5">
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Score de Saúde</p>
-                                                        <p className="text-lg font-black mt-1 text-foreground">{summaryData?.summary?.financial_score || 0}<span className="text-[10px] opacity-40 ml-1">/100</span></p>
+
+                                                <dl className="grid grid-cols-2 gap-3">
+                                                    <div className="rounded-md bg-elevated p-3">
+                                                        <dt className="label text-muted-foreground">Score de Saúde</dt>
+                                                        <dd className="value-m mt-1">{summaryData?.summary?.financial_score || 0}<span className="text-muted-foreground">/100</span></dd>
                                                     </div>
-                                                    <div className="bg-background/20 p-4 rounded-2xl border border-border/5">
-                                                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Poder de Aporte</p>
-                                                        <p className="text-lg font-black mt-1 text-emerald-500">{formatarTaxa(summaryData?.summary?.savings_rate)}</p>
+                                                    <div className="rounded-md bg-elevated p-3">
+                                                        <dt className="label text-muted-foreground">Poder de Aporte</dt>
+                                                        <dd className="value-m mt-1">{formatarTaxa(summaryData?.summary?.savings_rate)}</dd>
                                                     </div>
-                                                </div>
+                                                </dl>
                                             </div>
 
-                                            <div className="space-y-4">
-                                                <div className="flex items-center justify-between px-1">
-                                                    <div className="flex items-center gap-2">
-                                                        <h5 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Análise de Compromissamento</h5>
+                                            <div className="space-y-2">
+                                                <div className="flex items-center justify-between gap-3">
+                                                    <div className="flex items-center gap-1.5">
+                                                        <h3 className="label text-muted-foreground">Análise de Compromissamento</h3>
                                                         <HelpInfo topic="FIXED_VS_VARIABLE" />
                                                     </div>
-                                                    <span className="text-[10px] font-black text-muted-foreground/40 italic">Fixo vs Variável</span>
+                                                    <span className="text-xs text-muted-foreground">Fixo vs Variável</span>
                                                 </div>
-                                                <div className="w-full bg-muted/20 h-4 rounded-full overflow-hidden flex shadow-inner">
-                                                    <div 
-                                                        className="h-full bg-blue-500/80 transition-all duration-1000" 
-                                                        style={{ width: `${paraCentavos(advancedData?.fixed_vs_variable?.fixed) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
+                                                <div className="flex h-2 w-full overflow-hidden rounded-full bg-elevated">
+                                                    <div
+                                                        className="h-full"
+                                                        style={{ backgroundColor: COR_DOS_FIXOS, width: `${paraCentavos(advancedData?.fixed_vs_variable?.fixed) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
                                                     />
-                                                    <div 
-                                                        className="h-full bg-amber-500/80 transition-all duration-1000" 
-                                                        style={{ width: `${paraCentavos(advancedData?.fixed_vs_variable?.variable) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
+                                                    <div
+                                                        className="h-full"
+                                                        style={{ backgroundColor: COR_DOS_VARIAVEIS, width: `${paraCentavos(advancedData?.fixed_vs_variable?.variable) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
                                                     />
                                                 </div>
-                                                <div className="flex items-center justify-between text-[10px] font-bold px-1">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                                                        <span>Fixos: {formatarMoeda(advancedData?.fixed_vs_variable?.fixed)}</span>
-                                                    </div>
-                                                    <div className="flex items-center gap-1.5 text-right">
-                                                        <span>Variáveis: {formatarMoeda(advancedData?.fixed_vs_variable?.variable)}</span>
-                                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                                                    </div>
+                                                <div className="flex items-center justify-between gap-3 text-xs text-fg-secondary">
+                                                    <ItemDaLegenda cor={COR_DOS_FIXOS} rotulo={`Fixos: ${formatarMoeda(advancedData?.fixed_vs_variable?.fixed)}`} />
+                                                    <ItemDaLegenda cor={COR_DOS_VARIAVEIS} rotulo={`Variáveis: ${formatarMoeda(advancedData?.fixed_vs_variable?.variable)}`} />
                                                 </div>
                                             </div>
 
-                                            <div className="bg-card border border-border/60 p-5 rounded-2xl shadow-sm">
-                                                <div className="flex items-center gap-3 mb-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm ring-1 ring-black/5">
-                                                        <ShieldCheck className="h-4 w-4" />
-                                                    </div>
-                                                    <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/80">Reserva de Emergência</span>
+                                            <div className="space-y-3 rounded-md border border-border p-4">
+                                                <div className="flex items-center gap-2">
+                                                    <ShieldCheck className="h-4 w-4 text-inflow" aria-hidden="true" />
+                                                    <h3 className="label text-muted-foreground">Reserva de Emergência</h3>
                                                 </div>
-                                                <div className="flex items-end justify-between">
+                                                <div className="flex items-end justify-between gap-3">
                                                     <div>
-                                                        <p className="text-sm font-bold opacity-80">Você possui capital para manter seu padrão por:</p>
-                                                        <p className="text-xl font-black mt-1">{(summaryData?.summary?.liquidity_ratio || 0).toFixed(1)} meses</p>
+                                                        <p className="text-sm text-fg-secondary">Você possui capital para manter seu padrão por:</p>
+                                                        <p className="value-l mt-1">{(summaryData?.summary?.liquidity_ratio || 0).toFixed(1)} meses</p>
                                                     </div>
-                                                    <div className="text-right">
-                                                        <Badge variant="outline" className="rounded-lg border-emerald-500/30 text-emerald-500 bg-emerald-500/5 font-bold">
-                                                            Seguro
-                                                        </Badge>
-                                                    </div>
+                                                    <Badge variant="success">Seguro</Badge>
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-3">
-                                                <h5 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 px-1">Recomendações Proativas</h5>
-                                                <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 flex gap-3 italic text-xs font-medium leading-relaxed">
-                                                    <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                                                    {summaryData?.summary?.financial_score && summaryData.summary.financial_score > 80 
-                                                        ? "Sua saúde financeira está excelente! Considere diversificar aportes em novos ativos de longo prazo."
-                                                        : "Foco total em reduzir gastos variáveis para elevar seu poder de aporte acima de 20% ainda este mês."}
-                                                </div>
+                                            <div className="space-y-2">
+                                                <h3 className="label text-muted-foreground">Recomendações Proativas</h3>
+                                                <p className="flex gap-3 rounded-md border border-border p-4 text-sm text-fg-secondary">
+                                                    <Sparkles className="h-4 w-4 shrink-0 text-gold-line" aria-hidden="true" />
+                                                    {summaryData?.summary?.financial_score && summaryData.summary.financial_score > 80
+                                                        ? "Saúde financeira excelente. Considere diversificar os aportes em ativos de longo prazo."
+                                                        : "Reduza os gastos variáveis para elevar o poder de aporte acima de 20% ainda este mês."}
+                                                </p>
                                             </div>
                                         </CardContent>
                                     </Card>
 
-                                    {/* Gastos por Dia da Semana Migrados para a direita */}
-                                    <Card className="border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
-                                        <CardHeader className="p-8 pb-4">
-                                            <CardTitle className="text-lg font-black flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                                                    <Clock className="h-5 w-5" />
-                                                </div>
-                                                Hábitos Semanais
-                                                <HelpInfo topic="WEEKDAY_HABITS" iconClassName="h-4 w-4" />
-                                            </CardTitle>
-                                            <CardDescription className="text-[10px] font-bold leading-relaxed px-1 uppercase tracking-wider text-muted-foreground/60">
+                                    {/* Hábitos Semanais */}
+                                    <Card>
+                                        <CardHeader>
+                                            <div className="flex items-center gap-2">
+                                                <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <CardTitle><h2>Hábitos Semanais</h2></CardTitle>
+                                                <Granularidade>por dia da semana</Granularidade>
+                                                <HelpInfo topic="WEEKDAY_HABITS" />
+                                            </div>
+                                            <CardDescription>
                                                 {advancedData?.period ? (
-                                                    <div className="flex flex-col gap-0.5">
-                                                        <span className="text-foreground/80">Média de gastos por dia da semana</span>
-                                                        <span className="flex items-center gap-1.5 mt-0.5">
-                                                            <Calendar className="h-3 w-3 opacity-50" />
-                                                            Análise de {differenceInDays(parseISO(advancedData.period.end_date), parseISO(advancedData.period.start_date)) + 1} dias 
-                                                            <span className="opacity-50 font-medium normal-case">
-                                                                ({format(parseISO(advancedData.period.start_date), 'dd/MM/yy', { locale: ptBR })} — hoje)
-                                                            </span>
+                                                    <span className="flex flex-col gap-0.5">
+                                                        <span>Média de gastos por dia da semana</span>
+                                                        <span className="flex items-center gap-1.5 text-xs">
+                                                            <Calendar className="h-3.5 w-3.5" aria-hidden="true" />
+                                                            Análise de {differenceInDays(parseISO(advancedData.period.end_date), parseISO(advancedData.period.start_date)) + 1} dias
+                                                            ({format(parseISO(advancedData.period.start_date), 'dd/MM/yy', { locale: ptBR })} — hoje)
                                                         </span>
-                                                    </div>
+                                                    </span>
                                                 ) : "Média de gastos por dia da semana"}
                                             </CardDescription>
                                         </CardHeader>
-                                        <CardContent className="h-[300px] p-8 pt-4">
-                                            {isLoadingAdvanced ? <Skeleton className="w-full h-full rounded-2xl" /> : (
+                                        <CardContent className="h-[300px]">
+                                            {isLoadingAdvanced ? <Skeleton className="h-full w-full" /> : (
                                                 (!advancedData?.spend_by_weekday || advancedData.spend_by_weekday.length === 0 || advancedData.spend_by_weekday.every((d) => paraCentavos(d.amount) === 0)) ? (
-                                                    <ChartEmptyState 
-                                                        type="bar" 
-                                                        height="100%" 
+                                                    <ChartEmptyState
+                                                        type="bar"
+                                                        height="100%"
                                                         title="Hábitos Semanais"
                                                         description="Seu comportamento semanal aparecerá aqui."
                                                         icon={Clock}
                                                     />
                                                 ) : (
                                                     <ResponsiveContainer width="100%" height="100%">
-                                                    <BarChart 
+                                                    <BarChart
                                                         data={(advancedData?.spend_by_weekday || []).map(d => ({ ...d, amount: numero(d.amount) }))}
                                                         margin={{ top: 0, right: 10, left: 10, bottom: 0 }}
                                                     >
-                                                        <defs>
-                                                            <linearGradient id="habitGradientPremium" x1="0" y1="0" x2="0" y2="1">
-                                                                <stop offset="5%" stopColor="var(--az-serie-3)" stopOpacity={0.8}/>
-                                                                <stop offset="95%" stopColor="var(--az-serie-3)" stopOpacity={0.2}/>
-                                                            </linearGradient>
-                                                        </defs>
                                                         <CartesianGrid {...PROPS_DA_GRADE} />
-                                                        <XAxis 
-                                                            dataKey="label" 
-                                                            axisLine={false} 
-                                                            tickLine={false} 
-                                                            fontSize={10}
-                                                            tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                                            dy={10}
-                                                        />
-                                                        <YAxis 
-                                                            axisLine={false} 
-                                                            tickLine={false} 
-                                                            fontSize={10}
-                                                            tick={{ fill: 'currentColor', opacity: 0.4 }}
-                                                            tickFormatter={formatarMoedaDoEixo}
-                                                            width={45}
-                                                        />
-                                                        <Tooltip 
-                                                            cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
-                                                            content={({ active, payload }: any) => {
+                                                        <XAxis dataKey="label" {...PROPS_DO_EIXO} dy={10} />
+                                                        <YAxis {...PROPS_DO_EIXO} tickFormatter={formatarMoedaDoEixo} width={45} />
+                                                        <Tooltip
+                                                            cursor={{ fill: "var(--az-elevated)" }}
+                                                            content={({ active, payload }) => {
                                                                 if (active && payload && payload.length) {
                                                                     return (
-                                                                        <div className="bg-background/95 backdrop-blur-xl border border-border/50 p-3 rounded-2xl shadow-2xl">
-                                                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">
-                                                                                {payload[0].payload.label}
-                                                                            </p>
-                                                                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Média Diária</p>
-                                                                            <p className="text-sm font-black text-purple-500">
-                                                                                {formatarMoeda(payload[0].value as number)}
-                                                                            </p>
-                                                                        </div>
+                                                                        <CaixaDoTooltip titulo={payload[0].payload.label}>
+                                                                            <LinhaDoTooltip cor={COR_DOS_HABITOS} nome="Média diária" valor={formatarMoeda(payload[0].value as number)} />
+                                                                        </CaixaDoTooltip>
                                                                     )
                                                                 }
                                                                 return null;
                                                             }}
                                                         />
-                                                        <Bar 
-                                                            dataKey="amount" 
-                                                            fill="url(#habitGradientPremium)" 
-                                                            radius={[8, 8, 0, 0]} 
-                                                            barSize={32}
-                                                        />
+                                                        <Bar dataKey="amount" name="Média diária" fill={COR_DOS_HABITOS} radius={[2, 2, 0, 0]} barSize={32} />
                                                     </BarChart>
                                                 </ResponsiveContainer>
                                                 )
@@ -1041,122 +930,100 @@ export default function ReportsPage() {
                                     </Card>
                                 </div>
 
-                                {/* FINANCIAL FREEDOM SIMULATOR - LARGURA TOTAL */}
-                                <Card className="lg:col-span-2 border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[40px] overflow-hidden">
-                                    <CardHeader className="p-8 pb-4">
-                                        <div className="flex items-center justify-between">
-                                            <CardTitle className="text-lg font-black flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500">
-                                                    <TrendingUp className="h-5 w-5" />
-                                                </div>
-                                                Simulador de Liberdade
-                                            </CardTitle>
-                                            <HelpInfo topic="PROJECTION" />
+                                {/* Simulador de Liberdade: projeção, então linha tracejada (série prevista) */}
+                                <Card className="lg:col-span-2">
+                                    <CardHeader>
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <TrendingUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                                                <CardTitle><h2>Simulador de Liberdade</h2></CardTitle>
+                                                <Granularidade>por ano</Granularidade>
+                                                <HelpInfo topic="PROJECTION" />
+                                            </div>
+                                            <ItemDaLegenda cor={COR_DO_PREVISTO} rotulo="Estimado" tracejado />
                                         </div>
-                                        <CardDescription className="text-xs font-bold leading-relaxed px-1">
+                                        <CardDescription>
                                             Projeção baseada em seu aporte médio mensal e retorno estimado de 8% a.a.
                                         </CardDescription>
                                     </CardHeader>
-                                    <CardContent className="h-[250px] p-8 pt-0 outline-none" style={{ minWidth: 0 }}>
+                                    <CardContent className="h-[250px]" style={{ minWidth: 0 }}>
                                         {(!advancedData?.financial_freedom_projection || advancedData.financial_freedom_projection.length === 0) ? (
-                                            <ChartEmptyState 
-                                                type="area" 
-                                                height="100%" 
+                                            <ChartEmptyState
+                                                type="area"
+                                                height="100%"
                                                 title="Simulador de Liberdade"
                                                 description="Sua projeção de longo prazo aparecerá aqui."
                                                 icon={TrendingUp}
                                             />
                                         ) : (
                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                                            <AreaChart data={(advancedData?.financial_freedom_projection || []).map(p => ({ ...p, value: numero(p.value) }))} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
-                                                <defs>
-                                                    <linearGradient id="projGradient" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="var(--az-inflow)" stopOpacity={0.2}/>
-                                                        <stop offset="95%" stopColor="var(--az-inflow)" stopOpacity={0}/>
-                                                    </linearGradient>
-                                                </defs>
+                                            <LineChart data={(advancedData?.financial_freedom_projection || []).map(p => ({ ...p, value: numero(p.value) }))} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
                                                 <CartesianGrid {...PROPS_DA_GRADE} />
-                                                <XAxis dataKey="label" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
-                                                <YAxis hide />
-                                                <Tooltip 
-                                                    content={({ active, payload }: any) => {
+                                                <XAxis dataKey="label" {...PROPS_DO_EIXO} />
+                                                <YAxis {...PROPS_DO_EIXO} tickFormatter={formatarMoedaDoEixo} width={45} />
+                                                <Tooltip
+                                                    cursor={CURSOR_DO_TOOLTIP}
+                                                    content={({ active, payload }) => {
                                                         if (active && payload && payload.length) {
                                                             return (
-                                                                <div className="z-50 bg-background/95 backdrop-blur-xl border border-border/50 p-3 rounded-2xl shadow-2xl animate-in zoom-in-95 duration-200">
-                                                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{payload[0].payload.label}</p>
-                                                                    <p className="text-sm font-black text-emerald-500">{formatarMoeda(payload[0].value)}</p>
-                                                                    <p className="text-[9px] font-bold opacity-60 italic">Estimado</p>
-                                                                </div>
+                                                                <CaixaDoTooltip titulo={payload[0].payload.label}>
+                                                                    <LinhaDoTooltip cor={COR_DO_PREVISTO} nome="Estimado" valor={formatarMoeda(payload[0].value as number)} />
+                                                                </CaixaDoTooltip>
                                                             )
                                                         }
                                                         return null
                                                     }}
                                                 />
-                                                <Area 
-                                                    type="monotone" 
-                                                    dataKey="value" 
-                                                    stroke="var(--az-inflow)" 
-                                                    strokeWidth={3} 
-                                                    fillOpacity={1} 
-                                                    fill="url(#projGradient)" 
-                                                    animationDuration={2000}
+                                                <Line
+                                                    type="monotone"
+                                                    dataKey="value"
+                                                    stroke={COR_DO_PREVISTO}
+                                                    strokeWidth={2}
+                                                    strokeDasharray="5 5"
+                                                    dot={false}
+                                                    activeDot={PONTO_ATUAL}
                                                 />
-                                            </AreaChart>
+                                            </LineChart>
                                         </ResponsiveContainer>
                                         )}
                                     </CardContent>
                                 </Card>
 
-                                {/* Analise de Risco como último item */}
-                                <div className={cn(
-                                    "lg:col-span-2 p-8 rounded-none sm:rounded-[40px] shadow-2xl text-primary-foreground relative overflow-hidden group transition-all duration-500",
-                                    advancedData?.risk_analysis?.level === 'Baixa' ? "bg-blue-500" : 
-                                    advancedData?.risk_analysis?.level === 'Média' ? "bg-amber-500" : "bg-destructive"
-                                )}>
-                                    <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 transition-transform duration-700">
-                                        <ShieldCheck className="h-32 w-32" />
-                                    </div>
-                                    <div className="relative z-10 space-y-4">
-                                        <div className="flex items-center justify-between">
-                                            <h4 className="text-xl font-black tracking-tight">Análise de Risco</h4>
-                                            <Badge variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-none font-black text-[10px] uppercase tracking-widest px-2">
+                                {/* Análise de Risco: alerta com a listra na cor do nível, sem fundo colorido */}
+                                <Alert variant={VARIANTE_DO_RISCO[advancedData?.risk_analysis?.level ?? "Alta"]} role="status" className="lg:col-span-2">
+                                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                                    <div className="space-y-2">
+                                        <div className="flex flex-wrap items-center justify-between gap-3">
+                                            <h2 className="display-s">Análise de Risco</h2>
+                                            <Badge variant={advancedData?.risk_analysis?.level === 'Baixa' ? "info" : advancedData?.risk_analysis?.level === 'Média' ? "warning" : "destructive"}>
                                                 Nível {advancedData?.risk_analysis?.level || '...'}
                                             </Badge>
                                         </div>
-                                        <p className="text-sm opacity-90 font-bold leading-relaxed max-w-2xl">
+                                        <AlertDescription className="max-w-2xl">
                                             {advancedData?.risk_analysis?.recommendation || "Analisando seu padrão de volatilidade..."}
                                             {advancedData?.risk_analysis?.sensitive_category && (
-                                                <span className="block mt-2 text-[10px] opacity-70 uppercase tracking-widest">
+                                                <span className="label mt-2 block text-muted-foreground">
                                                     Fator de sensibilidade: {advancedData.risk_analysis.sensitive_category}
                                                 </span>
                                             )}
-                                        </p>
-                                        <div className="flex justify-end pt-2">
-                                            <Button 
-                                                disabled 
-                                                variant="secondary" 
-                                                className="w-full sm:w-auto px-10 h-12 rounded-2xl font-black text-sm text-primary bg-white/80 hover:bg-white/90 shadow-lg cursor-not-allowed"
-                                            >
-                                                Relatório Detalhado (Em Breve)
-                                            </Button>
-                                        </div>
+                                        </AlertDescription>
                                     </div>
-                                </div>
+                                </Alert>
                             </div>
                             </>
                             )}
-                            
-                            <div className="flex items-center justify-center p-4 bg-muted/10 rounded-2xl border border-border/10 text-[10px] text-muted-foreground font-medium italic">
-                                Os dados técnicos acima são baseados em projeções de mercado e análise de fluxo histórico. 
+
+                            <p className="rounded-md border border-border px-4 py-3 text-center text-xs text-muted-foreground">
+                                Os dados técnicos acima são baseados em projeções de mercado e análise de fluxo histórico.
                                 Nenhuma informação constitui recomendação direta de investimento.
-                            </div>
+                            </p>
                         </div>
                     </RecursoBloqueado>
                 </TabsContent>
             </Tabs>
             <RecursoBloqueado chave="monitor_de_foco">
-            <FocusSelectionModal 
-                open={isSelectionModalOpen} 
+            <FocusSelectionModal
+                open={isSelectionModalOpen}
                 onOpenChange={setIsSelectionModalOpen}
                 onSuccess={fetchAdvanced}
             />
@@ -1164,4 +1031,3 @@ export default function ReportsPage() {
         </div>
     )
 }
-
