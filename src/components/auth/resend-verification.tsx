@@ -44,7 +44,7 @@ export function ResendVerification({ email, className }: ResendVerificationProps
         onClick={reenviar}
         loading={isLoading}
         disabled={isLoading || !email}
-        className="w-full h-12 rounded-2xl border-border/60 font-bold transition-all hover:bg-muted"
+        className="w-full"
       >
         <MailCheck className="h-4 w-4" />
         Reenviar e-mail
@@ -53,8 +53,8 @@ export function ResendVerification({ email, className }: ResendVerificationProps
         <p
           role={retorno.tipo === "erro" ? "alert" : "status"}
           className={cn(
-            "text-xs font-medium text-center leading-relaxed",
-            retorno.tipo === "erro" ? "text-destructive" : "text-muted-foreground"
+            "text-xs text-center leading-relaxed",
+            retorno.tipo === "erro" ? "text-outflow" : "text-muted-foreground"
           )}
         >
           {retorno.texto}

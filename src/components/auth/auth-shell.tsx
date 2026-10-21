@@ -1,7 +1,7 @@
 "use client"
 
 import { ReactNode } from "react"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, useReducedMotion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { Logo } from "@/components/layout/logo"
@@ -14,46 +14,36 @@ interface AuthShellProps {
   showLogo?: boolean
 }
 
+// AZ-31: casca das telas de acesso. Fundo liso, card de superfície com o
+// brilho de 1px do tema e uma entrada curta (desligada com reduced-motion).
 export function AuthShell({ children, className, title, description, showLogo = true }: AuthShellProps) {
+  const reduzirMovimento = useReducedMotion()
+
   return (
-    <div className="relative min-h-screen w-full flex items-center justify-center overflow-hidden bg-background p-4 sm:p-6 lg:p-8">
-      {/* Background Animated Elements */}
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-      <div className="absolute bottom-0 -right-4 w-72 h-72 bg-purple-500/10 rounded-full blur-[120px] animate-pulse delay-700" />
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-primary/5 rounded-full blur-[150px] pointer-events-none" />
-
-      {/* Grid Pattern overlay */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] opacity-20 pointer-events-none" />
-
+    <div className="flex min-h-screen w-full items-center justify-center bg-background p-4 sm:p-6 lg:p-8">
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className={cn(
-          "relative z-10 w-full max-w-md space-y-8",
-          className
-        )}
+        initial={reduzirMovimento ? false : { opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
+        className={cn("w-full max-w-md space-y-6", className)}
       >
         {showLogo && (
-          <div className="flex flex-col items-center justify-center space-y-2 mb-2">
-             <Link href="/" aria-label="Azimute, página inicial" className="flex items-center gap-2">
-                <Logo tamanho={36} />
-              </Link>
+          <div className="flex justify-center">
+            <Link href="/" aria-label="Azimute, página inicial" className="flex items-center gap-2 rounded-md">
+              <Logo tamanho={36} />
+            </Link>
           </div>
         )}
 
-        <div className="bg-card/40 backdrop-blur-xl rounded-[32px] border border-border/60 shadow-2xl overflow-hidden relative group">
-          {/* Subtle light streak */}
-          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
-          
-          <div className="p-8 sm:p-10">
+        <div className="rounded-lg border border-border bg-card bg-[image:linear-gradient(90deg,transparent,var(--az-sheen),transparent)] bg-[length:100%_1px] bg-no-repeat">
+          <div className="p-6 sm:p-8">
             {(title || description) && (
-              <div className="space-y-2 mb-8">
-                {title && <h1 className="text-3xl font-black tracking-tight text-foreground">{title}</h1>}
-                {description && <p className="text-muted-foreground text-sm font-medium leading-relaxed">{description}</p>}
+              <div className="mb-6 space-y-1">
+                {title && <h1 className="display-l text-foreground">{title}</h1>}
+                {description && <p className="text-sm leading-relaxed text-muted-foreground">{description}</p>}
               </div>
             )}
-            
+
             {children}
           </div>
         </div>

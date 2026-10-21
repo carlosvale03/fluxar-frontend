@@ -12,9 +12,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
-import { AlertCircle, UserPlus, ShieldCheck } from "lucide-react"
+import { AlertCircle, UserPlus } from "lucide-react"
 import { Controller } from "react-hook-form"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ResendVerification } from "@/components/auth/resend-verification"
@@ -56,11 +54,6 @@ const CAMPOS_DO_BACKEND: Record<string, keyof RegisterForm> = {
   password_confirm: "confirmPassword",
   terms_accepted: "termsAccepted",
   product_improvement_consent: "productImprovementConsent",
-}
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 }
 }
 
 export default function RegisterPage() {
@@ -123,15 +116,15 @@ export default function RegisterPage() {
   if (envioFalhou) {
     return (
       <AuthShell title="Conta criada" description="Falta só confirmar o seu e-mail.">
-        <div className="flex flex-col items-center space-y-6 py-4">
-          <div className="w-16 h-16 rounded-[24px] bg-amber-500/10 flex items-center justify-center text-amber-500">
-            <AlertCircle className="h-8 w-8" />
+        <div className="flex flex-col items-center space-y-5 py-2">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong text-warn">
+            <AlertCircle className="h-6 w-6" aria-hidden="true" />
           </div>
-          <p className="text-sm text-center text-muted-foreground leading-relaxed font-medium">
+          <p className="text-center text-sm leading-relaxed text-muted-foreground">
             {envioFalhou.mensagem}
           </p>
           <ResendVerification email={envioFalhou.email} />
-          <Link href="/auth/login" className="text-sm text-primary font-black hover:underline underline-offset-4 decoration-2">
+          <Link href="/auth/login" className="rounded-sm text-sm font-medium text-gold-line underline-offset-4 hover:underline">
             Ir para o login
           </Link>
         </div>
@@ -140,180 +133,160 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthShell 
-      title="Crie sua conta" 
+    <AuthShell
+      title="Crie sua conta"
       description="Comece a controlar suas finanças hoje mesmo com a inteligência do Azimute."
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <motion.div 
-          variants={{
-            show: { transition: { staggerChildren: 0.08, delayChildren: 0.2 } }
-          }}
-          initial="hidden"
-          animate="show"
-          className="space-y-4"
-        >
-          {errors.root && (
-            <motion.div 
-              variants={itemVariants}
-              className="flex items-center gap-3 p-4 text-sm font-bold text-destructive bg-destructive/10 rounded-2xl border border-destructive/20"
-            >
-              <AlertCircle className="h-4 w-4 shrink-0" />
-              <p>{errors.root.message}</p>
-            </motion.div>
-          )}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        {errors.root && (
+          <div className="flex items-start gap-3 rounded-r-md border border-border border-l-[3px] border-l-outflow bg-card p-3 text-sm text-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-outflow" aria-hidden="true" />
+            <p>{errors.root.message}</p>
+          </div>
+        )}
 
-          <motion.div variants={itemVariants} className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="name">
-              Nome Completo
+        <div className="space-y-1.5">
+          <label className={ROTULO} htmlFor="name">
+            Nome Completo
+          </label>
+          <Input
+            id="name"
+            autoComplete="name"
+            placeholder="Informe seu nome completo"
+            aria-invalid={errors.name ? true : undefined}
+            {...register("name")}
+          />
+          {errors.name && <ErroDoCampo mensagem={errors.name.message} />}
+        </div>
+
+        <div className="space-y-1.5">
+          <label className={ROTULO} htmlFor="email">
+            Melhor E-mail
+          </label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="seu@email.com"
+            aria-invalid={errors.email ? true : undefined}
+            {...register("email")}
+          />
+          {errors.email && <ErroDoCampo mensagem={errors.email.message} />}
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="space-y-1.5">
+            <label className={ROTULO} htmlFor="password">
+              Senha
             </label>
-            <Input 
-               id="name" 
-               placeholder="Informe seu nome completo" 
-               {...register("name")}
-               className={cn(
-                 "h-11 rounded-2xl bg-muted/5 border-border/40 transition-all focus:bg-background focus:ring-4 focus:ring-primary/10",
-                 errors.name ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-               )}
+            <PasswordInput
+              id="password"
+              autoComplete="new-password"
+              placeholder="******"
+              aria-invalid={errors.password ? true : undefined}
+              {...register("password")}
             />
-            {errors.name && <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">{errors.name.message}</p>}
-          </motion.div>
-          
-          <motion.div variants={itemVariants} className="space-y-1.5">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="email">
-              Melhor E-mail
-            </label>
-            <Input 
-               id="email" 
-               type="email" 
-               placeholder="seu@email.com" 
-               {...register("email")}
-               className={cn(
-                 "h-11 rounded-2xl bg-muted/5 border-border/40 transition-all focus:bg-background focus:ring-4 focus:ring-primary/10",
-                 errors.email ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-               )}
-            />
-            {errors.email && <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">{errors.email.message}</p>}
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <motion.div variants={itemVariants} className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="password">
-                Senha
-              </label>
-              <PasswordInput 
-                id="password" 
-                placeholder="******" 
-                {...register("password")}
-                className={cn(
-                  "h-11 rounded-2xl bg-muted/5 border-border/40 transition-all focus:bg-background focus:ring-4 focus:ring-primary/10",
-                  errors.password ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-                )}
-              />
-              {errors.password && <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider leading-tight">{errors.password.message}</p>}
-            </motion.div>
-
-            <motion.div variants={itemVariants} className="space-y-1.5">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="confirmPassword">
-                Confirmar
-              </label>
-              <PasswordInput 
-                id="confirmPassword" 
-                placeholder="******" 
-                {...register("confirmPassword")}
-                className={cn(
-                  "h-11 rounded-2xl bg-muted/5 border-border/40 transition-all focus:bg-background focus:ring-4 focus:ring-primary/10",
-                  errors.confirmPassword ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-                )}
-              />
-              {errors.confirmPassword && <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider leading-tight">{errors.confirmPassword.message}</p>}
-            </motion.div>
+            {errors.password && <ErroDoCampo mensagem={errors.password.message} />}
           </div>
 
-          <motion.div variants={itemVariants} className="flex flex-col gap-2 pt-2">
-            <div className="flex items-start gap-3 p-4 rounded-[24px] bg-muted/5 border border-border/40 hover:bg-muted/10 transition-colors cursor-pointer group relative">
-              <Controller
-                control={control}
-                name="termsAccepted"
-                render={({ field }) => (
-                  <Checkbox 
-                    id="termsAccepted"
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                    className="mt-1 h-5 w-5 rounded-lg border-2 border-primary/40 data-[state=checked]:border-primary"
-                  />
-                )}
-              />
-              <div className="space-y-1 select-none flex-1">
-                <label 
-                  htmlFor="termsAccepted" 
-                  className="text-xs font-bold text-foreground/80 leading-tight cursor-pointer block"
-                >
-                  Eu li e concordo com os <Link href="/termos" target="_blank" className="text-primary hover:underline underline-offset-4 decoration-2">Termos de Uso e Política de Privacidade</Link>.
-                </label>
-                <p className="text-[10px] text-muted-foreground font-medium">
-                  A conexão com o Azimute é criptografada, e CPF, telefone, data de nascimento e renda ficam criptografados no banco.
-                </p>
-              </div>
-            </div>
-            {errors.termsAccepted && (
-              <p className="text-[10px] font-bold text-destructive uppercase ml-1 tracking-wider leading-tight">
-                {errors.termsAccepted.message}
+          <div className="space-y-1.5">
+            <label className={ROTULO} htmlFor="confirmPassword">
+              Confirmar
+            </label>
+            <PasswordInput
+              id="confirmPassword"
+              autoComplete="new-password"
+              placeholder="******"
+              aria-invalid={errors.confirmPassword ? true : undefined}
+              {...register("confirmPassword")}
+            />
+            {errors.confirmPassword && <ErroDoCampo mensagem={errors.confirmPassword.message} />}
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-2 pt-1">
+          <div className="flex items-start gap-3 rounded-md border border-border p-3">
+            <Controller
+              control={control}
+              name="termsAccepted"
+              render={({ field }) => (
+                <Checkbox
+                  id="termsAccepted"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  className="mt-0.5"
+                />
+              )}
+            />
+            <div className="flex-1 space-y-1">
+              <label
+                htmlFor="termsAccepted"
+                className="block cursor-pointer text-sm leading-snug text-foreground"
+              >
+                Eu li e concordo com os <Link href="/termos" target="_blank" className="rounded-sm text-gold-line underline underline-offset-4">Termos de Uso e Política de Privacidade</Link>.
+              </label>
+              <p className="text-xs text-muted-foreground">
+                A conexão com o Azimute é criptografada, e CPF, telefone, data de nascimento e renda ficam criptografados no banco.
               </p>
-            )}
-
-            <div className="flex items-start gap-3 p-4 rounded-[24px] bg-muted/5 border border-border/40 hover:bg-muted/10 transition-colors cursor-pointer group relative">
-              <Controller
-                control={control}
-                name="productImprovementConsent"
-                render={({ field }) => (
-                  <Checkbox
-                    id="productImprovementConsent"
-                    checked={field.value}
-                    onCheckedChange={(marcado) => field.onChange(marcado === true)}
-                    className="mt-1 h-5 w-5 rounded-lg border-2 border-primary/40 data-[state=checked]:border-primary"
-                  />
-                )}
-              />
-              <div className="space-y-1 select-none flex-1">
-                <label
-                  htmlFor="productImprovementConsent"
-                  className="text-xs font-bold text-foreground/80 leading-tight cursor-pointer block"
-                >
-                  Aceito que meus dados, anonimizados, sejam usados para melhorar o produto e treinar modelos de previsão e de categorização.
-                </label>
-                <p className="text-[10px] text-muted-foreground font-medium">
-                  Opcional. Você pode retirar o consentimento a qualquer momento nas configurações.
-                </p>
-              </div>
             </div>
-          </motion.div>
+          </div>
+          {errors.termsAccepted && <ErroDoCampo mensagem={errors.termsAccepted.message} />}
 
-          <motion.div variants={itemVariants} className="pt-4">
-            <Button 
-              type="submit" 
-              className="w-full h-14 rounded-full text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group" 
-              loading={isLoading} 
-              disabled={isLoading}
-            >
-              <span className="flex items-center gap-2">
-                Criar Minha Conta
-                <UserPlus className="h-4 w-4 transition-transform group-hover:scale-110" />
-              </span>
-            </Button>
-          </motion.div>
+          <div className="flex items-start gap-3 rounded-md border border-border p-3">
+            <Controller
+              control={control}
+              name="productImprovementConsent"
+              render={({ field }) => (
+                <Checkbox
+                  id="productImprovementConsent"
+                  checked={field.value}
+                  onCheckedChange={(marcado) => field.onChange(marcado === true)}
+                  className="mt-0.5"
+                />
+              )}
+            />
+            <div className="flex-1 space-y-1">
+              <label
+                htmlFor="productImprovementConsent"
+                className="block cursor-pointer text-sm leading-snug text-foreground"
+              >
+                Aceito que meus dados, anonimizados, sejam usados para melhorar o produto e treinar modelos de previsão e de categorização.
+              </label>
+              <p className="text-xs text-muted-foreground">
+                Opcional. Você pode retirar o consentimento a qualquer momento nas configurações.
+              </p>
+            </div>
+          </div>
+        </div>
 
-          <motion.div variants={itemVariants} className="text-center pt-2">
-            <p className="text-sm text-muted-foreground font-medium">
-              Já tem uma conta?{" "}
-              <Link href="/auth/login" className="text-primary font-black hover:underline underline-offset-4 decoration-2">
-                Entre aqui
-              </Link>
-            </p>
-          </motion.div>
-        </motion.div>
+        <Button
+          type="submit"
+          className="w-full max-md:h-11"
+          loading={isLoading}
+          disabled={isLoading}
+        >
+          Criar Minha Conta
+          <UserPlus className="h-4 w-4" aria-hidden="true" />
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          Já tem uma conta?{" "}
+          <Link href="/auth/login" className="rounded-sm font-medium text-gold-line underline-offset-4 hover:underline">
+            Entre aqui
+          </Link>
+        </p>
       </form>
     </AuthShell>
   )
 }
 
+const ROTULO = "text-sm font-medium text-fg-secondary"
+
+function ErroDoCampo({ mensagem }: { mensagem?: string }) {
+  return (
+    <p className="flex items-start gap-1.5 text-xs leading-snug text-outflow">
+      <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      {mensagem}
+    </p>
+  )
+}
