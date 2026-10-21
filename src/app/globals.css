@@ -226,6 +226,91 @@ body {
   border: 1px solid var(--az-border-strong);
 }
 
+/* No celular, campos com 16px para o iOS não aplicar zoom ao focar (DESIGN.md §4) */
+@media (width < 48rem) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Escala tipográfica (AZ-04, DESIGN.md §4): celular primeiro, desktop a partir de 768px */
+@utility display-xl {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-size: 2rem;
+  line-height: 2.375rem;
+  @media (width >= 48rem) {
+    font-size: 2.75rem;
+    line-height: 3rem;
+  }
+}
+@utility display-l {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-size: 1.5rem;
+  line-height: 1.875rem;
+  @media (width >= 48rem) {
+    font-size: 1.75rem;
+    line-height: 2.125rem;
+  }
+}
+@utility display-m {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-size: 1.125rem;
+  line-height: 1.5rem;
+  @media (width >= 48rem) {
+    font-size: 1.25rem;
+    line-height: 1.625rem;
+  }
+}
+@utility display-s {
+  font-family: var(--font-display);
+  font-stretch: 125%;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-size: 1rem;
+  line-height: 1.375rem;
+}
+@utility value-l {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  font-size: 1.25rem;
+  line-height: 1.625rem;
+  @media (width >= 48rem) {
+    font-size: 1.375rem;
+    line-height: 1.75rem;
+  }
+}
+@utility value-m {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+  @media (width >= 48rem) {
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+  }
+}
+@utility label {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 /* Movimento (AZ-07): duration-fast | duration-base | duration-slow | duration-exit */
 @utility duration-fast {
   transition-duration: var(--az-dur-fast);
