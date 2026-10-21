@@ -88,8 +88,9 @@ describe("Dashboard: A pagar, patrimônio e faturas do mês", () => {
 
     const aPagar = await screen.findByRole("group", { name: "A pagar" })
     expect(within(aPagar).getByText(reais("R$ 50,00"))).toBeInTheDocument()
+    // AZ-23: a saída leva o sinal de menos junto da cor
     const despesas = screen.getByRole("group", { name: "Despesas do Mês" })
-    expect(within(despesas).getByText(reais("R$ 180,00"))).toBeInTheDocument()
+    expect(within(despesas).getByText(reais("− R$ 180,00"))).toBeInTheDocument()
   })
 
   it("o patrimônio mostra o total e as quatro partes de net_worth_breakdown", async () => {
@@ -101,8 +102,8 @@ describe("Dashboard: A pagar, patrimônio e faturas do mês", () => {
     expect(within(parte("Disponível")).getByText(reais("R$ 3.000,00"))).toBeInTheDocument()
     expect(within(parte("Reservas")).getByText(reais("R$ 800,00"))).toBeInTheDocument()
     expect(within(parte("Investimentos")).getByText(reais("R$ 2.000,00"))).toBeInTheDocument()
-    // As faturas em aberto saem do patrimônio
-    expect(within(parte("Faturas em aberto")).getByText(reais("- R$ 450,00"))).toBeInTheDocument()
+    // As faturas em aberto saem do patrimônio: sinal de menos (AZ-23)
+    expect(within(parte("Faturas em aberto")).getByText(reais("− R$ 450,00"))).toBeInTheDocument()
   })
 
   it("as faturas do mês mostram total_current_invoices", async () => {

@@ -1,19 +1,20 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo } from "react"
 import { format, getDaysInMonth } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { 
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts'
-import { TrendingUp, ArrowUpRight, BarChart3 } from "lucide-react"
+import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { ChartEmptyState } from "./ChartEmptyState"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
-import { PROPS_DA_GRADE } from "@/lib/graficos"
+import { COR_DE_ENTRADA, COR_DE_SAIDA, PROPS_DA_GRADE, PROPS_DO_EIXO } from "@/lib/graficos"
+import { CaixaDoTooltip, Granularidade, ItemDaLegenda, LinhaDoTooltip } from "./partes-do-grafico"
 
 // CONTRATO-16: os valores chegam como texto ("1234.56")
 interface DailyCashFlowData {
@@ -107,148 +108,115 @@ export function DailyCashFlowChart({
     const isEmpty = !isLoading && (!completeDailyData || completeDailyData.length === 0 || completeDailyData.every(d => d.income === 0 && d.expense === 0));
 
     return (
-        <Card className={cn("border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden flex flex-col", className)}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2 text-wrap">
-                <div className="min-w-0">
-                    <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70 flex items-center gap-2">
-                        <TrendingUp className="h-4 w-4" style={{ color: 'var(--az-inflow)' }} />
+        <Card className={cn("flex flex-col", className)}>
+            <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 pb-2">
+                <div className="min-w-0 space-y-1">
+                    <CardTitle className="flex items-center gap-2">
                         <span className="truncate">Fluxo de Caixa Diário</span>
+                        <Granularidade>por dia</Granularidade>
                     </CardTitle>
-                    <CardDescription className="text-[10px] font-medium text-muted-foreground mt-0.5 truncate uppercase tracking-widest opacity-50">Movimentação detalhada dia por dia</CardDescription>
+                    <CardDescription>Movimentação detalhada dia por dia</CardDescription>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                    {/* Seletor de Mês Interno (estilo Relatórios) */}
+                <div className="flex shrink-0 flex-wrap items-center gap-3">
+                    {/* Seletor de mês interno (Cartas) */}
                     {showMonthSelector && availableMonths.length > 1 && activeMonthStr && (
-                        <div className="flex items-center gap-2 bg-background/50 backdrop-blur-md p-1 rounded-xl border border-border/50 mr-2">
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-lg"
+                        <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Mês anterior do fluxo diário"
                                 disabled={availableMonths.indexOf(activeMonthStr) === 0}
                                 onClick={() => {
                                     const idx = availableMonths.indexOf(activeMonthStr);
                                     if (idx > 0 && onMonthChange) onMonthChange(availableMonths[idx - 1]);
                                 }}
                             >
-                                <ArrowUpRight className="h-4 w-4 rotate-[-135deg]" />
+                                <ChevronLeft aria-hidden="true" />
                             </Button>
-                            
-                            <span className="text-[10px] font-black uppercase tracking-tighter px-2 min-w-[70px] text-center">
+
+                            <span className="label min-w-[72px] px-1 text-center text-foreground">
                                 {format(new Date(activeMonthStr + "-01T00:00:00"), "MMM/yy", { locale: ptBR })}
                             </span>
 
-                            <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-lg"
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                aria-label="Próximo mês do fluxo diário"
                                 disabled={availableMonths.indexOf(activeMonthStr) === availableMonths.length - 1}
                                 onClick={() => {
                                     const idx = availableMonths.indexOf(activeMonthStr);
                                     if (idx < availableMonths.length - 1 && onMonthChange) onMonthChange(availableMonths[idx + 1]);
                                 }}
                             >
-                                <ArrowUpRight className="h-4 w-4 rotate-[45deg]" />
+                                <ChevronRight aria-hidden="true" />
                             </Button>
                         </div>
                     )}
 
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--az-inflow)' }} />
-                            <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">Receita</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--az-outflow)' }} />
-                            <span className="text-[8px] font-bold uppercase tracking-wider opacity-60">Despesa</span>
-                        </div>
+                        <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Receita" />
+                        <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Despesa" />
                     </div>
                 </div>
             </CardHeader>
-            
-            <CardContent className="h-[300px] sm:h-[400px] pt-4 px-2 sm:px-6">
-                {isLoading ? <Skeleton className="w-full h-full rounded-2xl" /> : (
+
+            <CardContent className="h-[300px] px-2 pt-4 sm:h-[400px] sm:px-6">
+                {isLoading ? <Skeleton className="h-full w-full" /> : (
                     isEmpty ? (
-                        <ChartEmptyState 
-                            type="bar" 
-                            height="100%" 
+                        <ChartEmptyState
+                            type="bar"
+                            height="100%"
                             title="Fluxo de Caixa Diário"
                             description="As movimentações diárias aparecerão aqui."
                             icon={BarChart3}
                         />
                     ) : (
-                        <div className="w-full h-full overflow-x-auto overflow-y-hidden custom-scrollbar pb-2">
-                            <div className="min-w-[700px] h-full pr-2">
+                        <div className="custom-scrollbar h-full w-full overflow-x-auto overflow-y-hidden pb-2">
+                            <div className="h-full min-w-[700px] pr-2">
                                 <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart 
+                                    <BarChart
                                         data={completeDailyData}
                                         margin={{ top: 10, right: 10, left: 10, bottom: 0 }}
                                         barGap={4}
                                     >
                                         <CartesianGrid {...PROPS_DA_GRADE} />
-                                        <XAxis 
-                                            dataKey="label" 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            fontSize={10} 
-                                            fontWeight={800}
-                                            tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                        <XAxis
+                                            dataKey="label"
+                                            {...PROPS_DO_EIXO}
                                             dy={10}
                                             interval={0}
                                             padding={{ left: 15, right: 15 }}
                                         />
-                                        <YAxis 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            fontSize={10}
-                                            tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                        <YAxis
+                                            {...PROPS_DO_EIXO}
                                             tickFormatter={formatarMoedaDoEixo}
                                             width={45}
                                         />
-                                        <Tooltip 
-                                            cursor={{ fill: 'currentColor', opacity: 0.05, radius: 12 }}
+                                        <Tooltip
+                                            cursor={{ fill: "var(--az-elevated)" }}
                                             content={({ active, payload, label }) => {
                                                 if (active && payload && payload.length) {
                                                     return (
-                                                        <div className="z-50 bg-background/90 backdrop-blur-xl border border-border/50 p-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                                                            <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 border-b border-border/50 pb-2">Dia {label}</p>
-                                                            <div className="space-y-3">
-                                                                {payload.map((entry: any, index: number) => (
-                                                                    <div key={index} className="flex items-center justify-between gap-8">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || (index === 0 ? 'var(--az-inflow)' : 'var(--az-outflow)') }} />
-                                                                            <span className="text-xs font-bold text-muted-foreground">{entry.name === 'income' ? 'Receita' : entry.name === 'expense' ? 'Despesa' : entry.name}</span>
-                                                                        </div>
-                                                                        <span className="text-xs font-black">
-                                                                            {formatarMoeda(entry.value)}
-                                                                        </span>
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        </div>
+                                                        <CaixaDoTooltip titulo={`Dia ${label}`}>
+                                                            {payload.map((entry, index) => (
+                                                                <LinhaDoTooltip
+                                                                    key={index}
+                                                                    cor={entry.dataKey === "income" ? COR_DE_ENTRADA : COR_DE_SAIDA}
+                                                                    nome={entry.dataKey === "income" ? "Receita" : "Despesa"}
+                                                                    valor={formatarMoeda(entry.value as number)}
+                                                                />
+                                                            ))}
+                                                        </CaixaDoTooltip>
                                                     )
                                                 }
                                                 return null
                                             }}
                                         />
-                                        <Bar 
-                                            dataKey="income" 
-                                            name="Receitas" 
-                                            fill="var(--az-inflow)" 
-                                            fillOpacity={0.75}
-                                            stroke="var(--az-inflow)"
-                                            strokeWidth={1.5}
-                                            radius={[4, 4, 0, 0]} 
-                                        />
-                                        <Bar 
-                                            dataKey="expense" 
-                                            name="Despesas" 
-                                            fill="var(--az-outflow)" 
-                                            fillOpacity={0.75}
-                                            stroke="var(--az-outflow)"
-                                            strokeWidth={1.5}
-                                            radius={[4, 4, 0, 0]} 
-                                        />
+                                        <Bar dataKey="income" name="Receitas" fill={COR_DE_ENTRADA} radius={[2, 2, 0, 0]} />
+                                        <Bar dataKey="expense" name="Despesas" fill={COR_DE_SAIDA} radius={[2, 2, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

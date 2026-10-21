@@ -1,11 +1,11 @@
 "use client"
 
 import * as React from "react"
-import { Landmark, PiggyBank, TrendingUp, Wallet, CreditCard } from "lucide-react"
+import { CreditCard, Landmark, PiggyBank, TrendingUp, Wallet } from "lucide-react"
 
-import { Card, CardContent } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
+import { Valor } from "@/components/ui/valor"
 import { formatarMoeda } from "@/lib/dinheiro"
-import { cn } from "@/lib/utils"
 import type { NetWorthBreakdown as Partes } from "@/types/reports"
 
 interface NetWorthBreakdownProps {
@@ -16,20 +16,19 @@ interface NetWorthBreakdownProps {
 
 interface ParteProps {
     titulo: string
-    valor: string
     icone: React.ReactNode
-    corDoValor: string
+    children: React.ReactNode
 }
 
-function Parte({ titulo, valor, icone, corDoValor }: ParteProps) {
+function Parte({ titulo, icone, children }: ParteProps) {
     return (
-        <div role="group" aria-label={titulo} className="flex items-center gap-3 bg-background/40 p-4 rounded-2xl border border-border/40 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-muted/40 flex items-center justify-center shrink-0">
+        <div role="group" aria-label={titulo} className="flex min-w-0 items-center gap-3 rounded-md border border-border p-4">
+            <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-elevated text-muted-foreground">
                 {icone}
-            </div>
+            </span>
             <div className="min-w-0">
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70 truncate">{titulo}</p>
-                <p className={cn("text-lg font-black tracking-tight truncate", corDoValor)}>{valor}</p>
+                <p className="label truncate text-muted-foreground">{titulo}</p>
+                <p className="value-m truncate">{children}</p>
             </div>
         </div>
     )
@@ -40,48 +39,29 @@ function Parte({ titulo, valor, icone, corDoValor }: ParteProps) {
 export function NetWorthBreakdown({ total, partes }: NetWorthBreakdownProps) {
     return (
         <section aria-labelledby="titulo-patrimonio">
-            <Card className="border border-border/60 bg-card hover:bg-muted/30 hover:border-primary/20 transition-all shadow-md hover:shadow-lg rounded-[32px] overflow-hidden p-5 sm:p-6">
-                <CardContent className="p-0 space-y-5">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                                <Landmark className="h-6 w-6 text-primary" />
-                            </div>
-                            <div>
-                                <h2 id="titulo-patrimonio" className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/70">
-                                    Patrimônio
-                                </h2>
-                                <p className="text-2xl font-black tracking-tight text-foreground">{formatarMoeda(total ?? "0.00")}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                        <Parte
-                            titulo="Disponível"
-                            valor={formatarMoeda(partes?.available ?? "0.00")}
-                            icone={<Wallet className="h-5 w-5 text-primary" />}
-                            corDoValor="text-foreground"
-                        />
-                        <Parte
-                            titulo="Reservas"
-                            valor={formatarMoeda(partes?.reserves ?? "0.00")}
-                            icone={<PiggyBank className="h-5 w-5 text-emerald-500" />}
-                            corDoValor="text-foreground"
-                        />
-                        <Parte
-                            titulo="Investimentos"
-                            valor={formatarMoeda(partes?.investments ?? "0.00")}
-                            icone={<TrendingUp className="h-5 w-5 text-blue-500" />}
-                            corDoValor="text-foreground"
-                        />
-                        <Parte
-                            titulo="Faturas em aberto"
-                            valor={`- ${formatarMoeda(partes?.open_invoices ?? "0.00")}`}
-                            icone={<CreditCard className="h-5 w-5 text-amber-500" />}
-                            corDoValor="text-amber-500"
-                        />
-                    </div>
-                </CardContent>
+            <Card className="space-y-5 p-5">
+                <div className="flex items-center gap-3">
+                    <Landmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    <h2 id="titulo-patrimonio" className="display-s">
+                        Patrimônio
+                    </h2>
+                    <p className="value-l ml-auto">{formatarMoeda(total ?? "0.00")}</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                    <Parte titulo="Disponível" icone={<Wallet className="h-4 w-4" />}>
+                        {formatarMoeda(partes?.available ?? "0.00")}
+                    </Parte>
+                    <Parte titulo="Reservas" icone={<PiggyBank className="h-4 w-4" />}>
+                        {formatarMoeda(partes?.reserves ?? "0.00")}
+                    </Parte>
+                    <Parte titulo="Investimentos" icone={<TrendingUp className="h-4 w-4" />}>
+                        {formatarMoeda(partes?.investments ?? "0.00")}
+                    </Parte>
+                    {/* As faturas em aberto saem do total: sinal de menos e cor de saída */}
+                    <Parte titulo="Faturas em aberto" icone={<CreditCard className="h-4 w-4" />}>
+                        <Valor valor={partes?.open_invoices ?? "0.00"} direcao="saida" />
+                    </Parte>
+                </div>
             </Card>
         </section>
     )
