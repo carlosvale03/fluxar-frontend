@@ -1,32 +1,34 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { useParams, useRouter } from "next/navigation"
-import { ArrowLeft, CreditCard as CardIcon, Calendar, FileText, Edit, Wallet } from "lucide-react"
+import { ArrowLeft, Calendar, Edit, Info } from "lucide-react"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { lerData } from "@/lib/datas"
 
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
+import { Valor } from "@/components/ui/valor"
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
 
 import { api } from "@/services/apiClient"
 import { CreditCard } from "@/types/cards"
 import { Account } from "@/types/accounts"
 import { InvoiceList } from "@/components/cards/invoice-list"
+import { BarraDoLimite } from "@/components/cards/credit-card-item"
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 import { Invoice } from "@/types/cards"
 import { CreditCardFormDialog } from "@/components/cards/credit-card-form-dialog"
-import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { paraCentavos } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
 import { usePlan } from "@/hooks/use-plan"
 import { AvisoDoPlano } from "@/components/planos/recurso-bloqueado"
@@ -44,12 +46,12 @@ export default function CardDetailsPage() {
   const { podeUsar } = usePlan()
   const cartoesLiberados = podeUsar("cartoes") === true
   const cartoesTravados = podeUsar("cartoes") === false
-  
+
   const [card, setCard] = useState<CreditCard | null>(null)
   const [account, setAccount] = useState<Account | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [isEditOpen, setIsEditOpen] = useState(false)
-  
+
   // Payment Dialog State
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | undefined>(undefined)
@@ -70,7 +72,7 @@ export default function CardDetailsPage() {
               tratarErro(err, { mensagemPadrao: "Erro ao carregar a conta do cartão.", tentarDeNovo: fetchCard })
           }
       }
-    } catch (error) {
+    } catch {
       toast.error("Erro ao carregar detalhes do cartão.")
       router.push("/cartoes")
     } finally {
@@ -82,14 +84,6 @@ export default function CardDetailsPage() {
     if (id) fetchCard()
   }, [id, router])
 
-  const getGradientStyle = (color: string | undefined | null) => {
-      const c = color || "#000000"
-      return {
-          background: `linear-gradient(135deg, ${c}15 0%, transparent 100%)`,
-          borderColor: `${c}30`
-      }
-  }
-  
   const handlePayInvoice = (invoice: Invoice) => {
       setSelectedInvoice(invoice)
       setIsPaymentOpen(true)
@@ -98,7 +92,7 @@ export default function CardDetailsPage() {
   const handleUnpayInvoice = async (invoice: Invoice) => {
       try {
           await api.post(`/invoices/${invoice.id}/unpay/`)
-          toast.success("Pagamento desfeito com sucesso!")
+          toast.success("Pagamento desfeito.")
           // Reload to refresh logic
            // Ideally update local state, but invoice logic affects many transactions.
           window.location.reload()
@@ -109,199 +103,129 @@ export default function CardDetailsPage() {
   }
   if (isLoading) {
     return (
-        <div className="container mx-auto py-10 px-4 max-w-5xl space-y-8 animate-in fade-in duration-500">
-            <div className="flex items-center gap-4 mb-8">
-                <Skeleton className="h-10 w-10 rounded-full" />
-                <div className="space-y-2">
-                    <Skeleton className="h-8 w-48" />
-                    <Skeleton className="h-4 w-32" />
-                </div>
+        <div className="container mx-auto max-w-5xl space-y-6 px-4 py-8 md:px-6" aria-busy="true" aria-label="Carregando">
+            <div className="space-y-2">
+                <Skeleton className="h-8 w-48" />
+                <Skeleton className="h-4 w-32" />
             </div>
-            
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                <Skeleton className="h-64 rounded-[32px] md:col-span-1 lg:col-span-1" />
-                <Skeleton className="h-64 rounded-2xl md:col-span-1 lg:col-span-1" />
-                <Skeleton className="h-64 rounded-2xl md:col-span-1 lg:col-span-1" />
+
+            <div className="grid gap-4 md:grid-cols-3">
+                <Skeleton className="h-56 rounded-lg" />
+                <Skeleton className="h-56 rounded-lg md:col-span-2" />
             </div>
-            
-            <Skeleton className="h-96 rounded-[32px] w-full mt-8" />
+
+            <Skeleton className="h-80 w-full rounded-lg" />
         </div>
     )
   }
 
   if (!card) return null
 
-  const getProgressColor = (percentage: number) => {
-    if (percentage < 60) return "bg-green-500"
-    if (percentage < 85) return "bg-yellow-500"
-    return "bg-red-500"
-  }
-
   // CONTRATO-16: os valores chegam como texto; a conta é feita em centavos
   const limit = paraCentavos(card.limit) || 0
   // FATURA-42: o limite disponível vem só do backend
   const available = card.available_limit
   const usedAmount = limit - paraCentavos(available)
-  const usagePercentage = limit > 0 ? Math.min((usedAmount / limit) * 100, 100) : 0
-  const progressColor = getProgressColor(usagePercentage)
 
   return (
-    <div className="container mx-auto py-10 px-4 max-w-5xl animate-in fade-in duration-700">
-      {/* Premium Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div className="flex items-center gap-5">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => router.push("/cartoes")}
-                className="h-11 w-11 rounded-full bg-background/50 border border-border/40 shadow-sm hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
-            >
-                <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div>
-                 <div className="flex items-center gap-3">
-                    <h1 className="text-3xl font-bold tracking-tight">{card.name}</h1>
-                    <Badge className="bg-primary/10 text-primary border-primary/20 rounded-full px-3 py-1 text-[10px] font-bold uppercase tracking-wider">
-                        Cartão de Crédito
-                    </Badge>
-                 </div>
-                 {account && (
-                    <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-1.5 font-medium">
-                        <div className="w-5 h-5 rounded-md bg-muted flex items-center justify-center">
-                            <Wallet className="h-3 w-3" />
-                        </div>
-                         Vinculado a: <span className="text-foreground">{account.name}</span>
-                    </div>
-                 )}
-            </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-            {cartoesLiberados && (
-                <Button 
-                    variant="outline" 
-                    onClick={() => setIsEditOpen(true)}
-                    className="rounded-full shadow-sm hover:shadow-md transition-all border-border/60"
-                >
-                    <Edit className="mr-2 h-4 w-4" /> Editar Cartão
-                </Button>
-            )}
-        </div>
-      </div>
+    <div className="container mx-auto max-w-5xl px-4 py-8 md:px-6">
+      <Button asChild variant="ghost" size="sm" className="-ml-3 mb-2">
+          <Link href="/cartoes">
+              <ArrowLeft aria-hidden="true" /> Cartões
+          </Link>
+      </Button>
+
+      <CabecalhoDePagina
+        titulo={card.name}
+        apoio={account ? `Cartão de crédito vinculado a ${account.name}` : "Cartão de crédito"}
+        acoes={
+          cartoesLiberados && (
+              <Button variant="outline" onClick={() => setIsEditOpen(true)}>
+                  <Edit aria-hidden="true" /> Editar Cartão
+              </Button>
+          )
+        }
+      />
 
       {cartoesTravados && (
         <AvisoDoPlano
           titulo="Cartões"
-          className="mb-8 p-8"
+          className="mb-6"
         />
       )}
 
-      {/* Informativo Banner */}
-      <div className="mb-8 p-4 rounded-3xl bg-primary/5 border border-primary/10 text-primary/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-4">
-          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-            <CardIcon className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h4 className="font-bold text-sm text-primary">Informações do Ciclo</h4>
-            <p className="text-xs leading-relaxed max-w-2xl">
-              Este cartão possui fechamento no dia <strong>{card.closing_day}</strong> e vencimento no dia <strong>{card.due_day}</strong>. 
-              Gastos realizados após o fechamento serão lançados na fatura do mês seguinte.
+      {/* Ciclo do cartão: alerta informativo com a listra lateral (DESIGN.md §5, Alertas) */}
+      <div className="mb-6 flex items-start gap-3 rounded-r-lg border border-border border-l-[3px] border-l-info bg-card p-4">
+          <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+          <div className="space-y-1">
+            <h2 className="text-sm font-semibold">Ciclo da fatura</h2>
+            <p className="max-w-2xl text-sm text-fg-secondary">
+              Este cartão fecha no dia <strong className="font-semibold text-foreground">{card.closing_day}</strong> e vence no dia <strong className="font-semibold text-foreground">{card.due_day}</strong>.
+              Gastos feitos depois do fechamento entram na fatura do mês seguinte.
             </p>
           </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-10">
+      <div className="mb-8 grid gap-4 md:grid-cols-3">
           {/* Main Info Card */}
-          <Card 
-            className="col-span-full md:col-span-1 lg:col-span-1 shadow-xl shadow-black/5 border-border/40 rounded-[32px] overflow-hidden"
-            style={getGradientStyle(card.color)}
-          >
-              <CardHeader className="pb-2">
-                  <div className="flex items-center justify-between">
-                      <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-foreground/70">
-                          Visão Geral
-                      </CardTitle>
-                      <div 
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                        style={{ backgroundColor: `${card.color}20`, color: card.color || undefined }}
-                      >
-                          <CardIcon className="h-5 w-5" />
-                      </div>
-                  </div>
+          <Card className="relative overflow-hidden">
+              {card.color && (
+                <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: card.color }} />
+              )}
+              <CardHeader className="p-5 pb-2">
+                  <CardTitle>Visão geral</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6 pt-4">
+              <CardContent className="space-y-5 p-5 pt-3">
                   <div>
-                      <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Limite Total</p>
-                      <p className="text-4xl font-black tracking-tighter">{formatarMoeda(card.limit)}</p>
+                      <p className="label mb-1 text-muted-foreground">Limite total</p>
+                      <Valor valor={card.limit} direcao="neutro" tamanho="l" />
                   </div>
-                  
-                  <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-background/40 p-3 rounded-2xl border border-border/40 backdrop-blur-md">
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight mb-1">Fechamento</p>
-                          <p className="font-black flex items-center gap-2 text-sm">
-                              <Calendar className="h-3.5 w-3.5 opacity-70" /> Dia {card.closing_day}
-                          </p>
+
+                  <dl className="grid grid-cols-2 gap-3">
+                      <div className="rounded-md border border-border p-3">
+                          <dt className="label mb-1 text-muted-foreground">Fechamento</dt>
+                          <dd className="flex items-center gap-2 text-sm">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" /> Dia {card.closing_day}
+                          </dd>
                       </div>
-                      <div className="bg-background/40 p-3 rounded-2xl border border-border/40 backdrop-blur-md">
-                          <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight mb-1">Vencimento</p>
-                          <p className="font-black flex items-center gap-2 text-sm">
-                              <Calendar className="h-3.5 w-3.5 opacity-70" /> Dia {card.due_day}
-                          </p>
+                      <div className="rounded-md border border-border p-3">
+                          <dt className="label mb-1 text-muted-foreground">Vencimento</dt>
+                          <dd className="flex items-center gap-2 text-sm">
+                              <Calendar className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" /> Dia {card.due_day}
+                          </dd>
                       </div>
-                  </div>
+                  </dl>
               </CardContent>
           </Card>
 
           {/* Current Invoice Info */}
-          <Card className="shadow-xl shadow-black/5 border-border/40 rounded-[32px] md:col-span-1 lg:col-span-2 relative group overflow-hidden">
-              <div 
-                className={cn("absolute top-0 left-0 w-full h-1.5 opacity-60", progressColor)} 
-              />
-              
-              <CardHeader className="pb-2">
+          <Card className="md:col-span-2">
+              <CardHeader className="p-5 pb-2">
                   <div className="flex items-center justify-between">
-                        <CardTitle className="text-sm font-black uppercase tracking-[0.2em] text-foreground/70 flex items-center gap-2">
-                            Fatura Atual
-                        </CardTitle>
-                        <Badge 
-                            variant="outline" 
-                            className="bg-yellow-500/10 text-yellow-600 border-yellow-200 dark:border-yellow-900/50 rounded-full px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider"
-                        >
-                            Aberta
-                        </Badge>
+                        <CardTitle>Fatura atual</CardTitle>
+                        <Badge variant="warning">Aberta</Badge>
                   </div>
               </CardHeader>
-              <CardContent className="pt-4">
-                  <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+              <CardContent className="p-5 pt-3">
+                  <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
                       <div className="space-y-1">
-                          <p className="text-xs text-muted-foreground font-black uppercase tracking-widest mb-1">Valor Parcial</p>
-                          <div className="text-4xl font-black tracking-tighter">{formatarMoeda(card.current_invoice_total)}</div>
+                          <p className="label mb-1 text-muted-foreground">Valor parcial</p>
+                          <Valor valor={card.current_invoice_total} direcao="neutro" tamanho="l" />
                           {/* FATURA-06: o próximo vencimento calculado pelo backend */}
                           {card.next_due_date && (
-                              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest flex items-center gap-1 mt-2">
-                                  <Calendar className="h-3 w-3" /> Vence em {format(lerData(card.next_due_date), "dd/MM")}
+                              <p className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
+                                  <Calendar className="h-3.5 w-3.5" aria-hidden="true" /> Vence em {format(lerData(card.next_due_date), "dd/MM")}
                               </p>
                           )}
                       </div>
 
-                      <div className="flex-1 w-full max-w-md space-y-4">
-                          <div className="space-y-1.5">
-                              <div className="flex justify-between items-end">
-                                  <span className="text-[10px] text-muted-foreground font-black uppercase tracking-widest">Limite Disponível</span>
-                                  <span className="text-sm font-black tabular-nums">{formatarMoeda(available)}</span>
-                              </div>
-                              <div className="h-3 w-full bg-muted/50 rounded-full overflow-hidden border border-border/20 p-0.5">
-                                   <div 
-                                      className={cn("h-full rounded-full transition-all duration-1000", progressColor)} 
-                                      style={{ width: `${usagePercentage}%` }} 
-                                    />
-                              </div>
-                              <div className="flex justify-between text-[9px] font-black uppercase tracking-widest opacity-60">
-                                  <span>0%</span>
-                                  <span>{usagePercentage.toFixed(0)}% utilizado</span>
-                                  <span>100%</span>
-                              </div>
+                      <div className="w-full max-w-md flex-1 space-y-2">
+                          <div className="flex items-end justify-between">
+                              <span className="label text-muted-foreground">Limite Disponível</span>
+                              <Valor valor={available} direcao="neutro" />
                           </div>
+                          <BarraDoLimite utilizado={usedAmount} limite={limit} />
+                          <p className="text-xs text-muted-foreground">Percentual do limite já utilizado</p>
                       </div>
                   </div>
               </CardContent>
@@ -309,33 +233,28 @@ export default function CardDetailsPage() {
       </div>
 
       {/* Invoices List Section */}
-      <div className="mt-12 space-y-6">
-          <div className="flex items-center gap-3 pl-2">
-              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shadow-sm">
-                  <FileText className="h-4 w-4 text-primary" />
-              </div>
-              <h2 className="text-xl font-bold tracking-tight">Histórico de Faturas</h2>
-          </div>
+      <section className="space-y-4" aria-labelledby="historico-de-faturas">
+          <h2 id="historico-de-faturas" className="display-m">Histórico de Faturas</h2>
           <InvoiceList cardId={id} onPayInvoice={handlePayInvoice} onUnpayInvoice={handleUnpayInvoice} />
-      </div>
-      
+      </section>
+
       {cartoesLiberados && (
-        <CreditCardFormDialog 
-          open={isEditOpen} 
-          onOpenChange={setIsEditOpen} 
-          card={card} 
-          onSuccess={fetchCard} 
+        <CreditCardFormDialog
+          open={isEditOpen}
+          onOpenChange={setIsEditOpen}
+          card={card}
+          onSuccess={fetchCard}
         />
       )}
-      
-      <InvoicePaymentDialog 
+
+      <InvoicePaymentDialog
         open={isPaymentOpen}
         onOpenChange={setIsPaymentOpen}
         invoiceId={selectedInvoice?.id}
         initialAmount={selectedInvoice?.total_amount}
         onSuccess={() => {
             fetchCard()
-            window.location.reload() 
+            window.location.reload()
         }}
       />
     </div>

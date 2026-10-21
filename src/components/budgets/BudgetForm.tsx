@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Loader2, Target, TrendingUp, AlertCircle } from "lucide-react"
+import { Info } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -102,10 +102,10 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
     try {
       if (budget) {
         await updateBudget(budget.id, values)
-        toast.success("Orçamento atualizado!")
+        toast.success("Orçamento atualizado.")
       } else {
         await createBudget(values)
-        toast.success("Orçamento definido!")
+        toast.success("Orçamento definido.")
       }
       onSuccess()
     } catch (error) {
@@ -138,51 +138,41 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
 
   const years = Array.from({ length: 5 }, (_, i) => currentYear - 1 + i)
 
+
   return (
     <div className="flex flex-col">
-      <DialogHeader className="mb-8">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-500/10 animate-in zoom-in-50 duration-500">
-            {budget ? <TrendingUp className="h-6 w-6" /> : <Target className="h-6 w-6" />}
-          </div>
-          <div className="flex flex-col gap-0.5">
-            <DialogTitle className="text-2xl font-bold tracking-tight">
-              {budget ? "Editar Orçamento" : "Novo Orçamento"}
-            </DialogTitle>
-            <DialogDescription className="text-sm font-medium opacity-70">
-              {budget ? "Ajuste as metas de gastos desta categoria." : "Defina limites para controlar seus gastos mensais."}
-            </DialogDescription>
-          </div>
-        </div>
+      <DialogHeader className="mb-6">
+        <DialogTitle>
+          {budget ? "Editar Orçamento" : "Novo Orçamento"}
+        </DialogTitle>
+        <DialogDescription>
+          {budget ? "Ajuste o limite de gastos desta categoria." : "Defina um limite de gastos para uma categoria no mês."}
+        </DialogDescription>
       </DialogHeader>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
           <FormField
             control={form.control}
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Categoria Alvo</FormLabel>
+                <FormLabel>Categoria Alvo</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!budget}>
                   <FormControl>
-                    <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all">
+                    <SelectTrigger>
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent className="rounded-2xl shadow-xl max-h-[300px]">
+                  <SelectContent className="max-h-[300px]">
                     {categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id} className="rounded-xl">
+                      <SelectItem key={cat.id} value={cat.id}>
                         <div className="flex items-center gap-2">
-                            <div 
-                                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                                style={{ backgroundColor: `${cat.color}15`, color: cat.color }}
-                            >
+                            {/* A cor da categoria é dado do usuário (P-08) */}
+                            <span aria-hidden="true" className="flex h-4 w-4 shrink-0 items-center justify-center" style={{ color: cat.color }}>
                                 <LucideIcon name={cat.icon} className="h-4 w-4" />
-                            </div>
-                            <span className={cn(
-                                cat.name.startsWith("↳") ? "text-muted-foreground ml-1" : "font-medium"
-                            )}>
+                            </span>
+                            <span className={cn(cat.name.startsWith("↳") && "ml-1 text-muted-foreground")}>
                                 {cat.name}
                             </span>
                         </div>
@@ -191,12 +181,12 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
                   </SelectContent>
                 </Select>
                 {!!budget && (
-                  <div className="flex items-center gap-1.5 mt-2 ml-1 text-[11px] text-amber-600 dark:text-amber-400 font-medium">
-                    <AlertCircle className="h-3 w-3" />
+                  <p className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                    <Info className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>A categoria não pode ser alterada após a criação.</span>
-                  </div>
+                  </p>
                 )}
-                <FormMessage className="ml-1 text-[11px]" />
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
@@ -207,22 +197,22 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
               name="month"
               render={({ field }) => (
                   <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Mês</FormLabel>
+                  <FormLabel>Mês</FormLabel>
                   <Select onValueChange={(val) => field.onChange(Number(val))} value={String(field.value)}>
                       <FormControl>
-                      <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all">
+                      <SelectTrigger>
                           <SelectValue placeholder="Mês" />
                       </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-2xl shadow-xl">
+                      <SelectContent>
                       {months.map((m) => (
-                          <SelectItem key={m.value} value={String(m.value)} className="rounded-xl">
+                          <SelectItem key={m.value} value={String(m.value)}>
                           {m.label}
                           </SelectItem>
                       ))}
                       </SelectContent>
                   </Select>
-                  <FormMessage className="ml-1 text-[11px]" />
+                  <FormMessage className="text-xs" />
                   </FormItem>
               )}
               />
@@ -232,22 +222,22 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
               name="year"
               render={({ field }) => (
                   <FormItem>
-                  <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Ano</FormLabel>
+                  <FormLabel>Ano</FormLabel>
                   <Select onValueChange={(val) => field.onChange(Number(val))} value={String(field.value)}>
                       <FormControl>
-                      <SelectTrigger className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all">
+                      <SelectTrigger>
                           <SelectValue placeholder="Ano" />
                       </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="rounded-2xl shadow-xl">
+                      <SelectContent>
                       {years.map((y) => (
-                          <SelectItem key={y} value={String(y)} className="rounded-xl">
+                          <SelectItem key={y} value={String(y)}>
                           {y}
                           </SelectItem>
                       ))}
                       </SelectContent>
                   </Select>
-                  <FormMessage className="ml-1 text-[11px]" />
+                  <FormMessage className="text-xs" />
                   </FormItem>
               )}
               />
@@ -258,40 +248,34 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
             name="amount_limit"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Limite do Orçamento</FormLabel>
+                <FormLabel>Limite do Orçamento</FormLabel>
                 <FormControl>
-                  <div className="relative">
-                    <MoneyInput 
-                      name={field.name}
-                      ref={field.ref}
-                      value={field.value ?? ""}
-                      onValueChange={(valor) => field.onChange(valor ?? "")}
-                      onBlur={field.onBlur}
-                      onFocus={(e) => e.target.select()}
-                      className="h-12 px-4 rounded-2xl border-muted/60 bg-muted/20 focus:bg-background focus:ring-2 focus:ring-primary/20 transition-all text-base font-bold text-rose-500"
-                    />
-                  </div>
+                  <MoneyInput
+                    name={field.name}
+                    ref={field.ref}
+                    value={field.value ?? ""}
+                    onValueChange={(valor) => field.onChange(valor ?? "")}
+                    onBlur={field.onBlur}
+                    onFocus={(e) => e.target.select()}
+                  />
                 </FormControl>
-                <FormMessage className="ml-1 text-[11px]" />
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
 
-          <DialogFooter className="gap-2 sm:gap-0 pt-4">
-            <Button 
-                type="button" 
-                variant="ghost" 
+          <DialogFooter className="pt-2">
+            <Button
+                type="button"
+                variant="outline"
                 onClick={onCancel}
-                className="h-12 px-6 rounded-2xl font-semibold hover:bg-muted"
             >
               Cancelar
             </Button>
-            <Button 
-                type="submit" 
-                disabled={isLoading}
-                className="h-12 px-8 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
+            <Button
+                type="submit"
+                loading={isLoading}
             >
-              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               {budget ? "Salvar Alterações" : "Definir Orçamento"}
             </Button>
           </DialogFooter>

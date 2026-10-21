@@ -41,7 +41,7 @@ const SALDO_33 = "Resolva as transações pendentes antes de excluir a conta: ef
 async function tentarExcluir() {
   render(<AccountsPage />)
   await userEvent.click(await screen.findByTitle("Excluir Conta"))
-  await userEvent.click(await screen.findByRole("button", { name: /sim, excluir/i }))
+  await userEvent.click(await screen.findByRole("button", { name: "Excluir conta" }))
 }
 
 describe("Exclusão de conta com a mensagem do backend", () => {
