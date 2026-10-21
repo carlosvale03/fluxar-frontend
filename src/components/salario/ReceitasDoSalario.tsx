@@ -86,11 +86,11 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
       ref={secao}
       tabIndex={-1}
       aria-labelledby="receitas-do-salario-titulo"
-      className="rounded-2xl border border-border bg-card p-5 space-y-4 scroll-mt-24 outline-none"
+      className="rounded-lg border border-border bg-card p-5 space-y-4 scroll-mt-24 outline-none"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <h2 id="receitas-do-salario-titulo" className="text-base font-semibold">
+          <h2 id="receitas-do-salario-titulo" className="display-s">
             Receitas de salário
           </h2>
           {aberto || carregando ? (
@@ -103,7 +103,7 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
           <Button
             ref={alternador}
             variant="ghost"
-            className="-mr-2 -mt-2 h-10 shrink-0 rounded-xl px-3"
+            className="-mr-2 -mt-2 h-10 shrink-0 rounded-md px-3"
             aria-expanded={aberto}
             aria-controls={CONTEUDO}
             aria-label={aberto ? "Recolher receitas de salário" : "Alterar receitas de salário"}
@@ -112,7 +112,7 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
             {aberto ? "Recolher" : "Alterar"}
             <ChevronDown
               aria-hidden
-              className={cn("motion-safe:transition-transform motion-safe:duration-200", aberto && "rotate-180")}
+              className={cn("motion-safe:transition-transform motion-safe:duration-base", aberto && "rotate-180")}
             />
           </Button>
         )}
@@ -171,7 +171,7 @@ function Escolha({ categorias, salvas, onSalvas }: { categorias: Category[]; sal
             <li key={categoria.id} className={cn(categoria.parent && "pl-6")}>
               <label
                 htmlFor={id}
-                className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 text-sm hover:bg-muted/50"
+                className="flex min-h-10 cursor-pointer items-center gap-3 rounded-lg px-2 text-sm hover:bg-elevated"
               >
                 <Checkbox
                   id={id}
@@ -190,7 +190,7 @@ function Escolha({ categorias, salvas, onSalvas }: { categorias: Category[]; sal
             ? "Nenhuma marcada"
             : `${marcadas.length} ${marcadas.length === 1 ? "marcada" : "marcadas"}`}
         </p>
-        <Button variant="outline" className="h-10 rounded-xl px-4" disabled={!mudou || salvando} loading={salvando} onClick={salvar}>
+        <Button variant="outline" className="h-10 rounded-md px-4" disabled={!mudou || salvando} loading={salvando} onClick={salvar}>
           Salvar
         </Button>
       </div>

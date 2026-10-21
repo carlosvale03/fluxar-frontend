@@ -23,9 +23,9 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
   if (!divisoes || divisoes.length === 0) return null
 
   return (
-    <section aria-labelledby="divisoes-recentes-titulo" className="rounded-2xl border border-border bg-card p-5 space-y-3">
+    <section aria-labelledby="divisoes-recentes-titulo" className="space-y-3 rounded-lg border border-border bg-card p-5">
       <div className="space-y-1">
-        <h2 id="divisoes-recentes-titulo" className="text-base font-semibold">
+        <h2 id="divisoes-recentes-titulo" className="display-s">
           Divisões recentes
         </h2>
         <p className="text-xs text-muted-foreground">Você tem 7 dias para desfazer uma divisão</p>
@@ -48,7 +48,7 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
                 </p>
                 {desconto && <p className="text-xs text-muted-foreground tabular-nums">{desconto}</p>}
                 {mudaram && (
-                  <p role="status" className="flex items-start gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                  <p role="status" className="flex items-start gap-1.5 text-xs font-medium text-warn">
                     <AlertTriangle aria-hidden className="mt-px h-3.5 w-3.5 shrink-0" />
                     {mudaram}
                   </p>
@@ -59,7 +59,7 @@ export function DivisoesRecentes({ divisoes, onDesfazer }: DivisoesRecentesProps
               </div>
               <Button
                 variant="outline"
-                className="h-10 shrink-0 rounded-xl px-3"
+                className="shrink-0"
                 onClick={() => onDesfazer(divisao)}
                 aria-label={`Desfazer divisão: ${recebido}`}
               >

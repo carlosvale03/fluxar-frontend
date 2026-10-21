@@ -16,16 +16,16 @@ function Linha({ rotulo, valor, destaque, className }: { rotulo: string; valor: 
   return (
     <div className={cn("flex items-center justify-between gap-3 py-2 text-sm", className)}>
       <span className={destaque ? "font-semibold" : "text-muted-foreground"}>{rotulo}</span>
-      <span className={cn("whitespace-nowrap tabular-nums", destaque ? "font-semibold" : "font-medium")}>{formatarMoeda(valor)}</span>
+      <span className={cn("value-m", destaque && "font-medium text-foreground")}>{formatarMoeda(valor)}</span>
     </div>
   )
 }
 
 function Painel({ id, titulo, subtitulo, children }: { id: string; titulo: string; subtitulo: string; children: React.ReactNode }) {
   return (
-    <section aria-labelledby={id} className="rounded-2xl border border-border bg-card p-5 space-y-3">
+    <section aria-labelledby={id} className="rounded-lg border border-border bg-card p-5 space-y-3">
       <div className="space-y-1">
-        <h2 id={id} className="text-base font-semibold">
+        <h2 id={id} className="display-s">
           {titulo}
         </h2>
         <p className="text-xs text-muted-foreground">{subtitulo}</p>
@@ -76,7 +76,7 @@ export function SeuHistorico({ referencias }: ReferenciasProps) {
       ) : (
         <>
           {aviso && (
-            <p role="note" className="flex items-center gap-2 text-xs font-medium text-amber-700 dark:text-amber-400">
+            <p role="note" className="flex items-center gap-2 text-xs font-medium text-warn">
               <Info aria-hidden className="h-3.5 w-3.5 shrink-0" />
               {aviso}
             </p>
@@ -91,7 +91,7 @@ export function SeuHistorico({ referencias }: ReferenciasProps) {
               rotulo="Salário menos despesas"
               valor={history.difference_average}
               destaque
-              className={cn(diferencaNegativa && "text-rose-600 dark:text-rose-400")}
+              className={cn(diferencaNegativa && "text-outflow")}
             />
           </div>
         </>

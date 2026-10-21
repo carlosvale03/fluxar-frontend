@@ -114,10 +114,10 @@ export function ResumoDoPlano({
           As partes são atendidas na ordem da lista. O que sobrar fica livre na conta do salário.
         </p>
         <div className="flex shrink-0 flex-wrap gap-2 self-start">
-          <Button variant="ghost" className="h-10 rounded-xl px-3" onClick={onTrocarModelo}>
+          <Button variant="ghost" className="h-10 px-3" onClick={onTrocarModelo}>
             <Shuffle aria-hidden /> Trocar de modelo
           </Button>
-          <Button variant="outline" className="h-10 rounded-xl px-4" onClick={onEditar}>
+          <Button variant="outline" className="h-10 px-4" onClick={onEditar}>
             <Pencil aria-hidden /> Editar plano
           </Button>
         </div>
@@ -154,7 +154,7 @@ export function ResumoDoPlano({
                 {destino.falta ? (
                   <Button
                     variant="ghost"
-                    className="-my-1.5 -ml-2 h-10 gap-1.5 rounded-xl px-2 text-xs font-medium text-amber-700 hover:bg-amber-500/10 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300"
+                    className="-my-1.5 -ml-2 h-10 gap-1.5 px-2 text-xs font-medium text-warn hover:bg-elevated hover:text-warn"
                     aria-label={`Escolher destino de ${parte.name}`}
                     onClick={() => onEscolherDestino(indice)}
                   >
@@ -171,9 +171,9 @@ export function ResumoDoPlano({
                 )}
               </div>
               <div className="shrink-0 text-right">
-                <p className="text-sm font-semibold tabular-nums">{valor !== null ? formatarMoeda(valor) : regraDaParte(parte)}</p>
+                <p className="value-m">{valor !== null ? formatarMoeda(valor) : regraDaParte(parte)}</p>
                 {valor !== null && <p className="text-xs text-muted-foreground tabular-nums">{regraDaParte(parte)}</p>}
-                {reduzida && <p className="text-xs font-medium text-amber-700 dark:text-amber-400">reduzida</p>}
+                {reduzida && <p className="text-xs font-medium text-warn">reduzida</p>}
               </div>
             </li>
           )
@@ -200,15 +200,15 @@ export function ResumoDoPlano({
       </ul>
 
       {simulacao && (
-        <div role="group" aria-label="Resultado da simulação" className="space-y-1 rounded-xl bg-muted/40 px-4 py-3 text-sm">
+        <div role="group" aria-label="Resultado da simulação" className="space-y-1 rounded-md border border-border bg-elevated px-4 py-3 text-sm">
           <div className="flex items-center justify-between gap-3">
             <span className="text-muted-foreground">Sai em transferências e aportes</span>
-            <span className="font-semibold tabular-nums">{formatarMoeda(simulacao.total)}</span>
+            <span className="value-m">{formatarMoeda(simulacao.total)}</span>
           </div>
           <div className="flex items-center justify-between gap-3">
             {/* SALARIO-13: o recebido menos as transferências, com as partes que ficam na conta */}
             <span className="text-muted-foreground">Fica na conta do salário</span>
-            <span className="font-semibold tabular-nums">{formatarMoeda(simulacao.free)}</span>
+            <span className="value-m">{formatarMoeda(simulacao.free)}</span>
           </div>
         </div>
       )}
@@ -222,7 +222,7 @@ export function ResumoDoPlano({
           aria-label="Valor do salário"
           value={valorSimulado}
           placeholder="R$ 0,00"
-          className="h-10 w-40 rounded-xl tabular-nums"
+          className="h-10 w-40 rounded-md tabular-nums"
           onValueChange={(valor) => {
             // O campo também entrega o valor ao sair dele, sem mudança
             if ((valor ?? "") === valorSimulado) return
@@ -230,14 +230,14 @@ export function ResumoDoPlano({
             descartarSimulacao()
           }}
         />
-        <Button type="submit" variant="outline" className="h-10 rounded-xl px-4" loading={simulando}>
+        <Button type="submit" variant="outline" className="h-10 rounded-md px-4" loading={simulando}>
           Simular
         </Button>
         {simulacao && (
           <Button
             type="button"
             variant="ghost"
-            className="h-10 rounded-xl px-3"
+            className="h-10 rounded-md px-3"
             onClick={() => {
               descartarSimulacao()
               onValorSimulado("")

@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Info, Wallet } from "lucide-react"
+import { Info } from "lucide-react"
 
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Skeleton } from "@/components/ui/skeleton"
 import { EditorDoPlano, type ParteInicial } from "@/components/salario/EditorDoPlano"
 import { EscolhaDoModelo } from "@/components/salario/EscolhaDoModelo"
@@ -250,40 +252,38 @@ export function GestaoDoSalario() {
 
   return (
     <div className="space-y-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-            <Wallet aria-hidden className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Gestão do salário</h1>
-            <p className="text-sm text-muted-foreground">Separe o que vai guardar assim que o salário cair.</p>
-          </div>
-        </div>
-        {status && (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span
-              aria-hidden
-              className={cn("h-2 w-2 rounded-full", plano?.has_plan ? "bg-emerald-500" : "bg-muted-foreground/40")}
-            />
-            {status}
-          </p>
-        )}
-      </header>
+      <CabecalhoDePagina
+        titulo="Partilha"
+        apoio="Divisão do salário"
+        className="pb-0"
+        acoes={
+          status && (
+            <p className="flex items-center gap-2 text-sm text-fg-secondary">
+              <span
+                aria-hidden
+                className={cn("h-2 w-2 rounded-full", plano?.has_plan ? "bg-inflow" : "bg-border-strong")}
+              />
+              {status}
+            </p>
+          )
+        }
+      />
 
       <SalariosADividir recebimentos={pendentes} onDividir={dividir} onEscolherReceitas={irParaReceitas} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 lg:items-start">
-        <section ref={secaoDoPlano} aria-labelledby="seu-plano-titulo" className="space-y-4 rounded-2xl border border-border bg-card p-5 sm:p-6 lg:col-span-2 scroll-mt-24">
-          <h2 id="seu-plano-titulo" className="text-base font-semibold">
+        <section ref={secaoDoPlano} aria-labelledby="seu-plano-titulo" className="space-y-4 rounded-lg border border-border bg-card p-5 sm:p-6 lg:col-span-2 scroll-mt-24">
+          <h2 id="seu-plano-titulo" className="display-s">
             Seu plano
           </h2>
 
           {dividirDepois && telaDoPlano === "escolha" && (
-            <p role="status" className="flex items-center gap-3 rounded-xl bg-primary/10 px-4 py-3 text-sm">
-              <Info aria-hidden className="h-4 w-4 shrink-0 text-primary" />
-              Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
-            </p>
+            <Alert variant="info" role="status">
+              <Info aria-hidden className="h-4 w-4" />
+              <AlertDescription>
+                Escolha um modelo e salve o seu plano. Em seguida, a revisão da divisão do salário abre.
+              </AlertDescription>
+            </Alert>
           )}
 
           {plano && !plano.has_plan && telaDoPlano !== "resumo" && (
@@ -296,7 +296,7 @@ export function GestaoDoSalario() {
           )}
 
           {plano === null ? (
-            <Skeleton className="h-64 w-full rounded-xl" />
+            <Skeleton className="h-64 w-full rounded-lg" />
           ) : telaDoPlano === "resumo" ? (
             <ResumoDoPlano
               partes={plano.parts}
