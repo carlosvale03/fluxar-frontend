@@ -10,19 +10,19 @@ export function AvisoDeConexao({ onTentarDeNovo }: { onTentarDeNovo: () => void 
     <div className="flex min-h-[60vh] w-full items-center justify-center p-4">
       <div
         role="alert"
-        className="max-w-md w-full p-8 rounded-[32px] bg-card border border-border/40 shadow-xl shadow-primary/5 text-center"
+        className="w-full max-w-md rounded-lg border border-border bg-card p-8 text-center"
       >
-        <div className="mx-auto mb-6 w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
-          <WifiOff className="w-8 h-8" />
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full border border-border-strong bg-elevated text-warn">
+          <WifiOff className="h-6 w-6" aria-hidden="true" />
         </div>
-        <h2 className="text-xl font-black tracking-tight text-foreground mb-3">
+        <h2 className="display-m mb-3">
           Não conseguimos falar com o servidor.
         </h2>
-        <p className="text-sm font-medium text-muted-foreground leading-relaxed mb-8">
+        <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
           Sua sessão continua aberta. Verifique sua conexão e tente de novo em alguns instantes.
         </p>
-        <Button onClick={onTentarDeNovo} className="h-12 px-6 rounded-2xl font-bold">
-          <RefreshCw className="mr-2 h-4 w-4" />
+        <Button onClick={onTentarDeNovo}>
+          <RefreshCw aria-hidden="true" />
           Tentar de novo
         </Button>
       </div>
