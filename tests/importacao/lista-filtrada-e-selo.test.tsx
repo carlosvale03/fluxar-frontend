@@ -132,12 +132,12 @@ describe("Lista filtrada pela importação e selo de sugerida", () => {
     // Um nome no cartão do celular e outro na linha da tabela
     expect(sugerida).toHaveLength(2)
     const linhaDaTabela = sugerida.map((el) => el.closest("tr")).find(Boolean)!
-    const cartao = sugerida.find((el) => !el.closest("tr"))!.closest(".rounded-\\[28px\\]")!
+    const cartao = sugerida.find((el) => !el.closest("tr"))!.closest("[data-testid=lancamento-no-celular]")!
     expect(linhaDaTabela).toHaveTextContent(SELO)
     expect(cartao).toHaveTextContent(SELO)
     expect(screen.getAllByText(SELO)).toHaveLength(2)
     for (const el of comum) {
-      expect((el.closest("tr") ?? el.closest(".rounded-\\[28px\\]"))!).not.toHaveTextContent(SELO)
+      expect((el.closest("tr") ?? el.closest("[data-testid=lancamento-no-celular]"))!).not.toHaveTextContent(SELO)
     }
   })
 

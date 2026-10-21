@@ -94,7 +94,7 @@ describe("Busca da lista de transações", () => {
     const { container } = render(<TransactionsPage />)
     await screen.findAllByText("Padaria")
 
-    const proximo = () => screen.getByRole("button", { name: "Próximo" })
+    const proximo = () => screen.getByRole("button", { name: "Próxima" })
     await userEvent.click(proximo())
     await vi.waitFor(() => expect(chamadasDeTransacoes().at(-1)?.get("page")).toBe("2"))
     await vi.waitFor(() => expect(proximo()).toBeEnabled())
@@ -121,7 +121,7 @@ describe("Busca da lista de transações", () => {
       return Promise.resolve({ data: url.startsWith("/transactions/") ? pagina() : [] })
     }) as typeof api.get)
 
-    await userEvent.type(screen.getByPlaceholderText("Busca..."), "mercado")
+    await userEvent.type(screen.getByLabelText("Buscar lançamentos"), "mercado")
     const ultimaTecla = Date.now()
     expect(chamadasDeTransacoes().length).toBe(antes)
     await esperar(500)
