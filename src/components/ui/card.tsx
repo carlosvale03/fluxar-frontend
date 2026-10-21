@@ -1,18 +1,29 @@
 import * as React from "react"
+import { ArrowUpRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const Card = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
+  // Card que leva a outro lugar: hover, cursor e a seta no canto (DESIGN.md §5, Cards)
+  interativo?: boolean
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ className, interativo = false, children, ...props }, ref) => (
   <div
     ref={ref}
     className={cn(
-      "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+      // AZ-11: superfície sem sombra; no escuro, um brilho de 1px no topo (token --az-sheen, transparente no claro)
+      "rounded-lg border border-border bg-card text-card-foreground bg-[image:linear-gradient(90deg,transparent,var(--az-sheen),transparent)] bg-no-repeat bg-[length:100%_1px]",
+      interativo &&
+        "relative cursor-pointer transition-colors duration-fast ease-az-out hover:bg-elevated focus-within:ring-2 focus-within:ring-ring",
       className
     )}
     {...props}
-  />
+  >
+    {children}
+    {interativo && (
+      <ArrowUpRight aria-hidden="true" className="pointer-events-none absolute right-4 top-4 h-4 w-4 text-muted-foreground" />
+    )}
+  </div>
 ))
 Card.displayName = "Card"
 
@@ -34,7 +45,7 @@ const CardTitle = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("font-semibold leading-none tracking-tight text-neutral-900 dark:text-neutral-50", className)}
+    className={cn("display-s text-foreground", className)}
     {...props}
   />
 ))
@@ -46,7 +57,7 @@ const CardDescription = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn("text-sm text-neutral-500 dark:text-neutral-400", className)}
+    className={cn("text-sm text-muted-foreground", className)}
     {...props}
   />
 ))

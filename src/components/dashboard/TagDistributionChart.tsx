@@ -8,6 +8,7 @@ import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
 import { Tag as TagIcon, LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { CORES_DAS_SERIES } from "@/lib/graficos"
 
 interface DistributionData {
     id: string
@@ -30,7 +31,7 @@ interface TagDistributionChartProps {
     endDate?: string
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+const COLORS = CORES_DAS_SERIES
 
 export function TagDistributionChart({
     title,
@@ -114,7 +115,6 @@ export function TagDistributionChart({
                                                 key={`cell-${index}`} 
                                                 fill={entry.color || COLORS[index % COLORS.length]} 
                                                 className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
-                                                style={{ filter: `drop-shadow(0 4px 6px ${entry.color || COLORS[index % COLORS.length]}22)` }}
                                                 onClick={() => handleTagClick(entry)}
                                             />
                                         ))}

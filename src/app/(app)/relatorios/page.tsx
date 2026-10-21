@@ -33,6 +33,7 @@ import { cn } from "@/lib/utils"
 import { LucideIcon } from "@/components/ui/icon-picker"
 import { HelpInfo } from "@/components/ui/help-info"
 import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import { CORES_DAS_SERIES, PROPS_DA_GRADE } from "@/lib/graficos"
 import { tratarErro } from "@/lib/erros"
 import { formatarTaxa, percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
 import { usePlan } from "@/hooks/use-plan"
@@ -222,7 +223,7 @@ export default function ReportsPage() {
 
 
 
-    const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
+    const COLORS = CORES_DAS_SERIES
 
     return (
         <div className="container mx-auto py-6 sm:py-10 px-0 sm:px-4 max-w-7xl space-y-8 animate-in fade-in duration-700">
@@ -657,7 +658,7 @@ export default function ReportsPage() {
                                                         ) : (
                                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                             <BarChart data={advancedData.investment_analysis.monthly_history.map(m => ({ ...m, contribution: numero(m.contribution), returns: numero(m.returns) }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
+                                                                <CartesianGrid {...PROPS_DA_GRADE} />
                                                                 <XAxis 
                                                                     dataKey="month" 
                                                                     axisLine={false} 
@@ -699,14 +700,14 @@ export default function ReportsPage() {
                                                                 <Bar 
                                                                     dataKey="contribution" 
                                                                     name="Aportes" 
-                                                                    fill="var(--finance-income)" 
+                                                                    fill="var(--az-inflow)" 
                                                                     radius={[6, 6, 0, 0]} 
                                                                     barSize={12}
                                                                 />
                                                                 <Bar 
                                                                     dataKey="returns" 
                                                                     name="Resgates" 
-                                                                    fill="var(--finance-expense)" 
+                                                                    fill="var(--az-outflow)" 
                                                                     radius={[6, 6, 0, 0]} 
                                                                     barSize={12}
                                                                 />
@@ -755,7 +756,7 @@ export default function ReportsPage() {
                                                         <div className="flex items-center gap-3">
                                                             <div 
                                                                 className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm"
-                                                                style={{ backgroundColor: monitor.color || (monitor.type === 'category' ? '#3b82f6' : '#8b5cf6') }}
+                                                                style={{ backgroundColor: monitor.color || (monitor.type === 'category' ? 'var(--az-serie-2)' : 'var(--az-serie-3)') }}
                                                             >
                                                                 {monitor.type === 'category' ? (
                                                                     <LucideIcon name={monitor.icon || 'PieChart'} className="h-5 w-5" />
@@ -986,11 +987,11 @@ export default function ReportsPage() {
                                                     >
                                                         <defs>
                                                             <linearGradient id="habitGradientPremium" x1="0" y1="0" x2="0" y2="1">
-                                                                <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8}/>
-                                                                <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0.2}/>
+                                                                <stop offset="5%" stopColor="var(--az-serie-3)" stopOpacity={0.8}/>
+                                                                <stop offset="95%" stopColor="var(--az-serie-3)" stopOpacity={0.2}/>
                                                             </linearGradient>
                                                         </defs>
-                                                        <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
+                                                        <CartesianGrid {...PROPS_DA_GRADE} />
                                                         <XAxis 
                                                             dataKey="label" 
                                                             axisLine={false} 
@@ -1070,11 +1071,11 @@ export default function ReportsPage() {
                                             <AreaChart data={(advancedData?.financial_freedom_projection || []).map(p => ({ ...p, value: numero(p.value) }))} margin={{ top: 10, right: 10, bottom: 0, left: -20 }}>
                                                 <defs>
                                                     <linearGradient id="projGradient" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                                                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                                        <stop offset="5%" stopColor="var(--az-inflow)" stopOpacity={0.2}/>
+                                                        <stop offset="95%" stopColor="var(--az-inflow)" stopOpacity={0}/>
                                                     </linearGradient>
                                                 </defs>
-                                                <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.05} />
+                                                <CartesianGrid {...PROPS_DA_GRADE} />
                                                 <XAxis dataKey="label" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
                                                 <YAxis hide />
                                                 <Tooltip 
@@ -1094,7 +1095,7 @@ export default function ReportsPage() {
                                                 <Area 
                                                     type="monotone" 
                                                     dataKey="value" 
-                                                    stroke="#10b981" 
+                                                    stroke="var(--az-inflow)" 
                                                     strokeWidth={3} 
                                                     fillOpacity={1} 
                                                     fill="url(#projGradient)" 

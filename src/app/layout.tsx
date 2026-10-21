@@ -3,7 +3,7 @@ import { Archivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
-import { Toaster } from "sonner";
+import { Avisos } from "@/components/layout/avisos";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
@@ -65,7 +65,7 @@ export default function RootLayout({
             </main>
             <Footer />
             <ServerWakeupOverlay />
-            <Toaster richColors closeButton position="top-right" />
+            <Avisos />
           </AuthProvider>
         </ThemeProvider>
       </body>

@@ -147,7 +147,7 @@ const FormMessage = React.forwardRef<
     <p
       ref={ref}
       id={formMessageId}
-      className={cn("text-sm font-medium text-destructive", className)}
+      className={cn("text-sm text-outflow", className)}
       {...props}
     >
       {/* CONTRATO-30: a mensagem do campo (da validação ou da API) aparece */}

@@ -1,7 +1,7 @@
 "use client"
 
-import { useSyncExternalStore } from "react"
-import { User } from "lucide-react"
+import { useState, useSyncExternalStore } from "react"
+import { AlertTriangle, Info, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +18,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Logo } from "@/components/layout/logo"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { ConfirmacaoDestrutiva } from "@/components/ui/confirmacao-destrutiva"
+import { AnelDeProgresso, BarraDeRota, Bussola } from "@/components/ui/medicao"
+import { Valor, Variacao } from "@/components/ui/valor"
+import { avisarComDesfazer } from "@/lib/avisos"
 
 // AZ-08: referência viva do sistema visual do Azimute (DESIGN.md). Os tokens
 // são lidos do CSS, então a página mostra os valores do tema ativo.
@@ -135,6 +140,7 @@ function Secao({ titulo, children }: { titulo: string; children: React.ReactNode
 }
 
 export default function DesignSystemPage() {
+  const [confirmacaoAberta, setConfirmacaoAberta] = useState(false)
   const classeDoHtml = useSyncExternalStore(
     observarClasseDoHtml,
     () => document.documentElement.className || " ",
@@ -216,9 +222,45 @@ export default function DesignSystemPage() {
         </div>
       </Secao>
 
-      <Secao titulo="Componentes atuais">
+      <Secao titulo="Medição">
+        <div className="grid gap-4 md:grid-cols-3">
+          <Card>
+            <CardHeader>
+              <CardTitle>Bússola</CardTitle>
+              <CardDescription>Desvio geral contra a tolerância</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-wrap gap-6">
+              <Bussola desvio={12} tolerancia={15} />
+              <Bussola desvio={-22} tolerancia={15} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Barra de rota</CardTitle>
+              <CardDescription>Gasto, limite e tolerância</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <BarraDeRota nome="Moradia" gasto="2100" limite="2200" tolerancia={10} />
+              <BarraDeRota nome="Mercado" gasto="1416" limite="1200" tolerancia={10} />
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Anel de progresso</CardTitle>
+              <CardDescription>Destinos</CardDescription>
+            </CardHeader>
+            <CardContent className="flex gap-4">
+              <AnelDeProgresso percentual={100} nome="Reserva de emergência" />
+              <AnelDeProgresso percentual={62} nome="Viagem" />
+              <AnelDeProgresso percentual={18} nome="Apartamento" />
+            </CardContent>
+          </Card>
+        </div>
+      </Secao>
+
+      <Secao titulo="Componentes">
         <p className="text-sm text-fg-secondary">
-          Os componentes abaixo já usam os tokens novos, mas ainda serão revisados na Fase 2 (AZ-10 a AZ-20).
+          Componentes base revisados na Fase 2 (AZ-10 a AZ-20). As telas passam a usá-los na Fase 3.
         </p>
 
         <div className="space-y-2">
@@ -256,7 +298,28 @@ export default function DesignSystemPage() {
             <Badge variant="outline">Contorno</Badge>
             <Badge variant="destructive">Saída</Badge>
             <Badge variant="success">Entrada</Badge>
+            <Badge variant="warning">Desvio</Badge>
+            <Badge variant="info">Renda</Badge>
+            <Badge variant="destino">Destino</Badge>
           </div>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2">
+          <p className="label text-fg-muted md:col-span-2">Alertas</p>
+          <Alert variant="warning">
+            <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+            <div>
+              <AlertTitle>Desvio de 18% em Mercado</AlertTitle>
+              <AlertDescription>Corrija até dia 25.</AlertDescription>
+            </div>
+          </Alert>
+          <Alert variant="info">
+            <Info className="h-4 w-4" aria-hidden="true" />
+            <div>
+              <AlertTitle>Fatura do cartão Azul</AlertTitle>
+              <AlertDescription>Vence em 3 dias: R$ 1.874,20.</AlertDescription>
+            </div>
+          </Alert>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -267,24 +330,26 @@ export default function DesignSystemPage() {
             </CardHeader>
             <CardContent className="space-y-1">
               <p className="value-l">R$ 48.210,33</p>
-              <p className="text-sm text-fg-secondary">
-                <span className="value-m text-inflow">▲ 2,1%</span> vs setembro
-              </p>
+              <Variacao percentual={2.1} referencia="vs setembro" />
             </CardContent>
           </Card>
-          <Card>
+          <Card interativo>
             <CardHeader>
               <CardTitle className="display-s">Diário de Bordo</CardTitle>
-              <CardDescription>Últimos lançamentos</CardDescription>
+              <CardDescription>Card clicável: seta no canto e hover</CardDescription>
             </CardHeader>
             <CardContent className="divide-y divide-border-subtle">
               <div className="flex items-center justify-between py-2 text-sm">
                 <span>Supermercado Central</span>
-                <span className="value-m text-outflow">− 412,37</span>
+                <Valor valor="-412.37" semMoeda />
               </div>
               <div className="flex items-center justify-between py-2 text-sm">
                 <span>Salário</span>
-                <span className="value-m text-inflow">+ 9.800,00</span>
+                <Valor valor="9800" semMoeda />
+              </div>
+              <div className="flex items-center justify-between py-2 text-sm">
+                <span>Aporte · Reserva</span>
+                <Valor valor="500" direcao="transferencia" semMoeda />
               </div>
             </CardContent>
           </Card>
@@ -301,28 +366,40 @@ export default function DesignSystemPage() {
         </div>
 
         <div className="space-y-2">
-          <p className="label text-fg-muted">Modal</p>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline">Abrir modal de exemplo</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle className="display-m">Excluir o cartão Azul?</DialogTitle>
-                <DialogDescription>
-                  As 4 faturas e os 38 lançamentos deste cartão serão excluídos. Isso não pode ser desfeito.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="outline">Cancelar</Button>
-                </DialogClose>
-                <DialogClose asChild>
-                  <Button variant="destructive">Excluir cartão</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+          <p className="label text-fg-muted">Modal, confirmação e aviso com desfazer</p>
+          <div className="flex flex-wrap gap-3">
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button variant="outline">Abrir modal</Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Nova rota</DialogTitle>
+                  <DialogDescription>Defina um limite de gasto para a categoria.</DialogDescription>
+                </DialogHeader>
+                <DialogFooter>
+                  <DialogClose asChild>
+                    <Button variant="outline">Cancelar</Button>
+                  </DialogClose>
+                  <DialogClose asChild>
+                    <Button>Salvar rota</Button>
+                  </DialogClose>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+            <Button variant="destructive" onClick={() => setConfirmacaoAberta(true)}>Excluir cartão</Button>
+            <Button variant="outline" onClick={() => avisarComDesfazer("Lançamento excluído.", () => {})}>
+              Mostrar aviso com desfazer
+            </Button>
+          </div>
+          <ConfirmacaoDestrutiva
+            aberta={confirmacaoAberta}
+            onAbertaChange={setConfirmacaoAberta}
+            titulo="Excluir o cartão Azul?"
+            descricao="As 4 faturas e os 38 lançamentos deste cartão serão excluídos. Isso não pode ser desfeito."
+            rotuloConfirmar="Excluir cartão"
+            onConfirmar={() => {}}
+          />
         </div>
       </Secao>
     </div>

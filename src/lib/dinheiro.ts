@@ -99,6 +99,14 @@ export function formatarMoedaCompacta(valor: Valor): string {
   return MOEDA_COMPACTA.format(paraCentavos(valor) / 100)
 }
 
+// AZ-44: percentual com até uma casa, sem o sinal ("2,1%"); o sinal fica com quem
+// mostra, em texto ou seta
+const PERCENTUAL = new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 1 })
+
+export function formatarPercentual(valor: number): string {
+  return `${PERCENTUAL.format(Math.abs(valor))}%`
+}
+
 // CONTRATO-18: eixo de gráfico em reais; valores a partir de mil ficam
 // compactos para caber ("R$ 800,00", "R$ 1,2 mil").
 export function formatarMoedaDoEixo(valor: Valor): string {

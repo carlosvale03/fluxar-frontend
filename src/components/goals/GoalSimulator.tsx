@@ -276,17 +276,17 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                       <AreaChart data={chartData}>
                         <defs>
                           <linearGradient id="simulatedGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#00A8E8" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="#00A8E8" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="var(--az-gold-line)" stopOpacity={0.15}/>
+                            <stop offset="95%" stopColor="var(--az-gold-line)" stopOpacity={0}/>
                           </linearGradient>
                           <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="#00A8E8" />
-                            <stop offset="100%" stopColor="#2DD4BF" />
+                            <stop offset="0%" stopColor="var(--az-gold-line)" />
+                            <stop offset="100%" stopColor="var(--az-gold)" />
                           </linearGradient>
                           <filter id="shadow" height="200%">
                             <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
                             <feOffset in="blur" dx="0" dy="4" result="offsetBlur" />
-                            <feFlood floodColor="#00A8E8" floodOpacity="0.3" result="offsetColor" />
+                            <feFlood floodColor="var(--az-gold-line)" floodOpacity="0.3" result="offsetColor" />
                             <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetBlur" />
                             <feMerge>
                               <feMergeNode />
@@ -294,18 +294,18 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                             </feMerge>
                           </filter>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#CBD5E1" opacity={0.1} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--az-border-subtle)" />
                         <XAxis 
                           dataKey="name" 
                           axisLine={false} 
                           tickLine={false} 
-                          tick={{fontSize: 9, fontWeight: 700, fill: '#64748B', opacity: 0.5}} 
+                          tick={{fontSize: 9, fontWeight: 700, fill: 'var(--az-text-muted)'}} 
                           dy={10}
                           interval="preserveStartEnd"
                         />
                         <YAxis hide domain={[0, paraCentavos(goal.target_amount) / 100]} />
                         <Tooltip 
-                          cursor={{ stroke: '#00A8E8', strokeWidth: 1, strokeDasharray: '4 4' }}
+                          cursor={{ stroke: 'var(--az-gold-line)', strokeWidth: 1, strokeDasharray: '4 4' }}
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               return (
@@ -329,15 +329,15 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                         />
                         <ReferenceLine 
                           y={paraCentavos(goal.target_amount) / 100} 
-                          stroke="#00A8E8" 
+                          stroke="var(--az-gold-line)" 
                           strokeDasharray="5 5" 
                           opacity={0.15}
-                          label={{ position: 'top', value: 'ALVO', fontSize: 9, fontWeight: 900, opacity: 0.3, fill: '#00A8E8' }}
+                          label={{ position: 'top', value: 'ALVO', fontSize: 9, fontWeight: 900, opacity: 0.3, fill: 'var(--az-gold-line)' }}
                         />
                         <Area 
                           type="monotone" 
                           dataKey="atual" 
-                          stroke="#94A3B8" 
+                          stroke="var(--az-text-muted)" 
                           strokeWidth={1.5}
                           strokeDasharray="4 4"
                           fill="none"

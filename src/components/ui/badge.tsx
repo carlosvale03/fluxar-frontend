@@ -2,19 +2,21 @@ import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
+// AZ-13 (DESIGN.md §5, Pílulas): mono, caixa alta, contorno; a cor fica no
+// texto e sempre acompanha uma palavra. Preenchida (default) só para contagens.
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer",
+  "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 font-mono text-xs font-normal uppercase tracking-[0.06em] whitespace-nowrap",
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-brand-500 text-white hover:bg-brand-600",
-        secondary:
-          "border-transparent bg-brand-100 text-brand-900 hover:bg-brand-200",
-        destructive:
-          "border-transparent bg-red-500 text-white shadow hover:bg-red-600",
-        outline: "text-foreground",
-        success: "border-transparent bg-teal-500 text-white hover:bg-teal-600",
+        default: "border-transparent bg-gold text-gold-ink",
+        secondary: "border-border-strong text-fg-secondary",
+        outline: "border-border-strong text-foreground",
+        destructive: "border-border-strong text-outflow",
+        success: "border-border-strong text-inflow",
+        warning: "border-border-strong text-warn",
+        info: "border-border-strong text-info",
+        destino: "border-border-strong text-gold-line",
       },
     },
     defaultVariants: {

@@ -13,6 +13,7 @@ import { TagForm } from "@/components/tags/TagForm"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn, formatCurrency } from "@/lib/utils"
 import { formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import { PROPS_DA_GRADE } from "@/lib/graficos"
 import { percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
 import { 
   LineChart, 
@@ -727,25 +728,25 @@ function TelaDeTags() {
                                                <AreaChart data={insightsData.history_chart.map((h: { income: string; expense: string }) => ({ ...h, income: paraCentavos(h.income) / 100, expense: paraCentavos(h.expense) / 100 }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                                    <defs>
                                                        <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                                           <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
-                                                           <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                                                           <stop offset="5%" stopColor="var(--az-inflow)" stopOpacity={0.15}/>
+                                                           <stop offset="95%" stopColor="var(--az-inflow)" stopOpacity={0}/>
                                                        </linearGradient>
                                                        <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                                                           <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1}/>
-                                                           <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
+                                                           <stop offset="5%" stopColor="var(--az-outflow)" stopOpacity={0.15}/>
+                                                           <stop offset="95%" stopColor="var(--az-outflow)" stopOpacity={0}/>
                                                        </linearGradient>
                                                    </defs>
-                                                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(0,0,0,0.05)" />
+                                                   <CartesianGrid {...PROPS_DA_GRADE} />
                                                    <XAxis 
                                                        dataKey="month" 
                                                        axisLine={false} 
                                                        tickLine={false} 
-                                                       tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }} 
+                                                       tick={{ fontSize: 12, fill: 'var(--az-text-muted)', fontFamily: 'var(--font-plex-mono)' }} 
                                                    />
                                                    <YAxis 
                                                        axisLine={false} 
                                                        tickLine={false} 
-                                                       tick={{ fontSize: 9, fontWeight: 700, fill: '#94a3b8' }}
+                                                       tick={{ fontSize: 12, fill: 'var(--az-text-muted)', fontFamily: 'var(--font-plex-mono)' }}
                                                        tickFormatter={formatarMoedaDoEixo}
                                                    />
                                                    <Tooltip 
@@ -761,7 +762,7 @@ function TelaDeTags() {
                                                    <Area 
                                                        type="monotone" 
                                                        dataKey="income" 
-                                                       stroke="#10b981" 
+                                                       stroke="var(--az-inflow)" 
                                                        strokeWidth={3}
                                                        fillOpacity={1} 
                                                        fill="url(#colorIncome)" 
@@ -770,7 +771,7 @@ function TelaDeTags() {
                                                    <Area 
                                                        type="monotone" 
                                                        dataKey="expense" 
-                                                       stroke="#f43f5e" 
+                                                       stroke="var(--az-outflow)" 
                                                        strokeWidth={3}
                                                        fillOpacity={1} 
                                                        fill="url(#colorExpense)" 

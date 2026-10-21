@@ -113,14 +113,12 @@ export function MonthRangePicker({ onRangeChange, initialStart, initialEnd, excl
         </h4>
         <div className="flex gap-2">
             <span className={cn(
-                "text-[9px] sm:text-[10px] uppercase font-black transition-all duration-300 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full shadow-sm",
-                (!selection.start || (selection.start && !selection.end)) 
-                    ? (selection.start ? "bg-emerald-500/20 text-emerald-800 dark:text-emerald-400" : "bg-amber-500/20 text-amber-800 dark:text-amber-400")
-                    : "bg-blue-500/20 text-blue-800 dark:text-blue-400"
+                "label rounded-full border border-border-strong px-2.5 py-1",
+                !selection.end ? "text-fg-secondary" : "text-gold-line"
             )}>
                 {!selection.start 
                     ? "1. Selecione o início" 
-                    : (!selection.end ? "2. Selecione o fim" : "✓ Período Definido")}
+                    : (!selection.end ? "2. Selecione o fim" : "Período definido")}
             </span>
         </div>
       </div>

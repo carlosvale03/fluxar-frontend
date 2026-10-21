@@ -37,16 +37,14 @@ export function AvisoDeLimite({ chave, rotulo, usado }: AvisoDeLimiteProps) {
   return (
     <div
       role="note"
-      className="p-4 rounded-3xl bg-amber-500/5 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-start gap-4"
+      className="flex items-start gap-3 rounded-r-lg border border-border border-l-[3px] border-l-warn bg-card p-4"
     >
-      <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
-        <AlertCircle className="h-5 w-5" />
-      </div>
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
       <div className="flex flex-col gap-1">
-        <h4 className="font-bold text-sm">{MENSAGEM_LIMITE_ATINGIDO}</h4>
-        <p className="text-xs leading-relaxed max-w-2xl">
+        <h4 className="text-sm font-semibold">{MENSAGEM_LIMITE_ATINGIDO}</h4>
+        <p className="max-w-2xl text-sm leading-relaxed text-fg-secondary">
           {emUso} de {uso.limit} {rotulo} do seu plano.{" "}
-          <Link href="/planos" className="font-bold underline underline-offset-2">
+          <Link href="/planos" className="font-semibold text-gold-line underline underline-offset-2">
             Ver planos
           </Link>
         </p>
