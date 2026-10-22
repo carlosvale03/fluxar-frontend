@@ -43,22 +43,22 @@ import { usePlan } from "@/hooks/use-plan"
 // ...
 
 const cardSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
+  name: z.string().min(1, "Informe o apelido do cartão."),
   // CONTRATO-17: o limite vai à API como texto decimal ("1234.56")
   limit: z.string().refine(maiorQueZero, {
-      message: "Limite deve ser maior que zero",
+      message: "Informe um limite maior que zero.",
   }),
   closing_day: z.string().refine((val) => {
       const num = Number(val)
       return !isNaN(num) && num >= 1 && num <= 31
-  }, { message: "Dia deve ser entre 1 e 31" }),
+  }, { message: "Escolha um dia de fechamento entre 1 e 31." }),
   due_day: z.string().refine((val) => {
       const num = Number(val)
       return !isNaN(num) && num >= 1 && num <= 31
-  }, { message: "Dia deve ser entre 1 e 31" }),
+  }, { message: "Escolha um dia de vencimento entre 1 e 31." }),
   institution: z.string().optional(),
   color: z.string().optional(),
-  account_id: z.string().min(1, "Selecione uma conta vinculada"),
+  account_id: z.string().min(1, "Escolha a conta que paga a fatura."),
 })
 
 type CardFormValues = z.infer<typeof cardSchema>
@@ -126,7 +126,7 @@ export function CreditCardFormDialog({
             setAccounts(data || [])
         }).catch(err => {
             console.error("Failed to fetch accounts", err)
-            toast.error("Erro ao carregar contas vinculadas.")
+            toast.error("Não foi possível carregar as contas. Feche o formulário e abra de novo.")
         })
     }
   }, [open])
@@ -170,10 +170,10 @@ export function CreditCardFormDialog({
 
       if (isEditing && card) {
         await api.put(`/credit-cards/${card.id}/`, payload)
-        toast.success("Cartão atualizado!")
+        toast.success("Cartão atualizado.")
       } else {
         await api.post("/credit-cards/", payload)
-        toast.success("Cartão criado!")
+        toast.success("Cartão criado.")
         void atualizarUso()
       }
       
@@ -184,7 +184,7 @@ export function CreditCardFormDialog({
       tratarErro(error, {
         form: { setError },
         campos: ["name", "limit", "closing_day", "due_day", "account_id"],
-        mensagemPadrao: "Erro ao salvar cartão.",
+        mensagemPadrao: "Não foi possível salvar o cartão. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -203,10 +203,10 @@ export function CreditCardFormDialog({
             <div className="border-b border-border p-6">
                 <DialogHeader className="mb-5">
                     <DialogTitle>
-                        {isEditing ? "Editar Cartão" : "Novo Cartão"}
+                        {isEditing ? "Editar cartão" : "Novo cartão"}
                     </DialogTitle>
                     <DialogDescription>
-                        {isEditing ? "Altere os dados do seu cartão de crédito." : "Cadastre um novo cartão de crédito vinculado a uma conta."}
+                        {isEditing ? "Altere os dados do cartão de crédito." : "Cadastre um cartão de crédito ligado à conta que paga a fatura."}
                     </DialogDescription>
                 </DialogHeader>
 
@@ -235,7 +235,7 @@ export function CreditCardFormDialog({
                     <legend className="label mb-3 text-muted-foreground">Identificação</legend>
 
                     <div className="space-y-2">
-                        <Label htmlFor="name">Apelido do Cartão</Label>
+                        <Label htmlFor="name">Apelido do cartão</Label>
                         <Input
                             id="name"
                             placeholder="Ex.: Nubank Principal"
@@ -247,7 +247,7 @@ export function CreditCardFormDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="account_id">Conta de Pagamento (Fatura)</Label>
+                        <Label htmlFor="account_id">Conta que paga a fatura</Label>
                         <Select
                             onValueChange={(val) => setValue("account_id", val, { shouldValidate: true })}
                             value={watch("account_id")}
@@ -278,7 +278,7 @@ export function CreditCardFormDialog({
 
                     <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
                         <div className="space-y-2">
-                            <Label>Instituição</Label>
+                            <Label htmlFor="instituicao-do-cartao">Instituição</Label>
                                 <Select
                                     onValueChange={(val) => {
                                         setValue("institution", val)
@@ -292,7 +292,7 @@ export function CreditCardFormDialog({
                                     }}
                                     value={watch("institution")}
                                 >
-                                <SelectTrigger>
+                                <SelectTrigger id="instituicao-do-cartao">
                                     <SelectValue placeholder="Opcional" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -346,7 +346,7 @@ export function CreditCardFormDialog({
                     <legend className="label mb-3 text-muted-foreground">Ciclo e limite</legend>
 
                     <div className="space-y-2">
-                        <Label htmlFor="limit">Limite Total de Crédito</Label>
+                        <Label htmlFor="limit">Limite total de crédito</Label>
                         <MoneyInput
                             id="limit"
                             value={watch("limit")}

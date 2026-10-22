@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Plus, Filter, RotateCcw } from "lucide-react"
+import { Plus, Filter, RotateCcw, CreditCard as CreditCardIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -60,7 +60,7 @@ function FaturasComCartoesTravados() {
       const response = await api.get("/credit-cards/")
       setCards(response.data || [])
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar cartões.", tentarDeNovo: carregarCartoes })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os cartões.", tentarDeNovo: carregarCartoes })
     }
   }
 
@@ -74,7 +74,7 @@ function FaturasComCartoesTravados() {
       toast.success("Pagamento desfeito.")
       setVersao((v) => v + 1)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao desfazer pagamento." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível desfazer o pagamento. Tente de novo." })
     }
   }
 
@@ -152,7 +152,7 @@ function TelaDeCartoes() {
       const data = response.data
       setCards(data || [])
     } catch {
-      toast.error("Erro ao carregar cartões.")
+      toast.error("Não foi possível carregar os cartões. Recarregue a página.")
     } finally {
       setIsLoading(false)
     }
@@ -177,7 +177,7 @@ function TelaDeCartoes() {
       await api.delete(`/credit-cards/${cardToDelete.id}/`)
     } catch (error) {
       // A confirmação continua aberta
-      toast.error("Erro ao excluir cartão.")
+      toast.error("Não foi possível excluir o cartão. Tente de novo.")
       throw error
     }
     toast.success("Cartão excluído.")
@@ -219,7 +219,7 @@ function TelaDeCartoes() {
                         <Filter aria-hidden="true" />
                         Filtros
                         {selectedInstitutions.length > 0 && (
-                            <Badge className="ml-1">{selectedInstitutions.length}</Badge>
+                            <Badge className="ml-1" aria-label={`${selectedInstitutions.length} ${selectedInstitutions.length === 1 ? "filtro ativo" : "filtros ativos"}`}>{selectedInstitutions.length}</Badge>
                         )}
                     </Button>
                 </SheetTrigger>
@@ -266,7 +266,7 @@ function TelaDeCartoes() {
                                         </div>
                                     )
                                 }) : (
-                                    <p className="p-2 text-sm text-muted-foreground">Nenhuma instituição encontrada.</p>
+                                    <p className="p-2 text-sm text-muted-foreground">Nenhuma instituição nos seus cartões.</p>
                                 )}
                             </div>
                         </fieldset>
@@ -285,7 +285,7 @@ function TelaDeCartoes() {
                                 className="flex-1"
                                 onClick={() => setIsFilterSheetOpen(false)}
                             >
-                                Ver Resultados
+                                Ver resultados
                             </Button>
                         </div>
                     </SheetFooter>
@@ -296,7 +296,7 @@ function TelaDeCartoes() {
                 onClick={handleCreateClick}
                 disabled={isLoading || hasReachedLimit}
             >
-                <Plus aria-hidden="true" /> Novo Cartão
+                <Plus aria-hidden="true" /> Novo cartão
             </Button>
           </>
         }
@@ -308,23 +308,49 @@ function TelaDeCartoes() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        // AZ-34: o esqueleto tem a forma do card do cartão (nome, fatura, limite e ações)
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Carregando cartões">
             {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-56 w-full rounded-lg" />
+                <div key={i} className="flex h-56 flex-col gap-5 rounded-lg border border-border p-5">
+                    <div className="space-y-2">
+                        <Skeleton className="h-3 w-20" />
+                        <Skeleton className="h-5 w-36" />
+                    </div>
+                    <div className="space-y-2">
+                        <Skeleton className="h-3 w-24" />
+                        <Skeleton className="h-6 w-32" />
+                    </div>
+                    <Skeleton className="mt-auto h-1.5 w-full rounded-full" />
+                </div>
             ))}
         </div>
+      ) : cards.length === 0 ? (
+          // AZ-34: sem cartão nenhum, o estado vazio leva ao cadastro
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
+              <CreditCardIcon className="mb-4 h-8 w-8 text-muted-foreground" aria-hidden="true" />
+              <h2 className="display-s">Nenhum cartão cadastrado</h2>
+              <p className="mx-auto mb-6 mt-2 max-w-md text-sm text-muted-foreground">
+                  Cadastre um cartão de crédito para acompanhar as faturas e o limite.
+              </p>
+              <Button onClick={handleCreateClick} disabled={hasReachedLimit}>
+                <Plus aria-hidden="true" /> Cadastrar cartão
+              </Button>
+          </div>
       ) : filteredCards.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
               <Filter className="mb-4 h-8 w-8 text-muted-foreground" aria-hidden="true" />
-              <h2 className="display-s">Nenhum cartão para estes filtros</h2>
+              <h2 className="display-s">Nenhum cartão com estes filtros</h2>
               <p className="mx-auto mb-6 mt-2 max-w-md text-sm text-muted-foreground">
-                  Nenhum cartão corresponde aos filtros escolhidos. Limpe os filtros para ver todos os cartões.
+                  Limpe os filtros para ver todos os cartões.
               </p>
               <Button onClick={resetFilters} variant="outline">
-                Limpar Filtros
+                Limpar filtros
               </Button>
           </div>
       ) : (
+        <section aria-labelledby="lista-de-cartoes">
+        {/* AZ-36: o título da lista mantém a hierarquia (h1 > h2 > h3 do card) */}
+        <h2 id="lista-de-cartoes" className="sr-only">Seus cartões</h2>
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             {filteredCards.map((card) => (
                 <CreditCardItem
@@ -335,6 +361,7 @@ function TelaDeCartoes() {
                 />
             ))}
         </div>
+        </section>
       )}
 
       {/* Card Form Dialog */}
@@ -353,7 +380,7 @@ function TelaDeCartoes() {
         aberta={!!cardToDelete}
         onAbertaChange={(aberta) => !aberta && setCardToDelete(null)}
         titulo={`Excluir o cartão ${cardToDelete?.name ?? ""}?`}
-        descricao="O histórico de faturas deste cartão pode ser perdido e as transações ligadas a ele ficarão sem cartão. Isso não pode ser desfeito."
+        descricao="O histórico de faturas deste cartão pode ser perdido e os lançamentos ligados a ele ficarão sem cartão. Isso não pode ser desfeito."
         rotuloConfirmar="Excluir cartão"
         onConfirmar={confirmDelete}
       />

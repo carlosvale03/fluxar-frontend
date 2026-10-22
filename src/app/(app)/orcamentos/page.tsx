@@ -6,6 +6,7 @@ import { Budget } from "@/types/budgets"
 import { getBudgets, deleteBudget } from "@/services/budgets"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { BarraDeRota } from "@/components/ui/medicao"
 import { ConfirmacaoDestrutiva } from "@/components/ui/confirmacao-destrutiva"
 import { PlusCircle, Pencil, Trash2, AlertTriangle, CheckCircle, AlertCircle, Search, Eye, Copy, ChevronLeft, ChevronRight, Info } from "lucide-react"
@@ -73,7 +74,7 @@ function TelaDeOrcamentos() {
       setBudgets(data)
     } catch (error) {
       console.error(error)
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar orçamentos", tentarDeNovo: fetchBudgets })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as rotas.", tentarDeNovo: fetchBudgets })
     } finally {
       setIsLoading(false)
     }
@@ -109,11 +110,11 @@ function TelaDeOrcamentos() {
       await deleteBudget(deletingBudget.id)
     } catch (error) {
        console.error(error)
-       tratarErro(error, { mensagemPadrao: "Não foi possível excluir o orçamento." })
+       tratarErro(error, { mensagemPadrao: "Não foi possível excluir a rota. Tente de novo." })
        // A confirmação continua aberta
        throw error
     }
-    toast.success("Orçamento excluído.")
+    toast.success("Rota excluída.")
     fetchBudgets()
   }
 
@@ -122,13 +123,13 @@ function TelaDeOrcamentos() {
   const getStatusInfo = (status: string): { label: string; variant: BadgeProps["variant"]; icon: React.ReactNode } => {
       switch(status) {
           case 'OK':
-            return { label: 'Dentro do Limite', variant: 'success', icon: <CheckCircle className="h-3 w-3" aria-hidden="true" /> }
+            return { label: 'Dentro do limite', variant: 'success', icon: <CheckCircle className="h-3 w-3" aria-hidden="true" /> }
           case 'NEAR_LIMIT':
-            return { label: 'Alerta de Gastos', variant: 'warning', icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" /> }
+            return { label: 'Perto do limite', variant: 'warning', icon: <AlertTriangle className="h-3 w-3" aria-hidden="true" /> }
           case 'OVER_LIMIT':
-            return { label: 'Limite Estourado', variant: 'warning', icon: <AlertCircle className="h-3 w-3" aria-hidden="true" /> }
+            return { label: 'Acima do limite', variant: 'warning', icon: <AlertCircle className="h-3 w-3" aria-hidden="true" /> }
           default:
-            return { label: 'Processando', variant: 'secondary', icon: null }
+            return { label: 'Calculando', variant: 'secondary', icon: null }
       }
   }
 
@@ -211,14 +212,14 @@ function TelaDeOrcamentos() {
           <>
             <Button variant="outline" onClick={() => setIsImportOpen(true)}>
               <Copy aria-hidden="true" />
-              Importar de meses anteriores
+              Copiar rotas
             </Button>
 
             <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogTrigger asChild>
                   <Button>
                       <PlusCircle aria-hidden="true" />
-                      Novo Orçamento
+                      Nova rota
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-[500px]">
@@ -241,8 +242,8 @@ function TelaDeOrcamentos() {
             <div className="relative w-full max-w-sm">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <Input
-                    aria-label="Filtrar por nome"
-                    placeholder="Filtrar por nome..."
+                    aria-label="Filtrar rotas por categoria"
+                    placeholder="Filtrar por categoria"
                     className="pl-9"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -250,7 +251,7 @@ function TelaDeOrcamentos() {
                 />
             </div>
             <div className="hidden text-sm text-muted-foreground md:block">
-                {filteredBudgets.length} {filteredBudgets.length === 1 ? 'orçamento definido' : 'orçamentos definidos'}
+                {filteredBudgets.length} {filteredBudgets.length === 1 ? 'rota definida' : 'rotas definidas'}
             </div>
         </div>
 
@@ -260,12 +261,29 @@ function TelaDeOrcamentos() {
           <div className="space-y-1">
             <h2 className="text-sm font-semibold">Controle informativo</h2>
             <p className="max-w-2xl text-sm text-fg-secondary">
-              O limite é uma ferramenta de planejamento: definir um limite <strong className="font-semibold text-foreground">não bloqueia</strong> novas despesas, só ajuda a acompanhar o gasto de cada categoria.
+              O limite é uma ferramenta de planejamento: definir um limite <strong className="font-semibold text-foreground">não bloqueia</strong> novas saídas, só ajuda a acompanhar o gasto de cada categoria.
             </p>
           </div>
         </div>
 
+        {/* AZ-36: o título da lista mantém a hierarquia (h1 > h2 > h3 do card) */}
+        <h2 className="sr-only">Rotas do mês</h2>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {/* AZ-34: o esqueleto tem a forma do card da rota (categoria, barra e ações) */}
+          {isLoading && budgets.length === 0 && [1, 2, 3].map((i) => (
+              <div key={i} className="flex h-52 flex-col gap-5 rounded-lg border border-border p-5" aria-hidden="true">
+                  <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 rounded-md" />
+                      <div className="flex flex-col gap-2">
+                          <Skeleton className="h-4 w-28" />
+                          <Skeleton className="h-3 w-20" />
+                      </div>
+                  </div>
+                  <Skeleton className="h-1.5 w-full rounded-full" />
+                  <Skeleton className="h-3 w-40" />
+                  <Skeleton className="ml-auto mt-auto h-6 w-24" />
+              </div>
+          ))}
           {filteredBudgets.map((budget) => {
               const statusInfo = getStatusInfo(budget.status)
               const limite = paraCentavos(budget.amount_limit)
@@ -319,7 +337,7 @@ function TelaDeOrcamentos() {
                       {budget.status === 'OVER_LIMIT' && (
                           <p className="flex items-center gap-2 text-sm text-warn">
                               <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
-                              Orçamento excedido em {formatarMoeda(deCentavos(Math.max(0, paraCentavos(budget.total_spent) - paraCentavos(budget.amount_limit))))}
+                              Acima do limite em {formatarMoeda(deCentavos(Math.max(0, paraCentavos(budget.total_spent) - paraCentavos(budget.amount_limit))))}
                           </p>
                       )}
                   </div>
@@ -328,8 +346,8 @@ function TelaDeOrcamentos() {
                      <Button asChild variant="ghost" size="icon" className="h-8 w-8">
                          <Link
                             href={`/transacoes?category=${budget.category_detail.id}&month=${budget.month}&year=${budget.year}`}
-                            title="Ver Transações"
-                            aria-label={`Ver transações de ${budget.category_detail.name}`}
+                            title="Ver lançamentos"
+                            aria-label={`Ver lançamentos de ${budget.category_detail.name}`}
                          >
                              <Eye aria-hidden="true" />
                          </Link>
@@ -338,8 +356,8 @@ function TelaDeOrcamentos() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        title="Editar orçamento"
-                        aria-label={`Editar orçamento de ${budget.category_detail.name}`}
+                        title="Editar rota"
+                        aria-label={`Editar rota de ${budget.category_detail.name}`}
                         onClick={() => setEditingBudget(budget)}
                      >
                          <Pencil aria-hidden="true" />
@@ -348,8 +366,8 @@ function TelaDeOrcamentos() {
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:text-outflow"
-                        title="Excluir orçamento"
-                        aria-label={`Excluir orçamento de ${budget.category_detail.name}`}
+                        title="Excluir rota"
+                        aria-label={`Excluir rota de ${budget.category_detail.name}`}
                         onClick={() => setDeletingBudget(budget)}
                      >
                          <Trash2 aria-hidden="true" />
@@ -363,18 +381,22 @@ function TelaDeOrcamentos() {
               <div className="col-span-full flex flex-col items-center justify-center rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
                   <Search className="mb-4 h-8 w-8 text-muted-foreground" aria-hidden="true" />
                   <h3 className="display-s">
-                    {searchTerm ? "Nenhum orçamento encontrado" : "Sem orçamentos definidos"}
+                    {searchTerm ? "Nenhuma rota com esta busca" : "Nenhuma rota neste mês"}
                   </h3>
                   <p className="mx-auto mb-6 mt-2 max-w-sm text-sm text-muted-foreground">
                     {searchTerm
-                      ? `Nenhum orçamento para "${searchTerm}".`
-                      : "Nenhum limite de gasto neste período. Defina um limite para cada categoria e acompanhe o desvio."
+                      ? `Nenhuma categoria com "${searchTerm}". Limpe a busca para ver todas as rotas.`
+                      : "Trace uma rota para cada área de gasto e acompanhe o desvio."
                     }
                   </p>
-                  {!searchTerm && (
+                  {searchTerm ? (
+                    <Button variant="outline" onClick={() => setSearchTerm("")}>
+                      Limpar busca
+                    </Button>
+                  ) : (
                     <Button variant="outline" onClick={() => setIsCreateOpen(true)}>
                       <PlusCircle aria-hidden="true" />
-                      Definir orçamento
+                      Traçar rota
                     </Button>
                   )}
               </div>
@@ -401,13 +423,13 @@ function TelaDeOrcamentos() {
         <ConfirmacaoDestrutiva
           aberta={!!deletingBudget}
           onAbertaChange={(aberta) => !aberta && setDeletingBudget(null)}
-          titulo={`Excluir o orçamento de ${deletingBudget?.category_detail.name ?? ""}?`}
+          titulo={`Excluir a rota de ${deletingBudget?.category_detail.name ?? ""}?`}
           descricao={
             deletingBudget
-              ? `O limite de ${formatarMoeda(deletingBudget.amount_limit)} em ${nomeDoPeriodo(deletingBudget)} será excluído. As transações da categoria não são afetadas. Isso não pode ser desfeito.`
+              ? `O limite de ${formatarMoeda(deletingBudget.amount_limit)} em ${nomeDoPeriodo(deletingBudget)} será excluído. Os lançamentos da categoria não são afetados. Isso não pode ser desfeito.`
               : ""
           }
-          rotuloConfirmar="Excluir orçamento"
+          rotuloConfirmar="Excluir rota"
           onConfirmar={handleDelete}
         />
 

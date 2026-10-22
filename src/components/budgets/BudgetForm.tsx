@@ -35,11 +35,11 @@ import { LucideIcon } from "@/components/ui/icon-picker"
 import { cn } from "@/lib/utils"
 
 const formSchema = z.object({
-  category: z.string().min(1, "Categoria é obrigatória"),
+  category: z.string().min(1, "Escolha a categoria da rota."),
   month: z.number().min(1).max(12),
   year: z.number().min(2023).max(2030),
   // CONTRATO-17: o limite vai à API como texto decimal ("1234.56")
-  amount_limit: z.string().refine(maiorQueZero, "O limite deve ser maior que zero"),
+  amount_limit: z.string().refine(maiorQueZero, "Informe um limite maior que zero."),
 })
 
 interface BudgetFormProps {
@@ -91,7 +91,7 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
         setCategories(organized)
       } catch (error) {
         console.error("Failed to fetch categories", error)
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias" })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar as categorias. Feche o formulário e abra de novo." })
       }
     }
     fetchCategories()
@@ -102,10 +102,10 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
     try {
       if (budget) {
         await updateBudget(budget.id, values)
-        toast.success("Orçamento atualizado.")
+        toast.success("Rota atualizada.")
       } else {
         await createBudget(values)
-        toast.success("Orçamento definido.")
+        toast.success("Rota traçada.")
       }
       onSuccess()
     } catch (error) {
@@ -114,7 +114,7 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
       tratarErro(error, {
         form,
         campos: ["category", "amount_limit", "month", "year"],
-        mensagemPadrao: "Erro ao salvar orçamento",
+        mensagemPadrao: "Não foi possível salvar a rota. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -143,7 +143,7 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
     <div className="flex flex-col">
       <DialogHeader className="mb-6">
         <DialogTitle>
-          {budget ? "Editar Orçamento" : "Novo Orçamento"}
+          {budget ? "Editar rota" : "Nova rota"}
         </DialogTitle>
         <DialogDescription>
           {budget ? "Ajuste o limite de gastos desta categoria." : "Defina um limite de gastos para uma categoria no mês."}
@@ -157,11 +157,11 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
             name="category"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Categoria Alvo</FormLabel>
+                <FormLabel>Categoria</FormLabel>
                 <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!!budget}>
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione..." />
+                      <SelectValue placeholder="Escolha uma categoria" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent className="max-h-[300px]">
@@ -248,7 +248,7 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
             name="amount_limit"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Limite do Orçamento</FormLabel>
+                <FormLabel>Limite da rota</FormLabel>
                 <FormControl>
                   <MoneyInput
                     name={field.name}
@@ -276,7 +276,7 @@ export function BudgetForm({ budget, onSuccess, onCancel, defaultMonth, defaultY
                 type="submit"
                 loading={isLoading}
             >
-              {budget ? "Salvar Alterações" : "Definir Orçamento"}
+              {budget ? "Salvar alterações" : "Traçar rota"}
             </Button>
           </DialogFooter>
         </form>

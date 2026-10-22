@@ -89,7 +89,7 @@ describe("Limites nas telas", () => {
     expect(aviso).toHaveTextContent(ATINGIDO)
     expect(aviso).toHaveTextContent("2 de 2 contas")
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova Conta/ })).toBeDisabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova conta/ })).toBeDisabled())
   })
 
   it("contas abaixo do limite: mostra o uso e deixa criar", async () => {
@@ -97,16 +97,16 @@ describe("Limites nas telas", () => {
     render(<AccountsPage />)
 
     expect(screen.getByText("1 de 2 contas do seu plano")).toBeInTheDocument()
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova Conta/ })).toBeEnabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova conta/ })).toBeEnabled())
     expect(screen.queryByText(ATINGIDO)).not.toBeInTheDocument()
   })
 
-  it("cartões no limite: desabilita \"Novo Cartão\" e mostra o aviso", async () => {
+  it("cartões no limite: desabilita \"Novo cartão\" e mostra o aviso", async () => {
     comLimite("limite_cartoes", { limit: 1, used: 1 })
     render(<CardsPage />)
 
     expect(await screen.findByRole("note")).toHaveTextContent("1 de 1 cartões")
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo Cartão/ })).toBeDisabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo cartão/ })).toBeDisabled())
   })
 
   it("categorias principais no limite: desabilita \"Nova Categoria\" e mostra o aviso", () => {

@@ -129,7 +129,7 @@ describe("Coleções completas e listas do admin", () => {
   it("a tela de orçamentos mostra os 12 orçamentos", async () => {
     render(<BudgetsPage />)
 
-    expect(await screen.findByText("12 orçamentos definidos")).toBeInTheDocument()
+    expect(await screen.findByText("12 rotas definidas")).toBeInTheDocument()
     for (const orcamento of ORCAMENTOS) expect(screen.getAllByText(orcamento.category_detail.name).length).toBeGreaterThan(0)
   })
 

@@ -137,7 +137,7 @@ describe("Reativar pelo cartão da conta inativa (SALDO-51 e SALDO-52)", () => {
     await screen.findByText("Conta antiga")
 
     // Editar e excluir só aparecem nas ativas: uma de cada por conta ativa
-    expect(screen.getAllByTitle("Editar Conta")).toHaveLength(screen.getAllByTitle("Excluir Conta").length)
+    expect(screen.getAllByTitle("Editar conta")).toHaveLength(screen.getAllByTitle("Excluir conta").length)
   })
 
   it("reativa, relê a lista e o uso do plano", async () => {
@@ -220,7 +220,7 @@ describe("Interruptor Conta ativa na edição (SALDO-54)", () => {
     expect(post).toHaveBeenCalledWith("/accounts/conta-1/deactivate/")
     expect(interruptor).toHaveAttribute("aria-checked", "true")
     expect(onSuccess).not.toHaveBeenCalled()
-    expect(screen.getByText("Editar Conta")).toBeInTheDocument()
+    expect(screen.getByText("Editar conta")).toBeInTheDocument()
     expect(toast.success).not.toHaveBeenCalled()
   })
 

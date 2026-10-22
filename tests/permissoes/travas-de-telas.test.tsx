@@ -139,16 +139,16 @@ describe("Telas travadas", () => {
 })
 
 describe("Cartões travados (PERM-22)", () => {
-  it("mostra o aviso, sem \"Novo Cartão\", e as faturas dos cartões existentes com pagar e estornar", async () => {
+  it("mostra o aviso, sem \"Novo cartão\", e as faturas dos cartões existentes com pagar e estornar", async () => {
     comAcesso(["cartoes"])
     render(<CardsPage />)
 
     expect(screen.getByRole("heading", { name: "Cartões" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /Novo Cartão/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Novo cartão/ })).not.toBeInTheDocument()
 
     const faturas = await screen.findByRole("region", { name: "Faturas do Cartão Roxo" })
-    expect(await within(faturas).findByRole("button", { name: "Pagar Fatura" })).toBeInTheDocument()
+    expect(await within(faturas).findByRole("button", { name: "Pagar fatura" })).toBeInTheDocument()
 
     post.mockResolvedValue({ data: {} })
     await userEvent.click(within(faturas).getByRole("button", { name: "Estornar" }))
@@ -159,21 +159,21 @@ describe("Cartões travados (PERM-22)", () => {
     comAcesso(["cartoes"])
     render(<CardsPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Pagar Fatura" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Pagar fatura" }))
 
     await vi.waitFor(() => expect(urlsChamadas()).toContain("/invoices/f-aberta/"))
   })
 
-  it("detalhe do cartão: mostra o aviso, sem \"Editar Cartão\", e as faturas com pagar e estornar", async () => {
+  it("detalhe do cartão: mostra o aviso, sem \"Editar cartão\", e as faturas com pagar e estornar", async () => {
     comAcesso(["cartoes"])
     render(<CardDetailsPage />)
 
     expect(await screen.findByRole("heading", { name: "Cartão Roxo" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
-    expect(screen.queryByRole("button", { name: /Editar Cartão/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Editar cartão/ })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: /Excluir/ })).not.toBeInTheDocument()
-    expect(await screen.findByRole("button", { name: "Pagar Fatura" })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: "Pagar fatura" })).toBeInTheDocument()
 
     post.mockResolvedValue({ data: {} })
     const recarregar = vi.fn()
@@ -183,11 +183,11 @@ describe("Cartões travados (PERM-22)", () => {
     vi.unstubAllGlobals()
   })
 
-  it("detalhe do cartão: com cartoes aberto, \"Editar Cartão\" aparece, sem o aviso", async () => {
+  it("detalhe do cartão: com cartoes aberto, \"Editar cartão\" aparece, sem o aviso", async () => {
     comAcesso()
     render(<CardDetailsPage />)
 
-    expect(await screen.findByRole("button", { name: /Editar Cartão/ })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: /Editar cartão/ })).toBeInTheDocument()
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
   })
 

@@ -61,11 +61,11 @@ const PRESET_COLORS = [
 ]
 
 const accountSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
+  name: z.string().min(1, "Informe o nome da conta."),
   type: z.nativeEnum(AccountType),
   // CONTRATO-17: o saldo inicial vai à API como texto decimal ("1234.56")
   initial_balance: z.string().refine((val) => !isNaN(paraCentavos(val)), {
-      message: "Valor deve ser um número válido",
+      message: "Digite o saldo em números, como 1.250,00.",
   }),
   institution: z.string().optional(),
   color: z.string().optional(),
@@ -217,7 +217,7 @@ export function AccountFormDialog({
         tratarErro(error, {
           form: { setError },
           campos: ["name", "initial_balance"],
-          mensagemPadrao: "Erro ao salvar conta.",
+          mensagemPadrao: "Não foi possível salvar a conta. Tente de novo.",
         })
       } finally {
         setIsLoading(false)
@@ -236,7 +236,7 @@ export function AccountFormDialog({
       tratarErro(error, {
         form: { setError },
         campos: ["name", "initial_balance"],
-        mensagemPadrao: "Erro ao salvar conta.",
+        mensagemPadrao: "Não foi possível criar a conta. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -263,7 +263,7 @@ export function AccountFormDialog({
                         </span>
                         <div>
                             <DialogTitle>
-                                {isEditing ? "Editar Conta" : "Nova Conta"}
+                                {isEditing ? "Editar conta" : "Nova conta"}
                             </DialogTitle>
                             <DialogDescription className="mt-1">
                                 {isEditing
@@ -293,17 +293,17 @@ export function AccountFormDialog({
 
                         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                             <div className="space-y-2">
-                                <Label>Instituição</Label>
+                                <Label htmlFor="instituicao">Instituição</Label>
                                 <Select
                                     onValueChange={(val) => setValue("institution", val)}
                                     value={watchInstitution || "other"}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger id="instituicao">
                                         <div className="flex items-center gap-2">
                                             {(!watchInstitution || watchInstitution === "other") && (
                                                 <Building className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                                             )}
-                                            <SelectValue placeholder="Banco ou Carteira" />
+                                            <SelectValue placeholder="Banco ou carteira" />
                                         </div>
                                     </SelectTrigger>
                                     <SelectContent>
@@ -324,12 +324,12 @@ export function AccountFormDialog({
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Tipo de conta</Label>
+                                <Label htmlFor="tipo-de-conta">Tipo de conta</Label>
                                 <Select
                                     onValueChange={(val) => setValue("type", val as AccountType)}
                                     value={watch("type")}
                                 >
-                                    <SelectTrigger>
+                                    <SelectTrigger id="tipo-de-conta">
                                         <div className="flex items-center gap-2">
                                             <Landmark className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                             <SelectValue placeholder="Tipo" />
@@ -448,7 +448,7 @@ export function AccountFormDialog({
 
                     <DialogFooter>
                         <Button type="submit" loading={isLoading} className="w-full sm:w-auto">
-                            {isEditing ? "Salvar Alterações" : "Criar conta"}
+                            {isEditing ? "Salvar alterações" : "Criar conta"}
                         </Button>
                     </DialogFooter>
                 </form>

@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import Link from "next/link"
 import {
     format,
     startOfMonth,
@@ -16,6 +17,7 @@ import { ptBR } from "date-fns/locale"
 import { CalendarDayReport } from "@/types/reports"
 import { cn } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 import { Valor } from "@/components/ui/valor"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
@@ -53,11 +55,11 @@ export function FinancialCalendar({ month, year, daysData }: FinancialCalendarPr
 
     const rotuloDoDia = (date: Date, dayData?: CalendarDayReport) => {
         const dia = format(date, "d 'de' MMMM", { locale: ptBR })
-        if (!dayData) return `${dia}: sem movimentações`
+        if (!dayData) return `${dia}: sem lançamentos`
         const partes: string[] = []
-        if (paraCentavos(dayData.total_incomes) > 0) partes.push(`receitas ${formatarMoeda(dayData.total_incomes)}`)
-        if (paraCentavos(dayData.total_expenses) > 0) partes.push(`despesas ${formatarMoeda(dayData.total_expenses)}`)
-        return partes.length ? `${dia}: ${partes.join(", ")}` : `${dia}: sem movimentações`
+        if (paraCentavos(dayData.total_incomes) > 0) partes.push(`entradas ${formatarMoeda(dayData.total_incomes)}`)
+        if (paraCentavos(dayData.total_expenses) > 0) partes.push(`saídas ${formatarMoeda(dayData.total_expenses)}`)
+        return partes.length ? `${dia}: ${partes.join(", ")}` : `${dia}: sem lançamentos`
     }
 
     return (
@@ -157,23 +159,27 @@ export function FinancialCalendar({ month, year, daysData }: FinancialCalendarPr
 
                             <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                                 <div className="rounded-md border border-border p-4">
-                                    <dt className="label mb-2 text-muted-foreground">Receitas</dt>
+                                    <dt className="label mb-2 text-muted-foreground">Entradas</dt>
                                     <dd><Valor valor={selectedDayData?.total_incomes} direcao="entrada" tamanho="l" /></dd>
                                 </div>
                                 <div className="rounded-md border border-border p-4">
-                                    <dt className="label mb-2 text-muted-foreground">Despesas</dt>
+                                    <dt className="label mb-2 text-muted-foreground">Saídas</dt>
                                     <dd><Valor valor={selectedDayData?.total_expenses} direcao="saida" tamanho="l" /></dd>
                                 </div>
                                 <div className="rounded-md border border-border p-4">
-                                    <dt className="label mb-2 text-muted-foreground">Saldo</dt>
+                                    <dt className="label mb-2 text-muted-foreground">Saldo do dia</dt>
                                     <dd><Valor valor={selectedDayData?.net_amount} tamanho="l" /></dd>
                                 </div>
                             </dl>
 
                             {(!selectedDayData || (paraCentavos(selectedDayData.total_incomes) === 0 && paraCentavos(selectedDayData.total_expenses) === 0)) && (
-                                <p className="rounded-md border border-dashed border-border-strong py-8 text-center text-sm text-muted-foreground">
-                                    Sem movimentações neste dia.
-                                </p>
+                                // AZ-34: estado vazio com uma linha e uma ação
+                                <div className="flex flex-col items-center gap-3 rounded-md border border-dashed border-border-strong px-4 py-8 text-center">
+                                    <p className="text-sm text-muted-foreground">Nenhum lançamento neste dia.</p>
+                                    <Button asChild variant="outline" size="sm">
+                                        <Link href="/transacoes">Abrir o Diário de Bordo</Link>
+                                    </Button>
+                                </div>
                             )}
                         </>
                     )}
