@@ -15,10 +15,12 @@ const archivo = Archivo({
   display: "swap",
 });
 
+// Variável com o eixo de largura, como o Archivo: com pesos fixos, o Google
+// devolve instâncias estáticas que quebram o carregador de fontes no build da Vercel
 const plexSans = IBM_Plex_Sans({
   variable: "--font-plex-sans",
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  axes: ["wdth"],
   display: "swap",
 });
 
