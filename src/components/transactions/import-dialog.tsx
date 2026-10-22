@@ -140,7 +140,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
       setAccounts(response.data)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -171,12 +171,12 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
   const goToMapping = () => {
     if (!file) {
-      toast.error("Selecione um arquivo.")
+      toast.error("Selecione um arquivo para importar.")
       return
     }
     if (type === "OFX") {
         if (!selectedAccountId) {
-            toast.error("Selecione a conta de destino.")
+            toast.error("Selecione a conta que recebe os lançamentos.")
             return
         }
         handleImport()
@@ -190,17 +190,17 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
     
     // Validação básica de colunas
     if (!mapping.date_column || !mapping.amount_column) {
-      toast.error("Data e Valor são colunas obrigatórias.")
+      toast.error("Informe as colunas de data e de valor.")
       return
     }
     
     if (importSubType === "INCOME_EXPENSE" && !mapping.description_column) {
-      toast.error("Descrição é obrigatória para Receitas/Despesas.")
+      toast.error("Informe a coluna de descrição para importar entradas e saídas.")
       return
     }
 
     if (importSubType === "TRANSFER" && (!mapping.source_account_column || !mapping.dest_account_column)) {
-      toast.error("Conta de Origem e Destino são obrigatórias para Transferências.")
+      toast.error("Informe as colunas da conta de origem e da conta que recebe para importar transferências.")
       return
     }
 
@@ -223,11 +223,11 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
         setAccountMapping(initialMapping)
         setStep("ACCOUNT_ASSOCIATION")
       } else {
-        toast.error("Nenhuma conta encontrada na planilha. Verifique o mapeamento das colunas.")
+        toast.error("Nenhuma conta encontrada na planilha. Confira o nome das colunas ou escolha uma conta padrão.")
       }
     } catch (error) {
       // CONTRATO-30 e CONTRATO-31: a API não usa mais a chave error
-      tratarErro(error, { mensagemPadrao: "Erro ao processar planilha." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível ler a planilha. Confira o nome das colunas e tente de novo." })
     } finally {
       setIsLoading(false)
     }
@@ -238,7 +238,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
     
     // Validação de segurança: se for receita/despesa, precisa ou de uma conta selecionada ou de uma coluna de conta mapeada
     if (importSubType === "INCOME_EXPENSE" && !selectedAccountId && !mapping.account_column) {
-      toast.error("Selecione uma conta padrão ou informe a coluna de 'Conta' no mapeamento.")
+      toast.error("Selecione uma conta padrão ou informe a coluna de conta.")
       return
     }
 
@@ -260,9 +260,9 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
       setSummary(result)
       setStep("SUMMARY")
-      toast.success("Processamento concluído.")
+      toast.success("Importação concluída.")
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao importar dados." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível importar o arquivo. Tente de novo." })
     } finally {
       setIsLoading(false)
     }
@@ -279,13 +279,13 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
               </div>
               <div className="flex flex-col gap-0.5">
                 <DialogTitle>
-                  {step === "SUMMARY" ? "Importação Concluída" : `Importar ${type}`}
+                  {step === "SUMMARY" ? "Importação concluída" : `Importar ${type}`}
                 </DialogTitle>
                 <DialogDescription>
-                  {step === "CONFIG" && "Escolha o arquivo e o tipo de movimentação."}
+                  {step === "CONFIG" && "Escolha o arquivo e o tipo de lançamento."}
                   {step === "MAPPING" && "Identifique as colunas da sua planilha."}
-                  {step === "ACCOUNT_ASSOCIATION" && "Associe as contas da planilha com as do sistema."}
-                  {step === "SUMMARY" && "Resumo do processamento de dados."}
+                  {step === "ACCOUNT_ASSOCIATION" && "Associe as contas da planilha às suas contas."}
+                  {step === "SUMMARY" && "Resumo das linhas lidas."}
                 </DialogDescription>
               </div>
             </div>
@@ -298,10 +298,10 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
             <div className="space-y-6 animate-in fade-in duration-base">
               {type === "SPREADSHEET" && (
                 <div className="space-y-3">
-                    <Label>Tipo de Importação</Label>
+                    <Label id="tipo-da-importacao">Tipo de importação</Label>
                     <Tabs value={importSubType} onValueChange={(v) => setImportSubType(v as ImportSubType)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="INCOME_EXPENSE">Receitas / Despesas</TabsTrigger>
+                        <TabsList aria-labelledby="tipo-da-importacao" className="grid w-full grid-cols-2">
+                            <TabsTrigger value="INCOME_EXPENSE">Entradas e saídas</TabsTrigger>
                             <TabsTrigger value="TRANSFER">Transferências</TabsTrigger>
                         </TabsList>
                     </Tabs>
@@ -311,7 +311,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
               {type === "OFX" && (
                 <div className="space-y-2">
                   <Label htmlFor="conta-do-ofx">
-                      Conta de Destino
+                      Conta do extrato
                   </Label>
                   <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
                     <SelectTrigger id="conta-do-ofx">
@@ -342,7 +342,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 onClick={goToMapping}
                 disabled={!file || (type === "OFX" && !selectedAccountId)}
               >
-                {type === "OFX" ? "Processar Arquivo" : "Próximo Passo"}
+                {type === "OFX" ? "Importar arquivo" : "Continuar"}
                 <ArrowRight aria-hidden="true" />
               </Button>
             </div>
@@ -352,7 +352,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
           {step === "MAPPING" && (
             <div className="space-y-6 animate-in fade-in duration-base">
                <div className="flex flex-col gap-1">
-                  <h4 className="label text-muted-foreground">Mapeamento de Colunas</h4>
+                  <h3 className="label text-muted-foreground">Colunas da planilha</h3>
                   <p className="text-sm text-fg-secondary">
                     Identifique o nome exato das colunas na sua planilha.
                   </p>
@@ -378,11 +378,11 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                     ) : (
                         <>
                             <div className="space-y-1.5">
-                                <Label htmlFor="coluna-source-account">Conta Origem *</Label>
+                                <Label htmlFor="coluna-source-account">Conta de origem *</Label>
                                 <Input id="coluna-source-account" value={mapping.source_account_column} onChange={e => setMapping({...mapping, source_account_column: e.target.value})} />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="coluna-dest-account">Conta Destino *</Label>
+                                <Label htmlFor="coluna-dest-account">Conta que recebe *</Label>
                                 <Input id="coluna-dest-account" value={mapping.dest_account_column} onChange={e => setMapping({...mapping, dest_account_column: e.target.value})} />
                             </div>
                         </>
@@ -393,23 +393,23 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                     <>
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="coluna-type">Coluna de Tipo</Label>
-                                <Input id="coluna-type" value={mapping.type_column} onChange={e => setMapping({...mapping, type_column: e.target.value})} placeholder="Tipo (Receita/Despesa)" />
+                                <Label htmlFor="coluna-type">Coluna de tipo</Label>
+                                <Input id="coluna-type" value={mapping.type_column} onChange={e => setMapping({...mapping, type_column: e.target.value})} placeholder="Ex.: Tipo" />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="coluna-status">Coluna de Situação</Label>
-                                <Input id="coluna-status" value={mapping.status_column} onChange={e => setMapping({...mapping, status_column: e.target.value})} placeholder="Situação" />
+                                <Label htmlFor="coluna-status">Coluna de situação</Label>
+                                <Input id="coluna-status" value={mapping.status_column} onChange={e => setMapping({...mapping, status_column: e.target.value})} placeholder="Ex.: Situação" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <Label htmlFor="coluna-category">Coluna de Categoria</Label>
-                                <Input id="coluna-category" value={mapping.category_column} onChange={e => setMapping({...mapping, category_column: e.target.value})} placeholder="Categoria" />
+                                <Label htmlFor="coluna-category">Coluna de categoria</Label>
+                                <Input id="coluna-category" value={mapping.category_column} onChange={e => setMapping({...mapping, category_column: e.target.value})} placeholder="Ex.: Categoria" />
                             </div>
                             <div className="space-y-1.5">
-                                <Label htmlFor="coluna-subcategory">Coluna de Subcategoria</Label>
-                                <Input id="coluna-subcategory" value={mapping.subcategory_column} onChange={e => setMapping({...mapping, subcategory_column: e.target.value})} placeholder="Subcategoria" />
+                                <Label htmlFor="coluna-subcategory">Coluna de subcategoria</Label>
+                                <Input id="coluna-subcategory" value={mapping.subcategory_column} onChange={e => setMapping({...mapping, subcategory_column: e.target.value})} placeholder="Ex.: Subcategoria" />
                             </div>
                         </div>
                     </>
@@ -417,13 +417,13 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
 
                 <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                        <Label htmlFor="coluna-tags">Coluna de Tags</Label>
-                        <Input id="coluna-tags" value={mapping.tags_column} onChange={e => setMapping({...mapping, tags_column: e.target.value})} placeholder="Tags" />
+                        <Label htmlFor="coluna-tags">Coluna de marcadores</Label>
+                        <Input id="coluna-tags" value={mapping.tags_column} onChange={e => setMapping({...mapping, tags_column: e.target.value})} placeholder="Ex.: Marcadores" />
                     </div>
                     {importSubType === "INCOME_EXPENSE" && (
                         <div className="space-y-1.5">
-                            <Label htmlFor="coluna-account">Coluna de Conta</Label>
-                            <Input id="coluna-account" value={mapping.account_column} onChange={e => setMapping({...mapping, account_column: e.target.value})} placeholder="Nome da Conta" />
+                            <Label htmlFor="coluna-account">Coluna de conta</Label>
+                            <Input id="coluna-account" value={mapping.account_column} onChange={e => setMapping({...mapping, account_column: e.target.value})} placeholder="Ex.: Conta" />
                         </div>
                     )}
                 </div>
@@ -431,9 +431,9 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 {/* IMPORT-22: sem coluna de conta, as linhas vão para a conta padrão */}
                 {importSubType === "INCOME_EXPENSE" && (
                     <div className="space-y-1.5">
-                        <Label>Conta padrão (linhas sem conta)</Label>
+                        <Label htmlFor="conta-padrao">Conta padrão (linhas sem conta)</Label>
                         <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
-                            <SelectTrigger>
+                            <SelectTrigger id="conta-padrao">
                                 <SelectValue placeholder="Selecione a conta" />
                             </SelectTrigger>
                             <SelectContent>
@@ -450,7 +450,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                         <ArrowLeft aria-hidden="true" /> Voltar
                     </Button>
                     <Button className="flex-[2]" onClick={handlePreflight} loading={isLoading}>
-                        Analisar Planilha
+                        Analisar planilha
                     </Button>
                 </div>
             </div>
@@ -462,21 +462,21 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 <div className="flex gap-3 rounded-sm border border-l-[3px] border-border border-l-info bg-card p-4">
                     <Users className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
                     <div className="space-y-0.5">
-                        <h4 className="text-sm font-medium">Associação de Contas</h4>
-                        <p className="text-sm text-fg-secondary">Identificamos{uniqueSpreadsheetAccounts.length} contas diferentes na sua planilha. Associe-as às contas do sistema.</p>
+                        <h3 className="text-sm font-medium">Associação de contas</h3>
+                        <p className="text-sm text-fg-secondary">A planilha tem {uniqueSpreadsheetAccounts.length} contas diferentes. Associe cada uma a uma das suas contas.</p>
                     </div>
                 </div>
 
                 <div className="space-y-4 max-h-[300px] overflow-y-auto px-1 custom-scrollbar">
-                    {uniqueSpreadsheetAccounts.map((accName) => (
+                    {uniqueSpreadsheetAccounts.map((accName, indice) => (
                         <div key={accName} className="p-3 rounded-lg border border-border flex flex-col gap-2">
-                            <Label>{accName}</Label>
+                            <Label htmlFor={`conta-da-planilha-${indice}`}>{accName}</Label>
                             <Select 
                                 value={accountMapping[accName] || ""} 
                                 onValueChange={(val) => setAccountMapping({...accountMapping, [accName]: val})}
                             >
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Escolha a conta no sistema" />
+                                <SelectTrigger id={`conta-da-planilha-${indice}`}>
+                                    <SelectValue placeholder="Selecione a sua conta" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     {accounts.map(acc => (
@@ -498,7 +498,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                         disabled={isLoading || (importSubType === "TRANSFER" && Object.keys(accountMapping).length < 1)}
                     >
                         {isLoading ? <Loader2 className="animate-spin" aria-hidden="true" /> : <RefreshCcw aria-hidden="true" />}
-                        {isLoading ? "Processando..." : "Finalizar Importação"}
+                        {isLoading ? "Importando" : "Importar lançamentos"}
                     </Button>
                 </div>
              </div>
@@ -547,7 +547,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                 {/* IMPORT-30: cada rejeitada com o número no arquivo e o motivo */}
                 {summary.rejected_rows.length > 0 && (
                   <div className="space-y-2 rounded-sm border border-l-[3px] border-border border-l-outflow bg-card p-4">
-                    <h5 className="label text-outflow">Linhas rejeitadas</h5>
+                    <h3 className="label text-outflow">Linhas rejeitadas</h3>
                     <div className="max-h-[150px] overflow-y-auto pr-2 custom-scrollbar">
                         <ul className="space-y-1">
                             {summary.rejected_rows.map((linha) => (
@@ -565,7 +565,7 @@ export function ImportDialog({ open, onOpenChange, type }: ImportDialogProps) {
                     className="w-full"
                     onClick={() => onOpenChange(false)}
                 >
-                    Fechar e Ver Dashboard
+                    Fechar
                 </Button>
              </div>
           )}

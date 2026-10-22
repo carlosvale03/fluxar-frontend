@@ -55,13 +55,13 @@ import { tratarErro } from "@/lib/erros"
 const formSchema = z.object({
   description: z.string().optional(),
   // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
-  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
+  amount: z.string().refine(maiorQueZero, "O valor precisa ser maior que zero."),
   date: z.date(),
   source_account_id: z.string().min(1, "Selecione a conta de origem."),
-  target_account_id: z.string().min(1, "Selecione a conta de destino."),
+  target_account_id: z.string().min(1, "Selecione a conta que recebe."),
   tags: z.array(z.string()).default([]),
 }).refine(data => data.source_account_id !== data.target_account_id, {
-    message: "A conta de destino deve ser diferente da origem.",
+    message: "A conta que recebe precisa ser diferente da conta de origem.",
     path: ["target_account_id"],
 })
 
@@ -199,7 +199,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           })
       } catch (error) {
           console.error("Failed to fetch transfer details", error)
-          toast.error("Erro ao carregar detalhes da transferência.")
+          toast.error("Não foi possível carregar a transferência. Feche e abra de novo.")
       } finally {
           setIsFetchingDetails(false)
       }
@@ -212,7 +212,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           setAccounts(response.data)
       } catch (error) {
           console.error("Failed to fetch accounts", error)
-          toast.error("Erro ao carregar contas.")
+          toast.error("Não foi possível carregar as contas. Feche o formulário e abra de novo.")
       }
   }
 
@@ -270,7 +270,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           }
 
           await api.post("/transactions/transfer/", createPayload)
-          toast.success("Transferência realizada.")
+          toast.success("Transferência registrada.")
       }
 
       onSuccess()
@@ -287,7 +287,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           account_to: "target_account_id",
           tags: "tags",
         },
-        mensagemPadrao: "Erro ao salvar transferência. Verifique os dados.",
+        mensagemPadrao: "Não foi possível salvar a transferência. Confira os campos e tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -307,10 +307,10 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
               </div>
               <div className="flex flex-col gap-0.5">
                 <DialogTitle>
-                  {initialData ? "Editar Transferência" : "Nova Transferência"}
+                  {initialData ? "Editar transferência" : "Nova transferência"}
                 </DialogTitle>
                 <DialogDescription>
-                  {initialData ? "Atualize os detalhes da movimentação." : "Mova valores entre suas contas de forma simples."}
+                  {initialData ? "Ajuste os detalhes desta transferência." : "Mova um valor de uma conta para outra."}
                 </DialogDescription>
               </div>
             </div>
@@ -318,7 +318,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
           {isFetchingDetails ? (
               <div className="flex flex-col items-center justify-center py-12 gap-4">
                   <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
-                  <p className="text-sm text-muted-foreground" role="status">Carregando detalhes...</p>
+                  <p className="text-sm text-muted-foreground" role="status">Carregando a transferência</p>
               </div>
           ) : (
             <Form {...form}>
@@ -333,10 +333,10 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                     name="description"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Motivo / Descrição</FormLabel>
+                        <FormLabel>Descrição</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Ex: Reserva, Investimento..." 
+                            placeholder="Ex.: Reserva, Investimento" 
                             {...field}
                           />
                         </FormControl>
@@ -351,7 +351,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                     name="tags"
                     render={({ field }) => (
                       <FormItem className="space-y-2">
-                        <FormLabel>Tags</FormLabel>
+                        <FormLabel>Marcadores</FormLabel>
                         <FormControl>
                           <TagSelector
                             selectedTagIds={field.value}
@@ -371,7 +371,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                           name="amount"
                           render={({ field }) => (
                               <FormItem>
-                              <FormLabel>Quanto?</FormLabel>
+                              <FormLabel>Valor</FormLabel>
                               <FormControl>
                                   <MoneyInput
                                       value={field.value ?? ""}
@@ -388,7 +388,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                       name="date"
                       render={({ field }) => (
                           <FormItem className="flex flex-col">
-                          <FormLabel>Quando?</FormLabel>
+                          <FormLabel>Data</FormLabel>
                           <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                               <PopoverTrigger asChild>
                               <FormControl>
@@ -402,7 +402,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                   {field.value ? (
                                       format(field.value, "dd 'de' MMM", { locale: ptBR })
                                   ) : (
-                                      <span>Data</span>
+                                      <span>Selecione a data</span>
                                   )}
                                   <CalendarIcon className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                   </Button>
@@ -442,11 +442,11 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                           name="source_account_id"
                           render={({ field }) => (
                               <FormItem>
-                              <FormLabel>Sai de:</FormLabel>
+                              <FormLabel>Sai de</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
                                   <SelectTrigger>
-                                      <SelectValue placeholder="Origem..." />
+                                      <SelectValue placeholder="Conta de origem" />
                                   </SelectTrigger>
                                   </FormControl>
                                   <SelectContent className="max-h-[450px] p-2">
@@ -460,7 +460,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                        className="mb-1 w-full justify-start gap-2"
                                                    >
                                                        <PlusCircle aria-hidden="true" />
-                                                       Nova Conta
+                                                       Criar conta
                                                    </Button>
                                                }
                                            />
@@ -529,11 +529,11 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                           name="target_account_id"
                           render={({ field }) => (
                               <FormItem>
-                              <FormLabel>Entra em:</FormLabel>
+                              <FormLabel>Entra em</FormLabel>
                               <Select onValueChange={field.onChange} value={field.value}>
                                   <FormControl>
                                   <SelectTrigger>
-                                      <SelectValue placeholder="Destino..." />
+                                      <SelectValue placeholder="Conta que recebe" />
                                   </SelectTrigger>
                                   </FormControl>
                                   <SelectContent className="max-h-[450px] p-2">
@@ -547,7 +547,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                                                        className="mb-1 w-full justify-start gap-2"
                                                    >
                                                        <PlusCircle aria-hidden="true" />
-                                                       Nova Conta
+                                                       Criar conta
                                                    </Button>
                                                }
                                            />
@@ -623,7 +623,7 @@ export function TransferFormDialog({ open, onOpenChange, onSuccess, initialData 
                     Cancelar
                   </Button>
                   <Button type="submit" loading={isLoading}>
-                    {initialData ? "Salvar Alterações" : "Efetuar Transferência"}
+                    {initialData ? "Salvar transferência" : "Registrar transferência"}
                   </Button>
                 </DialogFooter>
               </form>

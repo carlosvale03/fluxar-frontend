@@ -61,11 +61,11 @@ import { tratarErro } from "@/lib/erros"
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
   // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
-  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
+  amount: z.string().refine(maiorQueZero, "O valor precisa ser maior que zero."),
   date: z.date(),
   category_id: z.string().min(1, "Selecione uma categoria."),
   card_id: z.string().min(1, "Selecione um cartão."),
-  installments: z.coerce.number().min(1, "Mínimo de 1 parcela.").max(99, "Máximo de 99 parcelas.").default(1),
+  installments: z.coerce.number().min(1, "Informe pelo menos 1 parcela.").max(99, "O limite é de 99 parcelas.").default(1),
   update_scope: z.enum(["SINGLE", "ALL_FUTURE"]).optional(),
   tags: z.array(z.string()).default([]),
 })
@@ -173,7 +173,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           setCards(cardRes.data)
       } catch (error) {
           console.error("Failed to fetch resources", error)
-          toast.error("Erro ao carregar dados.")
+          toast.error("Não foi possível carregar os cartões e as categorias. Feche o formulário e abra de novo.")
       }
   }
 
@@ -206,7 +206,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           Object.assign(finalPayload, { purchase_date: payload.date })
 
           await api.put(`/transactions/${initialData.id}/`, finalPayload)
-          toast.success("Despesa atualizada.")
+          toast.success("Compra atualizada.")
       } else {
           // Create - Installments matters here
           // Re-add installments for Create
@@ -214,7 +214,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
            if (principalDoNovo) Object.assign(finalPayload, { principal: principalDoNovo.id })
 
           await api.post("/transactions/credit-card-expense/", finalPayload)
-          toast.success("Despesa registrada.")
+          toast.success("Compra registrada.")
       }
 
       onSuccess()
@@ -235,7 +235,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
           tags: "tags",
           update_scope: "update_scope",
         },
-        mensagemPadrao: "Erro ao salvar despesa. Verifique os dados.",
+        mensagemPadrao: "Não foi possível salvar a compra. Confira os campos e tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -255,10 +255,10 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
               </div>
               <div className="flex flex-col gap-0.5">
                 <DialogTitle>
-                  {initialData ? "Editar Despesa" : "Novo Gasto no Cartão"}
+                  {initialData ? "Editar compra no cartão" : "Nova compra no cartão"}
                 </DialogTitle>
                 <DialogDescription>
-                  {initialData ? "Atualize os detalhes da transação no cartão." : "Registre uma compra feita no crédito."}
+                  {initialData ? "Ajuste os detalhes desta compra." : "Registre uma compra feita no crédito."}
                 </DialogDescription>
               </div>
             </div>
@@ -286,10 +286,10 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                   name="description"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Descrição do Gasto</FormLabel>
+                      <FormLabel>Descrição</FormLabel>
                       <FormControl>
                         <Input 
-                          placeholder="Ex: Assinatura Netflix, Jantar..." 
+                          placeholder="Ex.: Assinatura de streaming, Jantar" 
                           {...field} 
 
                         />
@@ -305,7 +305,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                     name="tags"
                     render={({ field }) => (
                         <FormItem className="space-y-2">
-                        <FormLabel>Tags</FormLabel>
+                        <FormLabel>Marcadores</FormLabel>
                         <FormControl>
                             <TagSelector
                                 selectedTagIds={field.value}
@@ -324,7 +324,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                         name="amount"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Valor Total</FormLabel>
+                            <FormLabel>Valor total</FormLabel>
                             <FormControl>
                                 <MoneyInput
                                     value={field.value ?? ""}
@@ -341,7 +341,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                     name="date"
                     render={({ field }) => (
                         <FormItem className="flex flex-col">
-                        <FormLabel>Data da Compra</FormLabel>
+                        <FormLabel>Data da compra</FormLabel>
                         <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                             <PopoverTrigger asChild>
                             <FormControl>
@@ -355,7 +355,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                 {field.value ? (
                                     format(field.value, "dd 'de' MMM", { locale: ptBR })
                                 ) : (
-                                    <span>Data</span>
+                                    <span>Selecione a data</span>
                                 )}
                                 <CalendarIcon className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                 </Button>
@@ -389,11 +389,11 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                         name="card_id"
                         render={({ field }) => (
                             <FormItem>
-                            <FormLabel>Cartão Utilizado</FormLabel>
+                            <FormLabel>Cartão</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Selecione..." />
+                                    <SelectValue placeholder="Selecione o cartão" />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent>
@@ -426,7 +426,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                             <Select onValueChange={field.onChange} value={field.value}>
                                 <FormControl>
                                 <SelectTrigger>
-                                    <SelectValue placeholder="Selecione..." />
+                                    <SelectValue placeholder="Selecione a categoria" />
                                 </SelectTrigger>
                                 </FormControl>
                                 <SelectContent className="max-h-[450px] p-2">
@@ -442,7 +442,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                             }}
                                         >
                                             <PlusCircle aria-hidden="true" />
-                                            Nova Categoria
+                                            Criar categoria
                                         </Button>
 
                                         <div className="px-2 mb-2">
@@ -499,7 +499,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                                                         {cat.name}
                                                                     </span>
                                                                     {!cat.isSubcategory && (
-                                                                        <span className="text-xs text-muted-foreground">Categoria Master</span>
+                                                                        <span className="text-xs text-muted-foreground">Categoria principal</span>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -552,10 +552,10 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                         <div className="space-y-3 rounded-sm border border-l-[3px] border-border border-l-warn bg-card p-4">
                             <div className="flex items-center gap-2 text-sm font-medium">
                                <AlertCircle className="h-4 w-4 text-warn" aria-hidden="true" />
-                               Edição de Parcelas
+                               Alcance da edição
                             </div>
                             <div className="flex items-center justify-between gap-4">
-                                <Label htmlFor="escopo-das-parcelas">Aplicar alterações para:</Label>
+                                <Label htmlFor="escopo-das-parcelas">Aplicar a</Label>
                                 <Select onValueChange={field.onChange} value={field.value}>
                                     <FormControl>
                                       <SelectTrigger id="escopo-das-parcelas" className="w-[200px]">
@@ -563,8 +563,8 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                                       </SelectTrigger>
                                     </FormControl>
                                     <SelectContent>
-                                        <SelectItem value="SINGLE">Apenas nesta parcela</SelectItem>
-                                        <SelectItem value="ALL_FUTURE">Nesta e nas próximas</SelectItem>
+                                        <SelectItem value="SINGLE">Só esta parcela</SelectItem>
+                                        <SelectItem value="ALL_FUTURE">Esta e as próximas</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -583,7 +583,7 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
                   Cancelar
                 </Button>
                 <Button type="submit" loading={isLoading}>
-                  {initialData ? "Salvar Alterações" : "Adicionar Despesa"}
+                  {initialData ? "Salvar compra" : "Registrar compra"}
                 </Button>
               </DialogFooter>
             </form>
@@ -592,13 +592,13 @@ export function CardExpenseFormDialog({ open, onOpenChange, onSuccess, initialDa
         </div>
       </DialogContent>
 
-      {/* Modal Secundário: Nova Categoria */}
+      {/* Modal secundário: nova categoria */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
           <ScrollArea className="max-h-[85vh]">
             <div className="p-6">
                 <DialogHeader className="mb-6">
-                    <DialogTitle>Nova Categoria</DialogTitle>
+                    <DialogTitle>Nova categoria</DialogTitle>
                     <DialogDescription>Crie uma categoria sem sair do lançamento.</DialogDescription>
                 </DialogHeader>
 

@@ -71,7 +71,7 @@ async function abrirComArquivo(nome = "extrato.csv") {
 
 async function irAoMapeamento() {
   const contexto = await abrirComArquivo()
-  await contexto.usuario.click(screen.getByRole("button", { name: /próximo passo/i }))
+  await contexto.usuario.click(screen.getByRole("button", { name: /^continuar$/i }))
   return contexto
 }
 
@@ -79,10 +79,10 @@ async function importarAte(resultado: ImportSummary) {
   post.mockImplementation(((url: string) =>
     Promise.resolve({ data: url === URL_PREFLIGHT ? { accounts: ["Nubank"] } : resultado })) as typeof api.post)
   const contexto = await irAoMapeamento()
-  await contexto.usuario.type(screen.getByPlaceholderText("Nome da Conta"), "Conta")
+  await contexto.usuario.type(screen.getByPlaceholderText("Ex.: Conta"), "Conta")
   await contexto.usuario.click(screen.getByRole("button", { name: /analisar planilha/i }))
-  await contexto.usuario.click(await screen.findByRole("button", { name: /finalizar importação/i }))
-  await screen.findByText("Importação Concluída")
+  await contexto.usuario.click(await screen.findByRole("button", { name: /importar lançamentos/i }))
+  await screen.findByText("Importação concluída")
   return contexto
 }
 
@@ -99,7 +99,7 @@ describe("Diálogo de importação", () => {
     expect(screen.getByText("Arquivo (.csv, .xlsx)")).toBeInTheDocument()
     expect(toast.error).toHaveBeenCalledWith(FORMATO_NAO_SUPORTADO)
     expect(FORMATO_NAO_SUPORTADO).toBe("Formato não suportado. Envie um arquivo OFX, CSV ou XLSX.")
-    expect(screen.getByRole("button", { name: /próximo passo/i })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /^continuar$/i })).toBeDisabled()
     expect(post).not.toHaveBeenCalled()
   })
 
@@ -110,14 +110,14 @@ describe("Diálogo de importação", () => {
     await usuario.click(screen.getByRole("button", { name: /analisar planilha/i }))
 
     expect(toast.error).toHaveBeenCalledWith("O arquivo passa do limite de 10.000 linhas.")
-    expect(screen.queryByText("Importação Concluída")).not.toBeInTheDocument()
+    expect(screen.queryByText("Importação concluída")).not.toBeInTheDocument()
   })
 
   it("as colunas opcionais começam vazias e só vão se o usuário preencher", async () => {
     post.mockResolvedValue({ data: { accounts: [] } })
     const { usuario } = await irAoMapeamento()
 
-    for (const opcional of ["Situação", "Categoria", "Subcategoria", "Tags", "Nome da Conta"]) {
+    for (const opcional of ["Ex.: Situação", "Ex.: Categoria", "Ex.: Subcategoria", "Ex.: Marcadores", "Ex.: Conta"]) {
       expect(screen.getByPlaceholderText(opcional)).toHaveValue("")
     }
     await usuario.click(screen.getByRole("button", { name: /analisar planilha/i }))
@@ -127,7 +127,7 @@ describe("Diálogo de importação", () => {
       amount_column: "Valor",
     })
 
-    await usuario.type(screen.getByPlaceholderText("Categoria"), "Categoria")
+    await usuario.type(screen.getByPlaceholderText("Ex.: Categoria"), "Categoria")
     await usuario.click(screen.getByRole("button", { name: /analisar planilha/i }))
     expect(mapeamentoEnviado(URL_PREFLIGHT, 1)).toEqual({
       date_column: "Data",

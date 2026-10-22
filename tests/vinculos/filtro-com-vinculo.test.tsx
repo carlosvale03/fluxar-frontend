@@ -48,7 +48,7 @@ const ultimaBusca = () =>
   new URL(String(get.mock.calls.filter(([e]) => String(e).startsWith("/transactions/")).at(-1)![0]), "http://x").searchParams
 
 async function abrirFiltros() {
-  await userEvent.click(screen.getByRole("button", { name: /refinar seleção/i }))
+  await userEvent.click(screen.getByRole("button", { name: /^filtrar/i }))
   return screen.findByRole("dialog")
 }
 

@@ -76,8 +76,8 @@ function abrirEdicao(compra: { purchase_date: string | null }) {
   )
 }
 
-const botaoData = () => screen.getByRole("button", { name: "Data da Compra" })
-const salvar = () => userEvent.click(screen.getByRole("button", { name: /salvar alterações/i }))
+const botaoData = () => screen.getByRole("button", { name: "Data da compra" })
+const salvar = () => userEvent.click(screen.getByRole("button", { name: /salvar compra/i }))
 
 describe("Edição e exclusão da compra no cartão", () => {
   beforeEach(() => {
