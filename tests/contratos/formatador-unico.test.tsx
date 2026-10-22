@@ -146,7 +146,7 @@ describe("Formatador único", () => {
     const posicao = await screen.findByRole("region", { name: "Posição" })
     expect(within(posicao).getByText(/^R\$\s1\.234,56$/)).toBeInTheDocument()
     expect(within(posicao).getByText(/^\+ R\$\s1\.200,15$/)).toBeInTheDocument()
-    const receitas = screen.getByRole("group", { name: "Receitas do Mês" })
+    const receitas = screen.getByRole("group", { name: "Entradas do mês" })
     expect(within(receitas).getByText(/^\+ R\$\s2\.000,20$/)).toBeInTheDocument()
 
     // Total da distribuição: "100.10" + "200.20" = R$ 300,30

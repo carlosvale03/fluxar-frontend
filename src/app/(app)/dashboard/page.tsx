@@ -122,8 +122,8 @@ function getAdaptiveLayout(modules: DashboardModuleConfig[]) {
     return result
 }
 
-// "1 orçamento" / "3 orçamentos"
-const orcamentos = (n: number) => `${n} ${n === 1 ? "orçamento" : "orçamentos"}`
+// "1 rota" / "3 rotas"
+const rotas = (n: number) => `${n} ${n === 1 ? "rota" : "rotas"}`
 
 export default function DashboardPage() {
     const currentDate = new Date()
@@ -197,7 +197,7 @@ export default function DashboardPage() {
         } catch (error) {
             console.error("Failed to fetch dashboard data", error)
             tratarErro(error, {
-                mensagemPadrao: "Não foi possível sincronizar seus dados financeiros agora.",
+                mensagemPadrao: "Não foi possível carregar a visão geral do mês. Verifique a conexão e tente de novo.",
                 tentarDeNovo: fetchData,
             })
         } finally {
@@ -208,8 +208,8 @@ export default function DashboardPage() {
     const handleLayoutChange = (newConfig: DashboardModuleConfig[]) => {
         setLayoutConfig(newConfig)
         localStorage.setItem("dashboard_layout_config", JSON.stringify(newConfig))
-        toast.success("Layout atualizado", {
-            description: "Suas preferências foram salvas neste navegador."
+        toast.success("Blocos atualizados.", {
+            description: "A ordem e os blocos visíveis ficam salvos neste navegador."
         })
     }
 
@@ -265,15 +265,15 @@ export default function DashboardPage() {
                     </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-60">
-                    <DropdownMenuLabel className="label text-muted-foreground">Nova Transação</DropdownMenuLabel>
+                    <DropdownMenuLabel className="label text-muted-foreground">Novo lançamento</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => handleOpenForm("INCOME")} className="gap-3">
                         <ArrowUpCircle className="h-4 w-4 text-inflow" aria-hidden="true" />
-                        Receita
+                        Entrada
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleOpenForm("EXPENSE")} className="gap-3">
                         <ArrowDownCircle className="h-4 w-4 text-outflow" aria-hidden="true" />
-                        Despesa
+                        Saída
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsTransferOpen(true)} className="gap-3">
                         <ArrowRightLeft className="h-4 w-4 text-fg-secondary" aria-hidden="true" />
@@ -281,11 +281,11 @@ export default function DashboardPage() {
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsCardExpenseOpen(true)} className="gap-3">
                         <CreditCardIcon className="h-4 w-4 text-fg-secondary" aria-hidden="true" />
-                        Gasto no Cartão
+                        Gasto no cartão
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setIsInvoicePaymentOpen(true)} className="gap-3">
                         <Receipt className="h-4 w-4 text-fg-secondary" aria-hidden="true" />
-                        Pagamento de Fatura
+                        Pagamento de fatura
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -294,7 +294,7 @@ export default function DashboardPage() {
                 <Button
                     variant="outline"
                     size="icon"
-                    aria-label="Personalizar dashboard"
+                    aria-label="Personalizar a Ponte de Comando"
                     title="Personalizar blocos"
                     onClick={() => setIsCustomizerOpen(true)}
                 >
@@ -311,6 +311,7 @@ export default function DashboardPage() {
     if (isLoading) {
         return (
             <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-6 md:px-6 md:py-8" aria-busy="true">
+                <p className="sr-only" role="status">Carregando a visão geral do mês.</p>
                 <div className="space-y-2">
                     <Skeleton className="h-8 w-56" />
                     <Skeleton className="h-4 w-40" />
@@ -387,18 +388,18 @@ export default function DashboardPage() {
                         <div>
                             <AlertTitle>
                                 {acimaDoLimite > 0
-                                    ? `${orcamentos(acimaDoLimite)} acima do limite neste mês.`
-                                    : `${orcamentos(pertoDoLimite)} perto do limite neste mês.`}
+                                    ? `${rotas(acimaDoLimite)} acima do limite neste mês.`
+                                    : `${rotas(pertoDoLimite)} perto do limite neste mês.`}
                             </AlertTitle>
                             {acimaDoLimite > 0 && pertoDoLimite > 0 && (
-                                <AlertDescription>Mais {orcamentos(pertoDoLimite)} perto do limite.</AlertDescription>
+                                <AlertDescription>Mais {rotas(pertoDoLimite)} perto do limite.</AlertDescription>
                             )}
                         </div>
                         <Link
                             href="/orcamentos"
                             className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-fg-secondary transition-colors duration-fast hover:text-foreground"
                         >
-                            Ver orçamentos <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                            Ver rotas <ArrowRight className="h-4 w-4" aria-hidden="true" />
                         </Link>
                     </div>
                 </Alert>
@@ -407,7 +408,11 @@ export default function DashboardPage() {
             {/* Patrimônio separado em disponível, reservas, investimentos e faturas (REL-15) */}
             <NetWorthBreakdown total={resumo.net_worth} partes={resumo.net_worth_breakdown} />
 
-            {/* 4 e 5. Blocos personalizáveis (DESIGN.md §7, Personalização) */}
+            {/* 4 e 5. Blocos personalizáveis (DESIGN.md §7, Personalização). O
+                título da seção é só para leitor de tela; cada bloco é um card
+                com título h3 (AZ-36) */}
+            <section aria-labelledby="titulo-blocos">
+            <h2 id="titulo-blocos" className="sr-only">Blocos do mês</h2>
             <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-12">
                 {getAdaptiveLayout((personalizar === false ? DEFAULT_CONFIG : layoutConfig).filter(m => m.visible)).map(({ module, span }) => {
                     const spanClass = {
@@ -435,8 +440,8 @@ export default function DashboardPage() {
                                 <RecursoBloqueado key={module.id} chave="comparacao_mensal" titulo="Comparação mensal" className={spanClass}>
                                 <MonthlyComparisonChart
                                     data={monthlyComparison.length > 0 ? [monthlyComparison[monthlyComparison.length - 1]] : []}
-                                    title="Balanço Mensal"
-                                    description="Resumo Ganhos vs Gastos"
+                                    title="Balanço do mês"
+                                    description="Entradas e saídas do mês"
                                     granularidade="no mês"
                                     showNumericalLabels={span >= 6}
                                     height="100%"
@@ -449,8 +454,8 @@ export default function DashboardPage() {
                                 <RecursoBloqueado key={module.id} chave="comparacao_mensal" titulo="Comparação mensal" className={spanClass}>
                                 <MonthlyComparisonChart
                                     data={monthlyComparison}
-                                    title="Evolução de Saldo"
-                                    description={`Acompanhamento dos ${monthlyComparison.length} meses`}
+                                    title="Evolução do saldo"
+                                    description={`Resultado de cada um dos últimos ${monthlyComparison.length} meses`}
                                     variant="line"
                                     height="100%"
                                     className={cn(spanClass, "h-full")}
@@ -467,14 +472,19 @@ export default function DashboardPage() {
                             return (
                                 <CategoryDistributionChart
                                     key={module.id}
-                                    title="Distribuição de Gastos"
-                                    description="Percentual por categoria"
+                                    title="Saídas por categoria"
+                                    description="Quanto saiu em cada categoria"
                                     data={charts?.expense_by_category || []}
                                     isLoading={isLoading}
                                     icon={Wallet}
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
+                                    acaoVazia={
+                                        <Button variant="outline" size="sm" onClick={() => handleOpenForm("EXPENSE")}>
+                                            <Plus aria-hidden="true" /> Registrar saída
+                                        </Button>
+                                    }
                                 />
                             )
                         case "CLASS_DISTRIBUTION":
@@ -493,22 +503,27 @@ export default function DashboardPage() {
                             return (
                                 <CategoryDistributionChart
                                     key={module.id}
-                                    title="Distribuição de Ganhos"
-                                    description="Origem das receitas por categoria"
+                                    title="Entradas por categoria"
+                                    description="De onde veio o dinheiro, por categoria"
                                     data={charts?.income_by_category || []}
                                     isLoading={isLoading}
                                     icon={Sparkles}
                                     className={spanClass}
                                     month={selectedMonth}
                                     year={selectedYear}
+                                    acaoVazia={
+                                        <Button variant="outline" size="sm" onClick={() => handleOpenForm("INCOME")}>
+                                            <Plus aria-hidden="true" /> Registrar entrada
+                                        </Button>
+                                    }
                                 />
                             )
                         case "TAG_EXPENSE_DISTRIBUTION":
                             return (
-                                <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por tag" className={spanClass}>
+                                <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por marcador" className={spanClass}>
                                 <TagDistributionChart
-                                    title="Despesas por Tag"
-                                    description="Distribuição de gastos por etiqueta"
+                                    title="Saídas por marcador"
+                                    description="Quanto saiu em cada marcador"
                                     data={tagCharts?.expense_by_tag || []}
                                     isLoading={isLoading}
                                     icon={Tag}
@@ -520,10 +535,10 @@ export default function DashboardPage() {
                             )
                         case "TAG_INCOME_SOURCE":
                             return (
-                                <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por tag" className={spanClass}>
+                                <RecursoBloqueado key={module.id} chave="analise_por_tag" titulo="Análise por marcador" className={spanClass}>
                                 <TagDistributionChart
-                                    title="Ganhos por Tag"
-                                    description="Origem das receitas por etiqueta"
+                                    title="Entradas por marcador"
+                                    description="Quanto entrou em cada marcador"
                                     data={tagCharts?.income_by_tag || []}
                                     isLoading={isLoading}
                                     icon={Tag}
@@ -540,7 +555,7 @@ export default function DashboardPage() {
                                     <div className="flex flex-wrap items-center justify-between gap-3">
                                         <div className="space-y-1">
                                             <div className="flex items-center gap-2">
-                                                <h2 id="titulo-credito" className="display-m">Gestão de Crédito</h2>
+                                                <h3 id="titulo-credito" className="display-m">Gestão de crédito</h3>
                                                 <HelpInfo topic="CREDIT_MANAGEMENT" />
                                             </div>
                                             <p className="text-sm text-muted-foreground">Controle de limites e faturas</p>
@@ -548,7 +563,7 @@ export default function DashboardPage() {
 
                                         {report.credit_cards && report.credit_cards.length > 0 && (
                                             <Button variant="outline" onClick={() => setIsCardFormOpen(true)}>
-                                                <Plus aria-hidden="true" /> Novo Cartão
+                                                <Plus aria-hidden="true" /> Cadastrar cartão
                                             </Button>
                                         )}
                                     </div>
@@ -558,7 +573,7 @@ export default function DashboardPage() {
                                             <CardContent className="flex flex-col items-center gap-4 px-6 py-12 text-center">
                                                 <CreditCardIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                                                 <div className="space-y-1">
-                                                    <h3 className="display-s">Nenhum cartão cadastrado.</h3>
+                                                    <h4 className="display-s">Nenhum cartão cadastrado.</h4>
                                                     <p className="max-w-sm text-sm text-muted-foreground">
                                                         Cadastre seus cartões de crédito para acompanhar faturas e limites num só lugar.
                                                     </p>
@@ -606,31 +621,48 @@ export default function DashboardPage() {
                                         <div className="space-y-1">
                                             <CardTitle className="flex items-center gap-2">
                                                 <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                <h2>Metas</h2>
+                                                <h3>Destinos</h3>
                                             </CardTitle>
-                                            <p className="text-sm text-muted-foreground">Objetivos financeiros</p>
+                                            <p className="text-sm text-muted-foreground">Metas de economia</p>
                                         </div>
                                         <Link
                                             href="/metas"
                                             className="inline-flex shrink-0 items-center gap-1 text-sm text-fg-secondary transition-colors duration-fast hover:text-foreground"
                                         >
-                                            Ver metas <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                                            Ver destinos <ArrowRight className="h-4 w-4" aria-hidden="true" />
                                         </Link>
                                     </CardHeader>
                                     <CardContent>
+                                        {(report.goals.active_count ?? 0) === 0 ? (
+                                            <div className="flex flex-col items-center gap-3 py-8 text-center">
+                                                <Target className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                                                <div className="space-y-1">
+                                                    <h4 className="text-sm font-semibold">Nenhum destino ativo.</h4>
+                                                    <p className="max-w-sm text-sm text-muted-foreground">
+                                                        Defina um destino para medir a distância até ele.
+                                                    </p>
+                                                </div>
+                                                <Button variant="outline" asChild>
+                                                    <Link href="/metas">
+                                                        <Plus aria-hidden="true" /> Definir destino
+                                                    </Link>
+                                                </Button>
+                                            </div>
+                                        ) : (
                                         <dl className="flex flex-wrap items-center gap-x-10 gap-y-4">
                                             <div className="space-y-1">
-                                                <dt className="label text-muted-foreground">Ativas</dt>
+                                                <dt className="label text-muted-foreground">Ativos</dt>
                                                 <dd className="value-l">{report.goals.active_count ?? 0}</dd>
                                             </div>
                                             <div className="flex items-center gap-3">
-                                                <AnelDeProgresso percentual={progresso} nome="Progresso médio das metas" />
+                                                <AnelDeProgresso percentual={progresso} nome="Progresso médio dos destinos" />
                                                 <div className="space-y-1">
                                                     <dt className="label text-muted-foreground">Progresso médio</dt>
                                                     <dd className="value-l">{progresso.toFixed(1).replace(".", ",")}%</dd>
                                                 </div>
                                             </div>
                                         </dl>
+                                        )}
                                     </CardContent>
                                 </Card>
                             )
@@ -640,6 +672,7 @@ export default function DashboardPage() {
                     }
                 })}
             </div>
+            </section>
 
             {personalizar && (
                 <DashboardCustomizer
@@ -650,7 +683,7 @@ export default function DashboardPage() {
                 />
             )}
 
-            {/* Diálogos de Transação */}
+            {/* Diálogos de lançamento */}
             <TransactionFormDialog
                 open={isFormOpen}
                 onOpenChange={setIsFormOpen}

@@ -89,7 +89,7 @@ describe("Dashboard: A pagar, patrimônio e faturas do mês", () => {
     const aPagar = await screen.findByRole("group", { name: "A pagar" })
     expect(within(aPagar).getByText(reais("R$ 50,00"))).toBeInTheDocument()
     // AZ-23: a saída leva o sinal de menos junto da cor
-    const despesas = screen.getByRole("group", { name: "Despesas do Mês" })
+    const despesas = screen.getByRole("group", { name: "Saídas do mês" })
     expect(within(despesas).getByText(reais("− R$ 180,00"))).toBeInTheDocument()
   })
 
@@ -109,7 +109,7 @@ describe("Dashboard: A pagar, patrimônio e faturas do mês", () => {
   it("as faturas do mês mostram total_current_invoices", async () => {
     render(<DashboardPage />)
 
-    const faturas = await screen.findByRole("group", { name: "Faturas do Mês" })
+    const faturas = await screen.findByRole("group", { name: "Faturas do mês" })
     expect(within(faturas).getByText(reais("R$ 120,00"))).toBeInTheDocument()
   })
 

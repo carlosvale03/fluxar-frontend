@@ -189,8 +189,8 @@ describe("Dashboard", () => {
     render(<DashboardPage />)
 
     expect(await screen.findAllByRole("heading", { name: "Comparação mensal" })).not.toHaveLength(0)
-    expect(screen.getAllByRole("heading", { name: "Análise por tag" })).toHaveLength(2)
-    expect(screen.queryByText("Despesas por Tag")).not.toBeInTheDocument()
+    expect(screen.getAllByRole("heading", { name: "Análise por marcador" })).toHaveLength(2)
+    expect(screen.queryByText("Saídas por marcador")).not.toBeInTheDocument()
     expect(r.getDashboardSummary).toHaveBeenCalled()
     expect(r.getMonthlyComparison).not.toHaveBeenCalled()
     expect(r.getTagDistribution).not.toHaveBeenCalled()
@@ -203,9 +203,9 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText(AVISO)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
-    expect(screen.queryByRole("button", { name: "Personalizar dashboard" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Personalizar a Ponte de Comando" })).not.toBeInTheDocument()
     // O layout padrão não mostra os módulos de tag
-    expect(screen.queryByText("Despesas por Tag")).not.toBeInTheDocument()
+    expect(screen.queryByText("Saídas por marcador")).not.toBeInTheDocument()
   })
 
   it("com as travas abertas, carrega a comparação, as tags e deixa personalizar", async () => {
@@ -213,8 +213,8 @@ describe("Dashboard", () => {
     comAcesso()
     render(<DashboardPage />)
 
-    expect(await screen.findByRole("button", { name: "Personalizar dashboard" })).toBeInTheDocument()
-    expect(screen.getAllByText("Despesas por Tag")).not.toHaveLength(0)
+    expect(await screen.findByRole("button", { name: "Personalizar a Ponte de Comando" })).toBeInTheDocument()
+    expect(screen.getAllByText("Saídas por marcador")).not.toHaveLength(0)
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
     expect(r.getMonthlyComparison).toHaveBeenCalled()
     expect(r.getTagDistribution).toHaveBeenCalled()
