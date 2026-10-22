@@ -1,6 +1,5 @@
 "use client"
 
-import type { ReactNode } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
