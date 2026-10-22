@@ -57,25 +57,25 @@ export default function MaintenancePage() {
                 <div className="mb-4">
                     <Badge variant="warning">
                         <ShieldAlert className="h-3 w-3" aria-hidden="true" />
-                        Status: Manutenção Programada
+                        Manutenção programada
                     </Badge>
                 </div>
 
-                <h1 className="display-l mb-4">Estamos melhorando tudo para você.</h1>
+                <h1 className="display-l mb-4">O Azimute está em manutenção</h1>
 
                 <p className="mx-auto mb-8 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
-                    O Azimute está passando por uma atualização de infraestrutura para garantir mais estabilidade e velocidade na sua gestão financeira.
+                    Uma atualização da infraestrutura está em andamento. Seus dados continuam guardados; tente de novo em alguns minutos.
                 </p>
 
                 <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
                     <Button onClick={() => window.location.reload()} className="w-full max-md:h-11 sm:w-auto">
                         <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                        Tentar Novamente
+                        Tentar de novo
                     </Button>
                     <Button asChild variant="outline" className="w-full max-md:h-11 sm:w-auto">
                         <Link href="/suporte">
                             <Globe className="h-4 w-4" aria-hidden="true" />
-                            Ver Status da Rede
+                            Ver status do serviço
                         </Link>
                     </Button>
                 </div>
