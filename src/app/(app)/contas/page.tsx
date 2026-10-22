@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Plus, Search, SlidersHorizontal, Check } from "lucide-react"
+import { Plus, Search, SlidersHorizontal, Check, Wallet } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -87,7 +87,7 @@ export default function AccountsPage() {
       const data = await accountsService.getAccounts(statusDaBusca)
       if (busca === ultimaBusca.current) setAccounts(data || [])
     } catch {
-      if (busca === ultimaBusca.current) toast.error("Erro ao carregar contas.")
+      if (busca === ultimaBusca.current) toast.error("Não foi possível carregar as contas. Recarregue a página.")
     } finally {
       if (busca === ultimaBusca.current) setIsLoading(false)
     }
@@ -154,7 +154,7 @@ export default function AccountsPage() {
     } catch (error) {
       // SALDO-32 e SALDO-33: o backend diz o que resolver antes de excluir;
       // a confirmação continua aberta
-      toast.error(mensagemDeErro(error, "Erro ao excluir conta."))
+      toast.error(mensagemDeErro(error, "Não foi possível excluir a conta. Tente de novo."))
       throw error
     }
     toast.success("Conta excluída.")
@@ -172,7 +172,7 @@ export default function AccountsPage() {
       void atualizarUso()
       fetchAccounts()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao reativar conta." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível reativar a conta. Tente de novo." })
     }
   }
 
@@ -200,7 +200,7 @@ export default function AccountsPage() {
         apoio="Saldos das contas e carteiras"
         acoes={
           <Button onClick={handleCreateClick} disabled={isLoading || hasReachedLimit}>
-            <Plus aria-hidden="true" /> Nova Conta
+            <Plus aria-hidden="true" /> Nova conta
           </Button>
         }
       />
@@ -245,16 +245,16 @@ export default function AccountsPage() {
               <SheetTrigger asChild>
                   <Button variant="outline" className="w-full md:ml-auto md:w-auto">
                       <SlidersHorizontal aria-hidden="true" />
-                      Filtros Avançados
+                      Filtros avançados
                       {activeFiltersCount > 0 && (
-                          <Badge className="ml-1">{activeFiltersCount}</Badge>
+                          <Badge className="ml-1" aria-label={`${activeFiltersCount} ${activeFiltersCount === 1 ? "filtro ativo" : "filtros ativos"}`}>{activeFiltersCount}</Badge>
                       )}
                   </Button>
               </SheetTrigger>
               <SheetContent side="right" className="flex w-full flex-col overflow-hidden p-0 sm:max-w-md">
                   <div className="flex-1 overflow-y-auto p-6">
                       <SheetHeader className="mb-6 sm:text-left">
-                          <SheetTitle>Filtros Avançados</SheetTitle>
+                          <SheetTitle>Filtros avançados</SheetTitle>
                           <SheetDescription>Filtre as contas por tipo, instituição, saldo e status.</SheetDescription>
                       </SheetHeader>
 
@@ -322,7 +322,7 @@ export default function AccountsPage() {
                                   </div>
                               ) : (
                                   <p className="rounded-md border border-dashed border-border-strong p-4 text-center text-sm text-muted-foreground">
-                                      Nenhuma instituição cadastrada
+                                      Nenhuma instituição nas suas contas.
                                   </p>
                               )}
                           </fieldset>
@@ -382,10 +382,10 @@ export default function AccountsPage() {
                   <SheetFooter className="border-t border-border p-6">
                       <div className="flex w-full gap-2">
                           <Button variant="ghost" onClick={resetFilters} className="flex-1">
-                              Resetar
+                              Voltar ao padrão
                           </Button>
                           <Button onClick={() => setIsFilterSheetOpen(false)} className="flex-1">
-                              Aplicar Filtros
+                              Aplicar filtros
                           </Button>
                       </div>
                   </SheetFooter>
@@ -394,11 +394,34 @@ export default function AccountsPage() {
       </div>
 
       {isLoading ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        // AZ-34: o esqueleto tem a forma do card da conta (nome, saldo e rodapé)
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Carregando contas">
             {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-44 w-full rounded-lg" />
+                <div key={i} className="flex h-44 flex-col gap-4 rounded-lg border border-border p-5">
+                    <div className="flex items-center gap-3">
+                        <Skeleton className="h-10 w-10 rounded-md" />
+                        <div className="flex flex-col gap-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-20" />
+                        </div>
+                    </div>
+                    <Skeleton className="h-6 w-36" />
+                    <Skeleton className="mt-auto h-3 w-24" />
+                </div>
             ))}
         </div>
+      ) : accounts.length === 0 && statusFilter === "ACTIVE" ? (
+          // AZ-34: sem conta nenhuma, o estado vazio leva ao cadastro
+          <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
+              <Wallet className="mb-4 h-8 w-8 text-muted-foreground" aria-hidden="true" />
+              <h2 className="display-s">Nenhuma conta cadastrada</h2>
+              <p className="mx-auto mb-6 mt-2 max-w-sm text-sm text-muted-foreground">
+                  Cadastre uma conta ou carteira para registrar lançamentos e acompanhar o saldo.
+              </p>
+              <Button onClick={handleCreateClick} disabled={hasReachedLimit}>
+                  <Plus aria-hidden="true" /> Cadastrar conta
+              </Button>
+          </div>
       ) : filteredAccounts.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
               <Search className="mb-4 h-8 w-8 text-muted-foreground" aria-hidden="true" />
@@ -407,10 +430,13 @@ export default function AccountsPage() {
                   Nenhuma conta com estes filtros. Ajuste a busca ou volte ao padrão.
               </p>
               <Button variant="outline" onClick={resetFilters}>
-                 Limpar Filtros
+                 Limpar filtros
               </Button>
           </div>
       ) : (
+        <section aria-labelledby="lista-de-contas">
+        {/* AZ-36: o título da lista mantém a hierarquia (h1 > h2 > h3 do card) */}
+        <h2 id="lista-de-contas" className="sr-only">Suas contas</h2>
         <div className="grid gap-4 pb-10 md:grid-cols-2 lg:grid-cols-3">
             {filteredAccounts.map((acc) => (
                 <AccountCard
@@ -423,6 +449,7 @@ export default function AccountsPage() {
                 />
             ))}
         </div>
+        </section>
       )}
 
       {/* Account Form Dialog */}
@@ -455,8 +482,8 @@ export default function AccountsPage() {
         titulo={`Excluir a conta ${accountToDelete?.name ?? ""}?`}
         descricao={
           <>
-            A conta sai das listas e dos totais, e as transações ligadas a ela podem ficar sem conta de origem.
-            Só é possível excluir com o saldo zerado e sem transações pendentes. Isso não pode ser desfeito;
+            A conta sai das listas e dos totais, e os lançamentos ligados a ela podem ficar sem conta de origem.
+            Só é possível excluir com o saldo zerado e sem lançamentos pendentes. Isso não pode ser desfeito;
             para só tirar a conta das listas, inative-a na edição.
           </>
         }

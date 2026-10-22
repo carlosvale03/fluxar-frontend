@@ -62,7 +62,8 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment, onReactiv
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        title="Reajustar Saldo"
+                        title="Reajustar saldo"
+                        aria-label={`Reajustar saldo de ${account.name}`}
                         onClick={(e) => { e.stopPropagation(); onAdjustment?.(account) }}
                     >
                         <RefreshCcw aria-hidden="true" />
@@ -74,7 +75,8 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment, onReactiv
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8"
-                        title="Editar Conta"
+                        title="Editar conta"
+                        aria-label={`Editar conta ${account.name}`}
                         onClick={(e) => { e.stopPropagation(); onEdit(account) }}
                     >
                         <Edit aria-hidden="true" />
@@ -85,7 +87,8 @@ export function AccountCard({ account, onEdit, onDelete, onAdjustment, onReactiv
                         variant="ghost"
                         size="icon"
                         className="h-8 w-8 hover:text-outflow"
-                        title="Excluir Conta"
+                        title="Excluir conta"
+                        aria-label={`Excluir conta ${account.name}`}
                         onClick={(e) => { e.stopPropagation(); onDelete(account) }}
                     >
                         <Trash2 aria-hidden="true" />

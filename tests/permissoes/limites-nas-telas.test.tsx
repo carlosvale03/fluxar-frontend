@@ -89,7 +89,7 @@ describe("Limites nas telas", () => {
     expect(aviso).toHaveTextContent(ATINGIDO)
     expect(aviso).toHaveTextContent("2 de 2 contas")
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova Conta/ })).toBeDisabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova conta/ })).toBeDisabled())
   })
 
   it("contas abaixo do limite: mostra o uso e deixa criar", async () => {
@@ -97,7 +97,7 @@ describe("Limites nas telas", () => {
     render(<AccountsPage />)
 
     expect(screen.getByText("1 de 2 contas do seu plano")).toBeInTheDocument()
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova Conta/ })).toBeEnabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova conta/ })).toBeEnabled())
     expect(screen.queryByText(ATINGIDO)).not.toBeInTheDocument()
   })
 
