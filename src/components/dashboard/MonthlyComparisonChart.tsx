@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
 import { BarChart3, TrendingUp } from "lucide-react"
 
@@ -31,6 +32,8 @@ interface MonthlyComparisonChartProps {
     // Granularidade sempre indicada no título (DESIGN.md §6)
     granularidade?: string
     className?: string
+    // Ação do estado vazio (AZ-34); sem ela, o link para o Diário de Bordo
+    acaoVazia?: ReactNode
 }
 
 export function MonthlyComparisonChart({
@@ -41,7 +44,8 @@ export function MonthlyComparisonChart({
     showNumericalLabels = false,
     height = 300,
     granularidade = "por mês",
-    className
+    className,
+    acaoVazia,
 }: MonthlyComparisonChartProps) {
     const isEmpty = !data || data.length === 0 || data.every(d => paraCentavos(d.income) === 0 && paraCentavos(d.expense) === 0)
 
@@ -50,7 +54,7 @@ export function MonthlyComparisonChart({
             <div className="min-w-0 space-y-1">
                 {title && (
                     <CardTitle className="flex items-center gap-2">
-                        <span className="truncate">{title}</span>
+                        <h3 className="truncate">{title}</h3>
                         <Granularidade>{granularidade}</Granularidade>
                     </CardTitle>
                 )}
@@ -60,8 +64,8 @@ export function MonthlyComparisonChart({
                 <div className="flex items-center gap-3">
                     {variant === "bars" ? (
                         <>
-                            <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Receitas" />
-                            <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Despesas" />
+                            <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Entradas" />
+                            <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Saídas" />
                         </>
                     ) : (
                         <ItemDaLegenda cor={COR_DO_REAL} rotulo="Saldo" />
@@ -80,8 +84,9 @@ export function MonthlyComparisonChart({
                         type={variant === 'bars' ? 'bar' : 'area'}
                         height="100%"
                         icon={variant === 'bars' ? BarChart3 : TrendingUp}
-                        title={title}
-                        description={description || "Aguardando registros para este período."}
+                        title="Nada registrado neste período."
+                        description={variant === 'bars' ? "As entradas e saídas de cada mês aparecem aqui." : "O resultado de cada mês aparece aqui."}
+                        {...(acaoVazia !== undefined && { acao: acaoVazia })}
                     />
                 </CardContent>
             </Card>
@@ -89,6 +94,11 @@ export function MonthlyComparisonChart({
     }
 
     const currentEntry = data[data.length - 1]
+
+    // AZ-36: resumo do gráfico em texto, com o mês mais recente
+    const resumo = variant === "bars"
+        ? `Gráfico de barras das entradas e saídas ${granularidade}. ${currentEntry.month}: entradas de ${formatarMoeda(currentEntry.income)}, saídas de ${formatarMoeda(currentEntry.expense)}.`
+        : `Gráfico de linha do resultado ${granularidade}, em ${data.length} ${data.length === 1 ? "mês" : "meses"}. ${currentEntry.month}: ${formatarMoeda(currentEntry.balance)}.`
 
     // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número,
     // e a conversão é só para plotar
@@ -108,11 +118,11 @@ export function MonthlyComparisonChart({
                     {showNumericalLabels && (
                         <dl className="flex shrink-0 flex-row justify-between gap-4 border-b border-border pb-4 lg:min-w-[160px] lg:flex-col lg:justify-start lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
                             <div className="space-y-1">
-                                <dt className="label text-muted-foreground">Ganhos</dt>
+                                <dt className="label text-muted-foreground">Entradas</dt>
                                 <dd><Valor valor={currentEntry.income} direcao="entrada" tamanho="l" /></dd>
                             </div>
                             <div className="space-y-1">
-                                <dt className="label text-muted-foreground">Gastos</dt>
+                                <dt className="label text-muted-foreground">Saídas</dt>
                                 <dd><Valor valor={currentEntry.expense} direcao="saida" tamanho="l" /></dd>
                             </div>
                             <div className="hidden space-y-1 sm:block lg:border-t lg:border-border lg:pt-3">
@@ -122,7 +132,7 @@ export function MonthlyComparisonChart({
                         </dl>
                     )}
 
-                    <div className="w-full flex-1" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
+                    <div role="img" aria-label={resumo} className="w-full flex-1" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             {variant === "bars" ? (
                                 <BarChart data={dadosDoGrafico} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
@@ -161,14 +171,14 @@ export function MonthlyComparisonChart({
                                     />
                                     <Bar
                                         dataKey="income"
-                                        name="Receitas"
+                                        name="Entradas"
                                         fill={COR_DE_ENTRADA}
                                         radius={[2, 2, 0, 0]}
                                         barSize={showNumericalLabels ? 32 : 24}
                                     />
                                     <Bar
                                         dataKey="expense"
-                                        name="Despesas"
+                                        name="Saídas"
                                         fill={COR_DE_SAIDA}
                                         radius={[2, 2, 0, 0]}
                                         barSize={showNumericalLabels ? 32 : 24}

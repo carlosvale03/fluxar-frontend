@@ -1,5 +1,6 @@
 "use client"
 
+import type { ReactNode } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -29,6 +30,8 @@ interface CategoryDistributionChartProps {
     year?: number
     startDate?: string
     endDate?: string
+    // Ação do estado vazio (AZ-34); sem ela, o link para o Diário de Bordo
+    acaoVazia?: ReactNode
 }
 
 export function CategoryDistributionChart({
@@ -42,7 +45,8 @@ export function CategoryDistributionChart({
     month,
     year,
     startDate,
-    endDate
+    endDate,
+    acaoVazia,
 }: CategoryDistributionChartProps) {
     const router = useRouter()
     // CONTRATO-16: os valores chegam como texto; a soma é feita em centavos
@@ -77,7 +81,7 @@ export function CategoryDistributionChart({
             <CardHeader className="pb-0">
                 <CardTitle className="flex items-center gap-2">
                     <Icon className={cn("h-4 w-4", iconColor)} aria-hidden="true" />
-                    <span>{title}</span>
+                    <h3>{title}</h3>
                 </CardTitle>
                 {description && <CardDescription>{description}</CardDescription>}
             </CardHeader>
@@ -88,9 +92,10 @@ export function CategoryDistributionChart({
                     <ChartEmptyState
                         type="pie"
                         height="300px"
-                        title={title}
-                        description={`Seus dados de ${title.toLowerCase()} aparecerão aqui.`}
+                        title="Nada registrado neste período."
+                        description="Registre um lançamento para ver a divisão por categoria."
                         icon={PieIcon}
+                        {...(acaoVazia !== undefined && { acao: acaoVazia })}
                     />
                 ) : (
                     <RoscaDeDistribuicao

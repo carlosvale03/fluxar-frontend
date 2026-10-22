@@ -1,10 +1,12 @@
 "use client"
 
+import type { ReactNode } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChartEmptyState } from "@/components/dashboard/ChartEmptyState"
-import { Tag as TagIcon, LucideIcon } from "lucide-react"
+import { ArrowRight, Tag as TagIcon, LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { corDaSerie } from "@/lib/graficos"
@@ -72,7 +74,7 @@ export function TagDistributionChart({
             <CardHeader className="pb-0">
                 <CardTitle className="flex items-center gap-2">
                     <Icon className={cn("h-4 w-4", iconColor)} aria-hidden="true" />
-                    <span>{title}</span>
+                    <h3>{title}</h3>
                 </CardTitle>
                 {description && <CardDescription>{description}</CardDescription>}
             </CardHeader>
@@ -83,14 +85,22 @@ export function TagDistributionChart({
                     <ChartEmptyState
                         type="pie"
                         height="300px"
-                        title={title}
-                        description={`Nenhum dado de ${title.toLowerCase()} encontrado no período.`}
+                        title="Nenhum lançamento com marcador neste período."
+                        description="Marque os lançamentos para ver a divisão por marcador."
                         icon={TagIcon}
+                        acao={
+                            <Link
+                                href="/tags"
+                                className="inline-flex items-center gap-1 text-sm font-medium text-fg-secondary transition-colors duration-fast hover:text-foreground"
+                            >
+                                Ver marcadores <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                            </Link>
+                        }
                     />
                 ) : (
                     <RoscaDeDistribuicao
                         total={formatarMoeda(totalAmount)}
-                        rotuloDoTotal="Total Tag"
+                        rotuloDoTotal="Total"
                         fatias={data.map((item, index) => ({
                             chave: item.id ?? `${item.name}-${index}`,
                             nome: item.name,
