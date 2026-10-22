@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Loader2, ArrowDownCircle, ArrowUpCircle } from "lucide-react"
+import { ArrowDownCircle, ArrowUpCircle } from "lucide-react"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { lerData } from "@/lib/datas"
@@ -15,6 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Paginacao } from "@/components/ui/paginacao"
 import { Valor } from "@/components/ui/valor"
 import { Goal, GoalTransaction } from "@/types/goals"
@@ -52,7 +53,7 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
       setTotal(data.count)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: () => fetchHistory(numero) })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar o histórico. Tente de novo.", tentarDeNovo: () => fetchHistory(numero) })
     } finally {
       setIsLoading(false)
     }
@@ -64,20 +65,34 @@ export function GoalHistory({ goal, open, onOpenChange }: GoalHistoryProps) {
         <DialogHeader className="space-y-1 border-b border-border p-6">
           <DialogTitle>Histórico de aportes</DialogTitle>
           <DialogDescription>
-            Movimentações da meta <span className="font-medium text-foreground">{goal?.name}</span>.
+            Aportes e resgates do destino <span className="font-medium text-foreground">{goal?.name}</span>.
           </DialogDescription>
         </DialogHeader>
 
         <div className="custom-scrollbar max-h-[70vh] overflow-y-auto px-6 py-4">
           {isLoading ? (
-            <div className="flex min-h-[200px] flex-col items-center justify-center gap-3" aria-busy="true">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-hidden="true" />
-              <p className="text-sm text-muted-foreground">Carregando histórico...</p>
-            </div>
+            // AZ-34: o esqueleto tem a forma das linhas do histórico
+            <ul className="divide-y divide-border" aria-busy="true" aria-label="Carregando histórico">
+              {[1, 2, 3, 4].map((i) => (
+                <li key={i} className="flex items-center justify-between gap-3 py-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-4 w-4 rounded-full" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-3 w-28" />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <Skeleton className="ml-auto h-4 w-20" />
+                    <Skeleton className="ml-auto h-3 w-16" />
+                  </div>
+                </li>
+              ))}
+            </ul>
           ) : history.length === 0 ? (
             <div className="flex min-h-[200px] flex-col items-center justify-center gap-1 text-center">
-              <p className="font-medium">Nenhum aporte registrado.</p>
-              <p className="text-sm text-muted-foreground">Os valores guardados aparecem aqui.</p>
+              <p className="font-medium">Nenhum aporte ainda</p>
+              <p className="text-sm text-muted-foreground">Os aportes e resgates deste destino aparecem aqui.</p>
             </div>
           ) : (
             <ul className="divide-y divide-border">

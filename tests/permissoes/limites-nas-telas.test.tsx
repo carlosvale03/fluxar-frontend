@@ -142,8 +142,8 @@ describe("Limites nas telas", () => {
     comLimite("limite_metas", { limit: 1, used: 1 })
     render(<GoalsPage />)
 
-    expect(screen.getByRole("note")).toHaveTextContent("1 de 1 metas")
-    expect(screen.getByRole("button", { name: /Nova meta/ })).toBeDisabled()
+    expect(screen.getByRole("note")).toHaveTextContent("1 de 1 destinos")
+    expect(screen.getByRole("button", { name: /Novo destino/ })).toBeDisabled()
   })
 })
 

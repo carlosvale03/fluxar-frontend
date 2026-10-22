@@ -45,9 +45,9 @@ const depositSchema = z.object({
   // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e entrega
   // o texto decimal ("1500.00") que vai à API
   amount: z.string().refine(maiorQueZero, {
-    message: "O valor deve ser maior que zero",
+    message: "O valor precisa ser maior que zero.",
   }),
-  account_from: z.string().min(1, "Selecione a conta de origem"),
+  account_from: z.string().min(1, "Escolha a conta de origem."),
 })
 
 type DepositFormValues = z.infer<typeof depositSchema>
@@ -88,7 +88,7 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
       setAccounts(data.filter((acc: Account) => acc.id !== goal?.account && acc.is_active !== false))
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as contas. Tente de novo.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -115,7 +115,7 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
       tratarErro(error, {
         form,
         campos: { amount: "amount", account_from: "account_from", account_id: "account_from" },
-        mensagemPadrao: "Erro ao realizar aporte.",
+        mensagemPadrao: "Não foi possível registrar o aporte. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -130,7 +130,7 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
         <DialogHeader className="space-y-1 border-b border-border p-6">
           <DialogTitle>Guardar dinheiro</DialogTitle>
           <DialogDescription>
-            Aporte na meta <span className="font-medium text-foreground">{goal?.name}</span>.
+            Aporte no destino <span className="font-medium text-foreground">{goal?.name}</span>.
           </DialogDescription>
         </DialogHeader>
 
@@ -146,14 +146,14 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-auto min-h-9 py-2">
-                          <SelectValue placeholder="Selecione de onde virá o dinheiro" />
+                          <SelectValue placeholder="Escolha de onde vem o dinheiro" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         <SelectItem value={SALDO_LIVRE}>
                           {cofrinho
-                            ? `Saldo livre do cofrinho (${formatarMoeda(cofrinho.free_balance)})`
-                            : "Saldo livre do cofrinho"}
+                            ? `Saldo livre do lastro (${formatarMoeda(cofrinho.free_balance)})`
+                            : "Saldo livre do lastro"}
                         </SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
@@ -201,14 +201,14 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <div className="min-w-0 flex-1 text-right">
-                    <p className="text-xs text-muted-foreground">Destino (cofrinho)</p>
+                    <p className="text-xs text-muted-foreground">Destino</p>
                     <p className="truncate text-sm font-medium">{goal?.name}</p>
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {origem === SALDO_LIVRE
-                    ? "O valor sai do saldo livre do cofrinho, sem transferência."
-                    : "Este valor será movido como uma transferência interna."}
+                    ? "O valor sai do saldo livre do lastro, sem transferência."
+                    : "O valor vai para o lastro como uma transferência entre contas."}
                 </p>
               </div>
 
@@ -217,7 +217,7 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                   Cancelar
                 </Button>
                 <Button type="submit" loading={isLoading}>
-                  Confirmar aporte
+                  Registrar aporte
                 </Button>
               </DialogFooter>
             </form>

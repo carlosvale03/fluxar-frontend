@@ -86,7 +86,7 @@ describe.each(["America/Sao_Paulo", "Europe/Lisbon"])("Datas enviadas sem hora n
 
     const nome = await screen.findByDisplayValue("Viagem")
     fireEvent.change(nome, { target: { value: "Viagem ao Japão" } })
-    await userEvent.click(screen.getByRole("button", { name: /atualizar objetivo/i }))
+    await userEvent.click(screen.getByRole("button", { name: /salvar destino/i }))
 
     await vi.waitFor(() => expect(atualizar).toHaveBeenCalledTimes(1))
     expect(atualizar.mock.calls[0][1]).toMatchObject({ name: "Viagem ao Japão", target_date: "2026-12-31" })
@@ -143,14 +143,14 @@ describe.each(["America/Sao_Paulo", "Europe/Lisbon"])("Datas enviadas sem hora n
     const { unmount } = render(<GoalDepositForm goal={META} open onOpenChange={vi.fn()} onSuccess={vi.fn()} />)
     await escolherConta()
     digitarValor("100")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar aporte/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
     await vi.waitFor(() => expect(aportar).toHaveBeenCalledTimes(1))
     unmount()
 
     render(<GoalWithdrawForm goal={META} open onOpenChange={vi.fn()} onSuccess={vi.fn()} />)
     await escolherConta()
     digitarValor("100")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar resgate/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar resgate/i }))
     await vi.waitFor(() => expect(resgatar).toHaveBeenCalledTimes(1))
 
     for (const corpo of [aportar.mock.calls[0][1], resgatar.mock.calls[0][1]]) {

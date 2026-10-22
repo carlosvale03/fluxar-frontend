@@ -96,10 +96,10 @@ describe("Página da gestão do salário", { timeout: 15000 }, () => {
 
     const comprometido = (await screen.findByText("Total comprometido")).parentElement!
     expect(comprometido).toHaveTextContent("R$ 1.650,00")
-    expect(screen.getByText("Despesas recorrentes pendentes").parentElement).toHaveTextContent("R$ 1.200,00")
+    expect(screen.getByText("Saídas recorrentes pendentes").parentElement).toHaveTextContent("R$ 1.200,00")
     expect(screen.getByText("Faturas que vencem no mês").parentElement).toHaveTextContent("R$ 450,00")
     expect(screen.getByText("Gastos: Essencial").parentElement).toHaveTextContent("R$ 1.860,00")
-    expect(screen.getByText("Salário menos despesas").parentElement).toHaveTextContent("R$ 500,00")
+    expect(screen.getByText("Salário menos saídas").parentElement).toHaveTextContent("R$ 500,00")
     // Com 3 meses completos, nenhum aviso de meses
     expect(screen.queryByText(/Média de/)).not.toBeInTheDocument()
   })
@@ -117,7 +117,7 @@ describe("Página da gestão do salário", { timeout: 15000 }, () => {
 
     const historico = await screen.findByRole("region", { name: "Seu histórico" })
     expect(await within(historico).findByText("Ainda sem um mês completo de histórico.")).toBeInTheDocument()
-    expect(within(historico).queryByText("Salário menos despesas")).not.toBeInTheDocument()
+    expect(within(historico).queryByText("Salário menos saídas")).not.toBeInTheDocument()
   })
 
   it("com dois meses de histórico, avisa \"Média de 2 meses\"", async () => {

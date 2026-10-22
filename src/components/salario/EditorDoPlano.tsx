@@ -155,7 +155,7 @@ const GRUPOS_DE_CONTAS: { tipo: AccountType; rotulo: string }[] = [
   { tipo: AccountType.SAVINGS, rotulo: "Poupanças" },
   { tipo: AccountType.WALLET, rotulo: "Carteiras" },
   { tipo: AccountType.INVESTMENT, rotulo: "Investimentos" },
-  { tipo: AccountType.PIGGY_BANK, rotulo: "Cofrinhos" },
+  { tipo: AccountType.PIGGY_BANK, rotulo: "Lastros" },
 ]
 
 // Por nome, em português, sem diferenciar acento nem maiúscula
@@ -433,7 +433,7 @@ export function EditorDoPlano({
       }
       return
     }
-    tratarErro(erro, { mensagemPadrao: "Erro ao salvar o plano." })
+    tratarErro(erro, { mensagemPadrao: "Não foi possível salvar o plano. Tente de novo." })
   }
 
   const salvar = async () => {
@@ -463,7 +463,7 @@ export function EditorDoPlano({
     return { conhecido, nome: parte.inicial?.destination_name ?? "Destino indisponível" }
   }
 
-  // O texto do destino escolhido no campo: a meta leva o "Meta:" na frente,
+  // O texto do destino escolhido no campo: a meta leva o "Destino:" na frente,
   // porque no campo não aparece o grupo
   const rotuloDoDestino = (parte: Rascunho, nomeDesconhecido: string): string | undefined => {
     if (parte.destino === "") return undefined
@@ -471,7 +471,7 @@ export function EditorDoPlano({
     const conta = contasDeDestino.find((c) => `ACCOUNT:${c.id}` === parte.destino)
     if (conta) return conta.name
     const meta = metasDeDestino.find((m) => `GOAL:${m.id}` === parte.destino)
-    if (meta) return `Meta: ${meta.name}`
+    if (meta) return `Destino: ${meta.name}`
     return nomeDesconhecido
   }
 
@@ -684,7 +684,7 @@ export function EditorDoPlano({
                           <>
                             <SelectSeparator />
                             <SelectGroup>
-                              <SelectLabel className="text-xs font-medium text-muted-foreground">Metas</SelectLabel>
+                              <SelectLabel className="text-xs font-medium text-muted-foreground">Destinos</SelectLabel>
                               {metasDeDestino.map((meta) => {
                                 const cofrinho = cofrinhoDaMeta(meta)
                                 return (
@@ -724,7 +724,7 @@ export function EditorDoPlano({
                     {historico && <p className="text-muted-foreground">{historico} no seu histórico</p>}
                     {pedido && (
                       <p className="text-muted-foreground tabular-nums">
-                        A meta pede {formatarMoeda(pedido.mensal)} por mês até {format(lerData(pedido.data), "dd/MM/yyyy")}
+                        O destino pede {formatarMoeda(pedido.mensal)} por mês até {format(lerData(pedido.data), "dd/MM/yyyy")}
                       </p>
                     )}
                   </div>

@@ -189,7 +189,7 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
 
     expect(within(janela).getByText("O que já saiu da conta do salário desde que ele caiu. Escolha de qual parte saiu cada valor.")).toBeInTheDocument()
     const mercado = saidaNaRevisao(janela, "Mercado")
-    expect(mercado).toHaveTextContent("06/10 · Despesa (Alimentação)")
+    expect(mercado).toHaveTextContent("06/10 · Saída (Alimentação)")
     expect(mercado).toHaveTextContent("R$ 130,00")
     expect(within(mercado).getByRole("combobox", { name: "Parte de Mercado" })).toHaveTextContent("Essenciais")
     expect(mercado).toHaveTextContent("Sugerida")
@@ -214,7 +214,7 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(within(janela).getByTestId("gasto-da-divisao")).toHaveTextContent("R$ 230,00")
     expect(within(janela).getByTestId("total-da-divisao")).toHaveTextContent("R$ 500,00")
     expect(within(janela).getByTestId("livre-da-divisao")).toHaveTextContent("R$ 2.270,00")
-    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 1 transação de R$ 500,00")
+    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 1 lançamento de R$ 500,00")
   })
 
   it("trocar a parte de uma saída pede a prévia com o novo mapa e atualiza o Transferir", async () => {
@@ -228,7 +228,7 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(chamadasDaPrevia()[2]).toEqual({ receipt: "rec-1", outflows: { ...SUGERIDAS, "s-1": "p-gua" } })
     expect(parteNaRevisao(janela, "Guardar")).toHaveTextContent("Já gasto R$ 230,00")
     expect(saidaNaRevisao(janela, "Mercado")).not.toHaveTextContent("Sugerida")
-    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 1 transação de R$ 370,00")
+    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 1 lançamento de R$ 370,00")
   })
 
   it("\"Não descontar\" envia null para a saída e devolve o valor à parte", async () => {
@@ -292,7 +292,7 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(within(ficam).getByRole("listitem", { name: "Guardar" })).toHaveTextContent("Resta R$ 0,00")
     expect(within(ficam).getByRole("listitem", { name: "Guardar" })).not.toHaveTextContent("Transferir")
     expect(within(ficam).getByRole("listitem", { name: "Dispensáveis" })).toHaveTextContent("Fica na conta R$ 900,00")
-    expect(within(janela).queryByRole("list", { name: "Transações que serão criadas" })).not.toBeInTheDocument()
+    expect(within(janela).queryByRole("list", { name: "Lançamentos que serão criados" })).not.toBeInTheDocument()
     // SALARIO-73: sem transferência, mas com saídas descontadas, a divisão ainda pode ser gravada
     expect(within(janela).getByText("Nenhuma transferência a fazer: as saídas já cobriram as partes.")).toBeInTheDocument()
     expect(botaoGerar()).toHaveTextContent("Gerar a divisão sem transferências")
@@ -326,14 +326,14 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     expect(await within(janela).findByRole("heading", { name: "Divisão gerada" })).toBeInTheDocument()
     expect(janela).toHaveTextContent("Nenhuma transferência a fazer: as saídas já cobriram as partes.")
     expect(janela).toHaveTextContent("Descontou R$ 880,00 em 3 saídas.")
-    expect(within(janela).queryByRole("list", { name: "Transações criadas" })).not.toBeInTheDocument()
+    expect(within(janela).queryByRole("list", { name: "Lançamentos criados" })).not.toBeInTheDocument()
 
     // O desfazer não fala em transações removidas
     await userEvent.click(within(janela).getByRole("button", { name: "Desfazer divisão" }))
     const confirmacao = await screen.findByRole("alertdialog")
-    expect(confirmacao).toHaveTextContent("Esta divisão não criou transações.")
+    expect(confirmacao).toHaveTextContent("Esta divisão não criou lançamentos.")
     expect(confirmacao).toHaveTextContent("Descontou R$ 880,00 em 3 saídas.")
-    expect(within(confirmacao).queryByRole("list", { name: "Transações que serão removidas" })).not.toBeInTheDocument()
+    expect(within(confirmacao).queryByRole("list", { name: "Lançamentos que serão removidos" })).not.toBeInTheDocument()
   })
 
   it("a geração envia as saídas escolhidas e o resultado mostra o desconto", async () => {
@@ -344,7 +344,7 @@ describe("Saídas desde o salário na revisão", { timeout: 15000 }, () => {
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
     await userEvent.click(botaoGerar())
 
-    const criadas = await within(janela).findByRole("list", { name: "Transações criadas" })
+    const criadas = await within(janela).findByRole("list", { name: "Lançamentos criados" })
     expect(criadas).toBeInTheDocument()
     const corpo = post.mock.calls.find(([url]) => url === "/salary/divisions/")![1]
     // SALARIO-74: com o total que a revisão mostrou

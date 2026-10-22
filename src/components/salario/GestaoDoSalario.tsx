@@ -105,7 +105,7 @@ export function GestaoDoSalario() {
       setPendentes(await salarioService.getPendentes())
     } catch (erro) {
       setPendentes([])
-      tratarErro(erro, { mensagemPadrao: "Erro ao carregar os salários a dividir.", tentarDeNovo: carregarPendentes })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível carregar os salários a dividir. Tente de novo.", tentarDeNovo: carregarPendentes })
     }
   }
 
@@ -114,7 +114,7 @@ export function GestaoDoSalario() {
       setRecentes(await salarioService.getDivisoesRecentes())
     } catch (erro) {
       setRecentes([])
-      tratarErro(erro, { mensagemPadrao: "Erro ao carregar as divisões recentes.", tentarDeNovo: carregarRecentes })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível carregar as divisões recentes. Tente de novo.", tentarDeNovo: carregarRecentes })
     }
   }
 
@@ -122,7 +122,7 @@ export function GestaoDoSalario() {
     try {
       setReferencias(await salarioService.getReferencias())
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: carregarReferencias })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível carregar o histórico. Tente de novo.", tentarDeNovo: carregarReferencias })
     }
   }
 
@@ -148,7 +148,7 @@ export function GestaoDoSalario() {
       setModelos(lista)
       abrirPlano(salvo)
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao carregar o plano de divisão.", tentarDeNovo: carregarPlano })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível carregar o plano de divisão. Tente de novo.", tentarDeNovo: carregarPlano })
     }
   }
 
@@ -165,7 +165,7 @@ export function GestaoDoSalario() {
       setCategorias(listaDeCategorias.filter((c) => c.type === "INCOME" && c.is_active !== false))
     } catch (erro) {
       setCategorias((atuais) => atuais ?? [])
-      tratarErro(erro, { mensagemPadrao: "Erro ao carregar contas, metas e categorias.", tentarDeNovo: carregarOpcoes })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível carregar contas, destinos e categorias. Tente de novo.", tentarDeNovo: carregarOpcoes })
     }
   }
 
@@ -335,7 +335,7 @@ export function GestaoDoSalario() {
           )}
         </section>
 
-        <aside aria-label="Receitas e referências do mês" className="space-y-6">
+        <aside aria-label="Entradas e referências do mês" className="space-y-6">
           <ReceitasDoSalario
             ref={painelDeReceitas}
             categorias={categorias}

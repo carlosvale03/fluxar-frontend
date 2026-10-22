@@ -89,7 +89,7 @@ describe("Formulários enviam dinheiro em texto", () => {
 
     await escolher(/banco/i)
     digitarValor("1.500")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar aporte/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
 
     await vi.waitFor(() => expect(goalsService.deposit).toHaveBeenCalledTimes(1))
     expect(vi.mocked(goalsService.deposit).mock.calls[0][1]).toMatchObject({ amount: "1500.00", account_from: "conta-1" })
@@ -101,7 +101,7 @@ describe("Formulários enviam dinheiro em texto", () => {
 
     await escolher(/banco/i)
     digitarValor("1.500")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar resgate/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar resgate/i }))
 
     await vi.waitFor(() => expect(goalsService.withdraw).toHaveBeenCalledTimes(1))
     expect(vi.mocked(goalsService.withdraw).mock.calls[0][1]).toMatchObject({ amount: "1500.00", account_to: "conta-1" })

@@ -14,7 +14,7 @@ interface EtapasDoPlanoProps {
   onEscolherReceitas: () => void
 }
 
-const ETAPAS = ["Receitas de salário", "Modelo", "Partes"] as const
+const ETAPAS = ["Entradas do salário", "Modelo", "Partes"] as const
 
 // O guia de quem ainda não tem plano: receitas de salário (no painel ao
 // lado), modelo e partes. AZ-28: o progresso fica à vista; a volta para o
@@ -75,10 +75,10 @@ export function EtapasDoPlano({ etapa, categoriasDoSalario, categorias, onEscolh
         <p className={cn("text-sm", temReceitas ? "text-muted-foreground" : "text-warn")}>
           {temReceitas
             ? `Contam como salário: ${nomes.length ? nomes.join(", ") : `${categoriasDoSalario.length} categorias`}.`
-            : "Nenhuma receita marcada como salário ainda."}
+            : "Nenhuma entrada marcada como salário ainda."}
         </p>
         <Button variant="link" className="h-10 px-1" onClick={onEscolherReceitas}>
-          {temReceitas ? "Alterar" : "Escolher receitas"}
+          {temReceitas ? "Alterar entradas" : "Escolher entradas"}
         </Button>
       </div>
     </div>

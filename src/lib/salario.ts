@@ -36,7 +36,7 @@ export function percentualParaCampo(valor: string): string {
 
 // "N transações" com o singular para uma (SALARIO-31)
 export function quantidadeDeTransacoes(n: number): string {
-  return `${n} ${n === 1 ? "transação" : "transações"}`
+  return `${n} ${n === 1 ? "lançamento" : "lançamentos"}`
 }
 
 // "N saídas" com o singular para uma (SALARIO-71)

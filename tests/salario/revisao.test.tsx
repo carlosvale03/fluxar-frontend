@@ -114,7 +114,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
   it("mostra cada transação com origem, destino, valor e data, o total e o livre", async () => {
     const janela = await abrirRevisao()
 
-    const transacoes = await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    const transacoes = await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     const guardar = within(transacoes).getByRole("listitem", { name: "Guardar" })
     expect(guardar).toHaveTextContent("Banco Azul")
     expect(guardar).toHaveTextContent("Viagem")
@@ -126,11 +126,11 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     expect(post).toHaveBeenCalledWith("/salary/divisions/preview/", { receipt: "rec-1" })
   })
 
-  it("o botão fica desabilitado até a marcação e diz \"Gerar 1 transação de R$ 600,00\"", async () => {
+  it("o botão fica desabilitado até a marcação e diz \"Gerar 1 lançamento de R$ 600,00\"", async () => {
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
 
-    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 1 transação de R$ 600,00")
+    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 1 lançamento de R$ 600,00")
     expect(botaoGerar()).toBeDisabled()
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
     expect(botaoGerar()).toBeEnabled()
@@ -149,16 +149,16 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
       }),
     })
     const janela = await abrirRevisao()
-    const transacoes = await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    const transacoes = await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
 
-    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 2 transações de R$ 1.200,00")
+    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 2 lançamentos de R$ 1.200,00")
     expect(within(transacoes).getByRole("listitem", { name: "Viagem" })).toHaveTextContent("Reduzida")
     expect(within(transacoes).getByRole("listitem", { name: "Reserva" })).not.toHaveTextContent("Reduzida")
   })
 
   it("ajustar uma parte recalcula o total e envia o ajuste na geração", async () => {
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
 
     const ajuste = within(janela).getByLabelText("Ajustar Guardar")
     await userEvent.clear(ajuste)
@@ -178,13 +178,13 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
 
   it("limpar o ajuste tira a parte de \"Ajustada\" e recalcula sem o ajuste", async () => {
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     const ajuste = within(janela).getByLabelText("Ajustar Guardar")
     await userEvent.clear(ajuste)
     await userEvent.type(ajuste, "450")
     await userEvent.tab()
     await vi.waitFor(() => expect(within(janela).getByTestId("total-da-divisao")).toHaveTextContent("R$ 450,00"))
-    const guardar = () => within(within(janela).getByRole("list", { name: "Transações que serão criadas" })).getByRole("listitem", { name: "Guardar" })
+    const guardar = () => within(within(janela).getByRole("list", { name: "Lançamentos que serão criados" })).getByRole("listitem", { name: "Guardar" })
     expect(guardar()).toHaveTextContent("Ajustada")
 
     await userEvent.clear(within(janela).getByLabelText("Ajustar Guardar"))
@@ -207,9 +207,9 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     const janela = await abrirRevisao()
     await within(janela).findByRole("list", { name: "Partes que ficam na conta do salário" })
 
-    expect(within(janela).getByText("Nenhuma parte do plano gera transação.")).toBeInTheDocument()
+    expect(within(janela).getByText("Nenhuma parte do plano gera lançamento.")).toBeInTheDocument()
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
-    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 0 transações de R$ 0,00")
+    expect(botaoGerar().textContent?.replace(/\s/g, " ")).toBe("Gerar 0 lançamentos de R$ 0,00")
     expect(botaoGerar()).toBeDisabled()
   })
 
@@ -222,7 +222,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
       }),
     })
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
 
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
 
@@ -234,7 +234,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     let terminar: (valor: unknown) => void = () => {}
     comRespostasDoPost({ geracao: () => new Promise((resolve) => (terminar = resolve)) })
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
     await userEvent.click(botaoGerar())
 
@@ -256,7 +256,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
       },
     })
     let janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
 
     await userEvent.click(botaoGerar())
@@ -272,7 +272,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     await vi.waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     await userEvent.click(screen.getByRole("button", { name: /Dividir/ }))
     janela = await dialogo()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
     await userEvent.click(botaoGerar())
 
@@ -291,7 +291,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
       },
     })
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     const ajuste = within(janela).getByLabelText("Ajustar Guardar")
     await userEvent.clear(ajuste)
     await userEvent.type(ajuste, "450")
@@ -319,7 +319,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
     const motivo = "Esta divisão foi desfeita. Abra a revisão de novo para dividir."
     comRespostasDoPost({ geracao: () => Promise.reject({ response: { status: 409, data: { detail: motivo } } }) })
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
 
     await userEvent.click(botaoGerar())
@@ -330,11 +330,11 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
 
   it("depois da geração, mostra as transações criadas e \"Desfazer divisão\", e atualiza os salários a dividir", async () => {
     const janela = await abrirRevisao()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
     await userEvent.click(botaoGerar())
 
-    const criadas = await within(janela).findByRole("list", { name: "Transações criadas" })
+    const criadas = await within(janela).findByRole("list", { name: "Lançamentos criados" })
     expect(criadas).toHaveTextContent("Aporte: Guardar")
     expect(criadas).toHaveTextContent("Banco Azul")
     expect(criadas).toHaveTextContent("Viagem")
@@ -384,7 +384,7 @@ describe("Geração com outro salário aberto", { timeout: 15000 }, () => {
     const props = { onOpenChange: vi.fn(), onGerada, onDesfazer: vi.fn() }
     const { rerender } = render(<Revisao recebimentoId="rec-1" {...props} />)
     const janela = await dialogo()
-    await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+    await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
     await userEvent.click(botaoGerar())
 

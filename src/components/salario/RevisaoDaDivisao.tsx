@@ -55,7 +55,7 @@ function tipoDaSaida(saida: SaidaDoSalario, itens: ItemDaDivisaoCalculada[]): st
   const destino = saida.destination_name
   switch (saida.type) {
     case "EXPENSE":
-      return saida.category_name ? `Despesa (${saida.category_name})` : "Despesa"
+      return saida.category_name ? `Saída (${saida.category_name})` : "Saída"
     case "TRANSFER_OUT":
       if (!destino) return "Transferência"
       return itens.some((item) => item.destination_type === "GOAL" && item.destination_name === destino)
@@ -128,7 +128,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
       primeira = await salarioService.revisar(id)
     } catch (erro) {
       if (numero !== sequencia.current) return
-      tratarErro(erro, { mensagemPadrao: "Erro ao montar a revisão da divisão." })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível montar a revisão da divisão. Tente de novo." })
       onOpenChange(false)
       return
     }
@@ -146,7 +146,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
       if (numero === sequencia.current) aplicar(descontada, { ajustes: {}, escolhas: sugeridas })
     } catch (erro) {
       if (numero !== sequencia.current) return
-      tratarErro(erro, { mensagemPadrao: "Erro ao descontar as saídas da divisão." })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível descontar as saídas da divisão. Escolha as partes de novo." })
       // Fica a prévia sem desconto, com todas as saídas em "Não descontar"
       aplicar(primeira, { ajustes: {}, escolhas: Object.fromEntries(saidas.map((saida) => [saida.id, null])) })
     }
@@ -197,7 +197,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
           if (numero === sequencia.current) aplicar(nova, valores)
         } catch (erro) {
           if (numero === sequencia.current) {
-            tratarErro(erro, { mensagemPadrao: "Erro ao recalcular a divisão." })
+            tratarErro(erro, { mensagemPadrao: "Não foi possível recalcular a divisão. Os valores anteriores continuam na tela." })
             pedido.current = aplicado.current
             setEscolhas(aplicado.current.escolhas)
           }
@@ -263,7 +263,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
       // A chave continua a mesma: o reenvio depois de um erro de rede recebe
       // a divisão já gravada, sem gerar em dobro
       if (recebimentoAberto.current !== id) return
-      tratarErro(erro, { mensagemPadrao: "Erro ao gerar as transações da divisão." })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível gerar os lançamentos da divisão. Tente de novo." })
       // SALARIO-74: a divisão mudou desde a revisão (uma saída nova, o plano
       // editado em outra aba); a revisão é refeita com as mesmas escolhas e
       // pede a marcação de novo
@@ -372,7 +372,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
               <p className="text-xs text-muted-foreground">
                 {item.destination_type === "SALARY_ACCOUNT" || !item.destination_type
                   ? "Fica na conta do salário"
-                  : `${item.destination_name ?? ""}: não gera transação`}
+                  : `${item.destination_name ?? ""}: não gera lançamento`}
               </p>
             )}
             {(transfere || gasto > 0) && (
@@ -450,7 +450,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                       ? `${resultado.receipt.description ?? "Salário"} de ${formatarMoeda(resultado.receipt.amount)}`
                       : revisao
                         ? `${revisao.receipt.description} de ${formatarMoeda(revisao.receipt.amount)}, recebido em ${dataCurta(revisao.receipt.date)}`
-                        : "Calculando pelo seu plano..."}
+                        : "Calculando pelo seu plano"}
                   </DialogDescription>
                 </div>
               </div>
@@ -497,14 +497,14 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
 
                 <div className="space-y-2">
                   <h3 className="label text-muted-foreground">
-                    Transações que serão criadas
+                    Lançamentos que serão criados
                   </h3>
                   {transacoes.length ? (
-                    <ul className="space-y-2" aria-label="Transações que serão criadas">
+                    <ul className="space-y-2" aria-label="Lançamentos que serão criados">
                       {transacoes.map((item) => linhaDoItem(item, true))}
                     </ul>
                   ) : (
-                    <p className="text-sm text-muted-foreground">{soSaidas ? SAIDAS_COBRIRAM : "Nenhuma parte do plano gera transação."}</p>
+                    <p className="text-sm text-muted-foreground">{soSaidas ? SAIDAS_COBRIRAM : "Nenhuma parte do plano gera lançamento."}</p>
                   )}
                 </div>
 
@@ -517,7 +517,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                   </div>
                 )}
 
-                <div className="space-y-1 rounded-md border border-border bg-elevated p-4 text-sm">
+                <div aria-live="polite" className="space-y-1 rounded-md border border-border bg-elevated p-4 text-sm">
                   <div className="flex justify-between gap-3">
                     <span className="text-muted-foreground">Recebido</span>
                     <span className="value-m" data-testid="recebido-da-divisao">{formatarMoeda(revisao.receipt.amount)}</span>
@@ -527,7 +527,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                     <span className="value-m" data-testid="gasto-da-divisao">{formatarMoeda(deCentavos(jaGasto))}</span>
                   </div>
                   <div className="flex justify-between gap-3">
-                    <span className="text-muted-foreground">Total das transações</span>
+                    <span className="text-muted-foreground">Total dos lançamentos</span>
                     <span className="value-m" data-testid="total-da-divisao">{formatarMoeda(revisao.total)}</span>
                   </div>
                   <div className="flex justify-between gap-3">
@@ -592,7 +592,7 @@ function ResultadoDaDivisao({
       {divisao.transactions.length === 0 ? (
         <p className="text-sm font-medium">{SAIDAS_COBRIRAM}</p>
       ) : (
-        <ul className="divide-y divide-border rounded-md border border-border" aria-label="Transações criadas">
+        <ul className="divide-y divide-border rounded-md border border-border" aria-label="Lançamentos criados">
           {divisao.transactions.map((transacao) => (
             <li
               key={transacao.transfer_id ?? transacao.part_name}
