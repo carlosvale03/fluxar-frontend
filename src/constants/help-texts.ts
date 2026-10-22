@@ -9,15 +9,15 @@ export const HELP_CONTENTS = {
     },
     FOCUSED_MONITOR: {
         title: "Monitor de Foco",
-        description: "O Monitor de Foco permite que você escolha categorias ou tags específicas para vigiar de perto. O sistema compara seus gastos atuais com a média dos últimos meses, alertando se você estiver saindo do planejado para aquele item específico."
+        description: "O Monitor de Foco permite que você escolha categorias ou marcadores específicos para vigiar de perto. O sistema compara seus gastos atuais com a média dos últimos meses, alertando se você estiver saindo do planejado para aquele item específico."
     },
     SPENDING_FREQUENCY: {
         title: "Mapa de Calor de Atividade",
-        description: "Visualiza em quais dias da semana e horários você costuma realizar mais transações. Isso ajuda a identificar padrões comportamentais, como o 'hábito de gastar no fim de semana' ou compras impulsivas noturnas."
+        description: "Visualiza em quais dias da semana e horários você costuma fazer mais lançamentos. Isso ajuda a identificar padrões comportamentais, como o 'hábito de gastar no fim de semana' ou compras impulsivas noturnas."
     },
     INVESTMENT_ANALYSIS: {
         title: "Análise de Investimentos",
-        description: "Aqui você vê a movimentação de capital para suas contas de investimento. Diferente das despesas, este valor representa dinheiro que está sendo guardado para o futuro, não gasto."
+        description: "Aqui você vê a movimentação de capital para suas contas de investimento. Diferente das saídas, este valor representa dinheiro que está sendo guardado para o futuro, não gasto."
     },
     LIQUIDITY_RATIO: {
         title: "Índice de Liquidez",
@@ -33,15 +33,15 @@ export const HELP_CONTENTS = {
     },
     NET_RESULT: {
         title: "Resultado Líquido",
-        description: "É o que sobra do seu dinheiro após pagar todas as contas do mês. Se for positivo, parabéns: você gastou menos do que ganhou! Se for negativo, indica que você precisou usar reservas ou crédito para fechar o mês."
+        description: "É o que sobra do seu dinheiro após pagar todas as contas do mês. Se for positivo, você gastou menos do que ganhou. Se for negativo, indica que você precisou usar reservas ou crédito para fechar o mês."
     },
     CREDIT_MANAGEMENT: {
         title: "Gestão de Crédito",
         description: "Acompanha o uso do limite dos seus cartões de crédito. Manter o uso abaixo de 50% do limite é uma boa prática para manter seu Score Financeiro saudável."
     },
     BUDGETS: {
-        title: "Controle de Orçamentos",
-        description: "Orçamentos permitem definir limites de gastos por categoria. O sistema monitora suas transações em tempo real e avisa quando você está próximo de ultrapassar o limite definido, ajudando a manter a disciplina financeira."
+        title: "Rotas",
+        description: "Rotas são limites de gasto por categoria (os antigos orçamentos). O Azimute compara seus lançamentos com o limite e mostra o desvio em %, avisando quando você se aproxima de ultrapassá-lo."
     },
     FINANCIAL_SCORE: {
         title: "Score de Saúde Financeira",
@@ -57,7 +57,7 @@ export const HELP_CONTENTS = {
     },
     SAFE_DAILY_SPEND: {
         title: "Gasto Diário Seguro",
-        description: "Calcula quanto você pode gastar por dia hoje sem comprometer suas contas futuras. Considera seu saldo atual, a renda esperada até o fim do mês e subtrai as despesas já realizadas e agendadas."
+        description: "Calcula quanto você pode gastar por dia hoje sem comprometer suas contas futuras. Considera seu saldo atual, a renda esperada até o fim do mês e subtrai as saídas já realizadas e agendadas."
     },
     FIXED_VS_VARIABLE: {
         title: "Fixos vs Variáveis",
