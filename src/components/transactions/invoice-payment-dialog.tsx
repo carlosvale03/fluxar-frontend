@@ -33,6 +33,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -53,9 +54,9 @@ import { tratarErro } from "@/lib/erros"
 
 const formSchema = z.object({
   // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
-  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
+  amount: z.string().refine(maiorQueZero, "O valor precisa ser maior que zero."),
   date: z.date(),
-  account_id: z.string().min(1, "Selecione a conta de pagamento."),
+  account_id: z.string().min(1, "Selecione a conta que paga a fatura."),
   description: z.string().optional(),
 })
 
@@ -95,7 +96,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
       amount: "",
       date: new Date(),
       account_id: "",
-      description: "Pagamento de Fatura",
+      description: "Pagamento de fatura",
     },
   })
   
@@ -106,7 +107,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
         setAccounts(data)
     } catch (err) {
         // CONTRATO-33: nenhuma falha silenciosa
-        tratarErro(err, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
+        tratarErro(err, { mensagemPadrao: "Não foi possível carregar as contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -124,7 +125,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                     amount: initialAmount || "",
                     date: new Date(),
                     account_id: "",
-                    description: "Pagamento de Fatura",
+                    description: "Pagamento de fatura",
                 })
                 setSelectedCardId("")
                 setSelectedInvoiceId("")
@@ -150,7 +151,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                 }
             } catch (error) {
                 console.error("Initialization failed", error)
-                toast.error("Erro ao carregar dados do pagamento.")
+                toast.error("Não foi possível carregar os dados do pagamento. Feche e abra de novo.")
             } finally {
                 setIsLoading(false)
             }
@@ -187,7 +188,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
           setInvoices(payableInvoices)
       } catch (error) {
           // CONTRATO-33: nenhuma falha silenciosa
-          tratarErro(error, { mensagemPadrao: "Erro ao carregar as faturas.", tentarDeNovo: () => fetchInvoices(cardId) })
+          tratarErro(error, { mensagemPadrao: "Não foi possível carregar as faturas.", tentarDeNovo: () => fetchInvoices(cardId) })
       }
   }
 
@@ -213,7 +214,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      toast.error(mensagemDeErro(error, "Erro ao registrar pagamento."))
+      toast.error(mensagemDeErro(error, "Não foi possível registrar o pagamento. Confira os campos e tente de novo."))
     } finally {
       setIsLoading(false)
     }
@@ -231,10 +232,10 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                         </div>
                         <div className="flex flex-col gap-0.5">
                             <DialogTitle>
-                                Liquidar Fatura
+                                Pagar fatura
                             </DialogTitle>
                             <DialogDescription>
-                                Baixa financeira de cartão de crédito
+                                Registre o pagamento de uma fatura do cartão.
                             </DialogDescription>
                         </div>
                     </div>
@@ -248,8 +249,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                         {/* Seção 1: Origem e Valor */}
                         <div className="space-y-3">
                             <div className="flex items-center justify-between">
-                                <h3 className="label text-muted-foreground">Fluxo de Saída</h3>
-                                <Badge variant="secondary">Pagamento Direto</Badge>
+                                <h3 className="label text-muted-foreground">Pagamento</h3>
+                                <Badge variant="secondary">Saída da conta</Badge>
                             </div>
 
                             <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4">
@@ -258,11 +259,11 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                     name="account_id"
                                     render={({ field }) => (
                                         <FormItem className="space-y-2">
-                                            <FormLabel>Pagar com a Conta</FormLabel>
+                                            <FormLabel>Pagar com a conta</FormLabel>
                                             <Select onValueChange={field.onChange} value={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Selecione a conta..." />
+                                                        <SelectValue placeholder="Selecione a conta" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent className="max-h-[450px] p-2">
@@ -276,7 +277,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                     className="mb-1 w-full justify-start gap-2"
                                                                 >
                                                                     <PlusCircle aria-hidden="true" />
-                                                                    Nova Conta
+                                                                    Criar conta
                                                                 </Button>
                                                             }
                                                         />
@@ -346,7 +347,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         name="amount"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
-                                                <FormLabel>Valor do Pagamento</FormLabel>
+                                                <FormLabel>Valor do pagamento</FormLabel>
                                                 <FormControl>
                                                     <MoneyInput
                                                         value={field.value ?? ""}
@@ -363,7 +364,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         name="date"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
-                                                <FormLabel>Data Efetivada</FormLabel>
+                                                <FormLabel>Data do pagamento</FormLabel>
                                                 <Popover>
                                                     <PopoverTrigger asChild>
                                                         <FormControl>
@@ -374,7 +375,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                                     !field.value && "text-muted-foreground"
                                                                 )}
                                                             >
-                                                                {field.value ? format(field.value, "dd/MM/yyyy") : "Selecionar..."}
+                                                                {field.value ? format(field.value, "dd/MM/yyyy") : "Selecione a data"}
                                                                 <CalendarIcon className="ml-auto h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                                             </Button>
                                                         </FormControl>
@@ -399,7 +400,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
 
                         {/* Seção 2: Detalhes da Fatura */}
                         <div className="space-y-3">
-                            <h3 className="label text-muted-foreground">Destino do Pagamento</h3>
+                            <h3 className="label text-muted-foreground">Fatura a pagar</h3>
 
                             {selectedInvoiceObject && propInvoiceId ? (
                                 <div className="space-y-4 rounded-lg border border-border p-4">
@@ -408,7 +409,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             <div className="flex items-center gap-2">
                                                 <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                                 <div>
-                                                    <p className="label text-muted-foreground">Fatura de Referência</p>
+                                                    <p className="label text-muted-foreground">Fatura</p>
                                                     <p className="text-sm font-medium">
                                                         {format(lerData(selectedInvoiceObject.due_date), "MMMM 'de' yyyy", { locale: ptBR })}
                                                     </p>
@@ -432,7 +433,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             <p className="font-mono text-sm">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</p>
                                         </div>
                                         <div className="text-right">
-                                            <p className="label text-muted-foreground">Total Previsto</p>
+                                            <p className="label text-muted-foreground">Total previsto</p>
                                             <p className="value-m">
                                                 {formatarMoeda(selectedInvoiceObject.total_amount)}
                                             </p>
@@ -448,10 +449,10 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                     <div className="grid grid-cols-1 gap-4 rounded-lg border border-border p-4">
                                         <div className="space-y-4">
                                             <div className="space-y-2">
-                                                <FormLabel>Cartão de Origem</FormLabel>
+                                                <Label htmlFor="cartao-da-fatura">Cartão</Label>
                                                 <Select onValueChange={setSelectedCardId} value={selectedCardId}>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Escolher cartão..." />
+                                                    <SelectTrigger id="cartao-da-fatura">
+                                                        <SelectValue placeholder="Selecione o cartão" />
                                                     </SelectTrigger>
                                                     <SelectContent>
                                                         {cards.map((card) => (
@@ -469,7 +470,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
 
                                             {selectedCardId && (
                                                 <div className="space-y-2">
-                                                    <FormLabel>Fatura de Referência</FormLabel>
+                                                    <Label htmlFor="fatura-a-pagar">Fatura</Label>
                                                     <Select onValueChange={(val) => {
                                                         setSelectedInvoiceId(val)
                                                         const inv = invoices.find(i => i.id === val)
@@ -481,8 +482,8 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                             form.setValue('description', `Fatura ${formattedDate}`)
                                                         }
                                                     }} value={selectedInvoiceId}>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Selecionar mês..." />
+                                                        <SelectTrigger id="fatura-a-pagar">
+                                                            <SelectValue placeholder="Selecione o mês" />
                                                         </SelectTrigger>
                                                         <SelectContent className="max-h-[250px]">
                                                             {invoices.length === 0 ? (
@@ -523,7 +524,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                         <div className="space-y-4 rounded-lg border border-border p-4">
                                             <div className="flex items-center justify-between border-b border-border pb-3">
                                                 <div className="space-y-1">
-                                                    <p className="label text-muted-foreground">Fatura de Referência</p>
+                                                    <p className="label text-muted-foreground">Fatura</p>
                                                     <div className="flex items-center gap-2">
                                                         <Receipt className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                                         <p className="text-sm font-medium">
@@ -549,7 +550,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                                     <span className="font-mono text-sm">{format(lerData(selectedInvoiceObject.due_date), "dd/MM/yyyy")}</span>
                                                 </div>
                                                 <div className="text-right">
-                                                    <p className="label text-muted-foreground">Total Devido</p>
+                                                    <p className="label text-muted-foreground">Total devido</p>
                                                     <p className="value-l">
                                                         {formatarMoeda(selectedInvoiceObject.total_amount)}
                                                     </p>
@@ -558,7 +559,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                             
                                             <div className="pt-2">
                                                 <div className="label mb-1.5 flex items-center justify-between text-muted-foreground">
-                                                    <span>Progresso de Quitação</span>
+                                                    <span>Parte paga</span>
                                                     <span>{Math.round((paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100)}%</span>
                                                 </div>
                                                 <Progress value={(paraCentavos(form.watch('amount')) / paraCentavos(selectedInvoiceObject.total_amount)) * 100} className="h-1.5" />
@@ -574,10 +575,10 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                             name="description"
                             render={({ field }) => (
                                 <FormItem className="space-y-2">
-                                    <FormLabel>Memo / Descrição Opcional</FormLabel>
+                                    <FormLabel>Descrição (opcional)</FormLabel>
                                     <FormControl>
                                         <Input 
-                                            placeholder="Ex: Quitação parcial da fatura..." 
+                                            placeholder="Ex.: Pagamento parcial da fatura" 
                                             {...field} 
 
                                         />
@@ -600,7 +601,7 @@ export function InvoicePaymentDialog({ open, onOpenChange, onSuccess, invoiceId:
                                 loading={isLoading}
                                 disabled={!targetInvoiceId}
                             >
-                                Confirmar Baixa
+                                Registrar pagamento
                             </Button>
                         </DialogFooter>
                     </form>

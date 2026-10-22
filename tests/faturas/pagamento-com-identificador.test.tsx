@@ -48,7 +48,7 @@ function respostas(url: string) {
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/
 
-const botaoConfirmar = () => screen.getByRole("button", { name: /confirmar baixa/i })
+const botaoConfirmar = () => screen.getByRole("button", { name: /registrar pagamento/i })
 
 function dialogo(open: boolean) {
   return (

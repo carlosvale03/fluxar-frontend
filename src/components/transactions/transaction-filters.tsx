@@ -93,7 +93,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         const resposta = await api.get("/expense-classes/")
         setClasses(Array.isArray(resposta?.data) ? resposta.data : [])
     } catch (error) {
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar as classes.", tentarDeNovo: fetchClasses })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar as classes.", tentarDeNovo: fetchClasses })
     }
   }
 
@@ -141,7 +141,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
         setAccounts(accRes.data)
     } catch (error) {
         // CONTRATO-33: nenhuma falha silenciosa
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar os filtros.", tentarDeNovo: fetchDependencies })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar os filtros.", tentarDeNovo: fetchDependencies })
     }
   }
 
@@ -199,7 +199,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       <SheetTrigger asChild>
         <Button variant="outline" className="relative shrink-0 px-3 md:px-4">
             <Filter aria-hidden="true" />
-            <span className="sr-only md:not-sr-only">Refinar seleção</span>
+            <span className="sr-only md:not-sr-only">Filtrar</span>
             {activeFilterCount > 0 && (
                 <Badge className="absolute -right-1.5 -top-1.5 h-5 min-w-5 justify-center px-1 md:static">
                     {activeFilterCount}
@@ -209,7 +209,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
       </SheetTrigger>
       <SheetContent className="w-full overflow-y-auto sm:max-w-md">
         <SheetHeader className="border-b border-border pb-4">
-          <SheetTitle className="display-m">Filtrar transações</SheetTitle>
+          <SheetTitle className="display-m">Filtrar lançamentos</SheetTitle>
           <SheetDescription>
             Escolha o que aparece na lista. Os filtros ativos ficam visíveis acima dela.
           </SheetDescription>
@@ -258,15 +258,15 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                         <SelectValue placeholder="Todos os tipos" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="ALL">Todas as movimentações</SelectItem>
+                        <SelectItem value="ALL">Todos os tipos</SelectItem>
                         <SelectItem value="INCOME">
                            <div className="flex items-center gap-2">
-                              <ArrowUpCircle className="h-4 w-4 text-inflow" aria-hidden="true" /> Receitas
+                              <ArrowUpCircle className="h-4 w-4 text-inflow" aria-hidden="true" /> Entradas
                            </div>
                         </SelectItem>
                         <SelectItem value="EXPENSE">
                            <div className="flex items-center gap-2">
-                              <ArrowDownCircle className="h-4 w-4 text-outflow" aria-hidden="true" /> Despesas
+                              <ArrowDownCircle className="h-4 w-4 text-outflow" aria-hidden="true" /> Saídas
                            </div>
                         </SelectItem>
                     </SelectContent>
@@ -350,11 +350,11 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                 </div>
             </fieldset>
 
-            {/* CLASSE-34 e CLASSE-35: várias classes e "Sem classe"; só despesas e compras no cartão */}
+            {/* CLASSE-34 e CLASSE-35: várias classes e "Sem classe"; só saídas e compras no cartão */}
             <fieldset className="space-y-2">
                 <legend className="mb-2 flex items-center gap-2 text-sm font-medium">
                    <Shapes className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                   Classe da despesa
+                   Classe da saída
                 </legend>
                 <div className="space-y-0.5 rounded-md border border-border p-1">
                     {opcoesDeClasse.map((classe) => {
@@ -380,7 +380,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
                 </div>
             </fieldset>
 
-            {/* VINCULO-30: só as transações com vínculo; travado pelo plano (VINCULO-20) */}
+            {/* VINCULO-30: só os lançamentos com vínculo; travado pelo plano (VINCULO-20) */}
             <fieldset className="space-y-2">
                 <legend className="mb-2 flex items-center gap-2 text-sm font-medium">
                    <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
@@ -409,10 +409,10 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
 
             {/* Tags Filter: só com `tags` aberto (PERM-19) */}
             {tagsLiberadas && (
-            <div className="space-y-2">
-                <div className="flex items-center gap-2 text-sm font-medium">
+            <div role="group" aria-labelledby="filtro-marcadores" className="space-y-2">
+                <div id="filtro-marcadores" className="flex items-center gap-2 text-sm font-medium">
                    <TagIcon className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                   Tags
+                   Marcadores
                 </div>
                 <TagSelector
                    selectedTagIds={tagIds}
@@ -438,7 +438,7 @@ export function TransactionFilters({ onApplyFilters, currentFilters }: Transacti
 
 export interface ChipDeFiltro {
   chave: string
-  // O valor do filtro em texto: "Despesas", "Conta: Nubank"
+  // O valor do filtro em texto: "Saídas", "Conta: Nubank"
   rotulo: string
   remover: () => void
 }

@@ -56,7 +56,7 @@ async function editarValorPara150(perna: typeof SAIDA) {
   // CONTRATO-19: o campo de dinheiro mostra o valor em reais
   const valor = await screen.findByDisplayValue(/^R\$\s100,00$/)
   fireEvent.change(valor, { target: { value: "150,00" } })
-  await userEvent.click(screen.getByRole("button", { name: /salvar alterações/i }))
+  await userEvent.click(screen.getByRole("button", { name: /salvar transferência/i }))
   await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
   return put.mock.calls[0]
 }

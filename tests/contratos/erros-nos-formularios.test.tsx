@@ -142,7 +142,7 @@ describe("Erros de campo e falhas silenciosas", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /salvar lançamento/i }))
     const mensagem = await screen.findByText("Informe um valor maior que zero.")
-    expect(mensagem.closest(".space-y-2")).toHaveTextContent(/valor total/i)
+    expect(mensagem.closest(".space-y-2")).toHaveTextContent(/valor/i)
     expect(toast.error).not.toHaveBeenCalled()
 
     vi.mocked(api.put).mockRejectedValueOnce({ response: { status: 403, data: { detail: "Sem permissão.", code: "permission_denied" } } })

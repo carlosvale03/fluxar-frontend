@@ -48,7 +48,7 @@ async function escolherConta() {
   await userEvent.click(await screen.findByRole("option", { name: /banco/i }))
 }
 
-const botaoConfirmar = () => screen.getByRole("button", { name: /confirmar baixa/i })
+const botaoConfirmar = () => screen.getByRole("button", { name: /registrar pagamento/i })
 
 describe("Pagamento de fatura exige a fatura", () => {
   beforeEach(() => {

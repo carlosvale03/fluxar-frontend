@@ -196,7 +196,7 @@ describe("Cartões travados (PERM-22)", () => {
     render(<CardExpenseFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} />)
 
     expect(screen.getByText(AVISO)).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Adicionar Despesa" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Registrar compra" })).not.toBeInTheDocument()
   })
 })
 
@@ -223,7 +223,7 @@ describe("Formulários", () => {
     comAcesso(["transacoes_recorrentes"])
     render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" />)
 
-    expect(screen.queryByText("Planejamento Recorrente")).not.toBeInTheDocument()
+    expect(screen.queryByText("Repetir lançamento")).not.toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
   })
 
@@ -247,7 +247,7 @@ describe("Formulários", () => {
     unmount()
 
     render(<TransactionDeleteDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} transaction={ocorrencia} />)
-    expect(screen.queryByText("Todas as recorrentes (série completa)")).not.toBeInTheDocument()
+    expect(screen.queryByText("Toda a série recorrente")).not.toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
   })
 
@@ -256,24 +256,24 @@ describe("Formulários", () => {
     const ocorrencia = { id: "t1", type: "EXPENSE", recurring_source: "serie-1" } as unknown as Transaction
 
     const { unmount } = render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" />)
-    expect(screen.getByText("Planejamento Recorrente")).toBeInTheDocument()
+    expect(screen.getByText("Repetir lançamento")).toBeInTheDocument()
     unmount()
 
     render(<TransactionDeleteDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} transaction={ocorrencia} />)
-    expect(screen.getByText("Todas as recorrentes (série completa)")).toBeInTheDocument()
+    expect(screen.getByText("Toda a série recorrente")).toBeInTheDocument()
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
   })
 
   it("tags fechado: o campo de tags some do lançamento, sem chamar /tags/; aberto, ele aparece", () => {
     comAcesso(["tags"])
     const { unmount } = render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" />)
-    expect(screen.queryByText("Tags Interativas")).not.toBeInTheDocument()
+    expect(screen.queryByText("Marcadores")).not.toBeInTheDocument()
     expect(getTags).not.toHaveBeenCalled()
     unmount()
 
     comAcesso()
     render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" />)
-    expect(screen.getByText("Tags Interativas")).toBeInTheDocument()
+    expect(screen.getByText("Marcadores")).toBeInTheDocument()
   })
 
   // PERM-21: editar a transação é essencial; com `tags` fechada o corpo da
@@ -293,7 +293,7 @@ describe("Formulários", () => {
     const put = vi.mocked(api.put)
     put.mockResolvedValue({ data: {} })
     render(<TransactionFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} type="EXPENSE" initialData={comTags} />)
-    await userEvent.click(screen.getByRole("button", { name: "Salvar Lançamento" }))
+    await userEvent.click(screen.getByRole("button", { name: "Salvar lançamento" }))
     await vi.waitFor(() => expect(put).toHaveBeenCalled())
     return put.mock.calls[0]
   }
