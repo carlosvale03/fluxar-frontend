@@ -134,8 +134,8 @@ describe("Limites nas telas", () => {
     comLimite("limite_tags", { limit: 5, used: 5 })
     render(<TagsPage />)
 
-    expect(screen.getByRole("note")).toHaveTextContent("5 de 5 tags")
-    expect(screen.getByRole("button", { name: /Nova Tag/ })).toBeDisabled()
+    expect(screen.getByRole("note")).toHaveTextContent("5 de 5 marcadores")
+    expect(screen.getByRole("button", { name: /Criar marcador/ })).toBeDisabled()
   })
 
   it("metas no limite: desabilita \"Nova meta\" e mostra o aviso", () => {
