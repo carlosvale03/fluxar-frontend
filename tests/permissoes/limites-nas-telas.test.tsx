@@ -109,12 +109,12 @@ describe("Limites nas telas", () => {
     await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo Cartão/ })).toBeDisabled())
   })
 
-  it("categorias principais no limite: desabilita \"Nova Categoria\" e mostra o aviso", () => {
+  it("categorias principais no limite: desabilita \"Criar categoria\" e mostra o aviso", () => {
     comLimite("limite_categorias", { limit: 3, used: 3 })
     render(<CategoriesPage />)
 
     expect(screen.getByRole("note")).toHaveTextContent("3 de 3 categorias")
-    expect(screen.getByRole("button", { name: /Nova Categoria/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Criar categoria/ })).toBeDisabled()
   })
 
   it("subcategorias: o limite vale por categoria-pai, com o uso contado na tela", async () => {
@@ -124,7 +124,7 @@ describe("Limites nas telas", () => {
 
     expect(await screen.findByText("2 / 2")).toBeInTheDocument()
     expect(screen.getByText("1 / 2")).toBeInTheDocument()
-    const botoes = screen.getAllByTitle("Nova Subcategoria")
+    const botoes = screen.getAllByTitle("Nova subcategoria")
     expect(botoes).toHaveLength(2)
     expect(botoes[0]).toBeDisabled()
     expect(botoes[1]).toBeEnabled()
