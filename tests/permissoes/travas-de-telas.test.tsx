@@ -104,7 +104,7 @@ describe("Telas travadas", () => {
     comAcesso(["metas"])
     render(<GoalsPage />)
 
-    expect(screen.getByRole("heading", { name: "Metas" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Destinos" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
     expect(goalsService.getGoals).not.toHaveBeenCalled()

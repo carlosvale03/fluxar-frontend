@@ -49,7 +49,7 @@ describe("Cofrinho de trocos", () => {
     render(<SpareChangeBank goals={METAS} onSuccess={vi.fn()} />)
 
     expect(await screen.findByLabelText("Total pendente")).toHaveTextContent(/^R\$\s1,10$/)
-    expect(screen.getByText("Juntando o troco de 2 despesas.")).toBeInTheDocument()
+    expect(screen.getByText("Juntando o troco de 2 saídas.")).toBeInTheDocument()
     expect(screen.getByText(/indo para viagem/i)).toBeInTheDocument()
     expect(api.get).not.toHaveBeenCalled()
   })
@@ -88,12 +88,12 @@ describe("Cofrinho de trocos", () => {
     render(<SpareChangeBank goals={METAS} onSuccess={vi.fn()} />)
 
     expect(
-      await screen.findByText("A meta dos trocos foi arquivada ou excluída. Escolha outra meta para voltar a juntar os trocos."),
+      await screen.findByText("O destino dos trocos foi arquivado ou excluído. Escolha outro destino para voltar a juntar os trocos."),
     ).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /depositar trocos/i })).toBeDisabled()
 
     await escolherMeta(/reserva/i)
-    await userEvent.click(screen.getByRole("button", { name: /usar esta meta/i }))
+    await userEvent.click(screen.getByRole("button", { name: /usar este destino/i }))
 
     await vi.waitFor(() => expect(goalsService.updateSpareChange).toHaveBeenCalledWith({ active: true, goal: "2" }))
     expect(await screen.findByText(/indo para reserva/i)).toBeInTheDocument()
@@ -105,7 +105,7 @@ describe("Cofrinho de trocos", () => {
     vi.mocked(goalsService.updateSpareChange).mockResolvedValue(configuracao({ active: false }))
     render(<SpareChangeBank goals={METAS} onSuccess={vi.fn()} />)
 
-    await userEvent.click(await screen.findByRole("button", { name: /^desativar$/i }))
+    await userEvent.click(await screen.findByRole("button", { name: /^desativar trocos$/i }))
 
     await vi.waitFor(() => expect(goalsService.updateSpareChange).toHaveBeenCalledWith({ active: false }))
     expect(await screen.findByText(/desativado/i)).toBeInTheDocument()

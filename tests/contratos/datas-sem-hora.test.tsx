@@ -90,6 +90,6 @@ describe.each(["America/Sao_Paulo", "Europe/Lisbon"])("Datas sem hora no fuso %s
   it("a tela de metas mostra a data-alvo 01/01/2027 em janeiro de 2027", async () => {
     render(<GoalsPage />)
 
-    expect(await screen.findByText(/atingir sua meta em janeiro de 2027\./)).toBeInTheDocument()
+    expect(await screen.findByText(/chegar ao destino em janeiro de 2027\./)).toBeInTheDocument()
   })
 })

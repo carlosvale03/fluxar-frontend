@@ -56,9 +56,9 @@ describe("Aporte na meta", () => {
     vi.mocked(goalsService.deposit).mockResolvedValue({} as never)
     abrir()
 
-    await escolher(/^saldo livre do cofrinho \(R\$\s200,00\)$/i)
+    await escolher(/^saldo livre do lastro \(R\$\s200,00\)$/i)
     digitarValor("150,00")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar aporte/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
 
     await vi.waitFor(() => expect(goalsService.deposit).toHaveBeenCalledTimes(1))
     const [id, dados] = vi.mocked(goalsService.deposit).mock.calls[0]
@@ -83,7 +83,7 @@ describe("Aporte na meta", () => {
 
     await escolher(/banco/i)
     digitarValor("100,00")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar aporte/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
 
     await vi.waitFor(() => expect(goalsService.deposit).toHaveBeenCalledTimes(1))
     const dados = vi.mocked(goalsService.deposit).mock.calls[0][1]
@@ -99,9 +99,9 @@ describe("Aporte na meta", () => {
     const onSuccess = vi.fn()
     render(<GoalDepositForm goal={META} cofrinho={COFRINHO} open onOpenChange={vi.fn()} onSuccess={onSuccess} />)
 
-    await escolher(/saldo livre do cofrinho/i)
+    await escolher(/saldo livre do lastro/i)
     digitarValor("100,00")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar aporte/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
 
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith(mensagem))
     expect(onSuccess).not.toHaveBeenCalled()
@@ -117,9 +117,9 @@ describe("Resgate da meta", () => {
     vi.mocked(goalsService.withdraw).mockResolvedValue({} as never)
     abrir()
 
-    await escolher(/^saldo livre do cofrinho$/i)
+    await escolher(/^saldo livre do lastro$/i)
     digitarValor("100,00")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar resgate/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar resgate/i }))
 
     await vi.waitFor(() => expect(goalsService.withdraw).toHaveBeenCalledTimes(1))
     const [id, dados] = vi.mocked(goalsService.withdraw).mock.calls[0]
@@ -131,8 +131,8 @@ describe("Resgate da meta", () => {
   it("mostra os limites: o valor da meta e o saldo do cofrinho", async () => {
     abrir()
 
-    expect(await screen.findByText(/^Na meta: R\$\s300,00$/)).toBeInTheDocument()
-    expect(screen.getByText(/^No cofrinho: R\$\s700,00$/)).toBeInTheDocument()
+    expect(await screen.findByText(/^No destino: R\$\s300,00$/)).toBeInTheDocument()
+    expect(screen.getByText(/^No lastro: R\$\s700,00$/)).toBeInTheDocument()
   })
 
   it.each([
@@ -145,7 +145,7 @@ describe("Resgate da meta", () => {
 
     await escolher(/banco/i)
     digitarValor("200,00")
-    await userEvent.click(screen.getByRole("button", { name: /confirmar resgate/i }))
+    await userEvent.click(screen.getByRole("button", { name: /registrar resgate/i }))
 
     await vi.waitFor(() => expect(toast.error).toHaveBeenCalledWith(mensagem))
     expect(onSuccess).not.toHaveBeenCalled()

@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Skeleton } from "@/components/ui/skeleton"
 import { AnelDeProgresso } from "@/components/ui/medicao"
 import { ConfirmacaoDestrutiva } from "@/components/ui/confirmacao-destrutiva"
 import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
@@ -57,7 +58,7 @@ type Filtro = "ALL" | "ACTIVE" | "COMPLETED"
 // PERM-19: com `metas` fechado, a tela mostra o aviso do plano e /goals/ não é chamado
 export default function GoalsPage() {
   return (
-    <RecursoBloqueado chave="metas" titulo="Metas" className="container mx-auto my-10 max-w-3xl">
+    <RecursoBloqueado chave="metas" titulo="Destinos" className="container mx-auto my-10 max-w-3xl">
       <TelaDeMetas />
     </RecursoBloqueado>
   )
@@ -93,7 +94,7 @@ function TelaDeMetas() {
       setGoals(data)
       setCofrinhos(dosCofrinhos)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar metas.", tentarDeNovo: fetchGoals })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os destinos. Tente de novo.", tentarDeNovo: fetchGoals })
     } finally {
       setIsLoading(false)
     }
@@ -109,9 +110,9 @@ function TelaDeMetas() {
     if (!cofrinhoAExcluir) return
     try {
       await accountsService.deleteAccount(cofrinhoAExcluir.id)
-      toast.success("Cofrinho excluído.")
+      toast.success("Lastro excluído.")
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao excluir o cofrinho." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível excluir o lastro. Tente de novo." })
     }
   }
 
@@ -121,17 +122,17 @@ function TelaDeMetas() {
     // META-29: a meta com valor é recusada pelo backend, com a mensagem dele
     try {
       const resposta = await goalsService.deleteGoal(goal.id)
-      toast.success("Meta excluída.")
+      toast.success("Destino excluído.")
       // PERM-20: o item excluído sai do uso dos limites do /auth/me
       void atualizarUso()
       if (resposta?.piggy_bank_empty && goal.account) {
-        const nome = cofrinhos.find((c) => c.account_id === goal.account)?.name ?? "da meta"
+        const nome = cofrinhos.find((c) => c.account_id === goal.account)?.name ?? "do destino"
         setCofrinhoAExcluir({ id: goal.account, nome })
       }
       fetchGoals()
     } catch (error) {
       // CONTRATO-31: a API não usa mais a chave error; o detail vai ao Sonner
-      tratarErro(error, { mensagemPadrao: "Erro ao excluir meta." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível excluir o destino. Tente de novo." })
     }
   }
 
@@ -142,16 +143,16 @@ function TelaDeMetas() {
   }
 
   const filtros: { valor: Filtro; rotulo: string }[] = [
-    { valor: "ALL", rotulo: "Todas" },
+    { valor: "ALL", rotulo: "Todos" },
     { valor: "ACTIVE", rotulo: "Em aberto" },
-    { valor: "COMPLETED", rotulo: "Concluídas" },
+    { valor: "COMPLETED", rotulo: "Concluídos" },
   ]
 
   const indicadores = [
     { rotulo: "Total guardado", valor: formatarMoeda(deCentavos(goals.reduce((acc, g) => acc + paraCentavos(g.current_amount), 0))) },
     { rotulo: "Objetivo total", valor: formatarMoeda(deCentavos(goals.reduce((acc, g) => acc + paraCentavos(g.target_amount), 0))) },
-    { rotulo: "Metas ativas", valor: String(contagem.ACTIVE) },
-    { rotulo: "Concluídas", valor: String(contagem.COMPLETED) },
+    { rotulo: "Destinos ativos", valor: String(contagem.ACTIVE) },
+    { rotulo: "Concluídos", valor: String(contagem.COMPLETED) },
   ]
 
   const abrir = (goal: Goal, abrirDialogo: (aberto: boolean) => void) => {
@@ -166,32 +167,32 @@ function TelaDeMetas() {
         apoio="Metas de economia"
         ajuda={
           <PageHelp
-            title="Metas"
-            description="Cada meta é um valor a juntar, com prazo opcional e um cofrinho onde o dinheiro fica."
+            title="Destinos"
+            description="Cada destino é um valor a juntar, com prazo opcional e um lastro, a conta onde o dinheiro fica."
             sections={[
               {
                 title: "Objetivo Central",
-                content: "Cada meta é um plano de economia. Você define quanto precisa e até quando, e a tela mostra quanto guardar por mês.",
+                content: "Cada destino é um plano de economia. Você define quanto precisa e até quando, e a tela mostra quanto guardar por mês.",
                 icon: <Target className="h-4 w-4" />,
               },
               {
-                title: "Cofrinhos",
-                content: "As metas ficam vinculadas a cofrinhos (contas). Um cofrinho pode ser exclusivo de uma meta ou compartilhado por várias.",
+                title: "Lastros",
+                content: "Os destinos ficam vinculados a lastros, as contas onde o dinheiro fica guardado. Um lastro pode ser exclusivo de um destino ou compartilhado por vários.",
                 icon: <PiggyBank className="h-4 w-4" />,
               },
               {
                 title: "Saldo Livre",
-                content: "O valor de cada meta é o que você aportou menos o que resgatou. O que entra ou sai do cofrinho por fora dos aportes e resgates fica no saldo livre, que você pode usar para aportar em qualquer meta do cofrinho.",
+                content: "O valor de cada destino é o que você aportou menos o que resgatou. O que entra ou sai do lastro por fora dos aportes e resgates fica no saldo livre, que você pode usar para aportar em qualquer destino do lastro.",
                 icon: <Zap className="h-4 w-4" />,
               },
               {
-                title: "Simulação de Cenários",
-                content: "Use o simulador (no menu da meta) para ver como diferentes valores de aporte mensal afetam o tempo para atingir seu objetivo.",
+                title: "Projeção de Trajetória",
+                content: "Abra a Projeção de Trajetória no menu do destino para ver como o valor do aporte mensal muda o tempo até alcançá-lo.",
                 icon: <TrendingUp className="h-4 w-4" />,
               },
               {
-                title: "Cofrinho do troco",
-                content: "Ative o cofrinho do troco no topo da página: o troco de cada despesa até o próximo real fica guardado, e você deposita na meta quando quiser.",
+                title: "Lastro do troco",
+                content: "Ative o Lastro do troco (o cofrinho do troco) no topo da página: o troco de cada saída até o próximo real fica guardado, e você deposita no destino quando quiser.",
                 icon: <Sparkles className="h-4 w-4" />,
               },
             ]}
@@ -205,13 +206,13 @@ function TelaDeMetas() {
               setIsFormOpen(true)
             }}
           >
-            <Plus aria-hidden="true" /> Nova meta
+            <Plus aria-hidden="true" /> Novo destino
           </Button>
         }
       />
 
       <div className="mb-6">
-        <AvisoDeLimite chave="limite_metas" rotulo="metas" />
+        <AvisoDeLimite chave="limite_metas" rotulo="destinos" />
       </div>
 
       <SpareChangeBank goals={goals} onSuccess={fetchGoals} />
@@ -236,7 +237,7 @@ function TelaDeMetas() {
               <Alert key={c.account_id} variant="warning">
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                 <AlertDescription>
-                  <p>{`O cofrinho ${c.name} tem ${formatarMoeda(deCentavos(-paraCentavos(c.free_balance)))} a menos do que as metas somam.`}</p>
+                  <p>{`O lastro ${c.name} tem ${formatarMoeda(deCentavos(-paraCentavos(c.free_balance)))} a menos do que os destinos somam.`}</p>
                 </AlertDescription>
               </Alert>
             ))}
@@ -244,7 +245,7 @@ function TelaDeMetas() {
       )}
 
       {!isLoading && goals.length > 0 && (
-        <div role="group" aria-label="Filtrar metas" className="no-scrollbar mb-6 flex items-center gap-2 overflow-x-auto pb-1">
+        <div role="group" aria-label="Filtrar destinos" className="no-scrollbar mb-6 flex items-center gap-2 overflow-x-auto pb-1">
           {filtros.map((filtro) => (
             <Button
               key={filtro.valor}
@@ -261,20 +262,38 @@ function TelaDeMetas() {
       )}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true">
+        // AZ-34: o esqueleto tem a forma do cartão do destino
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Carregando destinos">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="h-64 animate-pulse" />
+            <Card key={i} className="flex flex-col gap-5 p-5">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-2/3" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-[52px] w-[52px] rounded-full" />
+                <div className="space-y-2">
+                  <Skeleton className="h-5 w-16" />
+                  <Skeleton className="h-4 w-28" />
+                </div>
+              </div>
+              <div className="flex justify-between">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+              <Skeleton className="h-9 w-full" />
+            </Card>
           ))}
         </div>
       ) : goals.length === 0 ? (
         <div className="flex flex-col items-center justify-center space-y-4 rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
           <Target className="h-8 w-8 text-muted-foreground" aria-hidden="true" />
           <div className="space-y-1">
-            <p className="display-s">Nenhuma meta criada</p>
+            <h2 className="display-s">Nenhum destino ainda</h2>
             <p className="mx-auto max-w-xs text-sm text-muted-foreground">Defina um destino para medir a distância até ele.</p>
           </div>
           <Button variant="outline" disabled={metasNoLimite} onClick={() => setIsFormOpen(true)}>
-            Criar a primeira meta
+            Criar o primeiro destino
           </Button>
         </div>
       ) : (
@@ -288,13 +307,13 @@ function TelaDeMetas() {
           if (filteredGoals.length === 0) {
             return (
               <div className="flex flex-col items-center justify-center space-y-2 rounded-lg border border-dashed border-border-strong px-6 py-16 text-center">
-                <p className="display-s">
-                  {activeFilter === "COMPLETED" ? "Nenhuma meta concluída" : "Nenhuma meta em aberto"}
-                </p>
+                <h2 className="display-s">
+                  {activeFilter === "COMPLETED" ? "Nenhum destino concluído" : "Nenhum destino em aberto"}
+                </h2>
                 <p className="mx-auto max-w-xs text-sm text-muted-foreground">
                   {activeFilter === "COMPLETED"
-                    ? "As metas alcançadas aparecem aqui."
-                    : "Crie uma meta para voltar a juntar dinheiro."}
+                    ? "Os destinos alcançados aparecem aqui."
+                    : "Crie um destino para voltar a juntar dinheiro."}
                 </p>
               </div>
             )
@@ -304,7 +323,7 @@ function TelaDeMetas() {
           // conhecido fica num grupo à parte
           const grupos = [
             ...cofrinhos.map((c) => ({ id: c.account_id, nome: c.name, cofrinho: c as Cofrinho | null })),
-            { id: "sem-cofrinho", nome: "Sem cofrinho", cofrinho: null as Cofrinho | null },
+            { id: "sem-cofrinho", nome: "Sem lastro", cofrinho: null as Cofrinho | null },
           ]
             .map((grupo) => ({
               ...grupo,
@@ -327,13 +346,13 @@ function TelaDeMetas() {
                       <dl className="grid grid-cols-3 gap-4 text-right md:gap-8">
                         <div>
                           <dt className="label text-muted-foreground">Saldo</dt>
-                          <dd aria-label="Saldo do cofrinho" className="value-m">
+                          <dd aria-label="Saldo do lastro" className="value-m">
                             {formatarMoeda(grupo.cofrinho.balance)}
                           </dd>
                         </div>
                         <div>
-                          <dt className="label text-muted-foreground">Metas</dt>
-                          <dd aria-label="Soma das metas" className="value-m">
+                          <dt className="label text-muted-foreground">Destinos</dt>
+                          <dd aria-label="Soma dos destinos" className="value-m">
                             {formatarMoeda(grupo.cofrinho.goals_total)}
                           </dd>
                         </div>
@@ -372,18 +391,18 @@ function TelaDeMetas() {
       <ConfirmacaoDestrutiva
         aberta={metaAExcluir !== null}
         onAbertaChange={(aberta) => !aberta && setMetaAExcluir(null)}
-        titulo={`Excluir a meta ${metaAExcluir?.name ?? ""}?`}
-        descricao="O histórico de aportes e resgates desta meta será excluído. Uma meta com valor guardado precisa ser resgatada antes. Isso não pode ser desfeito."
-        rotuloConfirmar="Excluir meta"
+        titulo={`Excluir o destino ${metaAExcluir?.name ?? ""}?`}
+        descricao="O histórico de aportes e resgates deste destino será excluído. Um destino com valor guardado precisa ser resgatado antes. Isso não pode ser desfeito."
+        rotuloConfirmar="Excluir destino"
         onConfirmar={excluirMeta}
       />
 
       <ConfirmacaoDestrutiva
         aberta={cofrinhoAExcluir !== null}
         onAbertaChange={(aberta) => !aberta && setCofrinhoAExcluir(null)}
-        titulo={`Excluir também o cofrinho ${cofrinhoAExcluir?.nome ?? ""}?`}
-        descricao="O cofrinho ficou vazio e sem metas. Ele sai da lista de contas. Isso não pode ser desfeito."
-        rotuloConfirmar="Excluir cofrinho"
+        titulo={`Excluir também o lastro ${cofrinhoAExcluir?.nome ?? ""}?`}
+        descricao="O lastro ficou vazio e sem destinos. Ele sai da lista de contas. Isso não pode ser desfeito."
+        rotuloConfirmar="Excluir lastro"
         onConfirmar={excluirCofrinho}
       />
 
@@ -488,19 +507,19 @@ function CartaoDaMeta({ goal, onSimular, onDetalhes, onEditar, onExcluir, onGuar
           <div className="min-w-0 space-y-1">
             <div className="flex items-center gap-2">
               <h3 className="display-s truncate">{goal.name}</h3>
-              {concluida && <Badge variant="success">Concluída</Badge>}
+              {concluida && <Badge variant="success">Concluído</Badge>}
             </div>
             <p className="line-clamp-2 text-sm text-muted-foreground">{goal.description || "Sem descrição."}</p>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Ações da meta ${goal.name}`}>
+              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" aria-label={`Ações do destino ${goal.name}`}>
                 <MoreHorizontal aria-hidden="true" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onSimular}>
-                <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" /> Simular cenários
+                <TrendingUp className="mr-2 h-4 w-4" aria-hidden="true" /> Projeção de Trajetória
               </DropdownMenuItem>
               <DropdownMenuItem onClick={onDetalhes}>
                 <Eye className="mr-2 h-4 w-4" aria-hidden="true" /> Ver detalhes
@@ -550,7 +569,7 @@ function CartaoDaMeta({ goal, onSimular, onDetalhes, onEditar, onExcluir, onGuar
               <Badge variant="secondary">{projecao.months} meses</Badge>
             </div>
             <p className="text-sm text-fg-secondary">
-              Você precisa guardar <span className="value-m text-foreground">{formatarMoeda(projecao.suggested)}/mês</span> para atingir sua meta em {format(targetDate, "MMMM 'de' yyyy", { locale: ptBR })}.
+              Você precisa guardar <span className="value-m text-foreground">{formatarMoeda(projecao.suggested)}/mês</span> para chegar ao destino em {format(targetDate, "MMMM 'de' yyyy", { locale: ptBR })}.
             </p>
           </div>
         )}

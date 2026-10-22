@@ -26,6 +26,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { AnelDeProgresso } from "@/components/ui/medicao"
 import { Goal, GoalTransaction } from "@/types/goals"
 import { goalsService } from "@/services/goals"
@@ -77,7 +78,7 @@ export function GoalDetails({
       setCorrecaoVista(true)
       onCorrectionDismissed?.()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao confirmar o aviso da correção." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível confirmar o aviso da correção. Tente de novo." })
     }
   }
 
@@ -108,7 +109,7 @@ export function GoalDetails({
         setAuthError(true)
       } else {
         // CONTRATO-33: nenhuma falha silenciosa
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar o histórico.", tentarDeNovo: fetchHistory })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar o histórico. Tente de novo.", tentarDeNovo: fetchHistory })
       }
     } finally {
       setIsLoading(false)
@@ -224,20 +225,20 @@ export function GoalDetails({
           <div className="space-y-6 p-6">
             <DialogHeader className="space-y-2 pr-8">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={concluida ? "success" : "destino"}>{concluida ? 'Finalizada' : 'Em andamento'}</Badge>
+                <Badge variant={concluida ? "success" : "destino"}>{concluida ? 'Alcançado' : 'Em andamento'}</Badge>
                 <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                  <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Criada em {format(new Date(goal.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" /> Criado em {format(new Date(goal.created_at), "dd 'de' MMM, yyyy", { locale: ptBR })}
                 </span>
               </div>
               <DialogTitle>{goal.name}</DialogTitle>
-              <DialogDescription>{goal.description || 'Nenhuma descrição adicionada.'}</DialogDescription>
+              <DialogDescription>{goal.description || 'Sem descrição.'}</DialogDescription>
             </DialogHeader>
 
             {goal.correction && !correcaoVista && (
               <Alert variant="warning" role="status" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                 <AlertDescription>
-                  <p>{`O valor desta meta foi corrigido de ${formatarMoeda(goal.correction.before)} para ${formatarMoeda(goal.correction.after)}.`}</p>
+                  <p>{`O valor deste destino foi corrigido de ${formatarMoeda(goal.correction.before)} para ${formatarMoeda(goal.correction.after)}.`}</p>
                 </AlertDescription>
                 <Button size="sm" variant="outline" className="shrink-0" onClick={confirmarCorrecao}>
                   Entendi
@@ -245,7 +246,7 @@ export function GoalDetails({
               </Alert>
             )}
 
-            {/* Posição da meta: anel, percentual e valores */}
+            {/* Posição do destino: anel, percentual e valores */}
             <div className="grid gap-4 sm:grid-cols-[auto_1fr_1fr] sm:items-center">
               <div className="flex items-center gap-4">
                 <AnelDeProgresso percentual={percentual} nome={goal.name} tamanho={64} />
@@ -275,7 +276,7 @@ export function GoalDetails({
               <div
                 className="flex h-[220px] min-h-[220px] w-full items-center justify-center rounded-lg border border-border p-4"
                 role="img"
-                aria-label={`Evolução do saldo da meta ${goal.name}: ${formatarMoeda(goal.current_amount)} de ${formatarMoeda(goal.target_amount)}`}
+                aria-label={`Evolução do saldo do destino ${goal.name}: ${formatarMoeda(goal.current_amount)} de ${formatarMoeda(goal.target_amount)}`}
               >
                 {(open && isChartReady) ? (
                   history.length > 0 ? (
@@ -332,7 +333,7 @@ export function GoalDetails({
                     </div>
                   )
                 ) : (
-                  <div className="h-full w-full animate-pulse rounded-md bg-elevated" aria-busy="true" />
+                  <Skeleton className="h-full w-full" aria-busy="true" />
                 )}
               </div>
             </section>
@@ -376,7 +377,7 @@ export function GoalDetails({
                 <History aria-hidden="true" /> Histórico
               </Button>
               <Button variant="ghost" onClick={onOpenSimulator}>
-                <TrendingUp aria-hidden="true" /> Simular
+                <TrendingUp aria-hidden="true" /> Projetar trajetória
               </Button>
             </div>
           </div>

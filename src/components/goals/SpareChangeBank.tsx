@@ -42,7 +42,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       aplicar(await goalsService.getSpareChange())
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar o cofrinho de trocos.", tentarDeNovo: fetchConfig })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar o Lastro do troco. Tente de novo.", tentarDeNovo: fetchConfig })
     }
   }
 
@@ -55,9 +55,9 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       setIsSaving(true)
       aplicar(await goalsService.updateSpareChange(ativo ? { active: true, goal: metaEscolhida } : { active: false }))
       // META-45: desativar mantém os trocos pendentes
-      toast.success(ativo ? "Cofrinho de trocos ativado." : "Cofrinho de trocos desativado. Os trocos pendentes continuam disponíveis.")
+      toast.success(ativo ? "Lastro do troco ativado." : "Lastro do troco desativado. Os trocos pendentes continuam disponíveis.")
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao salvar o cofrinho de trocos." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível salvar o Lastro do troco. Tente de novo." })
     } finally {
       setIsSaving(false)
     }
@@ -76,7 +76,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       await fetchConfig()
       onSuccess()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao depositar os trocos." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível depositar os trocos. Tente de novo." })
     } finally {
       setIsDepositing(false)
     }
@@ -91,7 +91,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
     ? "Desativado"
     : config.paused
       ? "Pausado"
-      : `Indo para ${nomeDaMeta ?? "a meta escolhida"}`
+      : `Indo para ${nomeDaMeta ?? "o destino escolhido"}`
 
   return (
     <Card className="mb-6">
@@ -101,9 +101,9 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
             <Coins className="mt-0.5 h-5 w-5 text-gold-line" aria-hidden="true" />
             <div className="space-y-0.5">
               {/* AZ-27: o termo do glossário com a linha de apoio permanente (D-03) */}
-              <h2 className="display-s">Lastro</h2>
+              <h2 className="display-s">Lastro do troco</h2>
               <p className="text-sm text-muted-foreground">Cofrinho do troco</p>
-              <p className="label text-fg-secondary">{situacao}</p>
+              <p className="label text-fg-secondary" aria-live="polite">{situacao}</p>
             </div>
           </div>
           <div className="text-right">
@@ -118,7 +118,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
           <Alert variant="warning">
             <AlertTriangle className="h-4 w-4" aria-hidden="true" />
             <AlertDescription>
-              <p>A meta dos trocos foi arquivada ou excluída. Escolha outra meta para voltar a juntar os trocos.</p>
+              <p>O destino dos trocos foi arquivado ou excluído. Escolha outro destino para voltar a juntar os trocos.</p>
             </AlertDescription>
           </Alert>
         )}
@@ -126,10 +126,10 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
         <div className="flex flex-col items-end gap-3 md:flex-row">
           {escolherMeta && (
             <div className="w-full flex-1 space-y-2">
-              <label htmlFor="meta-dos-trocos" className="text-sm font-medium">Meta dos trocos</label>
+              <label htmlFor="meta-dos-trocos" className="text-sm font-medium">Destino dos trocos</label>
               <Select value={metaEscolhida} onValueChange={setMetaEscolhida}>
                 <SelectTrigger id="meta-dos-trocos">
-                  <SelectValue placeholder="Selecione uma meta" />
+                  <SelectValue placeholder="Selecione um destino" />
                 </SelectTrigger>
                 <SelectContent>
                   {metasAtivas.map((goal) => (
@@ -149,11 +149,11 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
               disabled={!metaEscolhida || isSaving}
               onClick={() => salvar(true)}
             >
-              {config.paused ? "Usar esta meta" : "Ativar trocos"}
+              {config.paused ? "Usar este destino" : "Ativar trocos"}
             </Button>
           ) : (
             <Button variant="outline" className="w-full md:w-auto" disabled={isSaving} onClick={() => salvar(false)}>
-              Desativar
+              Desativar trocos
             </Button>
           )}
 
@@ -168,7 +168,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
         </div>
 
         <p className="text-sm text-muted-foreground">
-          {`Juntando o troco de ${config.pending_count} ${config.pending_count === 1 ? "despesa" : "despesas"}.`}
+          {`Juntando o troco de ${config.pending_count} ${config.pending_count === 1 ? "saída" : "saídas"}.`}
         </p>
 
         {/* META-38 e META-43: um aporte por conta de origem; trocos de conta excluída descartados */}
