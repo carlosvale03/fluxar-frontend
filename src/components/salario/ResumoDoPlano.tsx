@@ -155,10 +155,10 @@ export function ResumoDoPlano({
                   <Button
                     variant="ghost"
                     className="-my-1.5 -ml-2 h-10 gap-1.5 px-2 text-xs font-medium text-warn hover:bg-elevated hover:text-warn"
-                    aria-label={`Escolher destino de ${parte.name}`}
+                    aria-label={`Escolher para onde vai ${parte.name}`}
                     onClick={() => onEscolherDestino(indice)}
                   >
-                    <AlertTriangle aria-hidden className="h-3.5 w-3.5" /> Escolher destino
+                    <AlertTriangle aria-hidden className="h-3.5 w-3.5" /> Escolher para onde vai
                   </Button>
                 ) : (
                   <p className="text-xs text-muted-foreground">{destino.texto}</p>

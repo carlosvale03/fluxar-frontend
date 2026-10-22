@@ -124,8 +124,8 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     const partes = within(screen.getByRole("list", { name: "Partes do plano" })).getAllByRole("listitem")
     expect(partes.map((p) => p.getAttribute("aria-label"))).toEqual(["Essenciais", "Dispensáveis", "Guardar"])
     expect(screen.getByLabelText("Percentual de Essenciais")).toHaveValue("50")
-    expect(within(parteNoEditor("Essenciais")).getByLabelText("Destino de Essenciais")).toHaveTextContent("Fica na conta do salário")
-    expect(parteNoEditor("Guardar")).toHaveTextContent("Escolha o destino antes de dividir.")
+    expect(within(parteNoEditor("Essenciais")).getByLabelText("Para onde vai Essenciais")).toHaveTextContent("Fica na conta do salário")
+    expect(parteNoEditor("Guardar")).toHaveTextContent("Escolha para onde vai antes de dividir.")
 
     await userEvent.click(screen.getByRole("button", { name: "Subir Guardar" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
@@ -154,7 +154,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     render(<SalarioPage />)
     await usarModelo("50/30/20")
 
-    await userEvent.click(screen.getByLabelText("Destino de Guardar"))
+    await userEvent.click(screen.getByLabelText("Para onde vai Guardar"))
     const opcoes = (await screen.findAllByRole("option")).map((o) => o.textContent)
     // SALARIO-76: o Cofrinho Casa é o da meta Viagem e aparece só como a meta
     expect(opcoes).toEqual(["Fica na conta do salário", "Banco Azul", "Reserva", "Viagem no Cofrinho Casa"])
@@ -178,7 +178,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     await userEvent.click(screen.getByRole("button", { name: "Editar plano" }))
     const guardar = parteNoEditor("Guardar")
     expect(guardar).toHaveTextContent("O destino pede R$ 250,00 por mês até 30/06/2027")
-    expect(within(guardar).getByLabelText("Destino de Guardar")).toHaveTextContent("Destino: Viagem")
+    expect(within(guardar).getByLabelText("Para onde vai Guardar")).toHaveTextContent("Destino: Viagem")
   })
 
   it("simular R$ 3.000,00 mostra o valor de cada parte e o livre, sem salvar", async () => {
@@ -294,7 +294,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     await userEvent.type(screen.getByLabelText("Nome da parte 1"), "Aluguel")
     await userEvent.click(within(parteNoEditor("Aluguel")).getByRole("button", { name: "R$" }))
     await userEvent.type(screen.getByLabelText("Valor de Aluguel"), "1200")
-    await userEvent.click(screen.getByLabelText("Destino de Aluguel"))
+    await userEvent.click(screen.getByLabelText("Para onde vai Aluguel"))
     await userEvent.click(await screen.findByRole("option", { name: "Reserva" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
@@ -349,7 +349,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
     comPlano(SEM_PLANO, { contas, metas })
     render(<SalarioPage />)
     await usarModelo("50/30/20")
-    await userEvent.click(screen.getByLabelText("Destino de Guardar"))
+    await userEvent.click(screen.getByLabelText("Para onde vai Guardar"))
     return screen.findByRole("listbox")
   }
 
@@ -360,7 +360,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
 
     const grupos = within(lista).getAllByRole("group").map((g) => g.getAttribute("aria-labelledby"))
     const rotulos = grupos.map((id) => document.getElementById(id ?? "")?.textContent)
-    expect(rotulos).toEqual(["Contas correntes", "Poupanças", "Carteiras", "Investimentos", "Lastros", "Destinos"])
+    expect(rotulos).toEqual(["Contas correntes", "Poupanças", "Carteiras", "Investimentos", "Cofrinhos", "Destinos"])
     expect(within(lista).getAllByRole("option")[0]).toHaveTextContent("Fica na conta do salário")
   })
 
@@ -374,7 +374,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
     await abrirDestinos()
 
     // Os cofrinhos das metas Casa e Viagem ficam só no grupo Metas
-    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Lastros" }))).toEqual(["Cofrinho Livre"])
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Livre"])
     await userEvent.click(screen.getByRole("option", { name: "Cofrinho Livre" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
@@ -385,7 +385,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
   it("o cofrinho de uma meta inativa volta a aparecer como cofrinho", async () => {
     await abrirDestinos(CONTAS_DE_TODOS_OS_TIPOS, METAS_EM_COFRINHOS.filter((m) => m.id !== "m-casa"))
 
-    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Lastros" }))).toEqual(["Cofrinho Casa", "Cofrinho Livre"])
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Casa", "Cofrinho Livre"])
   })
 
   it("contas e metas inativas não aparecem, nem a meta com o cofrinho inativo ou fora das contas ativas", async () => {
@@ -418,6 +418,6 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
 
     expect(within(lista).getAllByRole("group")).toHaveLength(1)
     expect(screen.getByRole("group", { name: "Contas correntes" })).toBeInTheDocument()
-    expect(screen.queryByRole("group", { name: "Lastros" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("group", { name: "Cofrinhos" })).not.toBeInTheDocument()
   })
 })

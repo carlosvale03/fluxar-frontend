@@ -162,8 +162,8 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     // O livre fica por último, com o ponto cinza
     expect(within(partes()).getAllByRole("listitem").at(-1)).toBe(livre)
     expect(livre.querySelector(".bg-muted-foreground\\/30")).not.toBeNull()
-    expect(within(legenda("Guardar")).getByRole("button", { name: "Escolher destino de Guardar" })).toBeInTheDocument()
-    expect(within(legenda("Essenciais")).queryByRole("button", { name: /Escolher destino/ })).not.toBeInTheDocument()
+    expect(within(legenda("Guardar")).getByRole("button", { name: "Escolher para onde vai Guardar" })).toBeInTheDocument()
+    expect(within(legenda("Essenciais")).queryByRole("button", { name: /Escolher para onde vai/ })).not.toBeInTheDocument()
     expect(legenda("Reserva")).toHaveTextContent("R$ 300,00")
     expect(screen.getByText("Plano ativo: 3 partes")).toBeInTheDocument()
   })
@@ -173,9 +173,9 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     render(<SalarioPage />)
     await regiaoDoPlano()
 
-    await userEvent.click(within(legenda("Guardar")).getByRole("button", { name: "Escolher destino de Guardar" }))
+    await userEvent.click(within(legenda("Guardar")).getByRole("button", { name: "Escolher para onde vai Guardar" }))
 
-    const destino = await screen.findByLabelText("Destino de Guardar")
+    const destino = await screen.findByLabelText("Para onde vai Guardar")
     expect(screen.getByRole("button", { name: "Salvar plano" })).toBeInTheDocument()
     await vi.waitFor(() => expect(document.activeElement).toBe(destino))
   })

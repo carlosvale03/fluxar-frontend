@@ -64,7 +64,7 @@ describe("Metas agrupadas por cofrinho", () => {
     expect(within(casa).getByText("Viagem")).toBeInTheDocument()
     expect(within(casa).getByText("Carro")).toBeInTheDocument()
     expect(within(casa).queryByText("Reserva")).not.toBeInTheDocument()
-    expect(within(casa).getByLabelText("Saldo do lastro")).toHaveTextContent(/^R\$\s700,00$/)
+    expect(within(casa).getByLabelText("Saldo do cofrinho")).toHaveTextContent(/^R\$\s700,00$/)
     expect(within(casa).getByLabelText("Soma dos destinos")).toHaveTextContent(/^R\$\s500,00$/)
     expect(within(casa).getByLabelText("Saldo livre")).toHaveTextContent(/^R\$\s200,00$/)
 
@@ -77,10 +77,10 @@ describe("Metas agrupadas por cofrinho", () => {
     vi.mocked(goalsService.getPiggyBanks).mockResolvedValue(cofrinhos("-200.00"))
     render(<GoalsPage />)
 
-    const aviso = await screen.findByText("O lastro Cofrinho Casa tem R$ 200,00 a menos do que os destinos somam.")
+    const aviso = await screen.findByText("O cofrinho Cofrinho Casa tem R$ 200,00 a menos do que os destinos somam.")
     expect(aviso).toBeInTheDocument()
     // O cofrinho com saldo livre positivo não tem aviso
-    expect(screen.queryByText(/O lastro Cofrinho Férias tem/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/O cofrinho Cofrinho Férias tem/)).not.toBeInTheDocument()
   })
 
   it("sem saldo livre negativo, nenhum aviso aparece", async () => {

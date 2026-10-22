@@ -110,9 +110,9 @@ function TelaDeMetas() {
     if (!cofrinhoAExcluir) return
     try {
       await accountsService.deleteAccount(cofrinhoAExcluir.id)
-      toast.success("Lastro excluído.")
+      toast.success("Cofrinho excluído.")
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Não foi possível excluir o lastro. Tente de novo." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível excluir o cofrinho. Tente de novo." })
     }
   }
 
@@ -168,7 +168,7 @@ function TelaDeMetas() {
         ajuda={
           <PageHelp
             title="Destinos"
-            description="Cada destino é um valor a juntar, com prazo opcional e um lastro, a conta onde o dinheiro fica."
+            description="Cada destino é um valor a juntar, com prazo opcional e um cofrinho, a conta onde o dinheiro fica."
             sections={[
               {
                 title: "Objetivo Central",
@@ -176,13 +176,13 @@ function TelaDeMetas() {
                 icon: <Target className="h-4 w-4" />,
               },
               {
-                title: "Lastros",
-                content: "Os destinos ficam vinculados a lastros, as contas onde o dinheiro fica guardado. Um lastro pode ser exclusivo de um destino ou compartilhado por vários.",
+                title: "Cofrinhos",
+                content: "Os destinos ficam vinculados a cofrinhos, as contas onde o dinheiro fica guardado. Um cofrinho pode ser exclusivo de um destino ou compartilhado por vários.",
                 icon: <PiggyBank className="h-4 w-4" />,
               },
               {
                 title: "Saldo Livre",
-                content: "O valor de cada destino é o que você aportou menos o que resgatou. O que entra ou sai do lastro por fora dos aportes e resgates fica no saldo livre, que você pode usar para aportar em qualquer destino do lastro.",
+                content: "O valor de cada destino é o que você aportou menos o que resgatou. O que entra ou sai do cofrinho por fora dos aportes e resgates fica no saldo livre, que você pode usar para aportar em qualquer destino do lastro.",
                 icon: <Zap className="h-4 w-4" />,
               },
               {
@@ -191,8 +191,8 @@ function TelaDeMetas() {
                 icon: <TrendingUp className="h-4 w-4" />,
               },
               {
-                title: "Lastro do troco",
-                content: "Ative o Lastro do troco (o cofrinho do troco) no topo da página: o troco de cada saída até o próximo real fica guardado, e você deposita no destino quando quiser.",
+                title: "Lastro",
+                content: "Ative o Lastro (o cofrinho do troco) no topo da página: o troco de cada saída até o próximo real fica guardado, e você deposita no destino quando quiser.",
                 icon: <Sparkles className="h-4 w-4" />,
               },
             ]}
@@ -237,7 +237,7 @@ function TelaDeMetas() {
               <Alert key={c.account_id} variant="warning">
                 <AlertTriangle className="h-4 w-4" aria-hidden="true" />
                 <AlertDescription>
-                  <p>{`O lastro ${c.name} tem ${formatarMoeda(deCentavos(-paraCentavos(c.free_balance)))} a menos do que os destinos somam.`}</p>
+                  <p>{`O cofrinho ${c.name} tem ${formatarMoeda(deCentavos(-paraCentavos(c.free_balance)))} a menos do que os destinos somam.`}</p>
                 </AlertDescription>
               </Alert>
             ))}
@@ -323,7 +323,7 @@ function TelaDeMetas() {
           // conhecido fica num grupo à parte
           const grupos = [
             ...cofrinhos.map((c) => ({ id: c.account_id, nome: c.name, cofrinho: c as Cofrinho | null })),
-            { id: "sem-cofrinho", nome: "Sem lastro", cofrinho: null as Cofrinho | null },
+            { id: "sem-cofrinho", nome: "Sem cofrinho", cofrinho: null as Cofrinho | null },
           ]
             .map((grupo) => ({
               ...grupo,
@@ -346,7 +346,7 @@ function TelaDeMetas() {
                       <dl className="grid grid-cols-3 gap-4 text-right md:gap-8">
                         <div>
                           <dt className="label text-muted-foreground">Saldo</dt>
-                          <dd aria-label="Saldo do lastro" className="value-m">
+                          <dd aria-label="Saldo do cofrinho" className="value-m">
                             {formatarMoeda(grupo.cofrinho.balance)}
                           </dd>
                         </div>
@@ -400,9 +400,9 @@ function TelaDeMetas() {
       <ConfirmacaoDestrutiva
         aberta={cofrinhoAExcluir !== null}
         onAbertaChange={(aberta) => !aberta && setCofrinhoAExcluir(null)}
-        titulo={`Excluir também o lastro ${cofrinhoAExcluir?.nome ?? ""}?`}
-        descricao="O lastro ficou vazio e sem destinos. Ele sai da lista de contas. Isso não pode ser desfeito."
-        rotuloConfirmar="Excluir lastro"
+        titulo={`Excluir também o cofrinho ${cofrinhoAExcluir?.nome ?? ""}?`}
+        descricao="O cofrinho ficou vazio e sem destinos. Ele sai da lista de contas. Isso não pode ser desfeito."
+        rotuloConfirmar="Excluir cofrinho"
         onConfirmar={excluirCofrinho}
       />
 

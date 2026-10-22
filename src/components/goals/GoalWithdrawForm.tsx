@@ -169,7 +169,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={SALDO_LIVRE}>Saldo livre do lastro</SelectItem>
+                        <SelectItem value={SALDO_LIVRE}>Saldo livre do cofrinho</SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             <div className="flex flex-col">
@@ -208,7 +208,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                     {/* META-17 e META-18: o resgate vai até o valor da meta e, para outra conta, até o saldo do cofrinho */}
                     <div className="flex flex-wrap gap-2">
                       <Badge variant="secondary">{`No destino: ${formatarMoeda(goal?.current_amount || "0.00")}`}</Badge>
-                      {cofrinho && <Badge variant="secondary">{`No lastro: ${formatarMoeda(cofrinho.balance)}`}</Badge>}
+                      {cofrinho && <Badge variant="secondary">{`No cofrinho: ${formatarMoeda(cofrinho.balance)}`}</Badge>}
                     </div>
                     <FormMessage />
                   </FormItem>

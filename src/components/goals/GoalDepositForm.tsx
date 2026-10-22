@@ -152,8 +152,8 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                       <SelectContent>
                         <SelectItem value={SALDO_LIVRE}>
                           {cofrinho
-                            ? `Saldo livre do lastro (${formatarMoeda(cofrinho.free_balance)})`
-                            : "Saldo livre do lastro"}
+                            ? `Saldo livre do cofrinho (${formatarMoeda(cofrinho.free_balance)})`
+                            : "Saldo livre do cofrinho"}
                         </SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
@@ -207,8 +207,8 @@ export function GoalDepositForm({ goal, cofrinho, open, onOpenChange, onSuccess 
                 </div>
                 <p className="text-xs text-muted-foreground">
                   {origem === SALDO_LIVRE
-                    ? "O valor sai do saldo livre do lastro, sem transferência."
-                    : "O valor vai para o lastro como uma transferência entre contas."}
+                    ? "O valor sai do saldo livre do cofrinho, sem transferência."
+                    : "O valor vai para o cofrinho como uma transferência entre contas."}
                 </p>
               </div>
 

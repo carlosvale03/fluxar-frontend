@@ -542,7 +542,7 @@ export function RevisaoDaDivisao({ recebimentoId, onOpenChange, onGerada, onDesf
                 {semDestino && (
                   <p className="flex items-center gap-1.5 text-xs font-medium text-destructive">
                     <AlertTriangle aria-hidden="true" className="h-3.5 w-3.5 shrink-0" />
-                    Escolha o destino de todas as partes no plano antes de gerar.
+                    Escolha para onde vai cada parte do plano antes de gerar.
                   </p>
                 )}
 

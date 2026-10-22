@@ -42,7 +42,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       aplicar(await goalsService.getSpareChange())
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Não foi possível carregar o Lastro do troco. Tente de novo.", tentarDeNovo: fetchConfig })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar o Lastro. Tente de novo.", tentarDeNovo: fetchConfig })
     }
   }
 
@@ -55,9 +55,9 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
       setIsSaving(true)
       aplicar(await goalsService.updateSpareChange(ativo ? { active: true, goal: metaEscolhida } : { active: false }))
       // META-45: desativar mantém os trocos pendentes
-      toast.success(ativo ? "Lastro do troco ativado." : "Lastro do troco desativado. Os trocos pendentes continuam disponíveis.")
+      toast.success(ativo ? "Lastro ativado." : "Lastro desativado. Os trocos pendentes continuam disponíveis.")
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Não foi possível salvar o Lastro do troco. Tente de novo." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível salvar o Lastro. Tente de novo." })
     } finally {
       setIsSaving(false)
     }
@@ -101,7 +101,7 @@ export function SpareChangeBank({ goals, onSuccess }: SpareChangeBankProps) {
             <Coins className="mt-0.5 h-5 w-5 text-gold-line" aria-hidden="true" />
             <div className="space-y-0.5">
               {/* AZ-27: o termo do glossário com a linha de apoio permanente (D-03) */}
-              <h2 className="display-s">Lastro do troco</h2>
+              <h2 className="display-s">Lastro</h2>
               <p className="text-sm text-muted-foreground">Cofrinho do troco</p>
               <p className="label text-fg-secondary" aria-live="polite">{situacao}</p>
             </div>

@@ -155,7 +155,7 @@ const GRUPOS_DE_CONTAS: { tipo: AccountType; rotulo: string }[] = [
   { tipo: AccountType.SAVINGS, rotulo: "Poupanças" },
   { tipo: AccountType.WALLET, rotulo: "Carteiras" },
   { tipo: AccountType.INVESTMENT, rotulo: "Investimentos" },
-  { tipo: AccountType.PIGGY_BANK, rotulo: "Lastros" },
+  { tipo: AccountType.PIGGY_BANK, rotulo: "Cofrinhos" },
 ]
 
 // Por nome, em português, sem diferenciar acento nem maiúscula
@@ -227,7 +227,7 @@ export function EditorDoPlano({
   // quando ela começou; recomeça ao sair do campo ou mudar outra coisa
   const edicao = useRef<EdicaoDoPercentual | null>(null)
 
-  // Vindo de "Escolher destino" no resumo: o foco vai ao destino da parte
+  // Vindo de "Escolher para onde vai" no resumo: o foco vai ao destino da parte
   useEffect(() => {
     if (focarDestino === null || focarDestino === undefined) return
     const alvo = listaDePartes.current?.querySelector<HTMLElement>(`[data-destino="${focarDestino}"]`)
@@ -654,9 +654,9 @@ export function EditorDoPlano({
                     </div>
 
                     <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
-                      <SelectTrigger data-destino={indice} aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-md">
+                      <SelectTrigger data-destino={indice} aria-label={`Para onde vai ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-md">
                         {/* O rótulo vai num span: texto solto no SelectValue conflita com o portal do item escolhido */}
-                        <SelectValue placeholder="Escolha o destino">
+                        <SelectValue placeholder="Escolha para onde vai">
                           <span className="truncate">{rotuloDoDestino(parte, destino.nome)}</span>
                         </SelectValue>
                       </SelectTrigger>
@@ -719,7 +719,7 @@ export function EditorDoPlano({
                     {errosDaParte.value && <p className="font-medium text-destructive">{errosDaParte.value}</p>}
                     {errosDaParte.destination && <p className="font-medium text-destructive">{errosDaParte.destination}</p>}
                     {!parte.destino && !errosDaParte.destination && (
-                      <p className="font-medium text-warn">Escolha o destino antes de dividir.</p>
+                      <p className="font-medium text-warn">Escolha para onde vai antes de dividir.</p>
                     )}
                     {historico && <p className="text-muted-foreground">{historico} no seu histórico</p>}
                     {pedido && (
