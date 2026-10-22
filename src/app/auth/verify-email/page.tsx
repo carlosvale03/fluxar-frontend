@@ -12,7 +12,7 @@ import Link from "next/link"
 
 import { useAuth } from "@/contexts/auth-context"
 
-const LINK_INVALIDO = "Este link de verificação é inválido ou expirou. Tente solicitar um novo acesso."
+const LINK_INVALIDO = "Este link de verificação é inválido ou venceu. Peça um novo e-mail abaixo."
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams()
@@ -56,14 +56,14 @@ function VerifyEmailContent() {
 
   return (
     <AuthShell
-      title="Verificação de Conta"
-      description={status === "loading" ? "Validando suas credenciais." : "Processamento finalizado."}
+      title="Verificação de e-mail"
+      description={status === "loading" ? "Confirmando o seu e-mail." : "Verificação concluída."}
     >
       <div className="flex flex-col items-center justify-center py-2">
         {status === "loading" && (
           <div className="flex flex-col items-center space-y-4" role="status">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
-            <p className="label text-muted-foreground">Autenticando</p>
+            <p className="label text-muted-foreground">Verificando</p>
           </div>
         )}
 
@@ -73,13 +73,13 @@ function VerifyEmailContent() {
               <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
             </div>
             <div className="space-y-2 text-center">
-              <h2 className="display-m">Tudo pronto</h2>
+              <h2 className="display-m">E-mail confirmado</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">
-                Seu e-mail foi validado e sua conta está <strong className="font-semibold text-foreground">totalmente ativa</strong> no Azimute.
+                Sua conta no Azimute está <strong className="font-semibold text-foreground">ativa</strong>.
               </p>
             </div>
             <Button onClick={handleAccessAccount} className="w-full max-md:h-11">
-              Acessar Minha Conta
+              Entrar na conta
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </Button>
           </div>
@@ -91,7 +91,7 @@ function VerifyEmailContent() {
               <XCircle className="h-6 w-6" aria-hidden="true" />
             </div>
             <div className="space-y-2 text-center">
-              <h2 className="display-m">Falha na Verificação</h2>
+              <h2 className="display-m">Não foi possível verificar</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">{mensagemErro}</p>
             </div>
             {/* O link não diz de qual conta é: o reenvio pede o e-mail (AUTH-09) */}
@@ -110,7 +110,7 @@ function VerifyEmailContent() {
             </div>
             <ResendVerification email={emailReenvio.trim()} />
             <Button asChild variant="ghost" className="w-full max-md:h-11">
-              <Link href="/auth/login">Voltar para o Login</Link>
+              <Link href="/auth/login">Voltar para o login</Link>
             </Button>
           </div>
         )}

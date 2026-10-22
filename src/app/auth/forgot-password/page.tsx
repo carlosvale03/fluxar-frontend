@@ -13,7 +13,7 @@ import { api, mensagemDeErro } from "@/services/apiClient"
 import { AlertCircle, ChevronLeft, CheckCircle2, ArrowRight } from "lucide-react"
 
 const forgotSchema = z.object({
-  email: z.string().email("Por favor, informe um e-mail válido"),
+  email: z.string().email("Informe um e-mail válido, como nome@exemplo.com."),
 })
 
 type ForgotForm = z.infer<typeof forgotSchema>
@@ -37,7 +37,7 @@ export default function ForgotPasswordPage() {
       toast.success(response.data.message)
     } catch (error) {
       console.error(error)
-      toast.error(mensagemDeErro(error, "Ocorreu um erro. Tente novamente mais tarde."))
+      toast.error(mensagemDeErro(error, "Não foi possível enviar o pedido. Tente de novo em alguns minutos."))
     } finally {
       setIsLoading(false)
     }
@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
 
   return (
     <AuthShell
-      title="Recuperar Senha"
+      title="Recuperar senha"
       description={success
         ? "Pedido recebido. Confira a mensagem abaixo."
         : "Informe seu e-mail e enviaremos um link para você criar uma nova senha."
@@ -60,33 +60,34 @@ export default function ForgotPasswordPage() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="display-s">Verifique sua caixa de entrada</h2>
+            <h2 className="display-s">Confira sua caixa de entrada</h2>
             <p className="text-sm leading-relaxed text-muted-foreground">{mensagem}</p>
             <p className="text-sm leading-relaxed text-muted-foreground">
-              O link vale por 1 hora. Se não encontrar, verifique sua pasta de <strong className="font-semibold text-foreground">spam</strong>.
+              O link vale por 1 hora. Se não encontrar, confira a pasta de <strong className="font-semibold text-foreground">spam</strong>.
             </p>
           </div>
 
           <Button asChild variant="outline" className="w-full max-md:h-11">
-            <Link href="/auth/login">Voltar para o Login</Link>
+            <Link href="/auth/login">Voltar para o login</Link>
           </Button>
         </div>
       ) : (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-fg-secondary" htmlFor="email">
-              Seu E-mail Cadastrado
+              E-mail cadastrado
             </label>
             <Input
               id="email"
               type="email"
               autoComplete="email"
-              placeholder="exemplo@email.com"
+              placeholder="nome@exemplo.com"
               aria-invalid={errors.email ? true : undefined}
+              aria-describedby={errors.email ? "email-erro" : undefined}
               {...register("email")}
             />
             {errors.email && (
-              <p className="flex items-center gap-1.5 text-xs text-outflow">
+              <p id="email-erro" role="alert" className="flex items-center gap-1.5 text-xs text-outflow">
                 <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                 {errors.email.message}
               </p>
@@ -99,7 +100,7 @@ export default function ForgotPasswordPage() {
             loading={isLoading}
             disabled={isLoading}
           >
-            Enviar Link de Recuperação
+            Enviar link de recuperação
             <ArrowRight className="h-4 w-4" aria-hidden="true" />
           </Button>
 
@@ -109,7 +110,7 @@ export default function ForgotPasswordPage() {
               className="inline-flex items-center gap-1 rounded-sm text-sm text-muted-foreground transition-colors duration-fast ease-az-out hover:text-foreground"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-              Voltar para o Início
+              Voltar para o login
             </Link>
           </div>
         </form>

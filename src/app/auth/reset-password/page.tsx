@@ -15,14 +15,14 @@ import { PasswordInput } from "@/components/ui/password-input"
 
 const resetSchema = z.object({
   newPassword: z.string()
-    .min(1, "A nova senha é obrigatória")
-    .min(8, "A nova senha deve ter pelo menos 8 caracteres")
+    .min(1, "Informe a nova senha.")
+    .min(8, "Use pelo menos 8 caracteres na senha.")
     .refine((val) => !/^\d+$/.test(val), {
-      message: "A senha não pode ser puramente numérica",
+      message: "A senha não pode ter só números.",
     }),
-  confirmPassword: z.string().min(1, "A confirmação de senha é obrigatória"),
+  confirmPassword: z.string().min(1, "Repita a senha para confirmar."),
 }).refine((data) => data.newPassword === data.confirmPassword, {
-  message: "As senhas não conferem",
+  message: "As senhas não conferem. Digite a mesma senha nos dois campos.",
   path: ["confirmPassword"],
 })
 
@@ -47,7 +47,7 @@ function ResetPasswordContent() {
 
   const onSubmit = async (data: ResetForm) => {
     if (!token) {
-        toast.error("Token inválido ou ausente.")
+        toast.error("O link de recuperação está incompleto. Peça um novo link.")
         return
     }
 
@@ -81,7 +81,7 @@ function ResetPasswordContent() {
       }
 
       if (!temErroDeCampo) {
-        toast.error(mensagemDeErro(error, "Erro ao redefinir senha. O link pode ter expirado."))
+        toast.error(mensagemDeErro(error, "Não foi possível trocar a senha. O link pode ter vencido; peça um novo."))
       }
     } finally {
       setIsLoading(false)
@@ -90,16 +90,16 @@ function ResetPasswordContent() {
 
   if (!token || linkInvalido) {
     return (
-      <AuthShell title="Link Inválido" description="O link de recuperação parece estar incompleto ou expirado.">
+      <AuthShell title="Link inválido" description="O link de recuperação está incompleto ou venceu.">
         <div className="flex flex-col items-center space-y-5 py-2">
           <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong text-outflow">
             <AlertTriangle className="h-6 w-6" aria-hidden="true" />
           </div>
           <p className="text-center text-sm leading-relaxed text-muted-foreground">
-            {linkInvalido ?? "Por questões de segurança, links de recuperação expiram em 1 hora. Solicite um novo link para continuar."}
+            {linkInvalido ?? "Por segurança, o link de recuperação vale por 1 hora. Peça um novo link para trocar a senha."}
           </p>
           <Button asChild variant="outline" className="w-full max-md:h-11">
-            <Link href="/auth/forgot-password">Solicitar Novo Link</Link>
+            <Link href="/auth/forgot-password">Pedir novo link</Link>
           </Button>
         </div>
       </AuthShell>
@@ -108,23 +108,23 @@ function ResetPasswordContent() {
 
   return (
     <AuthShell
-      title="Nova Senha"
-      description="Escolha uma senha forte para proteger sua conta no Azimute."
+      title="Nova senha"
+      description="Escolha uma senha com pelo menos 8 caracteres."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-fg-secondary" htmlFor="newPassword">
-            Nova Senha de Acesso
+            Nova senha
           </label>
           <PasswordInput
             id="newPassword"
             autoComplete="new-password"
-            placeholder="Digite sua nova senha"
             aria-invalid={errors.newPassword ? true : undefined}
+            aria-describedby={errors.newPassword ? "newPassword-erro" : undefined}
             {...register("newPassword")}
           />
           {errors.newPassword && (
-            <p className="flex items-center gap-1.5 text-xs text-outflow">
+            <p id="newPassword-erro" role="alert" className="flex items-center gap-1.5 text-xs text-outflow">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {errors.newPassword.message}
             </p>
@@ -133,17 +133,17 @@ function ResetPasswordContent() {
 
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-fg-secondary" htmlFor="confirmPassword">
-            Confirmar Nova Senha
+            Confirmar nova senha
           </label>
           <PasswordInput
             id="confirmPassword"
             autoComplete="new-password"
-            placeholder="Repita a nova senha"
             aria-invalid={errors.confirmPassword ? true : undefined}
+            aria-describedby={errors.confirmPassword ? "confirmPassword-erro" : undefined}
             {...register("confirmPassword")}
           />
           {errors.confirmPassword && (
-            <p className="flex items-center gap-1.5 text-xs text-outflow">
+            <p id="confirmPassword-erro" role="alert" className="flex items-center gap-1.5 text-xs text-outflow">
               <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
               {errors.confirmPassword.message}
             </p>
@@ -156,7 +156,7 @@ function ResetPasswordContent() {
           loading={isLoading}
           disabled={isLoading}
         >
-          Atualizar Senha
+          Salvar nova senha
           <KeyRound className="h-4 w-4" aria-hidden="true" />
         </Button>
       </form>

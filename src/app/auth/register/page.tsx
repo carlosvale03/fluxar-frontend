@@ -19,28 +19,28 @@ import { ResendVerification } from "@/components/auth/resend-verification"
 
 const registerSchema = z.object({
   name: z.string()
-    .min(1, "O nome completo é obrigatório")
-    .min(3, "O nome deve ter pelo menos 3 caracteres"),
+    .min(1, "Informe o nome completo.")
+    .min(3, "Use pelo menos 3 caracteres no nome."),
   email: z.string()
-    .min(1, "O e-mail é obrigatório")
-    .email("Informe um e-mail válido"),
+    .min(1, "Informe o e-mail.")
+    .email("Informe um e-mail válido, como nome@exemplo.com."),
   password: z.string()
-    .min(1, "A senha é obrigatória")
-    .min(8, "A senha deve ter pelo menos 8 caracteres")
+    .min(1, "Informe a senha.")
+    .min(8, "Use pelo menos 8 caracteres na senha.")
     .refine((val) => !/^\d+$/.test(val), {
-      message: "A senha não pode ser puramente numérica",
+      message: "A senha não pode ter só números.",
     }),
-  confirmPassword: z.string().min(1, "A confirmação de senha é obrigatória"),
+  confirmPassword: z.string().min(1, "Repita a senha para confirmar."),
   termsAccepted: z.boolean().refine(val => val === true, {
-    message: "Você deve aceitar os termos para continuar",
+    message: "Aceite os termos para criar a conta.",
   }),
   // LGPD-33: opcional e desmarcado; o cadastro não depende dele
   productImprovementConsent: z.boolean(),
 }).refine((data) => data.password === data.confirmPassword, {
-  message: "As senhas não conferem",
+  message: "As senhas não conferem. Digite a mesma senha nos dois campos.",
   path: ["confirmPassword"],
 }).refine((data) => !data.password.toLowerCase().includes(data.email.split('@')[0].toLowerCase()), {
-  message: "A senha não pode ser muito parecida com o e-mail",
+  message: "A senha não pode ser parecida com o e-mail.",
   path: ["password"],
 })
 
@@ -104,7 +104,7 @@ export default function RegisterPage() {
       }
 
       if (!temErroDeCampo) {
-        const msg = mensagemDeErro(error, "Erro ao realizar cadastro. Tente novamente mais tarde.")
+        const msg = mensagemDeErro(error, "Não foi possível criar a conta. Tente de novo em alguns minutos.")
         setError("root", { message: msg })
         toast.error(msg)
       }
@@ -135,11 +135,11 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Crie sua conta"
-      description="Comece a controlar suas finanças hoje mesmo com a inteligência do Azimute."
+      description="Cadastre-se para organizar contas, cartões e lançamentos."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {errors.root && (
-          <div className="flex items-start gap-3 rounded-r-md border border-border border-l-[3px] border-l-outflow bg-card p-3 text-sm text-foreground">
+          <div role="alert" className="flex items-start gap-3 rounded-r-md border border-border border-l-[3px] border-l-outflow bg-card p-3 text-sm text-foreground">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-outflow" aria-hidden="true" />
             <p>{errors.root.message}</p>
           </div>
@@ -147,31 +147,33 @@ export default function RegisterPage() {
 
         <div className="space-y-1.5">
           <label className={ROTULO} htmlFor="name">
-            Nome Completo
+            Nome completo
           </label>
           <Input
             id="name"
             autoComplete="name"
-            placeholder="Informe seu nome completo"
+            placeholder="Ex.: Ana Souza"
             aria-invalid={errors.name ? true : undefined}
+            aria-describedby={errors.name ? "name-erro" : undefined}
             {...register("name")}
           />
-          {errors.name && <ErroDoCampo mensagem={errors.name.message} />}
+          {errors.name && <ErroDoCampo id="name-erro" mensagem={errors.name.message} />}
         </div>
 
         <div className="space-y-1.5">
           <label className={ROTULO} htmlFor="email">
-            Melhor E-mail
+            E-mail
           </label>
           <Input
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="seu@email.com"
+            placeholder="nome@exemplo.com"
             aria-invalid={errors.email ? true : undefined}
+            aria-describedby={errors.email ? "email-erro" : undefined}
             {...register("email")}
           />
-          {errors.email && <ErroDoCampo mensagem={errors.email.message} />}
+          {errors.email && <ErroDoCampo id="email-erro" mensagem={errors.email.message} />}
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -182,25 +184,25 @@ export default function RegisterPage() {
             <PasswordInput
               id="password"
               autoComplete="new-password"
-              placeholder="******"
               aria-invalid={errors.password ? true : undefined}
+              aria-describedby={errors.password ? "password-erro" : undefined}
               {...register("password")}
             />
-            {errors.password && <ErroDoCampo mensagem={errors.password.message} />}
+            {errors.password && <ErroDoCampo id="password-erro" mensagem={errors.password.message} />}
           </div>
 
           <div className="space-y-1.5">
             <label className={ROTULO} htmlFor="confirmPassword">
-              Confirmar
+              Confirmar senha
             </label>
             <PasswordInput
               id="confirmPassword"
               autoComplete="new-password"
-              placeholder="******"
               aria-invalid={errors.confirmPassword ? true : undefined}
+              aria-describedby={errors.confirmPassword ? "confirmPassword-erro" : undefined}
               {...register("confirmPassword")}
             />
-            {errors.confirmPassword && <ErroDoCampo mensagem={errors.confirmPassword.message} />}
+            {errors.confirmPassword && <ErroDoCampo id="confirmPassword-erro" mensagem={errors.confirmPassword.message} />}
           </div>
         </div>
 
@@ -212,6 +214,8 @@ export default function RegisterPage() {
               render={({ field }) => (
                 <Checkbox
                   id="termsAccepted"
+                  aria-invalid={errors.termsAccepted ? true : undefined}
+                  aria-describedby={errors.termsAccepted ? "termsAccepted-erro" : undefined}
                   checked={field.value}
                   onCheckedChange={field.onChange}
                   className="mt-0.5"
@@ -230,7 +234,7 @@ export default function RegisterPage() {
               </p>
             </div>
           </div>
-          {errors.termsAccepted && <ErroDoCampo mensagem={errors.termsAccepted.message} />}
+          {errors.termsAccepted && <ErroDoCampo id="termsAccepted-erro" mensagem={errors.termsAccepted.message} />}
 
           <div className="flex items-start gap-3 rounded-md border border-border p-3">
             <Controller
@@ -265,14 +269,14 @@ export default function RegisterPage() {
           loading={isLoading}
           disabled={isLoading}
         >
-          Criar Minha Conta
+          Criar conta
           <UserPlus className="h-4 w-4" aria-hidden="true" />
         </Button>
 
         <p className="text-center text-sm text-muted-foreground">
           Já tem uma conta?{" "}
           <Link href="/auth/login" className="rounded-sm font-medium text-gold-line underline-offset-4 hover:underline">
-            Entre aqui
+            Entrar
           </Link>
         </p>
       </form>
@@ -282,9 +286,9 @@ export default function RegisterPage() {
 
 const ROTULO = "text-sm font-medium text-fg-secondary"
 
-function ErroDoCampo({ mensagem }: { mensagem?: string }) {
+function ErroDoCampo({ id, mensagem }: { id: string; mensagem?: string }) {
   return (
-    <p className="flex items-start gap-1.5 text-xs leading-snug text-outflow">
+    <p id={id} role="alert" className="flex items-start gap-1.5 text-xs leading-snug text-outflow">
       <AlertCircle className="mt-px h-3.5 w-3.5 shrink-0" aria-hidden="true" />
       {mensagem}
     </p>
