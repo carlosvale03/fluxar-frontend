@@ -101,7 +101,7 @@ describe("Relatórios", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
 
-    expect(await screen.findByRole("heading", { name: "Relatórios avançados" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Cartas avançadas" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
     expect(r.getAdvancedCharts).not.toHaveBeenCalled()
   })
@@ -111,7 +111,7 @@ describe("Relatórios", () => {
     render(<ReportsPage />)
 
     expect(await screen.findByRole("heading", { name: "Comparação mensal" })).toBeInTheDocument()
-    expect(screen.queryByText("Balanço por Mês")).not.toBeInTheDocument()
+    expect(screen.queryByText("Balanço por mês")).not.toBeInTheDocument()
     await vi.waitFor(() => expect(r.getSimpleCharts).toHaveBeenCalled())
     expect(r.getMonthlyComparison).not.toHaveBeenCalled()
     expect(r.getTagDistribution).toHaveBeenCalled()
@@ -121,8 +121,8 @@ describe("Relatórios", () => {
     comAcesso(["analise_por_tag"])
     render(<ReportsPage />)
 
-    expect(await screen.findByRole("heading", { name: "Análise por tag" })).toBeInTheDocument()
-    expect(screen.queryByText("Despesas por Tag")).not.toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Análise por marcador" })).toBeInTheDocument()
+    expect(screen.queryByText("Saídas por marcador")).not.toBeInTheDocument()
     await vi.waitFor(() => expect(r.getSimpleCharts).toHaveBeenCalled())
     expect(r.getTagDistribution).not.toHaveBeenCalled()
     expect(r.getMonthlyComparison).toHaveBeenCalled()
@@ -135,7 +135,7 @@ describe("Relatórios", () => {
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
 
     expect(await screen.findByRole("heading", { name: "Monitor de foco" })).toBeInTheDocument()
-    expect(screen.queryByText("Monitorar Nova Categoria/Tag")).not.toBeInTheDocument()
+    expect(screen.queryByText("Monitorar categoria ou marcador")).not.toBeInTheDocument()
     expect(r.getAdvancedCharts).toHaveBeenCalled()
   })
 
@@ -143,10 +143,10 @@ describe("Relatórios", () => {
     comAcesso()
     render(<ReportsPage />)
 
-    expect(await screen.findAllByText("Balanço por Mês")).not.toHaveLength(0)
-    expect(screen.getAllByText("Despesas por Tag")).not.toHaveLength(0)
+    expect(await screen.findAllByText("Balanço por mês")).not.toHaveLength(0)
+    expect(screen.getAllByText("Saídas por marcador")).not.toHaveLength(0)
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
-    expect(await screen.findByText("Monitorar Nova Categoria/Tag")).toBeInTheDocument()
+    expect(await screen.findByText("Monitorar categoria ou marcador")).toBeInTheDocument()
     expect(r.getMonthlyComparison).toHaveBeenCalled()
     expect(r.getTagDistribution).toHaveBeenCalled()
     expect(r.getAdvancedCharts).toHaveBeenCalled()
@@ -189,8 +189,8 @@ describe("Dashboard", () => {
     render(<DashboardPage />)
 
     expect(await screen.findAllByRole("heading", { name: "Comparação mensal" })).not.toHaveLength(0)
-    expect(screen.getAllByRole("heading", { name: "Análise por tag" })).toHaveLength(2)
-    expect(screen.queryByText("Despesas por Tag")).not.toBeInTheDocument()
+    expect(screen.getAllByRole("heading", { name: "Análise por marcador" })).toHaveLength(2)
+    expect(screen.queryByText("Saídas por marcador")).not.toBeInTheDocument()
     expect(r.getDashboardSummary).toHaveBeenCalled()
     expect(r.getMonthlyComparison).not.toHaveBeenCalled()
     expect(r.getTagDistribution).not.toHaveBeenCalled()
@@ -203,9 +203,9 @@ describe("Dashboard", () => {
 
     expect(await screen.findByText(AVISO)).toBeInTheDocument()
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
-    expect(screen.queryByRole("button", { name: "Personalizar dashboard" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Personalizar a Ponte de Comando" })).not.toBeInTheDocument()
     // O layout padrão não mostra os módulos de tag
-    expect(screen.queryByText("Despesas por Tag")).not.toBeInTheDocument()
+    expect(screen.queryByText("Saídas por marcador")).not.toBeInTheDocument()
   })
 
   it("com as travas abertas, carrega a comparação, as tags e deixa personalizar", async () => {
@@ -213,8 +213,8 @@ describe("Dashboard", () => {
     comAcesso()
     render(<DashboardPage />)
 
-    expect(await screen.findByRole("button", { name: "Personalizar dashboard" })).toBeInTheDocument()
-    expect(screen.getAllByText("Despesas por Tag")).not.toHaveLength(0)
+    expect(await screen.findByRole("button", { name: "Personalizar a Ponte de Comando" })).toBeInTheDocument()
+    expect(screen.getAllByText("Saídas por marcador")).not.toHaveLength(0)
     expect(screen.queryByText(AVISO)).not.toBeInTheDocument()
     expect(r.getMonthlyComparison).toHaveBeenCalled()
     expect(r.getTagDistribution).toHaveBeenCalled()
@@ -226,14 +226,14 @@ describe("Tags", () => {
     comAcesso(["analise_por_tag"])
     const { unmount } = render(<TagsPage />)
     expect(await screen.findByText("Viagem")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Análise da tag Viagem" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Ver a análise do marcador Viagem" })).not.toBeInTheDocument()
     unmount()
 
     comAcesso()
     // A análise fica carregando: o teste só confere a chamada
     vi.mocked(tags.getTagInsights).mockReturnValue(new Promise(() => undefined) as never)
     render(<TagsPage />)
-    await userEvent.click(await screen.findByRole("button", { name: "Análise da tag Viagem" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ver a análise do marcador Viagem" }))
     expect(tags.getTagInsights).toHaveBeenCalledWith("t1", 6)
   })
 })

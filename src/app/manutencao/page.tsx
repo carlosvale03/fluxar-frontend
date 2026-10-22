@@ -7,15 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 import { api, CHAVE_DA_VOLTA_DA_MANUTENCAO } from "@/services/apiClient"
 
 const INTERVALO_DA_CONSULTA_MS = 30_000
 
 export default function MaintenancePage() {
     const router = useRouter()
-    const reduzirMovimento = useReducedMotion()
-
     // Consulta o estado ao abrir e a cada 30 segundos; quando a manutenção
     // acaba, volta à página em que o usuário estava (SESSAO-22)
     useEffect(() => {
@@ -39,7 +37,7 @@ export default function MaintenancePage() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
             <motion.div
-                initial={reduzirMovimento ? false : { opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
                 className="w-full max-w-xl text-center"
@@ -57,25 +55,25 @@ export default function MaintenancePage() {
                 <div className="mb-4">
                     <Badge variant="warning">
                         <ShieldAlert className="h-3 w-3" aria-hidden="true" />
-                        Status: Manutenção Programada
+                        Manutenção programada
                     </Badge>
                 </div>
 
-                <h1 className="display-l mb-4">Estamos melhorando tudo para você.</h1>
+                <h1 className="display-l mb-4">O Azimute está em manutenção</h1>
 
                 <p className="mx-auto mb-8 max-w-lg text-sm leading-relaxed text-muted-foreground md:text-base">
-                    O Azimute está passando por uma atualização de infraestrutura para garantir mais estabilidade e velocidade na sua gestão financeira.
+                    Uma atualização da infraestrutura está em andamento. Seus dados continuam guardados; tente de novo em alguns minutos.
                 </p>
 
                 <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
                     <Button onClick={() => window.location.reload()} className="w-full max-md:h-11 sm:w-auto">
                         <RefreshCw className="h-4 w-4" aria-hidden="true" />
-                        Tentar Novamente
+                        Tentar de novo
                     </Button>
                     <Button asChild variant="outline" className="w-full max-md:h-11 sm:w-auto">
                         <Link href="/suporte">
                             <Globe className="h-4 w-4" aria-hidden="true" />
-                            Ver Status da Rede
+                            Ver status do serviço
                         </Link>
                     </Button>
                 </div>

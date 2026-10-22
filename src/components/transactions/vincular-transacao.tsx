@@ -64,7 +64,7 @@ export function AcoesDoVinculo({ transacao, liberado, onLancarRelacionado, onVin
       toast.success("Vínculo desfeito.")
       onAlterado()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao desfazer o vínculo." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível desfazer o vínculo. Tente de novo." })
     } finally {
       setDesfazendo(false)
     }
@@ -83,7 +83,7 @@ export function AcoesDoVinculo({ transacao, liberado, onLancarRelacionado, onVin
         <Button
           variant="ghost"
           size="icon"
-          aria-label="Vínculo"
+          aria-label={`Vínculo de ${transacao.description}`}
           title="Vínculo"
           onClick={(e) => e.stopPropagation()}
           className={cn("h-8 w-8", className)}
@@ -154,7 +154,7 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
     try {
       setResultados(await buscarGastos({ descricao, data, valor }, transacao.id))
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao buscar os gastos.", tentarDeNovo: buscar })
+      tratarErro(error, { mensagemPadrao: "Não foi possível buscar os gastos.", tentarDeNovo: buscar })
     } finally {
       setBuscando(false)
     }
@@ -169,7 +169,7 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
       onOpenChange(false)
     } catch (error) {
       // VINCULO-05 a VINCULO-08: a recusa vem no detail, que vai ao Sonner
-      tratarErro(error, { mensagemPadrao: "Erro ao vincular o gasto." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível vincular o gasto. Tente de novo." })
     } finally {
       setLigando(null)
     }
@@ -194,7 +194,7 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
         >
           <div className="space-y-1.5 sm:col-span-3">
             <Label htmlFor="busca-descricao">Descrição</Label>
-            <Input id="busca-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Cinema" />
+            <Input id="busca-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex.: Cinema" />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="busca-data">Data</Label>
@@ -214,7 +214,7 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
 
         {resultados !== null && (
           resultados.length === 0 ? (
-            <p className="py-6 text-center text-sm text-fg-secondary">Nenhum gasto encontrado.</p>
+            <p role="status" className="py-6 text-center text-sm text-fg-secondary">Nenhum gasto encontrado. Mude a descrição, a data ou o valor e busque de novo.</p>
           ) : (
             <ul aria-label="Gastos encontrados" className="max-h-[320px] divide-y divide-border overflow-y-auto rounded-md border border-border">
               {resultados.map((gasto) => (

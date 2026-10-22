@@ -36,9 +36,16 @@ export function RoscaDeDistribuicao({ fatias, total, rotuloDoTotal = "Total" }: 
   // O Recharts precisa de número: a conversão é só para plotar
   const dadosDoGrafico = fatias.map((fatia) => ({ ...fatia, plotado: fatia.centavos / 100 }))
 
+  // AZ-36: o gráfico tem um resumo em texto; a lista ao lado é a tabela
+  // equivalente, com um botão por parte
+  const maior = fatias.reduce<FatiaDaRosca | null>((atual, fatia) => (!atual || fatia.centavos > atual.centavos ? fatia : atual), null)
+  const resumo = maior
+    ? `Gráfico de rosca. ${rotuloDoTotal}: ${total}, em ${fatias.length} ${fatias.length === 1 ? "parte" : "partes"}. Maior parte: ${maior.nome}, ${formatarMoeda(maior.valor)}.`
+    : `Gráfico de rosca. ${rotuloDoTotal}: ${total}.`
+
   return (
     <>
-      <div className="relative h-[220px] w-full sm:h-[250px] sm:flex-1 lg:h-[280px]" style={{ minWidth: 0 }}>
+      <div role="img" aria-label={resumo} className="relative h-[220px] w-full sm:h-[250px] sm:flex-1 lg:h-[280px]" style={{ minWidth: 0 }}>
         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
           <PieChart>
             <Pie

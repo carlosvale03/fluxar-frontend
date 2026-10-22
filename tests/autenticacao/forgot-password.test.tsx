@@ -21,7 +21,7 @@ const post = vi.mocked(api.post)
 const MENSAGEM_NEUTRA = "Se o e-mail estiver cadastrado, enviamos um link para redefinir a senha."
 
 async function pedirLink() {
-  await userEvent.type(screen.getByLabelText("Seu E-mail Cadastrado"), "ana@x.com")
+  await userEvent.type(screen.getByLabelText("E-mail cadastrado"), "ana@x.com")
   await userEvent.click(screen.getByRole("button", { name: /enviar link de recuperação/i }))
 }
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, type ComponentType, type ReactNode } from "react"
 import { ShieldCheck, FileText, Lock, Database, Trash2, Download, Target, Server, Sparkles, Cookie, Scale } from "lucide-react"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 import { format } from "date-fns"
 import { ptBR } from "date-fns/locale"
 
@@ -14,7 +14,7 @@ import { termosService, type TermosVigentes } from "@/services/termos"
 
 // LGPD-31: as finalidades do uso dos dados
 const FINALIDADES = [
-  "Prestar o serviço: guardar e mostrar as suas contas, cartões, transações, metas e orçamentos.",
+  "Prestar o serviço: guardar e mostrar as suas contas, cartões, lançamentos, destinos e rotas.",
   "Criar e proteger a sua conta: identificar você no login e enviar e-mails de verificação, de recuperação de senha e de avisos sobre a conta.",
   "Liberar os recursos do seu plano.",
   "Dar suporte quando você pedir.",
@@ -40,8 +40,6 @@ function Quadro({ children, className }: { children: ReactNode; className?: stri
 
 export default function TermsPage() {
   const [termos, setTermos] = useState<TermosVigentes | null>(null)
-  const reduzirMovimento = useReducedMotion()
-
   // LGPD-28 e LGPD-31: versão, data e serviços vêm da API, publicados junto com este texto
   useEffect(() => {
     const carregar = () => {
@@ -55,7 +53,7 @@ export default function TermsPage() {
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <motion.div
-        initial={reduzirMovimento ? false : { opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
         className="w-full max-w-3xl space-y-6"
@@ -83,9 +81,9 @@ export default function TermsPage() {
               <h3 className="label mb-2 text-muted-foreground">O que armazenamos</h3>
               <ul className="list-inside list-disc space-y-2 text-sm text-fg-secondary">
                 <li>Informações de conta: Nome e e-mail.</li>
-                <li>Dados Financeiros: Transações, saldos, categorias e metas.</li>
+                <li>Dados Financeiros: Lançamentos, saldos, categorias e destinos.</li>
                 <li>Arquivos Importados: Conteúdo de planilhas (XLS/CSV) e extratos (OFX).</li>
-                <li>Imagens: Fotos de perfil e imagens anexadas às suas metas.</li>
+                <li>Imagens: Fotos de perfil e imagens anexadas aos seus destinos.</li>
               </ul>
             </Quadro>
             <p className="text-sm leading-relaxed text-fg-secondary">

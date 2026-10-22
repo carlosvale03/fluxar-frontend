@@ -64,7 +64,7 @@ function comPlano(plano: PlanoDoSalario) {
 }
 
 const chamadasDosPendentes = () => get.mock.calls.filter(([url]) => url === "/salary/pending/")
-const painel = () => screen.findByRole("region", { name: "Receitas de salário" })
+const painel = () => screen.findByRole("region", { name: "Entradas do salário" })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -76,12 +76,12 @@ beforeEach(() => {
 })
 
 // A página inteira é pesada no jsdom quando a suíte roda em paralelo
-describe("Receitas de salário", { timeout: 15000 }, () => {
+describe("Entradas do salário", { timeout: 15000 }, () => {
   it("sem plano, mostra as categorias de receita com as subcategorias e as salvas marcadas", async () => {
     render(<SalarioPage />)
     const receitas = await painel()
 
-    expect(receitas).toHaveTextContent("As receitas nestas categorias aparecem para dividir.")
+    expect(receitas).toHaveTextContent("As entradas nestas categorias aparecem para dividir.")
     const caixas = await within(receitas).findAllByRole("checkbox")
     expect(caixas.map((c) => c.getAttribute("id"))).toEqual([
       "categoria-do-salario-cat-salario",
@@ -120,9 +120,9 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
     expect(put).toHaveBeenCalledWith("/salary/categories/", { salary_categories: ["cat-freela"] })
     await vi.waitFor(() => expect(chamadasDosPendentes()).toHaveLength(2))
     expect(await screen.findByRole("list", { name: "Salários a dividir" })).toHaveTextContent("Freela de outubro")
-    expect(toast.success).toHaveBeenCalledWith("Receitas de salário salvas.")
+    expect(toast.success).toHaveBeenCalledWith("Entradas do salário salvas.")
     // SALARIO-62: salvo, a seção recolhe com o nome escolhido e o foco no "Alterar"
-    const alterar = await within(receitas).findByRole("button", { name: "Alterar receitas de salário" })
+    const alterar = await within(receitas).findByRole("button", { name: "Alterar entradas do salário" })
     expect(alterar).toHaveAttribute("aria-expanded", "false")
     expect(document.activeElement).toBe(alterar)
     expect(receitas).toHaveTextContent("Freelance")
@@ -139,7 +139,7 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
     render(<SalarioPage />)
     const receitas = await painel()
 
-    const alterar = await within(receitas).findByRole("button", { name: "Alterar receitas de salário" })
+    const alterar = await within(receitas).findByRole("button", { name: "Alterar entradas do salário" })
     expect(alterar).toHaveTextContent("Alterar")
     expect(alterar).toHaveAttribute("aria-expanded", "false")
     const conteudo = document.getElementById(alterar.getAttribute("aria-controls")!)
@@ -150,7 +150,7 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
 
     await userEvent.click(alterar)
 
-    const recolher = within(receitas).getByRole("button", { name: "Recolher receitas de salário" })
+    const recolher = within(receitas).getByRole("button", { name: "Recolher entradas do salário" })
     expect(recolher).toHaveAttribute("aria-expanded", "true")
     expect(conteudo).toBeVisible()
     expect(within(receitas).getByRole("checkbox", { name: "Bônus" })).toBeChecked()
@@ -165,19 +165,19 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
     const receitas = await painel()
 
     expect(await within(receitas).findByRole("checkbox", { name: "Salário" })).not.toBeChecked()
-    expect(within(receitas).getByRole("button", { name: "Recolher receitas de salário" })).toHaveAttribute("aria-expanded", "true")
+    expect(within(receitas).getByRole("button", { name: "Recolher entradas do salário" })).toHaveAttribute("aria-expanded", "true")
   })
 
-  it("com a seção recolhida, \"Escolher receitas de salário\" abre e põe o foco na primeira categoria", async () => {
+  it("com a seção recolhida, \"Escolher entradas do salário\" abre e põe o foco na primeira categoria", async () => {
     render(<SalarioPage />)
     const receitas = await painel()
     await userEvent.click(await within(receitas).findByRole("checkbox", { name: "Freelance" }))
     await userEvent.click(within(receitas).getByRole("button", { name: "Salvar" }))
-    await within(receitas).findByRole("button", { name: "Alterar receitas de salário" })
+    await within(receitas).findByRole("button", { name: "Alterar entradas do salário" })
 
-    await userEvent.click(await screen.findByRole("button", { name: "Escolher receitas de salário" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Escolher entradas do salário" }))
 
-    expect(within(receitas).getByRole("button", { name: "Recolher receitas de salário" })).toHaveAttribute("aria-expanded", "true")
+    expect(within(receitas).getByRole("button", { name: "Recolher entradas do salário" })).toHaveAttribute("aria-expanded", "true")
     expect(document.activeElement).toBe(within(receitas).getByRole("checkbox", { name: "Salário" }))
   })
 
@@ -189,7 +189,7 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
     await userEvent.click(within(receitas).getByRole("button", { name: "Salvar" }))
     await vi.waitFor(() => expect(put).toHaveBeenCalledTimes(1))
     // Salvas, a seção recolhe
-    await within(receitas).findByRole("button", { name: "Alterar receitas de salário" })
+    await within(receitas).findByRole("button", { name: "Alterar entradas do salário" })
 
     await userEvent.click(await screen.findByRole("button", { name: "Usar o modelo 50/30/20" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
@@ -219,11 +219,11 @@ describe("Receitas de salário", { timeout: 15000 }, () => {
 
     const faixa = await screen.findByRole("region", { name: "Salário recebido" })
     expect(await within(faixa).findByText("Nenhum salário a dividir neste mês ou no anterior.")).toBeInTheDocument()
-    expect(faixa).toHaveTextContent("Suas receitas estão em outra categoria?")
+    expect(faixa).toHaveTextContent("Suas entradas de salário estão em outra categoria?")
     const receitas = await painel()
     await within(receitas).findByRole("checkbox", { name: "Salário" })
 
-    await userEvent.click(within(faixa).getByRole("button", { name: "Escolher receitas de salário" }))
+    await userEvent.click(within(faixa).getByRole("button", { name: "Escolher entradas do salário" }))
 
     expect(receitas).toContainElement(document.activeElement as HTMLElement)
     expect(document.activeElement).toBe(within(receitas).getByRole("checkbox", { name: "Salário" }))

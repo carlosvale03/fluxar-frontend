@@ -47,7 +47,7 @@ function CalendarioDoMes() {
             setReport(data)
         } catch (error) {
             console.error("Failed to fetch calendar report", error)
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar calendário", tentarDeNovo: fetchCalendar })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar o calendário.", tentarDeNovo: fetchCalendar })
         } finally {
             setIsLoading(false)
         }
@@ -109,14 +109,31 @@ function CalendarioDoMes() {
                 <div className="space-y-1">
                     <h2 className="text-sm font-semibold">Como ler o calendário</h2>
                     <p className="max-w-3xl text-sm text-fg-secondary">
-                        Cada dia mostra a soma das receitas (+) e das despesas (−), em reais.
+                        Cada dia mostra a soma das entradas (+) e das saídas (−), em reais.
                         Escolha um dia para ver o resumo dele.
                     </p>
                 </div>
             </div>
 
             {isLoading ? (
-                <Skeleton className="h-[600px] w-full rounded-lg" />
+                // AZ-34: o esqueleto tem a forma da grade do mês (semana e 35 dias)
+                <div className="overflow-hidden rounded-lg border border-border" aria-busy="true" aria-label="Carregando o calendário">
+                    <div className="grid grid-cols-7 border-b border-border">
+                        {Array.from({ length: 7 }).map((_, i) => (
+                            <div key={i} className="flex justify-center py-3">
+                                <Skeleton className="h-3 w-8" />
+                            </div>
+                        ))}
+                    </div>
+                    <div className="grid grid-cols-7">
+                        {Array.from({ length: 35 }).map((_, i) => (
+                            <div key={i} className="flex min-h-[72px] flex-col justify-between border-b border-r border-border p-1.5 sm:min-h-[120px] sm:p-3">
+                                <Skeleton className="h-6 w-6 rounded-full" />
+                                <Skeleton className="ml-auto hidden h-3 w-14 sm:block" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
             ) : (
                 <FinancialCalendar
                     month={selectedMonth}

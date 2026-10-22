@@ -63,7 +63,7 @@ const ultimaBusca = () =>
   new URL(String(get.mock.calls.filter(([e]) => String(e).startsWith("/transactions/")).at(-1)![0]), "http://x").searchParams
 
 async function escolherClasses(nomes: string[]) {
-  await userEvent.click(screen.getByRole("button", { name: /refinar seleção/i }))
+  await userEvent.click(screen.getByRole("button", { name: /^filtrar/i }))
   const painel = await screen.findByRole("dialog")
   for (const nome of nomes) {
     await userEvent.click(await within(painel).findByRole("checkbox", { name: `Classe ${nome}` }))

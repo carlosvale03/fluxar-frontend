@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/providers/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Avisos } from "@/components/layout/avisos";
+import { MovimentoProvider } from "@/providers/movimento-provider";
 import { FocoNaTrocaDeRota } from "@/components/layout/foco-na-troca-de-rota";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -61,6 +62,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <MovimentoProvider>
           <AuthProvider>
             {/* AZ-21.7: primeiro item do teclado */}
             <a
@@ -79,6 +81,7 @@ export default function RootLayout({
             <ServerWakeupOverlay />
             <Avisos />
           </AuthProvider>
+          </MovimentoProvider>
         </ThemeProvider>
       </body>
     </html>

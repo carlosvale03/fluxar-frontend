@@ -86,7 +86,7 @@ const RESUMO = {
 }
 
 function linha(nome: string) {
-  return screen.getByRole("button", { name: `Ver as transações de ${nome}` })
+  return screen.getByRole("button", { name: `Ver os lançamentos de ${nome}` })
 }
 
 beforeEach(() => {
@@ -137,13 +137,13 @@ describe("Gráfico por classe", () => {
     expect(porcentagemDaClasse(1, 0)).toBe("0,0%")
   })
 
-  it("sem despesas mostra 'Nenhuma despesa no período.'", () => {
+  it("sem despesas mostra 'Nenhuma saída no período.'", () => {
     const { rerender } = render(<ClassDistributionChart data={[]} />)
-    expect(screen.getByText("Nenhuma despesa no período.")).toBeInTheDocument()
+    expect(screen.getByText("Nenhuma saída no período.")).toBeInTheDocument()
 
     rerender(<ClassDistributionChart data={[{ class_id: null, class_name: "Sem classe", color: "#94A3B8", amount: "0.00" }]} />)
-    expect(screen.getByText("Nenhuma despesa no período.")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /Ver as transações/ })).not.toBeInTheDocument()
+    expect(screen.getByText("Nenhuma saída no período.")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Ver os lançamentos/ })).not.toBeInTheDocument()
   })
 
   it("clicar numa classe abre /transacoes com classId e o período; 'Sem classe' usa sem_classe", async () => {
@@ -162,7 +162,7 @@ describe("Gráfico por classe", () => {
     auth.user = usuario({ fechados: ["relatorios_avancados"] })
     render(<ReportsPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Ver as transações de Dispensável" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ver os lançamentos de Dispensável" }))
 
     expect(navegacao.push).toHaveBeenLastCalledWith("/transacoes?classId=dis&startDate=2026-09-01&endDate=2026-09-30")
     expect(r.getAdvancedCharts).not.toHaveBeenCalled()
@@ -171,9 +171,9 @@ describe("Gráfico por classe", () => {
   it("no dashboard, o gráfico fica ao lado das despesas por categoria e o clique usa o período dos gráficos", async () => {
     render(<DashboardPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Ver as transações de Essencial" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ver os lançamentos de Essencial" }))
 
-    expect(screen.getByText("Despesas por Classe")).toBeInTheDocument()
+    expect(screen.getByText("Saídas por classe")).toBeInTheDocument()
     expect(navegacao.push).toHaveBeenLastCalledWith("/transacoes?classId=ess&startDate=2026-09-01&endDate=2026-09-30")
   })
 })

@@ -35,7 +35,7 @@ interface ResumoDoPlanoProps {
 
 function destinoDaParte(parte: ParteDoPlano): { texto: string; falta: boolean } {
   if (parte.destination_type === "SALARY_ACCOUNT") return { texto: "Fica na conta do salário", falta: false }
-  if (parte.destination_type === "GOAL" && parte.destination_name) return { texto: `Meta: ${parte.destination_name}`, falta: false }
+  if (parte.destination_type === "GOAL" && parte.destination_name) return { texto: `Destino: ${parte.destination_name}`, falta: false }
   if (parte.destination_type === "ACCOUNT" && parte.destination_name) return { texto: parte.destination_name, falta: false }
   return { texto: "Sem destino", falta: true }
 }
@@ -93,7 +93,7 @@ export function ResumoDoPlano({
       const nova = await salarioService.simular(valorSimulado)
       if (numero === sequencia.current) setSimulacao(nova)
     } catch (erro) {
-      if (numero === sequencia.current) tratarErro(erro, { mensagemPadrao: "Erro ao simular a divisão." })
+      if (numero === sequencia.current) tratarErro(erro, { mensagemPadrao: "Não foi possível simular a divisão. Tente de novo." })
     } finally {
       if (numero === sequencia.current) setSimulando(false)
     }
@@ -166,7 +166,7 @@ export function ResumoDoPlano({
                 {historico && <p className="text-xs text-muted-foreground">{historico} no seu histórico</p>}
                 {parte.goal_monthly_needed && parte.goal_target_date && (
                   <p className="text-xs text-muted-foreground tabular-nums">
-                    A meta pede {formatarMoeda(parte.goal_monthly_needed)} por mês até {format(lerData(parte.goal_target_date), "dd/MM/yyyy")}
+                    O destino pede {formatarMoeda(parte.goal_monthly_needed)} por mês até {format(lerData(parte.goal_target_date), "dd/MM/yyyy")}
                   </p>
                 )}
               </div>
@@ -243,7 +243,7 @@ export function ResumoDoPlano({
               onValorSimulado("")
             }}
           >
-            Limpar
+            Limpar simulação
           </Button>
         )}
       </form>

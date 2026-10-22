@@ -74,7 +74,7 @@ describe("Várias categorias e total do dia", () => {
     render(<TransactionsPage />)
     await screen.findAllByText("Padaria")
 
-    await userEvent.click(screen.getByRole("button", { name: /refinar seleção/i }))
+    await userEvent.click(screen.getByRole("button", { name: /^filtrar/i }))
     const painel = await screen.findByRole("dialog")
     await userEvent.click(await within(painel).findByRole("checkbox", { name: "Alimentação" }))
     await userEvent.click(within(painel).getByRole("checkbox", { name: "Transporte" }))

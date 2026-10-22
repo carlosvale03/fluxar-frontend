@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Info } from "lucide-react"
 import { 
   AreaChart, 
@@ -143,7 +144,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                 <p className="label text-muted-foreground">Simulador</p>
                 <DialogTitle>Projeção de Trajetória</DialogTitle>
                 <DialogDescription>
-                  Veja quando a meta <span className="font-medium text-foreground">{goal.name}</span> é alcançada com aportes extras.
+                  Veja quando o destino <span className="font-medium text-foreground">{goal.name}</span> é alcançada com aportes extras.
                 </DialogDescription>
               </DialogHeader>
 
@@ -199,7 +200,7 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
                 <p className="text-xs leading-relaxed text-fg-secondary">
                   O cálculo usa o seu ritmo médio de <span className="value-m text-foreground">{formatCurrency(baseMetrics.monthlyAvg)}/mês</span>.
-                  Rendimentos de investimento não entram nesta simulação.
+                  Rendimentos de investimento não entram nesta projeção.
                 </p>
               </div>
             </div>
@@ -243,8 +244,8 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                   role="img"
                   aria-label={
                     simulation
-                      ? `Projeção: no ritmo atual, a meta chega em ${format(simulation.currentTargetDate, "MMMM 'de' yyyy", { locale: ptBR })}; com os ajustes, em ${format(simulation.simulatedTargetDate, "MMMM 'de' yyyy", { locale: ptBR })}`
-                      : "Projeção da meta"
+                      ? `Projeção: no ritmo atual, o destino é alcançado em ${format(simulation.currentTargetDate, "MMMM 'de' yyyy", { locale: ptBR })}; com os ajustes, em ${format(simulation.simulatedTargetDate, "MMMM 'de' yyyy", { locale: ptBR })}`
+                      : "Projeção do destino"
                   }
                 >
                   {(open && isChartReady) ? (
@@ -301,14 +302,14 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="h-full w-full animate-pulse rounded-md bg-elevated" aria-busy="true" />
+                    <Skeleton className="h-full w-full" aria-busy="true" />
                   )}
                 </div>
               </section>
 
               <div className="space-y-4 border-t border-border pt-4">
-                <p className="text-sm text-fg-secondary">
-                  Com esses ajustes, a meta é alcançada <span className="value-m text-foreground">{simulation?.monthsSaved} meses</span> antes.
+                <p className="text-sm text-fg-secondary" aria-live="polite">
+                  Com esses ajustes, o destino é alcançado <span className="value-m text-foreground">{simulation?.monthsSaved} meses</span> antes.
                 </p>
                 <div className="flex justify-end">
                   <Button variant="outline" onClick={() => onOpenChange(false)}>

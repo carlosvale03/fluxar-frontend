@@ -65,11 +65,11 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <p className="text-sm font-medium">Nenhum salário a dividir neste mês ou no anterior.</p>
-            <p className="text-sm text-muted-foreground">Suas receitas estão em outra categoria?</p>
+            <p className="text-sm text-muted-foreground">Suas entradas de salário estão em outra categoria?</p>
           </div>
           {onEscolherReceitas && (
             <Button variant="outline" className="h-10 rounded-md px-4 self-start sm:self-auto" onClick={onEscolherReceitas}>
-              Escolher receitas de salário
+              Escolher entradas do salário
             </Button>
           )}
         </div>

@@ -12,7 +12,7 @@ import { ExpenseByClass } from "@/types/reports"
 
 import { RoscaDeDistribuicao } from "./rosca-de-distribuicao"
 
-export const MENSAGEM_SEM_DESPESAS = "Nenhuma despesa no período."
+export const MENSAGEM_SEM_DESPESAS = "Nenhuma saída no período."
 
 // CLASSE-31: a porcentagem sobre o total, com uma casa, calculada em
 // centavos inteiros (AD-041): "60,0%"
@@ -60,9 +60,9 @@ export function ClassDistributionChart({ data, isLoading, startDate, endDate, cl
       <CardHeader className="pb-0">
         <CardTitle className="flex items-center gap-2">
           <Layers className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-          <span>Despesas por Classe</span>
+          <h3>Saídas por classe</h3>
         </CardTitle>
-        <CardDescription>Quanto das despesas foi para cada classe</CardDescription>
+        <CardDescription>Quanto das saídas foi para cada classe</CardDescription>
       </CardHeader>
       <CardContent className="flex h-auto min-h-[320px] flex-col items-center justify-between gap-2 p-4 sm:flex-row sm:gap-4 sm:p-5 lg:gap-8 lg:p-6">
         {isLoading ? (
@@ -72,8 +72,8 @@ export function ClassDistributionChart({ data, isLoading, startDate, endDate, cl
           <ChartEmptyState
             type="pie"
             height="300px"
-            title="Despesas por classe"
-            description={MENSAGEM_SEM_DESPESAS}
+            title={MENSAGEM_SEM_DESPESAS}
+            description="Registre uma saída para ver a divisão por classe."
             icon={Layers}
           />
         ) : (
@@ -86,7 +86,7 @@ export function ClassDistributionChart({ data, isLoading, startDate, endDate, cl
               centavos: item.centavos,
               cor: item.cor,
               extra: porcentagemDaClasse(item.centavos, totalEmCentavos),
-              rotulo: `Ver as transações de ${item.class_name}`,
+              rotulo: `Ver os lançamentos de ${item.class_name}`,
               testIdDaCor: "cor-da-classe",
               aoClicar: () => abrirTransacoes(item),
             }))}

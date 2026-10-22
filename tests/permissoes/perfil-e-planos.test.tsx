@@ -106,7 +106,7 @@ describe("Página de planos", () => {
         .slice(1)
         .map((celula) => celula.textContent)
 
-    expect(celulas("Metas")).toEqual(["Não incluído", "Incluído", "Incluído"])
+    expect(celulas("Destinos")).toEqual(["Não incluído", "Incluído", "Incluído"])
     expect(celulas("Exportação em PDF")).toEqual(["Não incluído", "Não incluído", "Incluído"])
     expect(celulas("Contas")).toEqual(["Até 2", "Até 5", "Sem limite"])
     expect(within(linha("Contas")).getByText("Contas ativas")).toBeInTheDocument()

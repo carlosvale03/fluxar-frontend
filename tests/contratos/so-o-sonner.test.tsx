@@ -29,8 +29,8 @@ function erroHttp(status: number, data: unknown) {
 
 async function salvarTag(nome: string) {
   render(<TagForm onSuccess={vi.fn()} onCancel={vi.fn()} />)
-  await userEvent.type(screen.getByPlaceholderText(/Urgente, Viagem/), nome)
-  await userEvent.click(screen.getByRole("button", { name: /criar tag/i }))
+  await userEvent.type(screen.getByLabelText("Nome do marcador"), nome)
+  await userEvent.click(screen.getByRole("button", { name: /criar marcador/i }))
 }
 
 describe("Só o Sonner", () => {
@@ -65,7 +65,7 @@ describe("Só o Sonner", () => {
 
     await salvarTag("Viagem")
 
-    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Tag criada."))
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Marcador criado."))
     expect(toast.error).not.toHaveBeenCalled()
   })
 })

@@ -36,11 +36,13 @@ const Alert = React.forwardRef<
 ))
 Alert.displayName = "Alert"
 
+// Um parágrafo em negrito, não um título: o aviso aparece em qualquer nível
+// da página e um <h5> fixo pulava a hierarquia (AZ-36)
 const AlertTitle = React.forwardRef<
   HTMLParagraphElement,
-  React.HTMLAttributes<HTMLHeadingElement>
+  React.HTMLAttributes<HTMLParagraphElement>
 >(({ className, ...props }, ref) => (
-  <h5
+  <p
     ref={ref}
     className={cn("mb-1 text-sm font-semibold leading-none", className)}
     {...props}

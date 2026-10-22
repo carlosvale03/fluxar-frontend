@@ -84,9 +84,9 @@ describe("login e verificação sem guardar token no navegador", () => {
       </AuthProvider>,
     )
 
-    await userEvent.type(screen.getByLabelText("Endereço de E-mail"), "ana@x.com")
-    await userEvent.type(screen.getByLabelText("Senha de Acesso"), "cofre-forte-2026")
-    await userEvent.click(screen.getByRole("button", { name: /entrar no sistema/i }))
+    await userEvent.type(screen.getByLabelText("E-mail"), "ana@x.com")
+    await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
+    await userEvent.click(screen.getByRole("button", { name: /^entrar$/i }))
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"))
     expect(obterTokenDeAcesso()).toBe("acesso-do-login")
@@ -102,7 +102,7 @@ describe("login e verificação sem guardar token no navegador", () => {
       </AuthProvider>,
     )
 
-    await userEvent.click(await screen.findByRole("button", { name: /acessar minha conta/i }))
+    await userEvent.click(await screen.findByRole("button", { name: /entrar na conta/i }))
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/dashboard"))
     expect(obterTokenDeAcesso()).toBe("acesso-da-verificacao")

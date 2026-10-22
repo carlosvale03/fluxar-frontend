@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { nomeDoPlano } from "@/hooks/use-plan"
 import { tratarErro } from "@/lib/erros"
+import { descricaoDaTrava, nomeDaTrava } from "./nomes-dos-recursos"
 import type { MudancaDosPlanos } from "@/services/admin"
 import { PLANOS, type Plano, type TravaDoCatalogo } from "@/types/planos"
 
@@ -90,8 +91,8 @@ function Grupo({ titulo }: { titulo: string }) {
 function Descricao({ trava }: { trava: TravaDoCatalogo }) {
   return (
     <td className="py-3 pr-4">
-      <p className="font-medium text-foreground">{trava.name}</p>
-      <p className="text-xs text-muted-foreground">{trava.description}</p>
+      <p className="font-medium text-foreground">{nomeDaTrava(trava)}</p>
+      <p className="text-xs text-muted-foreground">{descricaoDaTrava(trava)}</p>
     </td>
   )
 }
@@ -110,7 +111,7 @@ function InterruptorDeRecurso({ trava, plano, aoMudar }: CelulaProps) {
     try {
       await aoMudar({ key: trava.key, plan: plano, enabled })
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao gravar a trava." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível salvar a trava. Tente de novo." })
     } finally {
       setEnviando(false)
     }
@@ -118,7 +119,7 @@ function InterruptorDeRecurso({ trava, plano, aoMudar }: CelulaProps) {
 
   return (
     <Switch
-      aria-label={`${trava.name} no ${nomeDoPlano(plano)}`}
+      aria-label={`${nomeDaTrava(trava)} no ${nomeDoPlano(plano)}`}
       checked={trava.values[plano] === true}
       onCheckedChange={mudar}
       disabled={enviando}
@@ -130,7 +131,7 @@ function CelulaDeLimite({ trava, plano, limite, aoMudar }: CelulaProps & { limit
   const [texto, setTexto] = useState(limite === null ? "" : String(limite))
   const [semLimite, setSemLimite] = useState(limite === null)
   const [erro, setErro] = useState<string | null>(null)
-  const nome = `${trava.name} no ${nomeDoPlano(plano)}`
+  const nome = `${nomeDaTrava(trava)} no ${nomeDoPlano(plano)}`
   const idSemLimite = `sem-limite-${trava.key}-${plano}`
 
   const enviar = async (limit: number | null) => {
@@ -142,7 +143,7 @@ function CelulaDeLimite({ trava, plano, limite, aoMudar }: CelulaProps & { limit
       tratarErro(error, {
         form: { setError: (_campo: never, { message }: { message: string }) => setErro(message) },
         campos: ["limit"],
-        mensagemPadrao: "Erro ao gravar o limite.",
+        mensagemPadrao: "Não foi possível salvar o limite. Tente de novo.",
       })
     }
   }
@@ -188,7 +189,7 @@ function CelulaDeLimite({ trava, plano, limite, aoMudar }: CelulaProps & { limit
         />
         Sem limite
       </label>
-      {erro && <p className="max-w-32 text-xs text-outflow text-center">{erro}</p>}
+      {erro && <p role="alert" className="max-w-32 text-xs text-outflow text-center">{erro}</p>}
     </div>
   )
 }

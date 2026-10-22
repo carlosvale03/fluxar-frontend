@@ -44,7 +44,7 @@ export default function AdminSettingsPage() {
       try {
           setPlanos(await getAdminPlans())
       } catch (error) {
-          tratarErro(error, { mensagemPadrao: "Erro ao carregar as travas dos planos.", tentarDeNovo: loadPlans })
+          tratarErro(error, { mensagemPadrao: "Não foi possível carregar as travas dos planos.", tentarDeNovo: loadPlans })
       }
   }
 
@@ -65,7 +65,7 @@ export default function AdminSettingsPage() {
               ? "Liberação para testes ligada: todos os recursos estão liberados."
               : "Liberação para testes desligada: valem as travas configuradas.")
       } catch (error) {
-          tratarErro(error, { mensagemPadrao: "Erro ao atualizar a liberação para testes." })
+          tratarErro(error, { mensagemPadrao: "Não foi possível atualizar a liberação para testes. Tente de novo." })
       } finally {
           setIsSavingUnlock(false)
       }
@@ -80,7 +80,7 @@ export default function AdminSettingsPage() {
           setLogsTotalPages(data.total_pages)
       } catch (error) {
           // Data inválida no filtro: 400 do campo, que vira aviso
-          tratarErro(error, { mensagemPadrao: "Erro ao carregar os logs.", tentarDeNovo: loadLogs })
+          tratarErro(error, { mensagemPadrao: "Não foi possível carregar os logs.", tentarDeNovo: loadLogs })
       } finally {
           setIsLoadingLogs(false)
       }
@@ -100,7 +100,7 @@ export default function AdminSettingsPage() {
       try {
           setAdministradores(await getAdministradores())
       } catch (error) {
-          tratarErro(error, { mensagemPadrao: "Erro ao carregar os administradores.", tentarDeNovo: loadAdmins })
+          tratarErro(error, { mensagemPadrao: "Não foi possível carregar os administradores.", tentarDeNovo: loadAdmins })
       }
   }
 
@@ -119,7 +119,7 @@ export default function AdminSettingsPage() {
           // Sem a configuração, a manutenção está desligada (SESSAO-24)
           setMaintenanceMode(settingsData?.maintenance_mode === 'true')
       } catch (error) {
-          tratarErro(error, { mensagemPadrao: "Erro ao carregar dados do sistema.", tentarDeNovo: loadData })
+          tratarErro(error, { mensagemPadrao: "Não foi possível carregar os dados do sistema.", tentarDeNovo: loadData })
       } finally {
           setIsRefreshing(false)
       }
@@ -144,7 +144,7 @@ export default function AdminSettingsPage() {
         }
     } catch (error) {
         setMaintenanceMode(!checked) // Revert
-        tratarErro(error, { mensagemPadrao: "Erro ao atualizar modo de manutenção." })
+        tratarErro(error, { mensagemPadrao: "Não foi possível atualizar o modo de manutenção. Tente de novo." })
     } finally {
         setIsLoading(false)
     }
@@ -301,7 +301,7 @@ export default function AdminSettingsPage() {
                         <TabelaDeTravas catalogo={planos.catalog} aoMudar={mudarPlanos} />
                     ) : (
                         <div className="p-12 flex justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" aria-hidden="true" />
                         </div>
                     )}
                 </CardContent>
@@ -378,7 +378,7 @@ export default function AdminSettingsPage() {
                     <div className="divide-y divide-border">
                         {isLoadingLogs && logs.length === 0 ? (
                             <div className="p-12 flex flex-col items-center justify-center text-muted-foreground">
-                                <Loader2 className="mb-4 h-8 w-8 animate-spin" />
+                                <Loader2 className="mb-4 h-8 w-8 animate-spin" aria-hidden="true" />
                                 <p className="label">Carregando logs</p>
                             </div>
                         ) : logs.length > 0 ? (

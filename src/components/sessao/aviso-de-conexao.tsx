@@ -16,10 +16,10 @@ export function AvisoDeConexao({ onTentarDeNovo }: { onTentarDeNovo: () => void 
           <WifiOff className="h-6 w-6" aria-hidden="true" />
         </div>
         <h2 className="display-m mb-3">
-          Não conseguimos falar com o servidor.
+          Não foi possível falar com o servidor
         </h2>
         <p className="mb-6 text-sm leading-relaxed text-muted-foreground">
-          Sua sessão continua aberta. Verifique sua conexão e tente de novo em alguns instantes.
+          Sua sessão continua aberta. Confira a sua conexão e tente de novo em alguns instantes.
         </p>
         <Button onClick={onTentarDeNovo}>
           <RefreshCw aria-hidden="true" />

@@ -32,12 +32,12 @@ function campo(id: string, niveis = 1) {
 }
 
 async function preencherEEnviar() {
-  await userEvent.type(screen.getByLabelText("Nome Completo"), "Ana Souza")
-  await userEvent.type(screen.getByLabelText("Melhor E-mail"), "ana@x.com")
+  await userEvent.type(screen.getByLabelText("Nome completo"), "Ana Souza")
+  await userEvent.type(screen.getByLabelText("E-mail"), "ana@x.com")
   await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
-  await userEvent.type(screen.getByLabelText("Confirmar"), "cofre-forte-2026")
+  await userEvent.type(screen.getByLabelText("Confirmar senha"), "cofre-forte-2026")
   await userEvent.click(screen.getByRole("checkbox", { name: /termos de uso/i }))
-  await userEvent.click(screen.getByRole("button", { name: /criar minha conta/i }))
+  await userEvent.click(screen.getByRole("button", { name: /criar conta/i }))
 }
 
 describe("Tela de cadastro", () => {

@@ -69,11 +69,11 @@ export default function CardDetailsPage() {
               setAccount(accResponse.data)
           } catch (err) {
               // CONTRATO-33: nenhuma falha silenciosa
-              tratarErro(err, { mensagemPadrao: "Erro ao carregar a conta do cartão.", tentarDeNovo: fetchCard })
+              tratarErro(err, { mensagemPadrao: "Não foi possível carregar a conta do cartão.", tentarDeNovo: fetchCard })
           }
       }
     } catch {
-      toast.error("Erro ao carregar detalhes do cartão.")
+      toast.error("Não foi possível abrir o cartão. Escolha-o de novo na lista.")
       router.push("/cartoes")
     } finally {
       setIsLoading(false)
@@ -98,12 +98,12 @@ export default function CardDetailsPage() {
           window.location.reload()
       } catch (error) {
           console.error("Failed to unpay invoice", error)
-          toast.error("Erro ao desfazer pagamento.")
+          toast.error("Não foi possível desfazer o pagamento. Tente de novo.")
       }
   }
   if (isLoading) {
     return (
-        <div className="container mx-auto max-w-5xl space-y-6 px-4 py-8 md:px-6" aria-busy="true" aria-label="Carregando">
+        <div className="container mx-auto max-w-5xl space-y-6 px-4 py-8 md:px-6" aria-busy="true" aria-label="Carregando o cartão">
             <div className="space-y-2">
                 <Skeleton className="h-8 w-48" />
                 <Skeleton className="h-4 w-32" />
@@ -141,7 +141,7 @@ export default function CardDetailsPage() {
         acoes={
           cartoesLiberados && (
               <Button variant="outline" onClick={() => setIsEditOpen(true)}>
-                  <Edit aria-hidden="true" /> Editar Cartão
+                  <Edit aria-hidden="true" /> Editar cartão
               </Button>
           )
         }
@@ -221,7 +221,7 @@ export default function CardDetailsPage() {
 
                       <div className="w-full max-w-md flex-1 space-y-2">
                           <div className="flex items-end justify-between">
-                              <span className="label text-muted-foreground">Limite Disponível</span>
+                              <span className="label text-muted-foreground">Limite disponível</span>
                               <Valor valor={available} direcao="neutro" />
                           </div>
                           <BarraDoLimite utilizado={usedAmount} limite={limit} />
@@ -234,7 +234,7 @@ export default function CardDetailsPage() {
 
       {/* Invoices List Section */}
       <section className="space-y-4" aria-labelledby="historico-de-faturas">
-          <h2 id="historico-de-faturas" className="display-m">Histórico de Faturas</h2>
+          <h2 id="historico-de-faturas" className="display-m">Histórico de faturas</h2>
           <InvoiceList cardId={id} onPayInvoice={handlePayInvoice} onUnpayInvoice={handleUnpayInvoice} />
       </section>
 

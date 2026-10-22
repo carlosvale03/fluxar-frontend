@@ -99,7 +99,7 @@ export function useAvisoDoSalario() {
         setRecebimento({ id: transacao.id, amount: transacao.amount })
       }
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Não foi possível conferir se a receita é um salário." })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível conferir se a entrada é um salário." })
     }
   }
 

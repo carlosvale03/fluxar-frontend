@@ -85,7 +85,7 @@ const cartao = (descricao: string) =>
   screen.getAllByText(descricao).find((el) => !el.closest("tr"))!.closest("[data-testid=lancamento-no-celular]") as HTMLElement
 
 async function abrirMenu(descricao: string) {
-  await userEvent.click(within(cartao(descricao)).getByRole("button", { name: "Vínculo" }))
+  await userEvent.click(within(cartao(descricao)).getByRole("button", { name: `Vínculo de ${descricao}` }))
   return screen.findByRole("menu")
 }
 
@@ -107,7 +107,7 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
     expect(within(menu).queryByRole("menuitem", { name: /Desfazer vínculo/ })).not.toBeInTheDocument()
     await userEvent.click(within(menu).getByRole("menuitem", { name: /Lançar gasto relacionado/ }))
 
-    const formulario = await screen.findByRole("dialog", { name: "Nova Despesa" })
+    const formulario = await screen.findByRole("dialog", { name: "Nova saída" })
     expect(formulario).toHaveTextContent("Por causa de: Cinema, 12/09/2026")
   })
 
@@ -116,15 +116,15 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
     const principal = { id: "t-cinema", description: "Cinema", date: "2026-09-12" }
     render(<TransactionFormDialog open onOpenChange={vi.fn()} type="EXPENSE" onSuccess={vi.fn()} principal={principal} />)
 
-    fireEvent.change(await screen.findByPlaceholderText("Ex: Salário, Mercado, Aluguel..."), { target: { value: "Uber até o cinema" } })
-    fireEvent.change(within(screen.getByText("Valor Total").closest(".space-y-2") as HTMLElement).getByRole("textbox"), {
+    fireEvent.change(await screen.findByPlaceholderText("Ex.: Salário, Mercado, Aluguel"), { target: { value: "Uber até o cinema" } })
+    fireEvent.change(within(screen.getByText("Valor", { selector: "label" }).closest(".space-y-2") as HTMLElement).getByRole("textbox"), {
       target: { value: "45" },
     })
     await userEvent.click(screen.getByLabelText("Categoria"))
     await userEvent.click(await screen.findByRole("option", { name: /Transporte/ }))
-    await userEvent.click(screen.getByLabelText("Carteira / Conta"))
+    await userEvent.click(screen.getByLabelText("Conta"))
     await userEvent.click(await screen.findByRole("option", { name: /Banco Azul/ }))
-    await userEvent.click(screen.getByRole("button", { name: "Adicionar Despesa" }))
+    await userEvent.click(screen.getByRole("button", { name: "Registrar saída" }))
 
     await vi.waitFor(() => expect(post).toHaveBeenCalledWith("/transactions/", expect.anything()))
     expect(post.mock.calls[0][1]).toMatchObject({ type: "EXPENSE", amount: "45.00", category: "cat-transp", principal: "t-cinema" })
@@ -136,15 +136,15 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
     render(<CardExpenseFormDialog open onOpenChange={vi.fn()} onSuccess={vi.fn()} principal={principal} />)
 
     expect(await screen.findByRole("note")).toHaveTextContent("Por causa de: Cinema, 12/09/2026")
-    fireEvent.change(await screen.findByPlaceholderText("Ex: Assinatura Netflix, Jantar..."), { target: { value: "Pipoca" } })
-    fireEvent.change(within(screen.getByText("Valor Total").closest(".space-y-2") as HTMLElement).getByRole("textbox"), {
+    fireEvent.change(await screen.findByPlaceholderText("Ex.: Assinatura de streaming, Jantar"), { target: { value: "Pipoca" } })
+    fireEvent.change(within(screen.getByText("Valor total").closest(".space-y-2") as HTMLElement).getByRole("textbox"), {
       target: { value: "20" },
     })
-    await userEvent.click(screen.getByLabelText("Cartão Utilizado"))
+    await userEvent.click(screen.getByLabelText("Cartão"))
     await userEvent.click(await screen.findByRole("option", { name: /Cartão Roxo/ }))
     await userEvent.click(screen.getByLabelText("Categoria"))
     await userEvent.click(await screen.findByRole("option", { name: /Lazer/ }))
-    await userEvent.click(screen.getByRole("button", { name: "Adicionar Despesa" }))
+    await userEvent.click(screen.getByRole("button", { name: "Registrar compra" }))
 
     await vi.waitFor(() => expect(post).toHaveBeenCalledWith("/transactions/credit-card-expense/", expect.anything()))
     expect(post.mock.calls[0][1]).toMatchObject({ amount: "20.00", credit_card: "cartao-1", principal: "t-cinema" })
@@ -156,7 +156,7 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
     render(<TransactionsPage />)
     await screen.findAllByText("Padaria")
     // Receita não se vincula: sem as ações
-    expect(within(cartao("Salário")).queryByRole("button", { name: "Vínculo" })).not.toBeInTheDocument()
+    expect(within(cartao("Salário")).queryByRole("button", { name: "Vínculo de Salário" })).not.toBeInTheDocument()
 
     const menu = await abrirMenu("Padaria")
     await userEvent.click(within(menu).getByRole("menuitem", { name: /Vincular a um gasto/ }))
@@ -282,7 +282,7 @@ describe("Lançar, vincular e desfazer", { timeout: 20000 }, () => {
       expect(within(item).getByLabelText("Travado pelo plano")).toBeInTheDocument()
     }
     await userEvent.click(within(menu).getByRole("menuitem", { name: /Lançar gasto relacionado/ }))
-    expect(screen.queryByRole("dialog", { name: "Nova Despesa" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Nova saída" })).not.toBeInTheDocument()
     await userEvent.keyboard("{Escape}")
 
     menu = await abrirMenu("Uber até o cinema")

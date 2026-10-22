@@ -44,7 +44,7 @@ const PRESET_COLORS = [
 ]
 
 const formSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
+  name: z.string().min(1, "Informe o nome do marcador."),
   color: z.string().optional(),
 })
 
@@ -74,10 +74,10 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
     try {
       if (tag) {
         await updateTag(tag.id, values as TagInput)
-        toast.success("Tag atualizada.")
+        toast.success("Marcador atualizado.")
       } else {
         await createTag(values as TagInput)
-        toast.success("Tag criada.")
+        toast.success("Marcador criado.")
         void atualizarUso()
       }
       onSuccess()
@@ -86,7 +86,7 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
       tratarErro(error, {
         form,
         campos: ["name", "color"],
-        mensagemPadrao: "Erro ao salvar tag. Tente novamente.",
+        mensagemPadrao: "Não foi possível salvar o marcador. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -101,30 +101,30 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
             <p className="label text-muted-foreground">Prévia</p>
             <span className="inline-flex max-w-full items-center gap-2 rounded-full border border-border-strong px-3 py-1">
                 <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: watchColor }} />
-                <span className="truncate text-sm font-semibold text-foreground">{form.watch("name") || "Nome da Tag"}</span>
+                <span className="truncate text-sm font-semibold text-foreground">{form.watch("name") || "Nome do marcador"}</span>
             </span>
         </div>
 
         {/* Seção 1: Dados gerais */}
         <section className="space-y-4">
-            <h3 className="label text-muted-foreground">Dados Gerais</h3>
+            <h3 className="label text-muted-foreground">Dados gerais</h3>
 
             <FormField
                 control={form.control}
                 name="name"
                 render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Nome da Tag</FormLabel>
-                        <FormControl>
-                            <div className="relative">
-                                <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                        <FormLabel>Nome do marcador</FormLabel>
+                        <div className="relative">
+                            <Hash className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                            <FormControl>
                                 <Input
-                                    placeholder="Ex: Urgente, Viagem, Freelance..."
+                                    placeholder="Ex.: Viagem, Freelance"
                                     {...field}
                                     className="pl-9"
                                 />
-                            </div>
-                        </FormControl>
+                            </FormControl>
+                        </div>
                         <FormMessage />
                     </FormItem>
                 )}
@@ -133,7 +133,7 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
 
         {/* Seção 2: Identidade visual */}
         <section className="space-y-4">
-            <h3 className="label text-muted-foreground">Identidade Visual</h3>
+            <h3 className="label text-muted-foreground">Identidade visual</h3>
 
             <FormField
                 control={form.control}
@@ -142,7 +142,7 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
                     <FormItem>
                         <FormLabel>Cor</FormLabel>
                         <FormControl>
-                            <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+                            <div role="group" aria-label="Cor do marcador" className="space-y-4 rounded-lg border border-border bg-card p-4">
                                 <div className="grid grid-cols-8 gap-2">
                                     {PRESET_COLORS.map((color) => {
                                         const isSelected = field.value === color
@@ -195,7 +195,7 @@ export function TagForm({ tag, onSuccess, onCancel }: TagFormProps) {
             Cancelar
           </Button>
           <Button type="submit" loading={isLoading}>
-            {tag ? "Salvar Alterações" : "Criar Tag"}
+            {tag ? "Salvar alterações" : "Criar marcador"}
           </Button>
         </div>
       </form>

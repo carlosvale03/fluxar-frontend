@@ -105,7 +105,7 @@ describe("Excluir minha conta nas configurações", () => {
     await userEvent.click(await screen.findByRole("button", { name: "Excluir minha conta" }))
     await userEvent.click(screen.getByRole("button", { name: "Confirmar exclusão" }))
 
-    expect(await screen.findByText("Informe a sua senha atual")).toBeInTheDocument()
+    expect(await screen.findByText("Informe a sua senha atual.")).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
   })
 })

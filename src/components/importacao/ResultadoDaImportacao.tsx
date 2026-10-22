@@ -69,7 +69,7 @@ export function ResultadoDaImportacao({ resultado, onFechar }: ResultadoDaImport
 
       {contasCriadas.length > 0 && (
         <section aria-label="Contas criadas" className="space-y-2">
-          <h5 className="label text-muted-foreground">Contas criadas</h5>
+          <h3 className="label text-muted-foreground">Contas criadas</h3>
           <ul className="flex flex-wrap gap-2">
             {contasCriadas.map((conta) => (
               <li key={conta.id} className="flex items-center gap-1.5 rounded-full border border-border-strong px-3 py-1 text-sm">
@@ -108,7 +108,7 @@ export function ResultadoDaImportacao({ resultado, onFechar }: ResultadoDaImport
 
       {resultado.rejected_rows.length > 0 && (
         <section aria-label="Linhas rejeitadas" className="space-y-2 rounded-r-lg border border-l-[3px] border-border border-l-outflow bg-card p-4">
-          <h5 className="label text-outflow">Linhas rejeitadas</h5>
+          <h3 className="label text-outflow">Linhas rejeitadas</h3>
           <div className="custom-scrollbar max-h-[180px] overflow-y-auto pr-2">
             <ul className="space-y-1">
               {resultado.rejected_rows.map((rejeitada) => (

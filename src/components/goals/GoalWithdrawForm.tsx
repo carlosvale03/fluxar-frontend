@@ -49,12 +49,12 @@ const withdrawSchema = (maxAmount: string) => z.object({
       // entrega o texto decimal ("1500.00") que vai à API
       return maiorQueZero(val);
     }, {
-      message: "O valor deve ser maior que zero",
+      message: "O valor precisa ser maior que zero.",
     })
     .refine((val) => paraCentavos(val) <= paraCentavos(maxAmount), {
-      message: `O valor máximo para resgate nesta meta é ${formatarMoeda(maxAmount)}`,
+      message: `O resgate vai até ${formatarMoeda(maxAmount)}, o valor guardado neste destino.`,
     }),
-  account_to: z.string().min(1, "Selecione a conta de destino"),
+  account_to: z.string().min(1, "Escolha a conta que recebe o valor."),
 })
 
 type WithdrawFormValues = {
@@ -100,7 +100,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
       setAccounts(filtered)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as contas. Tente de novo.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -134,7 +134,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
       tratarErro(error, {
         form,
         campos: ["amount", "account_to"],
-        mensagemPadrao: "Erro ao realizar resgate.",
+        mensagemPadrao: "Não foi possível registrar o resgate. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -149,7 +149,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
         <DialogHeader className="space-y-1 border-b border-border p-6">
           <DialogTitle>Resgatar dinheiro</DialogTitle>
           <DialogDescription>
-            Retire um valor da meta <span className="font-medium text-foreground">{goal?.name}</span>.
+            Retire um valor do destino <span className="font-medium text-foreground">{goal?.name}</span>.
           </DialogDescription>
         </DialogHeader>
 
@@ -161,15 +161,15 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                 name="account_to"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Conta de destino</FormLabel>
+                    <FormLabel>Conta que recebe</FormLabel>
                     <Select onValueChange={field.onChange} defaultValue={field.value}>
                       <FormControl>
                         <SelectTrigger className="h-auto min-h-9 py-2">
-                          <SelectValue placeholder="Para onde vai o dinheiro?" />
+                          <SelectValue placeholder="Escolha para onde vai o dinheiro" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value={SALDO_LIVRE}>Saldo livre do cofrinho</SelectItem>
+                        <SelectItem value={SALDO_LIVRE}>Saldo livre do lastro</SelectItem>
                         {accounts.map((account) => (
                           <SelectItem key={account.id} value={account.id}>
                             <div className="flex flex-col">
@@ -207,8 +207,8 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                     </FormControl>
                     {/* META-17 e META-18: o resgate vai até o valor da meta e, para outra conta, até o saldo do cofrinho */}
                     <div className="flex flex-wrap gap-2">
-                      <Badge variant="secondary">{`Na meta: ${formatarMoeda(goal?.current_amount || "0.00")}`}</Badge>
-                      {cofrinho && <Badge variant="secondary">{`No cofrinho: ${formatarMoeda(cofrinho.balance)}`}</Badge>}
+                      <Badge variant="secondary">{`No destino: ${formatarMoeda(goal?.current_amount || "0.00")}`}</Badge>
+                      {cofrinho && <Badge variant="secondary">{`No lastro: ${formatarMoeda(cofrinho.balance)}`}</Badge>}
                     </div>
                     <FormMessage />
                   </FormItem>
@@ -216,7 +216,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
               />
 
               <div className="space-y-3 rounded-md border border-border bg-elevated p-4">
-                <p className="label text-muted-foreground">Fluxo da operação</p>
+                <p className="label text-muted-foreground">Resumo do movimento</p>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-muted-foreground">Origem</p>
@@ -224,7 +224,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                   </div>
                   <ArrowRight className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                   <div className="min-w-0 flex-1 text-right">
-                    <p className="text-xs text-muted-foreground">Conta de destino</p>
+                    <p className="text-xs text-muted-foreground">Conta que recebe</p>
                     <p className="truncate text-sm font-medium">
                       {destino === SALDO_LIVRE ? "Saldo livre" : accounts.find((a) => a.id === destino)?.name || "Escolha a conta"}
                     </p>
@@ -237,7 +237,7 @@ export function GoalWithdrawForm({ goal, cofrinho, open, onOpenChange, onSuccess
                   Cancelar
                 </Button>
                 <Button type="submit" loading={isLoading}>
-                  Confirmar resgate
+                  Registrar resgate
                 </Button>
               </DialogFooter>
             </form>

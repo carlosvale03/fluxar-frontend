@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, Fragment } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
     Plus, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightCircle, ArrowRightLeft,
-    CreditCard, Receipt, Edit, Trash, ChevronLeft, ChevronRight, CheckCircle, Repeat, Search, X, Inbox
+    CreditCard, Receipt, Edit, Trash, ChevronLeft, ChevronRight, CheckCircle, Repeat, Search, X, Inbox, Upload
 } from "lucide-react"
 import {
     parseISO,
@@ -93,12 +93,12 @@ interface ConfiguracaoDoTipo {
 const configuracaoDoTipo = (type: TransactionType): ConfiguracaoDoTipo => {
     switch (type) {
         case "INCOME":
-            return { icone: ArrowUpCircle, cor: "text-inflow", rotulo: "Receita", variante: "success" }
+            return { icone: ArrowUpCircle, cor: "text-inflow", rotulo: "Entrada", variante: "success" }
         case "EXPENSE":
-            return { icone: ArrowDownCircle, cor: "text-outflow", rotulo: "Despesa", variante: "destructive" }
+            return { icone: ArrowDownCircle, cor: "text-outflow", rotulo: "Saída", variante: "destructive" }
         case "CREDIT_CARD":
         case "CREDIT_CARD_EXPENSE":
-            return { icone: CreditCard, cor: "text-outflow", rotulo: "Despesa no cartão", variante: "destructive" }
+            return { icone: CreditCard, cor: "text-outflow", rotulo: "Compra no cartão", variante: "destructive" }
         case "TRANSFER":
         case "TRANSFER_OUT":
         case "TRANSFER_IN":
@@ -198,7 +198,7 @@ export default function TransactionsPage() {
       } else if (transaction.type === "CREDIT_CARD_EXPENSE" || transaction.type === "CREDIT_CARD") {
           setIsCardExpenseOpen(true)
       } else {
-          toast.info("Este tipo de transação ainda não pode ser editado pela lista.")
+          toast.info("Este tipo de lançamento não pode ser editado pela lista. Abra a fatura do cartão para alterá-lo.")
       }
   }
 
@@ -230,7 +230,7 @@ export default function TransactionsPage() {
           setCategories(catData)
       } catch (error) {
           // CONTRATO-33: nenhuma falha silenciosa
-          tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias.", tentarDeNovo: fetchCategories })
+          tratarErro(error, { mensagemPadrao: "Não foi possível carregar as categorias.", tentarDeNovo: fetchCategories })
       }
   }
 
@@ -419,12 +419,12 @@ export default function TransactionsPage() {
   const handleConfirm = async (transaction: Transaction) => {
       try {
           const resposta = await api.patch<Transaction>(`/transactions/${transaction.id}/`, { status: "COMPLETED" })
-          toast.success("Transação efetivada.")
+          toast.success("Lançamento efetivado.")
           fetchTransactions()
           void conferirSalario(resposta.data)
       } catch (error) {
           // CONTRATO-33: nenhuma falha silenciosa
-          tratarErro(error, { mensagemPadrao: "Erro ao efetivar transação." })
+          tratarErro(error, { mensagemPadrao: "Não foi possível efetivar o lançamento. Tente de novo." })
       }
   }
 
@@ -479,7 +479,7 @@ export default function TransactionsPage() {
       setTotaisDoDia(response.data.day_totals ?? {})
     } catch (error) {
       if (controlador.signal.aborted) return
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar transações.", tentarDeNovo: fetchTransactions })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os lançamentos.", tentarDeNovo: fetchTransactions })
     } finally {
       if (buscaAtual.current === controlador) setIsLoading(false)
     }
@@ -490,7 +490,7 @@ export default function TransactionsPage() {
         const response = await api.get("/accounts/")
         setAccounts(response.data)
     } catch (error) {
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: fetchAccounts })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar as contas.", tentarDeNovo: fetchAccounts })
     }
   }
 
@@ -550,7 +550,7 @@ export default function TransactionsPage() {
       chips.push({ chave: "periodo", rotulo: textoDoPeriodo(), remover: () => aplicarFiltros({ ...filters, startDate: periodoDasAbas.inicio, endDate: periodoDasAbas.fim }) })
   }
   if (filters.type !== "ALL") {
-      chips.push({ chave: "tipo", rotulo: filters.type === "INCOME" ? "Receitas" : filters.type === "EXPENSE" ? "Despesas" : configuracaoDoTipo(filters.type as TransactionType).rotulo, remover: () => aplicarFiltros({ ...filters, type: "ALL" }) })
+      chips.push({ chave: "tipo", rotulo: filters.type === "INCOME" ? "Entradas" : filters.type === "EXPENSE" ? "Saídas" : configuracaoDoTipo(filters.type as TransactionType).rotulo, remover: () => aplicarFiltros({ ...filters, type: "ALL" }) })
   }
   for (const id of filters.categoryIds) {
       chips.push({ chave: `categoria-${id}`, rotulo: nomeDaCategoria(id), remover: () => aplicarFiltros({ ...filters, categoryIds: filters.categoryIds.filter(c => c !== id) }) })
@@ -568,7 +568,7 @@ export default function TransactionsPage() {
   }
   const tags = filters.tagIds ?? []
   if (tags.length > 0) {
-      chips.push({ chave: "tags", rotulo: tags.length === 1 ? "1 tag" : `${tags.length} tags`, remover: () => aplicarFiltros({ ...filters, tagIds: [] }) })
+      chips.push({ chave: "tags", rotulo: tags.length === 1 ? "1 marcador" : `${tags.length} marcadores`, remover: () => aplicarFiltros({ ...filters, tagIds: [] }) })
   }
   if (filters.linked) {
       chips.push({ chave: "vinculo", rotulo: "Com vínculo", remover: () => aplicarFiltros({ ...filters, linked: false }) })
@@ -615,14 +615,36 @@ export default function TransactionsPage() {
   )
 
   const filtrosAtivos = chips.length > 0 || !!buscaComEspera
+  // A busca também sai junto dos filtros, para a lista voltar inteira
+  const limparFiltrosEBusca = () => {
+      setSearch("")
+      setBuscaComEspera("")
+      limparFiltros()
+  }
+
+  // AZ-34: estado vazio com título, uma linha e uma ação
   const vazio = (
       <div className="flex flex-col items-center justify-center gap-2 px-4 py-16 text-center">
           <Inbox className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-          <p className="text-sm text-fg-secondary">
-              {filtrosAtivos
-                  ? "Nenhuma transação com estes filtros."
-                  : "Nenhuma transação neste período. Registre a primeira ou importe um extrato."}
-          </p>
+          {filtrosAtivos ? (
+              <>
+                  <h2 className="text-sm font-medium">Nenhum lançamento com estes filtros</h2>
+                  <p className="text-sm text-fg-secondary">Remova um filtro ou volte para a lista completa.</p>
+                  <Button variant="outline" size="sm" className="mt-2" onClick={limparFiltrosEBusca}>
+                      <X aria-hidden="true" /> Limpar filtros
+                  </Button>
+              </>
+          ) : (
+              <>
+                  <h2 className="text-sm font-medium">Nenhum lançamento neste período</h2>
+                  <p className="text-sm text-fg-secondary">Registre o primeiro pelo botão Novo lançamento ou importe um extrato.</p>
+                  <Button variant="outline" size="sm" className="mt-2" asChild>
+                      <Link href="/importar">
+                          <Upload aria-hidden="true" /> Importar extrato
+                      </Link>
+                  </Button>
+              </>
+          )}
       </div>
   )
 
@@ -659,23 +681,23 @@ export default function TransactionsPage() {
           <DropdownMenu>
               <DropdownMenuTrigger asChild>
                   <Button>
-                      <Plus aria-hidden="true" /> Nova transação
+                      <Plus aria-hidden="true" /> Novo lançamento
                   </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="min-w-[220px]">
-                  <DropdownMenuLabel className="label text-muted-foreground">Tipo de transação</DropdownMenuLabel>
+                  <DropdownMenuLabel className="label text-muted-foreground">Tipo de lançamento</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={() => handleOpenForm("INCOME")}>
-                     <ArrowUpCircle className="mr-2 h-4 w-4 text-inflow" aria-hidden="true" /> Nova Receita
+                     <ArrowUpCircle className="mr-2 h-4 w-4 text-inflow" aria-hidden="true" /> Nova entrada
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleOpenForm("EXPENSE")}>
-                     <ArrowDownCircle className="mr-2 h-4 w-4 text-outflow" aria-hidden="true" /> Nova Despesa
+                     <ArrowDownCircle className="mr-2 h-4 w-4 text-outflow" aria-hidden="true" /> Nova saída
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsCardExpenseOpen(true)}>
-                     <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden="true" /> Despesa no Cartão
+                     <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden="true" /> Compra no cartão
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsInvoicePaymentOpen(true)}>
-                     <Receipt className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden="true" /> Pagar Fatura
+                     <Receipt className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden="true" /> Pagar fatura
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsTransferOpen(true)}>
                       <ArrowRightLeft className="mr-2 h-4 w-4 text-info" aria-hidden="true" /> Transferência
@@ -709,7 +731,7 @@ export default function TransactionsPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
                 type="search"
-                aria-label="Buscar transações"
+                aria-label="Buscar lançamentos"
                 placeholder="Buscar por descrição"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
@@ -736,7 +758,7 @@ export default function TransactionsPage() {
           {filtroDoAtalho(
               soSugeridas
                   ? (lote ? "Categorias sugeridas nesta importação" : "Categorias sugeridas pelo seu histórico")
-                  : "Transações desta importação",
+                  : "Lançamentos desta importação",
               limparFiltroDoLote
           )}
         </div>
@@ -850,9 +872,18 @@ export default function TransactionsPage() {
                                 <IconeDoLancamento transaction={transaction} tamanho="md" />
 
                                 <div className="min-w-0 flex-1 space-y-1">
-                                    <p className={cn("truncate text-sm font-medium", isPending && "text-fg-secondary")}>
+                                    {/* O cartão inteiro abre a edição pelo toque; pelo teclado, a descrição é o botão */}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            handleEdit(transaction)
+                                        }}
+                                        aria-label={`Editar ${transaction.description}`}
+                                        className={cn("block max-w-full cursor-pointer truncate rounded-sm text-left text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", isPending && "text-fg-secondary")}
+                                    >
                                         {transaction.description}
-                                    </p>
+                                    </button>
 
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                                         <span className="inline-flex items-center gap-1.5">
@@ -1059,8 +1090,8 @@ export default function TransactionsPage() {
                                                     size="icon"
                                                     className="h-8 w-8 text-inflow"
                                                     onClick={() => handleConfirm(transaction)}
-                                                    title="Efetivar Transação"
-                                                    aria-label="Efetivar Transação"
+                                                    title="Efetivar lançamento"
+                                                    aria-label={`Efetivar ${transaction.description}`}
                                                 >
                                                     <CheckCircle aria-hidden="true" />
                                                 </Button>
@@ -1119,7 +1150,7 @@ export default function TransactionsPage() {
                 pagina={page}
                 totalDePaginas={totalPages}
                 total={total}
-                rotulo="transações"
+                rotulo="lançamentos"
                 carregando={isLoading}
                 onMudarPagina={setPage}
             />

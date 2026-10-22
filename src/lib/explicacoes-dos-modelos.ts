@@ -67,7 +67,7 @@ export const EXPLICACOES_DOS_MODELOS: Record<string, ExplicacaoDoModelo> = {
     fonte: { autores: "T. Harv Eker", obra: "Os Segredos da Mente Milionária", ano: 2005 },
     descricao: "Separar o dinheiro em seis potes, cada um com um propósito, para equilibrar o presente e o futuro.",
     partes: [
-      { nome: "Necessidades", percentual: "55", significado: "Despesas do dia a dia: moradia, alimentação, contas e transporte." },
+      { nome: "Necessidades", percentual: "55", significado: "Saídas do dia a dia: moradia, alimentação, contas e transporte." },
       {
         nome: "Liberdade financeira",
         percentual: "10",

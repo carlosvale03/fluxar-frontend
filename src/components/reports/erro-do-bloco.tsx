@@ -24,7 +24,7 @@ export function ErroDoBloco({ titulo, onTentarDeNovo, className }: ErroDoBlocoPr
                     </div>
                     <div>
                         <h3 className="label text-muted-foreground">{titulo}</h3>
-                        <p className="text-sm text-muted-foreground mt-2">Não foi possível carregar este bloco.</p>
+                        <p className="text-sm text-muted-foreground mt-2">Não foi possível carregar este bloco. Verifique a conexão e tente de novo.</p>
                     </div>
                     <Button variant="outline" onClick={onTentarDeNovo}>
                         <RotateCw aria-hidden="true" /> {ROTULO_TENTAR_DE_NOVO}

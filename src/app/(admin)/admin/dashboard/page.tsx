@@ -48,7 +48,7 @@ function CardDeNumero({
       </CardHeader>
       <CardContent>
         <div className="value-l">
-          {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : valor}
+          {carregando ? <><Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" /><span className="sr-only">Carregando</span></> : valor}
         </div>
         <p className="mt-1 text-xs text-muted-foreground">{legenda}</p>
       </CardContent>
@@ -65,7 +65,7 @@ export default function AdminDashboardPage() {
       setIsLoading(true)
       setStats(await getAdminStats())
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar métricas.", tentarDeNovo: loadStats })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as métricas.", tentarDeNovo: loadStats })
     } finally {
       setIsLoading(false)
     }
@@ -144,7 +144,7 @@ export default function AdminDashboardPage() {
               <div className="space-y-4">
                   {isLoading ? (
                     <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                        <Loader2 className="h-6 w-6 animate-spin mb-2" />
+                        <Loader2 className="h-6 w-6 animate-spin mb-2" aria-hidden="true" />
                         <span className="label">Carregando</span>
                     </div>
                   ) : stats?.recent_users?.length ? (

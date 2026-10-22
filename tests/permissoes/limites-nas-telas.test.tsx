@@ -89,7 +89,7 @@ describe("Limites nas telas", () => {
     expect(aviso).toHaveTextContent(ATINGIDO)
     expect(aviso).toHaveTextContent("2 de 2 contas")
     expect(screen.getByRole("link", { name: "Ver planos" })).toHaveAttribute("href", "/planos")
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova Conta/ })).toBeDisabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova conta/ })).toBeDisabled())
   })
 
   it("contas abaixo do limite: mostra o uso e deixa criar", async () => {
@@ -97,24 +97,24 @@ describe("Limites nas telas", () => {
     render(<AccountsPage />)
 
     expect(screen.getByText("1 de 2 contas do seu plano")).toBeInTheDocument()
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova Conta/ })).toBeEnabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Nova conta/ })).toBeEnabled())
     expect(screen.queryByText(ATINGIDO)).not.toBeInTheDocument()
   })
 
-  it("cartões no limite: desabilita \"Novo Cartão\" e mostra o aviso", async () => {
+  it("cartões no limite: desabilita \"Novo cartão\" e mostra o aviso", async () => {
     comLimite("limite_cartoes", { limit: 1, used: 1 })
     render(<CardsPage />)
 
     expect(await screen.findByRole("note")).toHaveTextContent("1 de 1 cartões")
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo Cartão/ })).toBeDisabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo cartão/ })).toBeDisabled())
   })
 
-  it("categorias principais no limite: desabilita \"Nova Categoria\" e mostra o aviso", () => {
+  it("categorias principais no limite: desabilita \"Criar categoria\" e mostra o aviso", () => {
     comLimite("limite_categorias", { limit: 3, used: 3 })
     render(<CategoriesPage />)
 
     expect(screen.getByRole("note")).toHaveTextContent("3 de 3 categorias")
-    expect(screen.getByRole("button", { name: /Nova Categoria/ })).toBeDisabled()
+    expect(screen.getByRole("button", { name: /Criar categoria/ })).toBeDisabled()
   })
 
   it("subcategorias: o limite vale por categoria-pai, com o uso contado na tela", async () => {
@@ -124,7 +124,7 @@ describe("Limites nas telas", () => {
 
     expect(await screen.findByText("2 / 2")).toBeInTheDocument()
     expect(screen.getByText("1 / 2")).toBeInTheDocument()
-    const botoes = screen.getAllByTitle("Nova Subcategoria")
+    const botoes = screen.getAllByTitle("Nova subcategoria")
     expect(botoes).toHaveLength(2)
     expect(botoes[0]).toBeDisabled()
     expect(botoes[1]).toBeEnabled()
@@ -134,16 +134,16 @@ describe("Limites nas telas", () => {
     comLimite("limite_tags", { limit: 5, used: 5 })
     render(<TagsPage />)
 
-    expect(screen.getByRole("note")).toHaveTextContent("5 de 5 tags")
-    expect(screen.getByRole("button", { name: /Nova Tag/ })).toBeDisabled()
+    expect(screen.getByRole("note")).toHaveTextContent("5 de 5 marcadores")
+    expect(screen.getByRole("button", { name: /Criar marcador/ })).toBeDisabled()
   })
 
   it("metas no limite: desabilita \"Nova meta\" e mostra o aviso", () => {
     comLimite("limite_metas", { limit: 1, used: 1 })
     render(<GoalsPage />)
 
-    expect(screen.getByRole("note")).toHaveTextContent("1 de 1 metas")
-    expect(screen.getByRole("button", { name: /Nova meta/ })).toBeDisabled()
+    expect(screen.getByRole("note")).toHaveTextContent("1 de 1 destinos")
+    expect(screen.getByRole("button", { name: /Novo destino/ })).toBeDisabled()
   })
 })
 

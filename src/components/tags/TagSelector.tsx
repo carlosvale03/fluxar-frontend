@@ -31,7 +31,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
       const data = await getTags()
       setAvailableTags(data)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar tags.", tentarDeNovo: fetchTags })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os marcadores.", tentarDeNovo: fetchTags })
     } finally {
       setIsLoading(false)
     }
@@ -70,7 +70,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
       setSearchTerm("")
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao criar a tag." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível criar o marcador. Tente de novo." })
     } finally {
       setIsCreating(false)
     }
@@ -87,8 +87,8 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
             <Input
-              aria-label="Buscar ou criar tag"
-              placeholder="Buscar ou criar..."
+              aria-label="Buscar ou criar marcador"
+              placeholder="Buscar ou criar"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
@@ -99,7 +99,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
         <div className="flex max-h-[250px] flex-col gap-0.5 overflow-y-auto p-1">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Carregando tags" />
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Carregando marcadores" />
             </div>
           ) : filteredTags.length > 0 ? (
             filteredTags.map(tag => {
@@ -116,7 +116,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
                   )}
                 >
                   <div className="flex min-w-0 items-center gap-2">
-                     {/* Cor da tag: dado do usuário */}
+                     {/* Cor do marcador: dado do usuário */}
                      <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tag.color }} />
                      <span className="truncate">{tag.name}</span>
                   </div>
@@ -132,12 +132,12 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
                 className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-3 py-2 text-left text-sm transition-colors duration-fast hover:bg-elevated focus-visible:bg-elevated focus-visible:outline-none disabled:opacity-45"
              >
                 {isCreating ? <Loader2 className="h-4 w-4 shrink-0 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />}
-                <span className="truncate">Criar a tag &ldquo;{searchTerm}&rdquo;</span>
+                <span className="truncate">Criar o marcador &ldquo;{searchTerm}&rdquo;</span>
              </button>
           ) : (
              <div className="flex flex-col items-center gap-2 px-3 py-8 text-center text-sm text-muted-foreground">
                <TagIcon className="h-5 w-5" aria-hidden="true" />
-               <p>Nenhuma tag encontrada</p>
+               <p>Nenhum marcador ainda. Digite um nome para criar o primeiro.</p>
              </div>
           )}
         </div>
@@ -160,7 +160,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
                 {tag.name}
                 <button
                   type="button"
-                  aria-label={`Remover a tag ${tag.name}`}
+                  aria-label={`Remover o marcador ${tag.name}`}
                   onClick={(e) => { e.stopPropagation(); removeTag(tag.id); }}
                   className="inline-flex h-6 w-6 cursor-pointer items-center justify-center rounded-full text-muted-foreground transition-colors duration-fast hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
@@ -175,7 +175,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
                   type="button"
                   variant="ghost"
                   size="icon"
-                  aria-label="Adicionar tags"
+                  aria-label="Adicionar marcadores"
                   className="h-8 w-8"
                 >
                   <Plus aria-hidden="true" />
@@ -194,7 +194,7 @@ export function TagSelector({ selectedTagIds, onChange }: TagSelectorProps) {
                 className="flex w-full cursor-pointer items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm text-muted-foreground transition-colors duration-fast hover:bg-elevated hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <Plus className="h-4 w-4" aria-hidden="true" />
-                <span>Adicionar etiquetas...</span>
+                <span>Adicionar marcadores</span>
               </button>
             </PopoverTrigger>
             <PopoverContent className="w-[280px] p-0" align="start">

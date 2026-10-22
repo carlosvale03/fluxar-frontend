@@ -58,7 +58,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
       onSuccess()
       onOpenChange(false)
     } catch (error) {
-      toast.error(mensagemDeErro(error, "Erro ao processar o reajuste de saldo."))
+      toast.error(mensagemDeErro(error, "Não foi possível reajustar o saldo. Tente de novo."))
     } finally {
       setIsLoading(false)
     }
@@ -71,7 +71,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[440px]">
           <DialogHeader>
-            <DialogTitle>Reajustar Saldo</DialogTitle>
+            <DialogTitle>Reajustar saldo</DialogTitle>
             <DialogDescription>
               Ajuste o saldo da conta <strong className="font-semibold text-foreground">{account?.name}</strong>.
             </DialogDescription>
@@ -101,9 +101,9 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
                     <div className="flex flex-col gap-1">
                         <span className="label text-muted-foreground">Movimentação prevista</span>
                         <p className="text-sm">
-                            Será gerada uma{" "}
-                            <span className={difference > 0 ? "text-inflow" : "text-outflow"}>{difference > 0 ? "Receita" : "Despesa"}</span>{" "}
-                            no valor de <strong className="value-m font-medium">{formatarMoeda(deCentavos(Math.abs(difference)))}</strong> para ajustar o saldo.
+                            Será registrada uma{" "}
+                            <span className={difference > 0 ? "text-inflow" : "text-outflow"}>{difference > 0 ? "entrada" : "saída"}</span>{" "}
+                            de <strong className="value-m font-medium">{formatarMoeda(deCentavos(Math.abs(difference)))}</strong> para ajustar o saldo.
                         </p>
                     </div>
                 </div>
@@ -123,7 +123,7 @@ export function BalanceAdjustmentDialog({ open, onOpenChange, account, onSuccess
                 loading={isLoading}
                 disabled={difference === 0}
             >
-              Confirmar Reajuste
+              Confirmar reajuste
             </Button>
           </DialogFooter>
       </DialogContent>

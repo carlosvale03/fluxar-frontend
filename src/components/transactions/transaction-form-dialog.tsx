@@ -63,7 +63,7 @@ import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 const formSchema = z.object({
   description: z.string().min(3, "A descrição deve ter pelo menos 3 caracteres."),
   // CONTRATO-17: o valor vai à API como texto decimal ("1234.56")
-  amount: z.string().refine(maiorQueZero, "O valor deve ser maior que 0."),
+  amount: z.string().refine(maiorQueZero, "O valor precisa ser maior que zero."),
   date: z.date(),
   category_id: z.string().min(1, "Selecione uma categoria."),
   account_id: z.string().min(1, "Selecione uma conta."),
@@ -77,7 +77,7 @@ const formSchema = z.object({
   }
   return true;
 }, {
-  message: "Selecione uma frequência de repetição.",
+  message: "Selecione a frequência da recorrência.",
   path: ["frequency"],
 })
 
@@ -152,7 +152,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
           setAccounts(accRes.data)
       } catch (error) {
           console.error("Failed to fetch dependencies", error)
-          toast.error("Erro ao carregar categorias ou contas.")
+          toast.error("Não foi possível carregar as categorias e as contas. Feche o formulário e abra de novo.")
       }
   }
 
@@ -198,8 +198,8 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                toast.success("Série recorrente atualizada.")
           } else {
                response = await api.put<Transaction>(endpoint, finalPayload)
-               toast.success(`${type === "INCOME" ? "Receita" : "Despesa"} atualizada.`)
-               // SALARIO-19: a receita pendente que voltou efetivada da edição
+               toast.success("Lançamento atualizado.")
+               // SALARIO-19: a entrada pendente que voltou efetivada da edição
                // também vai ao aviso do salário
                if (initialData.status === "PENDING" && response.data?.status === "COMPLETED") {
                    criada = response.data
@@ -208,7 +208,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
       } else {
           response = await api.post<Transaction>(endpoint, finalPayload)
           criada = response.data
-          toast.success(`${type === "INCOME" ? "Receita" : "Despesa"} registrada.`)
+          toast.success("Lançamento registrado.")
       }
 
       onSuccess(criada)
@@ -227,7 +227,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
           tags: "tags",
           frequency: "frequency",
         },
-        mensagemPadrao: "Erro ao salvar transação. Verifique os dados.",
+        mensagemPadrao: "Não foi possível salvar o lançamento. Confira os campos e tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -247,7 +247,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                  setRecentTransactions(records)
              } catch (error) {
                  // CONTRATO-33: nenhuma falha silenciosa
-                 tratarErro(error, { mensagemPadrao: "Erro ao carregar sugestões." })
+                 tratarErro(error, { mensagemPadrao: "Não foi possível carregar as sugestões. Continue digitando a descrição." })
              }
          }
          fetchSuggestions()
@@ -341,10 +341,10 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                     </div>
                     <div className="flex flex-col gap-0.5">
                         <DialogTitle>
-                            {initialData ? "Editar Lançamento" : (isIncome ? "Nova Receita" : "Nova Despesa")}
+                            {initialData ? "Editar lançamento" : (isIncome ? "Nova entrada" : "Nova saída")}
                         </DialogTitle>
                         <DialogDescription>
-                            {initialData ? "Ajuste os detalhes deste lançamento." : "Mantenha seu fluxo de caixa sempre em dia."}
+                            {initialData ? "Ajuste os detalhes deste lançamento." : (isIncome ? "Registre um valor que entrou numa conta." : "Registre um valor que saiu de uma conta.")}
                         </DialogDescription>
                     </div>
                     </div>
@@ -363,7 +363,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                         {/* Seção 1: Geral */}
                         <div className="space-y-5">
                             <div className="flex items-center gap-2">
-                                <h3 className="label text-muted-foreground">O que e Quanto?</h3>
+                                <h3 className="label text-muted-foreground">Descrição e valor</h3>
                             </div>
 
                             <div className="space-y-4">
@@ -372,12 +372,12 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                     name="description"
                                     render={({ field }) => (
                                         <FormItem className="space-y-2">
-                                        <FormLabel>Descrição Principal</FormLabel>
+                                        <FormLabel>Descrição</FormLabel>
                                             <div className="relative">
                                                 <AlignLeft aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                                                 <FormControl>
                                                 <Input
-                                                    placeholder="Ex: Salário, Mercado, Aluguel..."
+                                                    placeholder="Ex.: Salário, Mercado, Aluguel"
                                                     {...field}
                                                     onChange={(e) => {
                                                         field.onChange(e)
@@ -396,7 +396,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                         <div className="border-b border-border p-2">
                                                             <div className="flex items-center gap-2 px-2 py-1">
                                                                 <Search className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
-                                                                <span className="label text-muted-foreground">Lançamentos Sugeridos</span>
+                                                                <span className="label text-muted-foreground">Lançamentos anteriores</span>
                                                             </div>
                                                         </div>
                                                         <div className="p-1">
@@ -411,7 +411,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                                         <Repeat className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                                                                         <div>
                                                                             <p className="text-sm font-medium">{s.description}</p>
-                                                                            <p className="text-xs text-muted-foreground">Usar padrões anteriores</p>
+                                                                            <p className="text-xs text-muted-foreground">Preencher categoria e conta</p>
                                                                         </div>
                                                                     </div>
                                                                     <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
@@ -439,7 +439,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                         name="amount"
                                         render={({ field }) => (
                                             <FormItem className="space-y-2">
-                                            <FormLabel>Valor Total</FormLabel>
+                                            <FormLabel>Valor</FormLabel>
                                             <FormControl>
                                                 <MoneyInput
                                                     value={field.value ?? ""}
@@ -456,7 +456,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                         name="date"
                                         render={({ field }) => (
                                             <FormItem className="flex flex-col space-y-2">
-                                            <FormLabel>Data Fixada</FormLabel>
+                                            <FormLabel>Data</FormLabel>
                                             <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
                                                 <PopoverTrigger asChild>
                                                 <FormControl>
@@ -471,7 +471,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                         {field.value ? (
                                                             format(field.value, "dd 'de' MMMM", { locale: ptBR })
                                                         ) : (
-                                                            <span>Selecione...</span>
+                                                            <span>Selecione a data</span>
                                                         )}
                                                     </Button>
                                                 </FormControl>
@@ -500,7 +500,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                         {/* Seção 2: Classificação */}
                         <div className="space-y-5">
                             <div className="flex items-center gap-2">
-                                <h3 className="label text-muted-foreground">Classificação e Marcação</h3>
+                                <h3 className="label text-muted-foreground">Categoria, conta e marcadores</h3>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -513,7 +513,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger className="[&_.trigger-hidden]:hidden [&_.show-in-trigger]:flex">
-                                                    <SelectValue placeholder="Selecione..." />
+                                                    <SelectValue placeholder="Selecione a categoria" />
                                                 </SelectTrigger>
                                             </FormControl>
                                             <SelectContent className="max-h-[450px] p-2">
@@ -529,7 +529,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                         }}
                                                     >
                                                         <PlusCircle aria-hidden="true" />
-                                                        Nova Categoria
+                                                        Criar categoria
                                                     </Button>
                                                     
                                                     <div className="px-2 mb-2">
@@ -585,7 +585,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                                                 {cat.name}
                                                                             </span>
                                                                             {!cat.isSubcategory && (
-                                                                                <span className="text-xs text-muted-foreground trigger-hidden">Categoria Master</span>
+                                                                                <span className="text-xs text-muted-foreground trigger-hidden">Categoria principal</span>
                                                                             )}
                                                                         </div>
                                                                     </div>
@@ -610,13 +610,13 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                     name="account_id"
                                     render={({ field }) => (
                                         <FormItem className="space-y-2">
-                                        <FormLabel>Carteira / Conta</FormLabel>
+                                        <FormLabel>Conta</FormLabel>
                                         <Select onValueChange={field.onChange} value={field.value}>
                                             <FormControl>
                                                 <SelectTrigger>
                                                     <div className="flex items-center gap-2">
                                                         <Wallet className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                        <SelectValue placeholder="Selecione..." />
+                                                        <SelectValue placeholder="Selecione a conta" />
                                                     </div>
                                                 </SelectTrigger>
                                             </FormControl>
@@ -631,7 +631,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                                 className="mb-1 w-full justify-start gap-2"
                                                             >
                                                                 <PlusCircle aria-hidden="true" />
-                                                                Nova Conta
+                                                                Criar conta
                                                             </Button>
                                                         }
                                                     />
@@ -702,7 +702,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                 name="tags"
                                 render={({ field }) => (
                                     <FormItem className="space-y-2">
-                                    <FormLabel>Tags Interativas</FormLabel>
+                                    <FormLabel>Marcadores</FormLabel>
                                     <FormControl>
                                         <TagSelector
                                             selectedTagIds={field.value}
@@ -719,7 +719,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                         {/* Seção 3: Planejamento / Recorrência */}
                         <div className="space-y-5">
                             <div className="flex items-center gap-2">
-                                <h3 className="label text-muted-foreground">Fluxo e Recorrência</h3>
+                                <h3 className="label text-muted-foreground">Recorrência</h3>
                             </div>
 
                             {/* PERM-19: sem transacoes_recorrentes, a série não nasce nem muda inteira */}
@@ -730,16 +730,16 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                 <div className="space-y-3 rounded-sm border border-l-[3px] border-border border-l-warn bg-card p-4">
                                     <div className="flex items-center gap-2 text-sm font-medium">
                                         <AlertCircle className="h-4 w-4 text-warn" aria-hidden="true" />
-                                        Impacto da Edição
+                                        Alcance da edição
                                     </div>
                                     <div className="flex items-center justify-between gap-4">
-                                        <Label htmlFor="escopo-da-edicao">Série recorrente:</Label>
+                                        <Label htmlFor="escopo-da-edicao">Aplicar a</Label>
                                         <Select value={updateScope} onValueChange={(val: any) => setUpdateScope(val)}>
                                             <SelectTrigger id="escopo-da-edicao" className="w-[180px]">
                                                 <SelectValue />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="SINGLE">Lançamento único</SelectItem>
+                                                <SelectItem value="SINGLE">Só este lançamento</SelectItem>
                                                 <SelectItem value="ALL">Toda a série</SelectItem>
                                             </SelectContent>
                                         </Select>
@@ -761,8 +761,8 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                     <div className="flex items-center gap-3">
                                                         <Repeat className={cn("h-5 w-5 shrink-0", field.value ? "text-foreground" : "text-muted-foreground")} aria-hidden="true" />
                                                         <div className="flex flex-col gap-0.5">
-                                                            <FormLabel>Planejamento Recorrente</FormLabel>
-                                                            <p className="text-xs text-muted-foreground">Repita este lançamento automaticamente.</p>
+                                                            <FormLabel>Repetir lançamento</FormLabel>
+                                                            <p className="text-xs text-muted-foreground">Cria este lançamento de novo a cada período.</p>
                                                         </div>
                                                     </div>
                                                     <FormControl>
@@ -786,7 +786,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                                     <Select onValueChange={field.onChange} value={field.value}>
                                                         <FormControl>
                                                             <SelectTrigger>
-                                                                <SelectValue placeholder="Qual a periodicidade?" />
+                                                                <SelectValue placeholder="Selecione a frequência" />
                                                             </SelectTrigger>
                                                         </FormControl>
                                                         <SelectContent>
@@ -814,7 +814,7 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
                                 Cancelar
                             </Button>
                             <Button type="submit" loading={isLoading}>
-                                {initialData ? "Salvar Lançamento" : `Adicionar ${isIncome ? "Receita" : "Despesa"}`}
+                                {initialData ? "Salvar lançamento" : `Registrar ${isIncome ? "entrada" : "saída"}`}
                             </Button>
                         </DialogFooter>
                     </form>
@@ -823,13 +823,13 @@ export function TransactionFormDialog({ open, onOpenChange, onSuccess, type, ini
         </ScrollArea>
       </DialogContent>
 
-      {/* Modal Secundário: Nova Categoria */}
+      {/* Modal secundário: nova categoria */}
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent className="sm:max-w-[480px] p-0 overflow-hidden">
           <ScrollArea className="max-h-[85vh]">
             <div className="p-6">
                 <DialogHeader className="mb-6">
-                    <DialogTitle>Nova Categoria</DialogTitle>
+                    <DialogTitle>Nova categoria</DialogTitle>
                     <DialogDescription>Crie uma categoria sem sair do lançamento.</DialogDescription>
                 </DialogHeader>
 

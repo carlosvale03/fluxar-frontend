@@ -57,8 +57,8 @@ describe("Tela do cartão", () => {
     render(<CardDetailsPage />)
 
     expect(await screen.findByText(/Vence em 07\/11/)).toBeInTheDocument()
-    const rotulo = screen.getByText("Limite Disponível")
-    expect(rotulo.parentElement).toHaveTextContent(/^Limite DisponívelR\$\s3\.800,00$/)
+    const rotulo = screen.getByText("Limite disponível")
+    expect(rotulo.parentElement).toHaveTextContent(/^Limite disponívelR\$\s3\.800,00$/)
   })
 
   it("o cartão da lista usa o available_limit da API no limite utilizado", () => {

@@ -187,7 +187,12 @@ Nove destinos de primeiro nível são demais para uma barra. A navegação se di
 | P-02 | Renomear as URLs (`/transacoes` → `/diario` etc.)? | Manter as rotas atuais nesta etapa. |
 | P-03 | Como calcular o desvio geral da Ponte de Comando? | Média dos desvios das rotas ponderada pelo limite de cada uma; validar com o backend. |
 | P-04 | Logo definitivo | O ponteiro de bússola da prévia é provisório. |
-| P-05 | O glossário funciona para quem não participou do projeto? | Testar com 5 usuários antes da Fase 4 (tarefa AZ-37). |
+| P-05 | O glossário funciona para quem não participou do projeto? | Testar com 5 usuários pelo roteiro do [TESTE-DE-USABILIDADE.md](TESTE-DE-USABILIDADE.md) (AZ-37). |
+| P-12 | "Lastro" tem dois sentidos na interface: a reserva do troco (§3) e a conta-cofrinho onde ficam os destinos, que a Fase 4 também chamou de lastro ("Saldo do lastro", "Sem lastro"). | Decidir se a conta dos destinos volta a se chamar "cofrinho" ou ganha outro nome; a reserva do troco aparece hoje como "Lastro do troco". |
+| P-13 | Na Partilha, o "destino" de cada parte (para onde vai o dinheiro) colide com o termo Destinos ("Destino de X: Destino: Viagem"). | Trocar por "Para onde vai". |
+| P-14 | O ato de dividir o salário continua "divisão" ("Desfazer a divisão?", "Divisões recentes"). | Decidir se vira "partilha" também, como no exemplo da §2. |
+| P-15 | O tipo de conta PIGGY_BANK aparece como "Cofrinho" no filtro de contas (`src/types/accounts.ts`). | Alinhar com a decisão da P-12. |
+| P-16 | Os selos "Saudável", "Reserva OK" e "Seguro" das Cartas avançadas aparecem sempre, sem olhar os dados. | Calcular a partir dos dados ou remover. |
 
 ---
 

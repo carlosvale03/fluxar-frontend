@@ -54,8 +54,8 @@ describe("Importação e exportação", () => {
     comAcesso(["importacao_ofx"])
     render(<ImportExportPage />)
 
-    expect(screen.queryByRole("button", { name: "Configurar Importação OFX" })).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Importar Planilha" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Importar extrato OFX" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Importar planilha" })).toBeInTheDocument()
     expect(screen.getAllByText(AVISO)).toHaveLength(1)
   })
 
@@ -63,8 +63,8 @@ describe("Importação e exportação", () => {
     comAcesso(["importacao_planilha"])
     render(<ImportExportPage />)
 
-    expect(screen.queryByRole("button", { name: "Importar Planilha" })).not.toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Configurar Importação OFX" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Importar planilha" })).not.toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Importar extrato OFX" })).toBeInTheDocument()
     expect(screen.getAllByText(AVISO)).toHaveLength(1)
   })
 
@@ -102,8 +102,8 @@ describe("Importação e exportação", () => {
     auth.user = usuario({ plan: "COMMON" })
     render(<ImportExportPage />)
 
-    expect(screen.getByRole("button", { name: "Configurar Importação OFX" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Importar Planilha" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Importar extrato OFX" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Importar planilha" })).toBeInTheDocument()
     await abrirExportacao()
     expect(screen.getByRole("button", { name: "Gerar PDF" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Gerar XLS" })).toBeInTheDocument()

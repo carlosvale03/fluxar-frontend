@@ -45,7 +45,7 @@ import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// Texto expansível dos exemplos de tags
+// Texto expansível dos exemplos de marcadores
 function ExpandableText({ text }: { text: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const maxLength = 80;
@@ -70,13 +70,13 @@ function ExpandableText({ text }: { text: string }) {
     );
 }
 
-// Exemplos do guia: as cores são sugestões de cor de tag, como as pré-definidas do formulário
+// Exemplos do guia: as cores são sugestões de cor de marcador, como as pré-definidas do formulário
 const EXEMPLOS_DE_TAGS = [
     {
         name: "Renda Extra / Freelance",
         desc: "Identifique ganhos além do salário fixo para medir quanto rendem os projetos paralelos.",
         color: "#10b981",
-        tag: "Receita"
+        tag: "Entrada"
     },
     {
         name: "Reembolsável",
@@ -88,17 +88,17 @@ const EXEMPLOS_DE_TAGS = [
         name: "Renda Passiva / Dividendos",
         desc: "Marque juros, proventos e aluguéis recebidos para acompanhar quanto eles somam mês a mês.",
         color: "#059669",
-        tag: "Receita"
+        tag: "Entrada"
     },
     {
         name: "Assinaturas / SaaS",
-        desc: "Identifique pagamentos recorrentes de serviços e softwares para avaliar quais ainda valem a pena manter no orçamento mensal.",
+        desc: "Identifique pagamentos recorrentes de serviços e softwares para avaliar quais ainda valem a pena manter nos gastos do mês.",
         color: "#a855f7",
         tag: "Recorrente"
     },
     {
         name: "Viagem / Férias",
-        desc: "Agrupe todos os custos de um evento sem misturar com as despesas recorrentes, para ver o total depois da viagem.",
+        desc: "Agrupe todos os custos de um evento sem misturar com as saídas recorrentes, para ver o total depois da viagem.",
         color: "#f97316",
         tag: "Sazonal"
     },
@@ -173,7 +173,7 @@ function TelaDeTags() {
       setTags(data)
     } catch (error) {
       // CONTRATO-33: a carga que falha pode ser repetida pelo aviso
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar tags", tentarDeNovo: fetchTags })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os marcadores.", tentarDeNovo: fetchTags })
     } finally {
       setIsLoading(false)
     }
@@ -188,7 +188,7 @@ function TelaDeTags() {
         const data = await getTags()
         setTags(data)
       } catch (error) {
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar tags", tentarDeNovo: refreshTags })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar os marcadores.", tentarDeNovo: refreshTags })
       }
   }
 
@@ -198,13 +198,13 @@ function TelaDeTags() {
 
     try {
       await deleteTag(deletingTag.id)
-      toast.success("Tag excluída.")
+      toast.success("Marcador excluído.")
       // PERM-20: o item excluído sai do uso dos limites do /auth/me
       void atualizarUso()
       refreshTags()
     } catch (error) {
        console.error(error)
-       tratarErro(error, { mensagemPadrao: "Não foi possível excluir a tag. Tente de novo." })
+       tratarErro(error, { mensagemPadrao: "Não foi possível excluir o marcador. Tente de novo." })
        throw error
     }
   }
@@ -220,7 +220,7 @@ function TelaDeTags() {
       setInsightsData(data)
     } catch (error) {
       console.error(error)
-      tratarErro(error, { mensagemPadrao: "Não foi possível obter os dados da tag no momento." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar a análise do marcador. Tente de novo." })
       if (!insightsData) setIsInsightsModalOpen(false)
     } finally {
       setIsLoadingInsights(false)
@@ -246,16 +246,16 @@ function TelaDeTags() {
             <DialogTrigger asChild>
               <Button disabled={tagsNoLimite}>
                 <PlusCircle aria-hidden="true" />
-                Nova Tag
+                Criar marcador
               </Button>
             </DialogTrigger>
             <DialogContent className="overflow-hidden p-0 sm:max-w-[500px]">
               <ScrollArea className="max-h-[85vh]">
                 <div className="p-6">
                   <DialogHeader className="mb-6">
-                    <DialogTitle>Nova Tag</DialogTitle>
+                    <DialogTitle>Novo marcador</DialogTitle>
                     <DialogDescription>
-                      Crie uma tag para marcar lançamentos de qualquer categoria ou conta.
+                      Crie um marcador para identificar lançamentos de qualquer categoria ou conta.
                     </DialogDescription>
                   </DialogHeader>
                   <TagForm
@@ -272,16 +272,16 @@ function TelaDeTags() {
         }
       />
 
-      {/* PERM-20: uso e limite de tags do plano */}
-      <AvisoDeLimite chave="limite_tags" rotulo="tags" />
+      {/* PERM-20: uso e limite de marcadores do plano */}
+      <AvisoDeLimite chave="limite_tags" rotulo="marcadores" />
 
       {/* Busca e guia de exemplos */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-md">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
-            aria-label="Filtrar por nome da tag"
-            placeholder="Filtrar por nome da tag..."
+            aria-label="Filtrar por nome do marcador"
+            placeholder="Ex.: Viagem"
             className="pl-9"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -293,12 +293,12 @@ function TelaDeTags() {
         </Button>
       </div>
 
-      {/* Explicação permanente do que é uma tag */}
+      {/* Explicação permanente do que é um marcador */}
       <div className="flex items-start gap-3 rounded-r-lg border border-border border-l-[3px] border-l-info bg-card p-4">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
         <p className="text-sm text-fg-secondary">
-          Tags marcam lançamentos de qualquer categoria ou conta, como uma viagem, um projeto ou um gasto que você quer
-          acompanhar de perto. Um lançamento pode ter várias tags.
+          Marcadores identificam lançamentos de qualquer categoria ou conta, como uma viagem, um projeto ou um gasto que
+          você quer acompanhar de perto. Um lançamento pode ter vários marcadores.
         </p>
       </div>
 
@@ -310,22 +310,33 @@ function TelaDeTags() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {filteredTags.length === 0 && (
+          {filteredTags.length === 0 && (tags.length > 0 ? (
+              <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border-strong bg-card px-4 py-16 text-center">
+                  <Search className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                  <h2 className="display-s text-foreground">Nenhum marcador com este nome</h2>
+                  <p className="max-w-xs text-sm text-muted-foreground">
+                    Confira a grafia ou limpe a busca para ver todos os marcadores.
+                  </p>
+                  <Button variant="outline" onClick={() => setSearchTerm("")}>
+                    Limpar busca
+                  </Button>
+              </div>
+          ) : (
               <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border-strong bg-card px-4 py-16 text-center">
                   <TagIcon className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                  <h2 className="display-s text-foreground">Nenhuma tag encontrada</h2>
+                  <h2 className="display-s text-foreground">Nenhum marcador criado</h2>
                   <p className="max-w-xs text-sm text-muted-foreground">
-                    Crie tags para marcar lançamentos que você quer ver juntos.
+                    Crie marcadores para ver juntos os lançamentos de uma viagem, um projeto ou um hábito.
                   </p>
                   <Button
                     variant="outline"
                     disabled={tagsNoLimite}
                     onClick={() => setIsCreateOpen(true)}
                   >
-                    Criar Minha Primeira Tag
+                    Criar primeiro marcador
                   </Button>
               </div>
-          )}
+          ))}
 
           {paginatedTags.map((tag) => (
             <div
@@ -345,13 +356,13 @@ function TelaDeTags() {
                     <span className="font-mono text-xs uppercase text-muted-foreground">{tag.color}</span>
                  </div>
 
-                 {/* Ações da tag: visíveis no foco do teclado, não só no hover */}
+                 {/* Ações do marcador: visíveis no foco do teclado, não só no hover */}
                  <div className="flex shrink-0 gap-0.5 transition-opacity duration-fast ease-az-out sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                     {analisePorTag && (
                     <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Análise da tag ${tag.name}`}
+                        aria-label={`Ver a análise do marcador ${tag.name}`}
                         title="Análise"
                         className="h-8 w-8"
                         onClick={(e) => {
@@ -365,7 +376,7 @@ function TelaDeTags() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Editar a tag ${tag.name}`}
+                        aria-label={`Editar o marcador ${tag.name}`}
                         title="Editar"
                         className="h-8 w-8"
                         onClick={() => setEditingTag(tag)}
@@ -375,7 +386,7 @@ function TelaDeTags() {
                     <Button
                         variant="ghost"
                         size="icon"
-                        aria-label={`Excluir a tag ${tag.name}`}
+                        aria-label={`Excluir o marcador ${tag.name}`}
                         title="Excluir"
                         className="h-8 w-8 text-outflow hover:bg-outflow/10 hover:text-outflow"
                         onClick={() => setDeletingTag(tag)}
@@ -390,9 +401,9 @@ function TelaDeTags() {
 
       {/* Paginação */}
       {hasMultiplePages && (
-        <nav aria-label="Páginas de tags" className="flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+        <nav aria-label="Páginas de marcadores" className="flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
             <p className="text-xs text-muted-foreground">
-                Mostrando <span className="font-mono tabular-nums text-foreground">{Math.min(filteredTags.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> a <span className="font-mono tabular-nums text-foreground">{Math.min(filteredTags.length, currentPage * ITEMS_PER_PAGE)}</span> de <span className="font-mono tabular-nums text-foreground">{filteredTags.length}</span> tags
+                Mostrando <span className="font-mono tabular-nums text-foreground">{Math.min(filteredTags.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> a <span className="font-mono tabular-nums text-foreground">{Math.min(filteredTags.length, currentPage * ITEMS_PER_PAGE)}</span> de <span className="font-mono tabular-nums text-foreground">{filteredTags.length}</span> marcadores
             </p>
 
             <div className="flex items-center gap-1">
@@ -445,9 +456,9 @@ function TelaDeTags() {
             <ScrollArea className="max-h-[85vh]">
                 <div className="p-6">
                     <DialogHeader className="mb-6">
-                        <DialogTitle>Editar Tag</DialogTitle>
+                        <DialogTitle>Editar marcador</DialogTitle>
                         <DialogDescription>
-                            Altere o nome ou a cor da tag. Os lançamentos marcados com ela mudam junto.
+                            Altere o nome ou a cor do marcador. Os lançamentos marcados com ele mudam junto.
                         </DialogDescription>
                     </DialogHeader>
                     {editingTag && (
@@ -469,14 +480,14 @@ function TelaDeTags() {
       <ConfirmacaoDestrutiva
         aberta={!!deletingTag}
         onAbertaChange={(aberta) => !aberta && setDeletingTag(null)}
-        titulo={`Excluir a tag ${deletingTag?.name ?? ""}?`}
+        titulo={`Excluir o marcador ${deletingTag?.name ?? ""}?`}
         descricao={
           <>
-            A tag <strong className="font-semibold text-foreground">{deletingTag?.name}</strong> sai de todos os
-            lançamentos marcados com ela; os lançamentos continuam. Isso não pode ser desfeito.
+            O marcador <strong className="font-semibold text-foreground">{deletingTag?.name}</strong> sai de todos os
+            lançamentos marcados com ele; os lançamentos continuam. Isso não pode ser desfeito.
           </>
         }
-        rotuloConfirmar="Excluir tag"
+        rotuloConfirmar="Excluir marcador"
         onConfirmar={handleDelete}
       />
 
@@ -486,9 +497,9 @@ function TelaDeTags() {
               <ScrollArea className="max-h-[90vh]">
                   <div className="space-y-6 p-6">
                       <DialogHeader>
-                          <DialogTitle>Exemplos de tags</DialogTitle>
+                          <DialogTitle>Exemplos de marcadores</DialogTitle>
                           <DialogDescription>
-                              Sugestões de tags para marcar lançamentos e ver esses gastos juntos.
+                              Sugestões de marcadores para identificar lançamentos e ver esses gastos juntos.
                           </DialogDescription>
                       </DialogHeader>
 
@@ -507,7 +518,7 @@ function TelaDeTags() {
 
                       <p className="flex items-center gap-2 text-sm text-fg-secondary">
                           <Info className="h-4 w-4 shrink-0 text-info" aria-hidden="true" />
-                          Um lançamento pode ter várias tags ao mesmo tempo.
+                          Um lançamento pode ter vários marcadores ao mesmo tempo.
                       </p>
 
                       <div className="flex justify-end">
@@ -520,7 +531,7 @@ function TelaDeTags() {
           </DialogContent>
       </Dialog>
 
-      {/* Análise da tag */}
+      {/* Análise do marcador */}
       <Dialog open={isInsightsModalOpen} onOpenChange={setIsInsightsModalOpen}>
           <DialogContent className="overflow-hidden p-0 sm:max-w-[650px]">
               <ScrollArea className="max-h-[90vh]">
@@ -531,13 +542,13 @@ function TelaDeTags() {
                                   <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: insightsData.color }} />
                               )}
                               <DialogTitle className="truncate">
-                                {isLoadingInsights ? "Carregando..." : insightsData?.tag_name || "Análise da tag"}
+                                {isLoadingInsights ? "Carregando..." : insightsData?.tag_name || "Análise do marcador"}
                               </DialogTitle>
                           </div>
                           <DialogDescription className="flex items-center gap-2">
                               <Calendar className="h-4 w-4" aria-hidden="true" />
                               {isLoadingInsights
-                                ? "Analisando os lançamentos da tag."
+                                ? "Analisando os lançamentos do marcador."
                                 : `Entradas e saídas dos últimos ${insightsMonths} meses.`}
                           </DialogDescription>
                       </DialogHeader>
@@ -545,21 +556,21 @@ function TelaDeTags() {
                       {isLoadingInsights ? (
                           <div className="flex flex-col items-center justify-center gap-3 py-16">
                               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
-                              <p className="text-sm text-muted-foreground">Analisando dados da tag...</p>
+                              <p className="text-sm text-muted-foreground">Analisando os dados do marcador.</p>
                           </div>
                       ) : insightsData && (
                           <div className="space-y-6">
 
                               {/* Monitor de foco: o mês contra a média */}
                               <section className="space-y-2">
-                                  <h3 className="label text-muted-foreground">Monitor de Foco da Tag</h3>
+                                  <h3 className="label text-muted-foreground">Monitor de foco do marcador</h3>
                                   <div className={cn(
                                       "space-y-4 rounded-r-lg border border-border border-l-[3px] bg-card p-4",
                                       situacao?.listra ?? "border-l-border-strong"
                                   )}>
                                       <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
                                           <div className="space-y-1">
-                                              <p className="label text-muted-foreground">Gasto Líquido do Mês</p>
+                                              <p className="label text-muted-foreground">Gasto líquido do mês</p>
                                               <p className="value-l text-foreground">{formatCurrency(insightsData.focus_monitor.current_month)}</p>
                                           </div>
 
@@ -592,7 +603,7 @@ function TelaDeTags() {
                               {/* Histórico */}
                               <section className="space-y-4 rounded-lg border border-border bg-card p-4">
                                   <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-                                      <h3 className="label text-muted-foreground">Histórico de Movimentação · por mês</h3>
+                                      <h3 className="label text-muted-foreground">Histórico de movimentação · por mês</h3>
                                       <div className="flex flex-wrap items-center gap-3">
                                           <div className="inline-flex items-center rounded-lg bg-muted p-1" role="group" aria-label="Período da análise">
                                               {[3, 6, 12].map((m) => (
@@ -617,11 +628,11 @@ function TelaDeTags() {
                                           <div className="flex items-center gap-3">
                                               <span className="flex items-center gap-1.5">
                                                   <span aria-hidden="true" className="h-2 w-2 rounded-full bg-inflow" />
-                                                  <span className="label text-muted-foreground">Receitas</span>
+                                                  <span className="label text-muted-foreground">Entradas</span>
                                               </span>
                                               <span className="flex items-center gap-1.5">
                                                   <span aria-hidden="true" className="h-2 w-2 rounded-full bg-outflow" />
-                                                  <span className="label text-muted-foreground">Despesas</span>
+                                                  <span className="label text-muted-foreground">Saídas</span>
                                               </span>
                                           </div>
                                       </div>
@@ -630,7 +641,7 @@ function TelaDeTags() {
                                   <div
                                       className="h-[240px] w-full"
                                       role="img"
-                                      aria-label={`Receitas e despesas da tag ${insightsData.tag_name ?? ""} por mês, nos últimos ${insightsMonths} meses`}
+                                      aria-label={`Entradas e saídas do marcador ${insightsData.tag_name ?? ""} por mês, nos últimos ${insightsMonths} meses`}
                                   >
                                       {isInsightsModalOpen && insightsData && (
                                           <ResponsiveContainer width="100%" height="100%">
@@ -663,7 +674,7 @@ function TelaDeTags() {
                                                   <Area
                                                       type="monotone"
                                                       dataKey="income"
-                                                      name="Receitas"
+                                                      name="Entradas"
                                                       stroke={COR_DE_ENTRADA}
                                                       strokeWidth={2}
                                                       fillOpacity={1}
@@ -672,7 +683,7 @@ function TelaDeTags() {
                                                   <Area
                                                       type="monotone"
                                                       dataKey="expense"
-                                                      name="Despesas"
+                                                      name="Saídas"
                                                       stroke={COR_DE_SAIDA}
                                                       strokeWidth={2}
                                                       fillOpacity={1}

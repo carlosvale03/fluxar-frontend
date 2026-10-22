@@ -33,7 +33,7 @@ export function CardsDeSaude({ saude, carregando = false }: Props) {
             <Activity className="h-4 w-4 text-info" aria-hidden="true" />
           </CardDescription>
           <CardTitle className={`value-l ${corDoEstado(!!api, apiOk)}`}>
-            {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : !api ? "Sem dados" : apiOk ? "Operacional" : "Com erro"}
+            {carregando ? <><Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" /><span className="sr-only">Carregando</span></> : !api ? "Sem dados" : apiOk ? "Operacional" : "Com erro"}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -48,7 +48,7 @@ export function CardsDeSaude({ saude, carregando = false }: Props) {
             <Database className="h-4 w-4 text-info" aria-hidden="true" />
           </CardDescription>
           <CardTitle className={`value-l ${corDoEstado(!!banco, bancoOk)}`}>
-            {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : !banco ? "Sem dados" : bancoOk ? "Operacional" : "Com erro"}
+            {carregando ? <><Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" /><span className="sr-only">Carregando</span></> : !banco ? "Sem dados" : bancoOk ? "Operacional" : "Com erro"}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-1">

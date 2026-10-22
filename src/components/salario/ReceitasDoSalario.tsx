@@ -76,7 +76,7 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
     .filter((c) => salvas?.includes(c.id))
     .map((c) => c.name)
   const escolhidas = !salvas?.length
-    ? "Nenhuma receita escolhida"
+    ? "Nenhuma entrada escolhida"
     : nomes.length
       ? nomes.join(", ")
       : `${salvas.length} ${salvas.length === 1 ? "categoria" : "categorias"}`
@@ -91,10 +91,10 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <h2 id="receitas-do-salario-titulo" className="display-s">
-            Receitas de salário
+            Entradas do salário
           </h2>
           {aberto || carregando ? (
-            <p className="text-sm text-muted-foreground">As receitas nestas categorias aparecem para dividir.</p>
+            <p className="text-sm text-muted-foreground">As entradas nestas categorias aparecem para dividir.</p>
           ) : (
             <p className={cn("text-sm", salvas?.length ? "text-foreground" : "text-muted-foreground")}>{escolhidas}</p>
           )}
@@ -106,7 +106,7 @@ export const ReceitasDoSalario = forwardRef<PainelDeReceitas, ReceitasDoSalarioP
             className="-mr-2 -mt-2 h-10 shrink-0 rounded-md px-3"
             aria-expanded={aberto}
             aria-controls={CONTEUDO}
-            aria-label={aberto ? "Recolher receitas de salário" : "Alterar receitas de salário"}
+            aria-label={aberto ? "Recolher entradas do salário" : "Alterar entradas do salário"}
             onClick={() => setAbertoPeloUsuario(!aberto)}
           >
             {aberto ? "Recolher" : "Alterar"}
@@ -149,17 +149,17 @@ function Escolha({ categorias, salvas, onSalvas }: { categorias: Category[]; sal
     setSalvando(true)
     try {
       const plano = await salarioService.salvarCategorias(marcadas.filter(ativa))
-      toast.success("Receitas de salário salvas.")
+      toast.success("Entradas do salário salvas.")
       onSalvas(plano)
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao salvar as receitas de salário." })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível salvar as entradas do salário. Tente de novo." })
     } finally {
       setSalvando(false)
     }
   }
 
   if (lista.length === 0) {
-    return <p className="text-sm text-muted-foreground">Você ainda não tem categorias de receita.</p>
+    return <p className="text-sm text-muted-foreground">Nenhuma categoria de entrada ainda. Crie uma em Categorias para marcar o salário.</p>
   }
 
   return (

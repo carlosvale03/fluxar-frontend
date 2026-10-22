@@ -95,7 +95,7 @@ describe("Aviso da correção do valor", () => {
     vi.mocked(goalsService.dismissCorrection).mockResolvedValue(meta({ correction: null }))
     const aoConfirmar = abrir(meta({ current_amount: "0.00", correction: { before: "-50.00", after: "0.00" } }))
 
-    const aviso = await screen.findByText(/^O valor desta meta foi corrigido de -R\$\s50,00 para R\$\s0,00\.$/)
+    const aviso = await screen.findByText(/^O valor deste destino foi corrigido de -R\$\s50,00 para R\$\s0,00\.$/)
     expect(aviso).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Entendi" }))

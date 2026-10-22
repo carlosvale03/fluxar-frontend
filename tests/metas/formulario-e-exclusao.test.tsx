@@ -58,7 +58,7 @@ describe("Formulário da meta", () => {
     render(<GoalForm open onOpenChange={vi.fn()} initialData={null} onSuccess={vi.fn()} />)
 
     await userEvent.click(screen.getByRole("button", { name: /usar existente/i }))
-    await userEvent.click(screen.getByText("Selecione um cofrinho...").closest("button") as HTMLElement)
+    await userEvent.click(screen.getByText("Selecione um lastro").closest("button") as HTMLElement)
 
     const opcoes = await screen.findAllByRole("option")
     expect(opcoes.map((opcao) => opcao.textContent)).toEqual([expect.stringMatching(/^Cofrinho Casa/)])
@@ -68,16 +68,16 @@ describe("Formulário da meta", () => {
 describe("Exclusão da meta", () => {
   // AZ-27: as duas exclusões passam pela confirmação padrão (sem window.confirm)
   async function excluir(nome = "Viagem") {
-    await userEvent.click(await screen.findByRole("button", { name: `Ações da meta ${nome}` }))
+    await userEvent.click(await screen.findByRole("button", { name: `Ações do destino ${nome}` }))
     await userEvent.click(await screen.findByRole("menuitem", { name: /Excluir/ }))
-    const dialogo = await screen.findByRole("alertdialog", { name: `Excluir a meta ${nome}?` })
-    await userEvent.click(within(dialogo).getByRole("button", { name: "Excluir meta" }))
+    const dialogo = await screen.findByRole("alertdialog", { name: `Excluir o destino ${nome}?` })
+    await userEvent.click(within(dialogo).getByRole("button", { name: "Excluir destino" }))
   }
 
   async function responderSobreOCofrinho(nome: string, excluirCofrinho: boolean) {
-    const dialogo = await screen.findByRole("alertdialog", { name: `Excluir também o cofrinho ${nome}?` })
-    expect(within(dialogo).getByText(/ficou vazio e sem metas/)).toBeInTheDocument()
-    await userEvent.click(within(dialogo).getByRole("button", { name: excluirCofrinho ? "Excluir cofrinho" : "Cancelar" }))
+    const dialogo = await screen.findByRole("alertdialog", { name: `Excluir também o lastro ${nome}?` })
+    expect(within(dialogo).getByText(/ficou vazio e sem destinos/)).toBeInTheDocument()
+    await userEvent.click(within(dialogo).getByRole("button", { name: excluirCofrinho ? "Excluir lastro" : "Cancelar" }))
   }
 
   function comMeta(trocas = {}) {
@@ -89,9 +89,9 @@ describe("Exclusão da meta", () => {
     comMeta({ current_amount: "0.00" })
     render(<GoalsPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Ações da meta Viagem" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ações do destino Viagem" }))
     await userEvent.click(await screen.findByRole("menuitem", { name: /Excluir/ }))
-    const dialogo = await screen.findByRole("alertdialog", { name: "Excluir a meta Viagem?" })
+    const dialogo = await screen.findByRole("alertdialog", { name: "Excluir o destino Viagem?" })
     await userEvent.click(within(dialogo).getByRole("button", { name: "Cancelar" }))
 
     expect(goalsService.deleteGoal).not.toHaveBeenCalled()
@@ -108,7 +108,7 @@ describe("Exclusão da meta", () => {
 
     await vi.waitFor(() => expect(accountsService.deleteAccount).toHaveBeenCalledWith("cofrinho-1"))
     expect(goalsService.deleteGoal).toHaveBeenCalledWith("meta-1")
-    expect(toast.success).toHaveBeenCalledWith("Cofrinho excluído.")
+    expect(toast.success).toHaveBeenCalledWith("Lastro excluído.")
   })
 
   it("sem confirmar, o cofrinho continua", async () => {
@@ -120,7 +120,7 @@ describe("Exclusão da meta", () => {
     await responderSobreOCofrinho("Cofrinho Casa", false)
 
     await vi.waitFor(() =>
-      expect(screen.queryByRole("alertdialog", { name: /Excluir também o cofrinho/ })).not.toBeInTheDocument(),
+      expect(screen.queryByRole("alertdialog", { name: /Excluir também o lastro/ })).not.toBeInTheDocument(),
     )
     expect(accountsService.deleteAccount).not.toHaveBeenCalled()
   })
@@ -132,8 +132,8 @@ describe("Exclusão da meta", () => {
 
     await excluir()
 
-    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Meta excluída."))
-    expect(screen.queryByRole("alertdialog", { name: /Excluir também o cofrinho/ })).not.toBeInTheDocument()
+    await vi.waitFor(() => expect(toast.success).toHaveBeenCalledWith("Destino excluído."))
+    expect(screen.queryByRole("alertdialog", { name: /Excluir também o lastro/ })).not.toBeInTheDocument()
     expect(accountsService.deleteAccount).not.toHaveBeenCalled()
   })
 

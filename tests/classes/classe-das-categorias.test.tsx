@@ -137,12 +137,12 @@ describe("Classe no formulário de categoria", () => {
     render(<CategoriesPage />)
     await screen.findAllByText("Delivery")
 
-    await userEvent.click(screen.getAllByTitle("Nova Subcategoria")[0])
+    await userEvent.click(screen.getAllByTitle("Nova subcategoria")[0])
     const dialogo = await screen.findByRole("dialog")
     expect(within(dialogo).getByRole("combobox")).toHaveTextContent("Herdar da categoria-mãe (Essencial)")
 
-    await userEvent.type(within(dialogo).getByPlaceholderText("Ex: Alimentação"), "Feira")
-    await userEvent.click(within(dialogo).getByRole("button", { name: /ativar categoria/i }))
+    await userEvent.type(within(dialogo).getByPlaceholderText("Ex.: Alimentação"), "Feira")
+    await userEvent.click(within(dialogo).getByRole("button", { name: /criar categoria/i }))
 
     await vi.waitFor(() =>
       expect(post).toHaveBeenCalledWith(
@@ -156,11 +156,11 @@ describe("Classe no formulário de categoria", () => {
     render(<CategoriesPage />)
     await screen.findAllByText("Delivery")
 
-    await userEvent.click(screen.getAllByTitle("Nova Subcategoria")[0])
+    await userEvent.click(screen.getAllByTitle("Nova subcategoria")[0])
     const dialogo = await screen.findByRole("dialog")
     await escolher(within(dialogo).getByRole("combobox"), /^Dispensável$/)
-    await userEvent.type(within(dialogo).getByPlaceholderText("Ex: Alimentação"), "Sorvete")
-    await userEvent.click(within(dialogo).getByRole("button", { name: /ativar categoria/i }))
+    await userEvent.type(within(dialogo).getByPlaceholderText("Ex.: Alimentação"), "Sorvete")
+    await userEvent.click(within(dialogo).getByRole("button", { name: /criar categoria/i }))
 
     await vi.waitFor(() =>
       expect(post).toHaveBeenCalledWith("/categories/", expect.objectContaining({ name: "Sorvete", expense_class: "dis" })),
@@ -171,15 +171,15 @@ describe("Classe no formulário de categoria", () => {
     render(<CategoriesPage />)
     await screen.findAllByText("Delivery")
 
-    await userEvent.click(screen.getByRole("button", { name: /nova categoria/i }))
+    await userEvent.click(screen.getByRole("button", { name: /criar categoria/i }))
     const dialogo = await screen.findByRole("dialog")
-    expect(within(dialogo).getByText("Classe da Despesa")).toBeInTheDocument()
+    expect(within(dialogo).getByText("Classe da saída")).toBeInTheDocument()
 
-    await escolher(within(dialogo).getAllByRole("combobox")[0], /^Receita$/)
-    expect(within(dialogo).queryByText("Classe da Despesa")).not.toBeInTheDocument()
+    await escolher(within(dialogo).getAllByRole("combobox")[0], /^Entrada$/)
+    expect(within(dialogo).queryByText("Classe da saída")).not.toBeInTheDocument()
 
-    await userEvent.type(within(dialogo).getByPlaceholderText("Ex: Alimentação"), "Freelas")
-    await userEvent.click(within(dialogo).getByRole("button", { name: /ativar categoria/i }))
+    await userEvent.type(within(dialogo).getByPlaceholderText("Ex.: Alimentação"), "Freelas")
+    await userEvent.click(within(dialogo).getByRole("button", { name: /criar categoria/i }))
 
     await vi.waitFor(() => expect(post).toHaveBeenCalled())
     const enviado = post.mock.calls[0][1] as Record<string, unknown>
@@ -191,14 +191,14 @@ describe("Classe no formulário de categoria", () => {
     render(<CategoriesPage />)
     await screen.findAllByText("Delivery")
 
-    await userEvent.click(screen.getByRole("button", { name: /nova categoria/i }))
+    await userEvent.click(screen.getByRole("button", { name: /criar categoria/i }))
     const dialogo = await screen.findByRole("dialog")
     const classe = within(dialogo).getAllByRole("combobox")[1]
     expect(classe).toHaveTextContent("Sem classe")
 
     await escolher(classe, /^Essencial$/)
-    await userEvent.type(within(dialogo).getByPlaceholderText("Ex: Alimentação"), "Farmácia")
-    await userEvent.click(within(dialogo).getByRole("button", { name: /ativar categoria/i }))
+    await userEvent.type(within(dialogo).getByPlaceholderText("Ex.: Alimentação"), "Farmácia")
+    await userEvent.click(within(dialogo).getByRole("button", { name: /criar categoria/i }))
 
     await vi.waitFor(() =>
       expect(post).toHaveBeenCalledWith(
@@ -219,7 +219,7 @@ describe("Classe no formulário de categoria", () => {
     expect(classe).toHaveTextContent("Dispensável")
 
     await escolher(classe, /Herdar da categoria-mãe \(Essencial\)/)
-    await userEvent.click(within(dialogo).getByRole("button", { name: /gravar alterações/i }))
+    await userEvent.click(within(dialogo).getByRole("button", { name: /salvar alterações/i }))
 
     await vi.waitFor(() =>
       expect(put).toHaveBeenCalledWith("/categories/doce/", expect.objectContaining({ expense_class: null })),

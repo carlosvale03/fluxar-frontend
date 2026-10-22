@@ -141,7 +141,7 @@ describe("Comparação com média zero", () => {
     } as never)
     render(<TagsPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Análise da tag Viagem" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ver a análise do marcador Viagem" }))
 
     const dialogo = await screen.findByRole("dialog")
     expect(await within(dialogo).findByText("Sem histórico para comparar")).toBeInTheDocument()

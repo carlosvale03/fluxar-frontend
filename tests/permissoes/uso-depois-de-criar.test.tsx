@@ -62,8 +62,8 @@ describe("Uso dos limites depois de criar ou excluir (PERM-20)", () => {
     vi.mocked(createTag).mockResolvedValue({ id: "tag-1", name: "Viagem", color: "#6366f1" } as never)
     render(<TagForm onSuccess={vi.fn()} onCancel={vi.fn()} />)
 
-    await userEvent.type(screen.getByPlaceholderText(/Ex: Urgente/), "Viagem")
-    await userEvent.click(screen.getByRole("button", { name: /Criar Tag/ }))
+    await userEvent.type(screen.getByLabelText("Nome do marcador"), "Viagem")
+    await userEvent.click(screen.getByRole("button", { name: /Criar marcador/ }))
 
     await vi.waitFor(() => expect(createTag).toHaveBeenCalled())
     await vi.waitFor(() => expect(auth.refreshUser).toHaveBeenCalledTimes(1))
@@ -73,8 +73,8 @@ describe("Uso dos limites depois de criar ou excluir (PERM-20)", () => {
     vi.mocked(createTag).mockRejectedValue(new Error("falhou"))
     render(<TagForm onSuccess={vi.fn()} onCancel={vi.fn()} />)
 
-    await userEvent.type(screen.getByPlaceholderText(/Ex: Urgente/), "Viagem")
-    await userEvent.click(screen.getByRole("button", { name: /Criar Tag/ }))
+    await userEvent.type(screen.getByLabelText("Nome do marcador"), "Viagem")
+    await userEvent.click(screen.getByRole("button", { name: /Criar marcador/ }))
 
     await vi.waitFor(() => expect(createTag).toHaveBeenCalled())
     expect(auth.refreshUser).not.toHaveBeenCalled()
@@ -84,10 +84,10 @@ describe("Uso dos limites depois de criar ou excluir (PERM-20)", () => {
     vi.mocked(goalsService.deleteGoal).mockResolvedValue(undefined as never)
     render(<GoalsPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: "Ações da meta Viagem" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ações do destino Viagem" }))
     await userEvent.click(await screen.findByRole("menuitem", { name: /Excluir/ }))
-    const dialogo = await screen.findByRole("alertdialog", { name: "Excluir a meta Viagem?" })
-    await userEvent.click(within(dialogo).getByRole("button", { name: "Excluir meta" }))
+    const dialogo = await screen.findByRole("alertdialog", { name: "Excluir o destino Viagem?" })
+    await userEvent.click(within(dialogo).getByRole("button", { name: "Excluir destino" }))
 
     await vi.waitFor(() => expect(goalsService.deleteGoal).toHaveBeenCalledWith("meta-1"))
     await vi.waitFor(() => expect(auth.refreshUser).toHaveBeenCalledTimes(1))

@@ -55,12 +55,12 @@ import { tratarErro } from "@/lib/erros"
 import { usePlan } from "@/hooks/use-plan"
 
 const goalSchema = z.object({
-  name: z.string().min(1, "Nome é obrigatório"),
+  name: z.string().min(1, "Informe o nome do destino."),
   description: z.string().optional(),
   // CONTRATO-17 e CONTRATO-19: o MoneyInput lê o valor por AD-009 e entrega
   // o texto decimal ("1500.00") que vai à API
   target_amount: z.string().refine(maiorQueZero, {
-    message: "Valor deve ser maior que zero",
+    message: "O valor precisa ser maior que zero.",
   }),
   target_date: z.date().optional().nullable(),
   image: z.any().optional(),
@@ -110,7 +110,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
   // Auto-fill cofrinho name if empty
   useEffect(() => {
     if (goalName && !form.getValues("cofrinho_name")) {
-      form.setValue("cofrinho_name", `Cofrinho: ${goalName}`)
+      form.setValue("cofrinho_name", `Lastro: ${goalName}`)
     }
   }, [goalName, form])
 
@@ -167,7 +167,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       setPiggyBanks(filtered)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar os cofrinhos.", tentarDeNovo: fetchPiggyBanks })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os lastros. Tente de novo.", tentarDeNovo: fetchPiggyBanks })
     }
   }
 
@@ -204,10 +204,10 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
 
       if (initialData) {
         await goalsService.updateGoal(initialData.id, data)
-        toast.success("Meta atualizada.")
+        toast.success("Destino atualizado.")
       } else {
         await goalsService.createGoal(data)
-        toast.success("Meta criada.")
+        toast.success("Destino criado.")
         void atualizarUso()
       }
 
@@ -218,7 +218,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       tratarErro(error, {
         form,
         campos: ["name", "description", "target_amount", "target_date", "account", "cofrinho_name", "institution", "color", "image"],
-        mensagemPadrao: "Erro ao salvar meta.",
+        mensagemPadrao: "Não foi possível salvar o destino. Confira os campos e tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -229,8 +229,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="gap-0 p-0 sm:max-w-[520px]">
         <DialogHeader className="space-y-1 border-b border-border p-6">
-          <DialogTitle>{initialData ? "Editar meta" : "Nova meta"}</DialogTitle>
-          <DialogDescription>Defina o valor, o prazo e o cofrinho onde o dinheiro fica.</DialogDescription>
+          <DialogTitle>{initialData ? "Editar destino" : "Novo destino"}</DialogTitle>
+          <DialogDescription>Defina o valor, o prazo e o lastro, a conta onde o dinheiro fica.</DialogDescription>
         </DialogHeader>
 
         <div className="custom-scrollbar max-h-[65vh] overflow-y-auto px-6 py-6">
@@ -245,7 +245,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Nome da meta</FormLabel>
+                      <FormLabel>Nome do destino</FormLabel>
                       <FormControl>
                         <Input placeholder="Ex.: Viagem de férias 2026" {...field} />
                       </FormControl>
@@ -316,14 +316,14 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                 </div>
               </section>
 
-              {/* Seção 2: o cofrinho */}
+              {/* Seção 2: o lastro */}
               <section className="space-y-4">
-                <h3 className="label text-muted-foreground">Cofrinho</h3>
+                <h3 className="label text-muted-foreground">Lastro</h3>
 
                 {!initialData ? (
                   <Tabs value={cofrinhoType} onValueChange={(val) => setCofrinhoType(val as "new" | "existing")} className="w-full">
                     <TabsList className="mb-4 grid w-full grid-cols-2">
-                      <TabsTrigger value="new">Novo cofrinho</TabsTrigger>
+                      <TabsTrigger value="new">Novo lastro</TabsTrigger>
                       <TabsTrigger value="existing">Usar existente</TabsTrigger>
                     </TabsList>
 
@@ -333,9 +333,9 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                         name="cofrinho_name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nome do cofrinho</FormLabel>
+                            <FormLabel>Nome do lastro</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex.: Cofrinho viagem" {...field} />
+                              <Input placeholder="Ex.: Lastro viagem" {...field} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -351,7 +351,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                               <Select onValueChange={field.onChange} defaultValue={field.value}>
                                 <FormControl>
                                   <SelectTrigger>
-                                    <SelectValue placeholder="Selecione..." />
+                                    <SelectValue placeholder="Selecione a instituição" />
                                   </SelectTrigger>
                                 </FormControl>
                                 <SelectContent className="max-h-[200px]">
@@ -402,11 +402,11 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                         name="account"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Cofrinhos disponíveis</FormLabel>
+                            <FormLabel>Lastros disponíveis</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-auto min-h-9 py-2">
-                                  <SelectValue placeholder="Selecione um cofrinho..." />
+                                  <SelectValue placeholder="Selecione um lastro" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -428,7 +428,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                                     </SelectItem>
                                   ))
                                 ) : (
-                                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum cofrinho encontrado</div>
+                                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum lastro ativo. Crie um novo lastro.</div>
                                 )}
                               </SelectContent>
                             </Select>
@@ -442,8 +442,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                   <div className="flex items-center gap-3 rounded-md border border-border bg-elevated p-4">
                     <PiggyBank className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <div>
-                      <p className="label text-muted-foreground">Conta vinculada</p>
-                      <p className="text-sm font-medium">{piggyBanks.find(b => b.id === initialData.account)?.name || "Cofrinho vinculado"}</p>
+                      <p className="label text-muted-foreground">Lastro vinculado</p>
+                      <p className="text-sm font-medium">{piggyBanks.find(b => b.id === initialData.account)?.name || "Lastro do destino"}</p>
                     </div>
                   </div>
                 )}
@@ -454,7 +454,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                 <h3 className="label text-muted-foreground">Personalização</h3>
 
                 <div className="space-y-2">
-                  <p className="text-sm font-medium" id="capa-da-meta">Capa da meta</p>
+                  <p className="text-sm font-medium" id="capa-da-meta">Capa do destino</p>
                   <button
                     type="button"
                     aria-labelledby="capa-da-meta"
@@ -476,7 +476,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                   </button>
                   <p id="capa-da-meta-ajuda" className="flex items-center gap-1.5 text-xs text-muted-foreground">
                     {imagePreview && <Camera className="h-3.5 w-3.5" aria-hidden="true" />}
-                    {imagePreview ? "Clique na imagem para trocar." : "Opcional. Aparece no topo do card da meta."}
+                    {imagePreview ? "Clique na imagem para trocar." : "Opcional. Aparece no topo do cartão do destino."}
                   </p>
                   <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageChange} />
                 </div>
@@ -489,7 +489,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                       <FormLabel>Notas</FormLabel>
                       <FormControl>
                         <Textarea
-                          placeholder="O que esta meta significa para você"
+                          placeholder="O que este destino significa para você"
                           className="h-24 resize-none"
                           {...field}
                         />
@@ -504,7 +504,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                   Cancelar
                 </Button>
                 <Button type="submit" loading={isLoading}>
-                  {initialData ? "Atualizar objetivo" : "Criar meta"}
+                  {initialData ? "Salvar destino" : "Criar destino"}
                 </Button>
               </DialogFooter>
             </form>

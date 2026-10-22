@@ -108,7 +108,7 @@ export function RevisaoDeContas({ plano, contasAtivas, erros = {}, onAlterar }: 
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <Landmark className="h-4 w-4 shrink-0 text-fg-secondary" aria-hidden="true" />
-                  <h4 className="truncate text-sm font-semibold">{nome}</h4>
+                  <h3 className="truncate text-sm font-semibold">{nome}</h3>
                 </div>
                 <p className="mt-1 font-mono text-xs tabular-nums text-muted-foreground">{descricaoDoArquivo(acao.arquivo)}</p>
               </div>

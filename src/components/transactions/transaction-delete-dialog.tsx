@@ -52,14 +52,14 @@ export function TransactionDeleteDialog({
           toast.success("Série recorrente excluída.")
       } else {
           await api.delete(`/transactions/${transaction.id}/`)
-          toast.success("Transação excluída.")
+          toast.success("Lançamento excluído.")
       }
       onSuccess()
       onOpenChange(false)
     } catch (error) {
       console.error("Failed to delete transaction", error)
       // FATURA-19: a recusa da compra em fatura paga vem no detail
-      toast.error(mensagemDeErro(error, "Erro ao excluir transação."))
+      toast.error(mensagemDeErro(error, "Não foi possível excluir o lançamento. Tente de novo."))
     } finally {
       setIsLoading(false)
     }
@@ -72,12 +72,12 @@ export function TransactionDeleteDialog({
       <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
           <DialogTitle>
-            {transaction?.description ? `Excluir "${transaction.description}"?` : "Excluir transação?"}
+            {transaction?.description ? `Excluir "${transaction.description}"?` : "Excluir lançamento?"}
           </DialogTitle>
           <DialogDescription>
             {excluiASerie
-              ? "Todas as transações passadas e futuras desta recorrência serão excluídas. Isso não pode ser desfeito."
-              : "A transação sai do histórico e dos saldos. Isso não pode ser desfeito."}
+              ? "Todos os lançamentos passados e futuros desta recorrência serão excluídos. Isso não pode ser desfeito."
+              : "O lançamento sai do Diário de Bordo e dos saldos. Isso não pode ser desfeito."}
           </DialogDescription>
         </DialogHeader>
 
@@ -103,7 +103,7 @@ export function TransactionDeleteDialog({
                         onChange={() => setDeleteScope("SINGLE")}
                         className="h-4 w-4 accent-gold"
                     />
-                    Apenas esta transação
+                    Só este lançamento
                  </label>
                  <label htmlFor="r2" className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors duration-fast hover:bg-elevated has-[:checked]:border-border-strong has-[:checked]:bg-elevated">
                     <input
@@ -115,7 +115,7 @@ export function TransactionDeleteDialog({
                         onChange={() => setDeleteScope("ALL")}
                         className="h-4 w-4 accent-gold"
                     />
-                    Todas as recorrentes (série completa)
+                    Toda a série recorrente
                  </label>
              </fieldset>
         )}
@@ -126,7 +126,7 @@ export function TransactionDeleteDialog({
           </Button>
           <Button variant="destructive" onClick={handleDelete} loading={isLoading}>
             <Trash2 aria-hidden="true" />
-            {excluiASerie ? "Excluir série" : "Excluir transação"}
+            {excluiASerie ? "Excluir série" : "Excluir lançamento"}
           </Button>
         </DialogFooter>
       </DialogContent>
