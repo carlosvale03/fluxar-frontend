@@ -101,12 +101,12 @@ describe("Limites nas telas", () => {
     expect(screen.queryByText(ATINGIDO)).not.toBeInTheDocument()
   })
 
-  it("cartões no limite: desabilita \"Novo Cartão\" e mostra o aviso", async () => {
+  it("cartões no limite: desabilita \"Novo cartão\" e mostra o aviso", async () => {
     comLimite("limite_cartoes", { limit: 1, used: 1 })
     render(<CardsPage />)
 
     expect(await screen.findByRole("note")).toHaveTextContent("1 de 1 cartões")
-    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo Cartão/ })).toBeDisabled())
+    await vi.waitFor(() => expect(screen.getByRole("button", { name: /Novo cartão/ })).toBeDisabled())
   })
 
   it("categorias principais no limite: desabilita \"Nova Categoria\" e mostra o aviso", () => {

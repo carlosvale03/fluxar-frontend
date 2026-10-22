@@ -71,7 +71,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
       setTransactions(response.data)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar as compras da fatura.", tentarDeNovo: fetchTransactions })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as compras da fatura.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }
@@ -84,7 +84,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
         <DialogHeader className="border-b border-border p-6 pr-12">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <DialogTitle>Detalhes da Fatura</DialogTitle>
+              <DialogTitle>Detalhes da fatura</DialogTitle>
               <DialogDescription className="mt-1 capitalize">
                 {invoice ? `${nomeDoMes(invoice.month)} ${invoice.year}` : ""}
               </DialogDescription>
@@ -100,7 +100,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
 
         <ScrollArea className="h-[400px]">
           {isLoading ? (
-            <div className="space-y-3 p-6">
+            <div className="space-y-3 p-6" aria-busy="true" aria-label="Carregando as compras da fatura">
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex items-center justify-between">
                   <div className="space-y-2">
@@ -114,7 +114,7 @@ export function InvoiceDetailsDialog({ open, onOpenChange, invoice }: InvoiceDet
           ) : transactions.length === 0 ? (
             <div className="flex h-64 flex-col items-center justify-center gap-3 text-muted-foreground">
               <ShoppingBag className="h-6 w-6" aria-hidden="true" />
-              <p>Nenhuma transação encontrada nesta fatura.</p>
+              <p>Nenhum lançamento nesta fatura.</p>
             </div>
           ) : (
             <Table>

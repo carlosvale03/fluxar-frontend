@@ -57,7 +57,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
       setInvoices(response.data)
     } catch (error) {
       console.error("Failed to fetch invoices", error)
-      toast.error("Erro ao carregar faturas.")
+      toast.error("Não foi possível carregar as faturas. Recarregue a página.")
     } finally {
       setIsLoading(false)
     }
@@ -94,7 +94,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                     <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
                         <div className="flex flex-col items-center gap-2">
                             <FileText className="h-6 w-6" aria-hidden="true" />
-                            <p>Nenhuma fatura encontrada para este cartão.</p>
+                            <p>Nenhuma fatura neste cartão. A primeira aparece com a primeira compra.</p>
                         </div>
                     </TableCell>
                 </TableRow>
@@ -139,7 +139,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                                             variant="outline"
                                             onClick={() => onPayInvoice(invoice)}
                                         >
-                                            Pagar Fatura
+                                            Pagar fatura
                                         </Button>
                                     )}
                                     {invoice.status === 'PAID' && (
@@ -160,7 +160,7 @@ export function InvoiceList({ cardId, onPayInvoice, onUnpayInvoice }: InvoiceLis
                                             setIsDetailsOpen(true)
                                         }}
                                     >
-                                        Ver Detalhes
+                                        Ver detalhes
                                     </Button>
                                 </div>
                             </TableCell>
