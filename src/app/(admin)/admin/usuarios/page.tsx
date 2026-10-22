@@ -134,7 +134,7 @@ export default function UserManagementPage() {
       // AD-042: o erro da lista passa pelo caminho único, com "Tentar de novo"
       setUsers([])
       setErroAoCarregar(true)
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar lista de usuários", tentarDeNovo: loadUsers })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar a lista de usuários.", tentarDeNovo: loadUsers })
     } finally {
       setIsLoading(false)
     }
@@ -176,7 +176,7 @@ export default function UserManagementPage() {
       setIsChangeRoleModalOpen(false)
       loadUsers()
     } catch (error) {
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao alterar cargo" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível alterar o cargo. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -204,7 +204,7 @@ export default function UserManagementPage() {
       setIsDeleteModalOpen(false)
       loadUsers()
     } catch (error) {
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuário" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível arquivar o usuário. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -221,7 +221,7 @@ export default function UserManagementPage() {
       setIsRestoreModalOpen(false)
       loadUsers()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao restaurar usuário" })
+      tratarErro(error, { mensagemPadrao: "Não foi possível restaurar o usuário. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -244,7 +244,7 @@ export default function UserManagementPage() {
       setIsChangePlanModalOpen(false)
       loadUsers()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao alterar plano" })
+      tratarErro(error, { mensagemPadrao: "Não foi possível alterar o plano. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -281,7 +281,7 @@ export default function UserManagementPage() {
       setIsSelectionMode(false)
       loadUsers()
     } catch (error) {
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuários" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível arquivar os usuários. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -290,7 +290,7 @@ export default function UserManagementPage() {
   if (isLoading && users.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-20 space-y-4">
-        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+        <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" aria-hidden="true" />
         <p className="label text-muted-foreground">
           Carregando usuários
         </p>
@@ -475,14 +475,14 @@ export default function UserManagementPage() {
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1">
                     <Button variant="ghost" size="icon" asChild>
-                      <Link href={`/admin/usuarios/${user.id}`}>
-                        <Eye className="h-4 w-4" />
+                      <Link href={`/admin/usuarios/${user.id}`} aria-label={`Ver detalhes de ${user.name}`} title="Ver detalhes">
+                        <Eye className="h-4 w-4" aria-hidden="true" />
                       </Link>
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
+                        <Button variant="ghost" size="icon" aria-label={`Ações de ${user.name}`}>
+                          <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-48">
@@ -641,7 +641,7 @@ export default function UserManagementPage() {
                 
                 disabled={isSubmitting || newPlan === selectedUser?.plan}
             >
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
               Confirmar Alteração
             </Button>
           </DialogFooter>
@@ -678,7 +678,7 @@ export default function UserManagementPage() {
                
                 disabled={!adminPassword || isSubmitting}
             >
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
               Confirmar Alteração
             </Button>
           </DialogFooter>
@@ -710,7 +710,7 @@ export default function UserManagementPage() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setIsDeleteModalOpen(false)} >Cancelar</Button>
             <Button variant="destructive" onClick={confirmArchive} disabled={!adminPassword || isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
               Confirmar Arquivamento
             </Button>
           </DialogFooter>
@@ -729,7 +729,7 @@ export default function UserManagementPage() {
           <DialogFooter className="gap-2 sm:gap-0">
             <Button variant="ghost" onClick={() => setIsRestoreModalOpen(false)} >Cancelar</Button>
             <Button onClick={confirmRestore}  disabled={isSubmitting}>
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
               Confirmar Restauração
             </Button>
           </DialogFooter>
@@ -758,7 +758,7 @@ export default function UserManagementPage() {
                 
                 disabled={!adminPassword || isSubmitting || selectedIds.includes(currentUser?.id || "")}
             >
-              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+              {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
               Confirmar Arquivamento em Massa
             </Button>
           </DialogFooter>

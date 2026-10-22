@@ -115,7 +115,7 @@ export default function UserDetailsPage() {
         setLogsCount(logsData.count)
         setLogsTotalPages(logsData.total_pages)
     } catch (error) {
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar os logs.", tentarDeNovo: loadLogs })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar os logs.", tentarDeNovo: loadLogs })
     }
   }
 
@@ -142,7 +142,7 @@ export default function UserDetailsPage() {
         setUser(null)
         setFinancialStats(null)
         setErroAoCarregar(true)
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar detalhes do usuário.", tentarDeNovo: loadData })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar os detalhes do usuário.", tentarDeNovo: loadData })
     } finally {
         setIsLoading(false)
     }
@@ -200,7 +200,7 @@ export default function UserDetailsPage() {
   if (isLoading) {
       return (
           <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" />
+              <Loader2 className="h-10 w-10 animate-spin text-muted-foreground" aria-hidden="true" />
               <p className="label text-muted-foreground">Carregando perfil</p>
           </div>
       )
@@ -245,7 +245,7 @@ export default function UserDetailsPage() {
       setIsChangePlanModalOpen(false)
       loadLogs()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao alterar plano" })
+      tratarErro(error, { mensagemPadrao: "Não foi possível alterar o plano. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -263,7 +263,7 @@ export default function UserDetailsPage() {
       setUser({ ...user, is_active: false })
       loadLogs()
     } catch (error) {
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao arquivar usuário" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível arquivar o usuário. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -281,7 +281,7 @@ export default function UserDetailsPage() {
       router.push("/admin/usuarios")
     } catch (error) {
       // LGPD-12: com o Cloudinary fora, nada foi apagado e o backend explica (503 deletion_failed)
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao excluir usuário permanentemente" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível excluir o usuário. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -302,7 +302,7 @@ export default function UserDetailsPage() {
       setFinancialStats(resposta.financial_stats)
     } catch (error) {
       // 503 clear_failed: nada foi apagado; 400 own_account: o detail do backend
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao limpar dados do usuário" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível limpar os dados do usuário. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -323,7 +323,7 @@ export default function UserDetailsPage() {
       setAdminPassword("")
       loadLogs()
     } catch (error) {
-      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Erro ao resetar senha" })
+      tratarErroDaAcao(error, { aoErrarSenha: setErroSenha, mensagemPadrao: "Não foi possível redefinir a senha. Tente de novo." })
     } finally {
       setIsSubmitting(false)
     }
@@ -391,7 +391,7 @@ export default function UserDetailsPage() {
                     </CardHeader>
                     <CardContent className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                          <div className="space-y-1 rounded-md border border-border bg-elevated p-4">
-                             <p className="label text-muted-foreground">Receitas (Méd. Valor)</p>
+                             <p className="label text-muted-foreground">Entradas (Méd. Valor)</p>
                              <p className="value-l text-inflow">
                                  {formatarMoeda(financialStats?.avg_income_value)}
                              </p>
@@ -400,7 +400,7 @@ export default function UserDetailsPage() {
                              </div>
                          </div>
                          <div className="space-y-1 rounded-md border border-border bg-elevated p-4">
-                             <p className="label text-muted-foreground">Despesas (Méd. Valor)</p>
+                             <p className="label text-muted-foreground">Saídas (Méd. Valor)</p>
                              <p className="value-l text-outflow">
                                  {formatarMoeda(financialStats?.avg_expense_value)}
                              </p>
@@ -535,7 +535,7 @@ export default function UserDetailsPage() {
                     onClick={confirmChangePlan}
                     disabled={isSubmitting || newPlan === user.plan}
                 >
-                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
                 Confirmar Alteração
                 </Button>
             </DialogFooter>
@@ -577,7 +577,7 @@ export default function UserDetailsPage() {
                     onClick={confirmArchive}
                     disabled={isSubmitting || !adminPassword}
                 >
-                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Archive className="h-3 w-3" aria-hidden="true" />}
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : <Archive className="h-3 w-3" aria-hidden="true" />}
                     Confirmar arquivamento
                 </Button>
                 <Button variant="ghost" onClick={() => setIsArchiveModalOpen(false)}>Cancelar</Button>
@@ -626,7 +626,7 @@ export default function UserDetailsPage() {
                     variant="destructive"
                     disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
-                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" aria-hidden="true" />}
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3 w-3" aria-hidden="true" />}
                     Excluir permanentemente
                 </Button>
                 <Button variant="ghost" onClick={() => setIsHardDeleteModalOpen(false)}>Cancelar</Button>
@@ -671,7 +671,7 @@ export default function UserDetailsPage() {
                     onClick={confirmResetPassword}
                     disabled={isSubmitting || !newPassword || !adminPassword}
                 >
-                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : null}
+                {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : null}
                 Confirmar reset
                 </Button>
             </DialogFooter>
@@ -723,7 +723,7 @@ export default function UserDetailsPage() {
                     onClick={confirmClearData}
                     disabled={isSubmitting || !adminPassword || !emailConfere(user.email, emailDigitado)}
                 >
-                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Eraser className="h-3 w-3" aria-hidden="true" />}
+                    {isSubmitting ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden="true" /> : <Eraser className="h-3 w-3" aria-hidden="true" />}
                     Limpar dados
                 </Button>
                 <Button variant="ghost" onClick={() => setIsClearDataModalOpen(false)}>Cancelar</Button>
