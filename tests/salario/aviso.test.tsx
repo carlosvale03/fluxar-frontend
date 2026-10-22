@@ -94,15 +94,15 @@ function TelaComFormulario() {
 async function lancarReceita(categoria: string) {
   render(<TelaComFormulario />)
   // fireEvent: digitar letra a letra no formulário inteiro é lento
-  fireEvent.change(await screen.findByPlaceholderText("Ex: Salário, Mercado, Aluguel..."), { target: { value: "Salário de outubro" } })
-  fireEvent.change(within(screen.getByText("Valor Total").closest(".space-y-2") as HTMLElement).getByRole("textbox"), {
+  fireEvent.change(await screen.findByPlaceholderText("Ex.: Salário, Mercado, Aluguel"), { target: { value: "Salário de outubro" } })
+  fireEvent.change(within(screen.getByText("Valor", { selector: "label" }).closest(".space-y-2") as HTMLElement).getByRole("textbox"), {
     target: { value: "3000" },
   })
   await userEvent.click(screen.getByLabelText("Categoria"))
   await userEvent.click(await screen.findByRole("option", { name: new RegExp(categoria) }))
-  await userEvent.click(screen.getByLabelText("Carteira / Conta"))
+  await userEvent.click(screen.getByLabelText("Conta"))
   await userEvent.click(await screen.findByRole("option", { name: /Banco Azul/ }))
-  await userEvent.click(screen.getByRole("button", { name: "Adicionar Receita" }))
+  await userEvent.click(screen.getByRole("button", { name: "Registrar entrada" }))
   await vi.waitFor(() => expect(post).toHaveBeenCalledWith("/transactions/", expect.anything()))
 }
 
@@ -171,7 +171,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
     patch.mockImplementation((() => resposta(receita({ id: "rec-pendente", status: "COMPLETED" }))) as typeof api.patch)
     render(<TransactionsPage />)
 
-    const efetivar = await screen.findAllByTitle("Efetivar Transação")
+    const efetivar = await screen.findAllByTitle("Efetivar lançamento")
     await userEvent.click(efetivar[0])
 
     expect(patch).toHaveBeenCalledWith("/transactions/rec-pendente/", { status: "COMPLETED" })
@@ -194,7 +194,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
         )
       }
       const tela = render(<TelaDeEdicao />)
-      await userEvent.click(await screen.findByRole("button", { name: "Salvar Lançamento" }))
+      await userEvent.click(await screen.findByRole("button", { name: "Salvar lançamento" }))
       await vi.waitFor(() => expect(put).toHaveBeenCalledWith(`/transactions/${inicial.id}/`, expect.anything()))
       return tela
     }
@@ -219,7 +219,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
     patch.mockImplementation((() => resposta({ ...despesa, status: "COMPLETED" })) as typeof api.patch)
     render(<TransactionsPage />)
 
-    const efetivar = await screen.findAllByTitle("Efetivar Transação")
+    const efetivar = await screen.findAllByTitle("Efetivar lançamento")
     await userEvent.click(efetivar[0])
 
     await vi.waitFor(() => expect(patch).toHaveBeenCalledTimes(1))

@@ -71,7 +71,7 @@ describe("Recorrentes e outras listas de transações", () => {
 
     expect(await screen.findByText("Aluguel 1")).toBeInTheDocument()
     expect(get).toHaveBeenCalledWith("/transactions/", { params: { is_recurring: "true", page: 1 } })
-    expect(screen.getByText("25 transações")).toBeInTheDocument()
+    expect(screen.getByText("25 lançamentos")).toBeInTheDocument()
     expect(screen.getByText("1 de 2")).toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: /próx/i }))

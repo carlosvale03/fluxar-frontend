@@ -44,7 +44,7 @@ export default function RecurringTransactionsPage() {
       setTotal(response.data.count)
       setTotalPages(response.data.total_pages)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar as transações recorrentes.", tentarDeNovo: fetchTransactions })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os lançamentos recorrentes.", tentarDeNovo: fetchTransactions })
     } finally {
       setIsLoading(false)
     }
@@ -76,7 +76,7 @@ export default function RecurringTransactionsPage() {
         apoio="Lançamentos que se repetem"
         acoes={
           <Button onClick={() => { setSelectedTransaction(null); setIsCreateOpen(true) }}>
-            <Plus aria-hidden="true" /> Nova Recorrência
+            <Plus aria-hidden="true" /> Nova recorrência
           </Button>
         }
       />
@@ -108,7 +108,11 @@ export default function RecurringTransactionsPage() {
                             <TableCell colSpan={5} className="py-16">
                                 <div className="flex flex-col items-center justify-center gap-2 text-center">
                                     <Repeat className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                                    <p className="text-sm text-fg-secondary">Nenhuma transação recorrente encontrada.</p>
+                                    <h2 className="text-sm font-medium">Nenhuma recorrência</h2>
+                                    <p className="text-sm text-fg-secondary">Lançamentos que se repetem, como aluguel ou salário, aparecem aqui.</p>
+                                    <Button variant="outline" size="sm" className="mt-2" onClick={() => { setSelectedTransaction(null); setIsCreateOpen(true) }}>
+                                        <Plus aria-hidden="true" /> Nova recorrência
+                                    </Button>
                                 </div>
                             </TableCell>
                         </TableRow>
@@ -149,7 +153,7 @@ export default function RecurringTransactionsPage() {
               pagina={page}
               totalDePaginas={totalPages}
               total={total}
-              rotulo="transações"
+              rotulo="lançamentos"
               carregando={isLoading}
               onMudarPagina={setPage}
           />
