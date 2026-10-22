@@ -1,4 +1,4 @@
-# 🚀 Guia de Deploy - Fluxar Frontend
+# 🚀 Guia de Deploy - Azimute Frontend
 
 Este repositório utiliza **GitHub Actions** para CI e **Vercel** para CD.
 

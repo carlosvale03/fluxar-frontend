@@ -1,21 +1,35 @@
-# Fluxar – Sistema de Controle Financeiro Pessoal (Frontend)
+# Azimute – Controle Financeiro Pessoal (Frontend)
 
-Interface web moderna e intuitiva para o sistema **Fluxar**, projetada para oferecer uma experiência de gestão financeira pessoal premium, com foco em usabilidade, performance e design sofisticado.
+Interface web do **Azimute** (antigo Fluxar): rumo exato para o seu dinheiro. O Azimute mostra onde você está (Posição), para onde quer ir (Destinos), por qual caminho (Rotas) e quanto está fora do curso (Desvio).
+
+> O nome técnico do projeto continua `fluxar-frontend` (pacote, repositório e chaves internas como `fluxar.token`), por decisão registrada no [REDESIGN-BACKLOG.md](REDESIGN-BACKLOG.md) (P-06 e P-07).
 
 ---
 
 ## 🏗️ Arquitetura do Projeto
 
-O Fluxar segue um modelo de arquitetura desacoplada (**API REST + SPA**):
+O Azimute segue um modelo de arquitetura desacoplada (**API REST + SPA**):
 
 - **Backend**: API robusta em Django/Python (Repositório: `fluxar-backend`).
 - **Frontend**: Single Page Application (SPA) desenvolvida com Next.js e React (Este repositório).
 
-### Módulos Documentados
-- **Autenticação**: Fluxo completo de login, registro e proteção de rotas via JWT.
-- **Dashboard**: Visão geral de saldos, receitas e despesas.
-- **Transações**: Lista avançada com filtros, criação de transações avulsas e recorrentes.
-- **Contas e Cartões**: Gestão de saldos bancários e limites de cartões de crédito.
+### Módulos
+- **Acesso**: login, cadastro, recuperação de senha e proteção de rotas via JWT.
+- **Ponte de Comando** (`/dashboard`): Posição, entradas, saídas, alertas de desvio e gráficos do mês.
+- **Diário de Bordo** (`/transacoes`): lançamentos com filtros, recorrentes e parcelados.
+- **Contas e Cartões**: saldos, limites e faturas.
+- **Rotas** (`/orcamentos`), **Destinos** (`/metas`), **Partilha** (`/salario`) e **Cartas** (`/relatorios`): limites de gasto, metas, divisão do salário e relatórios.
+
+---
+
+## 🧭 Sistema visual e produto
+
+- [PRODUCT.md](PRODUCT.md): manifesto, tom de voz, glossário (Ponte de Comando, Diário de Bordo, Rotas, Destinos, Partilha, Cartas…) e mapa de módulos.
+- [DESIGN.md](DESIGN.md): tokens de cor dos temas escuro e claro, tipografia (Archivo, IBM Plex Sans e IBM Plex Mono), componentes, gráficos e acessibilidade.
+- [REDESIGN-BACKLOG.md](REDESIGN-BACKLOG.md): as tarefas do redesign, fase a fase.
+- A rota `/design-system` mostra os tokens e os componentes ao vivo, nos dois temas.
+
+Regras rápidas: use os tokens semânticos (`bg-card`, `text-fg-secondary`, `text-inflow`, `bg-gold`…) e as classes de tipografia (`display-*`, `value-*`, `label`), nunca cores cruas do Tailwind; uma ação dourada por área; textos sem exclamação, sem emoji e com os termos do glossário.
 
 ---
 
