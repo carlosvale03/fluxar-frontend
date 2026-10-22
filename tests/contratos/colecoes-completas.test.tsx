@@ -114,7 +114,7 @@ describe("Coleções completas e listas do admin", () => {
 
     expect(await screen.findByText("Tag 01")).toBeInTheDocument()
     // A tela mostra 12 por página, do total de 15
-    const rodape = screen.getByText((_, el) => el?.textContent?.replace(/\s+/g, " ").trim() === "Mostrando 1 a 12 de 15 tags")
+    const rodape = screen.getByText((_, el) => el?.textContent?.replace(/\s+/g, " ").trim() === "Mostrando 1 a 12 de 15 marcadores")
     expect(rodape).toBeInTheDocument()
     await userEvent.click(screen.getByRole("button", { name: "02" }))
     for (const nome of ["Tag 13", "Tag 14", "Tag 15"]) expect(screen.getByText(nome)).toBeInTheDocument()

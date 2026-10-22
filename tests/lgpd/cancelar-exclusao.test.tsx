@@ -41,9 +41,9 @@ const EXCLUSAO_PENDENTE = {
 }
 
 async function entrar() {
-  await userEvent.type(screen.getByLabelText("Endereço de E-mail"), "ana@x.com")
-  await userEvent.type(screen.getByLabelText("Senha de Acesso"), "cofre-forte-2026")
-  await userEvent.click(screen.getByRole("button", { name: /entrar no sistema/i }))
+  await userEvent.type(screen.getByLabelText("E-mail"), "ana@x.com")
+  await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
+  await userEvent.click(screen.getByRole("button", { name: /^entrar$/i }))
 }
 
 describe("Login com exclusão marcada", () => {

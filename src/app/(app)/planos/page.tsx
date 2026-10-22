@@ -1,12 +1,14 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Info, Loader2, Minus } from "lucide-react"
+import { Check, Info, Minus } from "lucide-react"
 
 import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { descricaoDaTrava, nomeDaTrava } from "@/components/planos/nomes-dos-recursos"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 import { nomeDoPlano, usePlan } from "@/hooks/use-plan"
 import { tratarErro } from "@/lib/erros"
 import { cn } from "@/lib/utils"
@@ -29,7 +31,7 @@ export default function PlanosPage() {
       const response = await api.get<PlanosDaApi>("/plans/")
       setDados(response.data)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar os planos.", tentarDeNovo: carregar })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os planos.", tentarDeNovo: carregar })
     }
   }
 
@@ -52,21 +54,27 @@ export default function PlanosPage() {
       )}
 
       {!dados ? (
-        <div className="flex justify-center p-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+        <div role="status" className="space-y-3 rounded-lg border border-border bg-card p-5">
           <span className="sr-only">Carregando os planos</span>
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-36" />
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} className="h-11 w-full" />
+          ))}
         </div>
       ) : (
         <Card className="overflow-hidden">
           <CardHeader className="p-5 pb-3">
-            <CardTitle>Recursos e limites</CardTitle>
+            <CardTitle role="heading" aria-level={2}>Recursos e limites</CardTitle>
             <CardDescription>Seu plano atual: {nomeDoPlano(dados.plan)}</CardDescription>
           </CardHeader>
           <CardContent className="overflow-x-auto p-5 pt-0">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border text-left">
-                  <th className="py-3 pr-4" />
+                  <th className="py-3 pr-4">
+                    <span className="sr-only">Recurso</span>
+                  </th>
                   {PLANOS.map((plano) => {
                     const doUsuario = plano === dados.plan
                     return (
@@ -119,8 +127,8 @@ function Linha({ trava, planoDoUsuario }: { trava: TravaDoCatalogo; planoDoUsuar
   return (
     <tr>
       <td className="py-3 pr-4">
-        <p className="font-medium text-foreground">{trava.name}</p>
-        <p className="text-xs text-muted-foreground">{trava.description}</p>
+        <p className="font-medium text-foreground">{nomeDaTrava(trava)}</p>
+        <p className="text-xs text-muted-foreground">{descricaoDaTrava(trava)}</p>
       </td>
       {PLANOS.map((plano) => (
         <td

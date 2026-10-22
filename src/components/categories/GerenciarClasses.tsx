@@ -111,7 +111,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
       setClasses(lista)
       return lista
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar as classes.", tentarDeNovo: carregar })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as classes.", tentarDeNovo: carregar })
       return null
     } finally {
       setCarregando(false)
@@ -162,7 +162,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
       await depoisDeAlterar()
     } catch (error) {
       // CLASSE-06 e CLASSE-07 no campo do nome; o limite (detail) no Sonner
-      tratarErro(error, { form, campos: ["name", "color"], mensagemPadrao: "Erro ao salvar a classe." })
+      tratarErro(error, { form, campos: ["name", "color"], mensagemPadrao: "Não foi possível salvar a classe. Tente de novo." })
     } finally {
       setSalvando(false)
     }
@@ -176,7 +176,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
       toast.success(`Classe ${sugestao.name} criada.`)
       await depoisDeAlterar()
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao criar a classe." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível criar a classe. Tente de novo." })
     } finally {
       setSalvando(false)
     }
@@ -189,7 +189,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
     try {
       await deleteExpenseClass(classe.id)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao excluir a classe." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível excluir a classe. Tente de novo." })
       throw error
     }
     toast.success("Classe excluída.")
@@ -213,7 +213,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
               <DialogHeader>
                 <DialogTitle>Gerenciar classes</DialogTitle>
                 <DialogDescription>
-                  As classes mostram quanto das despesas vai para cada tipo de gasto. São até {LIMITE_DE_CLASSES}{" "}
+                  As classes mostram quanto das saídas vai para cada tipo de gasto. São até {LIMITE_DE_CLASSES}{" "}
                   classes, contando Essencial e Dispensável.
                 </DialogDescription>
               </DialogHeader>
@@ -341,7 +341,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
                           <FormItem>
                             <FormLabel>Nome da classe</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Dívidas" maxLength={30} disabled={nomeTravado} {...field} />
+                              <Input placeholder="Ex.: Dívidas" maxLength={30} disabled={nomeTravado} {...field} />
                             </FormControl>
                             {nomeTravado && (
                               <p className="text-xs text-muted-foreground">
@@ -360,7 +360,7 @@ export function GerenciarClasses({ onAlterar }: GerenciarClassesProps) {
                           <FormItem>
                             <FormLabel>Cor</FormLabel>
                             <FormControl>
-                              <div className="flex flex-wrap gap-2">
+                              <div role="group" aria-label="Cor da classe" className="flex flex-wrap gap-2">
                                 {CORES_DE_CLASSE.map((cor) => {
                                   const escolhida = field.value?.toUpperCase() === cor
                                   return (

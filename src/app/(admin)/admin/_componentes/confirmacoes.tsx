@@ -55,7 +55,7 @@ export function CampoDaSenhaDoAdmin({
         </Button>
       </div>
       {erro && (
-        <p id={`${id}-erro`} className="text-xs text-outflow">
+        <p id={`${id}-erro`} role="alert" className="text-xs text-outflow">
           {erro}
         </p>
       )}
@@ -107,19 +107,19 @@ export function emailConfere(email: string, digitado: string) {
 
 // O que a limpeza apaga e o que mantém (ADMIN-21 a ADMIN-23)
 export const APAGADO_NA_LIMPEZA = [
-  "Transações, recorrências e os vínculos entre transações",
+  "Lançamentos, recorrências e os vínculos entre lançamentos",
   "Contas, cartões e faturas",
-  "Categorias, classes e tags (voltam as padrão e a conta Carteira)",
-  "Orçamentos, metas (com as imagens) e monitores de foco",
-  "O plano da gestão do salário",
+  "Categorias, classes e marcadores (voltam as padrão e a conta Carteira)",
+  "Rotas, destinos (com as imagens) e monitores de foco",
+  "O plano da Partilha",
 ]
 export const MANTIDO_NA_LIMPEZA = "Login, senha, perfil, plano e papel."
 
 // O que a exclusão definitiva apaga (LGPD-13)
 export const APAGADO_NA_EXCLUSAO = [
   "A conta, o login e os dados do perfil, inclusive o avatar",
-  "Transações, recorrências, contas, cartões e faturas",
-  "Categorias, classes, tags, orçamentos, metas (com as imagens) e monitores de foco",
+  "Lançamentos, recorrências, contas, cartões e faturas",
+  "Categorias, classes, marcadores, rotas, destinos (com as imagens) e monitores de foco",
 ]
 
 // 503 em que nada foi apagado e o backend explica o porquê (LGPD-12, ADMIN-24)

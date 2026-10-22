@@ -31,26 +31,26 @@ export default function AboutPage() {
           </div>
           <h1 className="display-l mb-3">Sobre o Azimute</h1>
           <p className="mx-auto max-w-xl text-base text-muted-foreground">
-            Nascemos para simplificar sua vida financeira com inteligência e elegância.
+            Finanças pessoais com medida: o que entrou, o que saiu e quanto falta para cada destino.
           </p>
         </header>
 
-        {/* Nossa Missão */}
+        {/* Nossa missão */}
         <section className="max-w-2xl space-y-4">
           <div className="flex items-center gap-2">
             <Target className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
-            <h2 className="display-m">Nossa Missão</h2>
+            <h2 className="display-m">Nossa missão</h2>
           </div>
           <p className="leading-relaxed text-fg-secondary">
-            O Azimute foi criado para preencher o vazio entre planilhas complexas e aplicativos financeiros genéricos.
-            Nossa missão é fornecer ferramentas de alta fidelidade que dão a você o controle total do seu dinheiro, sem fricção.
+            O Azimute foi criado para ocupar o espaço entre as planilhas complexas e os aplicativos financeiros genéricos.
+            Ele mostra a posição das suas contas, o desvio de cada rota e a distância até cada destino, com números exatos.
           </p>
           <p className="leading-relaxed text-fg-secondary">
-            Acreditamos que a clareza financeira é o primeiro passo para a liberdade, e usamos tecnologia de ponta para transformar dados em decisões.
+            Clareza vem antes da decisão: cada número aparece com a unidade e a referência, para você saber o que corrigir.
           </p>
         </section>
 
-        {/* Nossos Valores */}
+        {/* Nossos valores */}
         <section aria-label="Nossos valores" className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {VALORES.map((val) => (
             <Card key={val.title} className="flex flex-col gap-3 p-5">
@@ -66,13 +66,13 @@ export default function AboutPage() {
         {/* Por que o Azimute? */}
         <Card className="p-6 sm:p-8">
           <div className="max-w-2xl space-y-4">
-            <h2 className="display-m">O futuro das finanças pessoais é aqui.</h2>
+            <h2 className="display-m">Comece pelo mês atual</h2>
             <p className="leading-relaxed text-fg-secondary">
-              Não somos apenas mais um gerenciador. Somos seu parceiro estratégico para conquistar suas metas, planejar sua aposentadoria e viver com tranquilidade.
+              Registre os lançamentos, trace uma rota para cada área de gasto e defina destinos para o que você quer juntar.
             </p>
             <Button asChild className="max-md:h-11">
               <Link href="/auth/register">
-                Começar Agora
+                Criar conta
                 <ArrowRight className="h-4 w-4" aria-hidden="true" />
               </Link>
             </Button>

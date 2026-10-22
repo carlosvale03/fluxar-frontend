@@ -147,7 +147,7 @@ describe("início da sessão no AuthProvider", () => {
 
     renderProtegida()
 
-    expect(await screen.findByText("Não conseguimos falar com o servidor.")).toBeInTheDocument()
+    expect(await screen.findByText("Não foi possível falar com o servidor")).toBeInTheDocument()
     expect(screen.getByText(/Sua sessão continua aberta/)).toBeInTheDocument()
     expect(screen.queryByText("Olá, Ana")).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
@@ -157,7 +157,7 @@ describe("início da sessão no AuthProvider", () => {
     await userEvent.click(screen.getByRole("button", { name: "Tentar de novo" }))
 
     expect(await screen.findByText("Olá, Ana")).toBeInTheDocument()
-    expect(screen.queryByText("Não conseguimos falar com o servidor.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Não foi possível falar com o servidor")).not.toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
   })
 
@@ -168,7 +168,7 @@ describe("início da sessão no AuthProvider", () => {
     renderProtegida()
 
     await vi.waitFor(() => expect(push).toHaveBeenCalledWith("/auth/login"))
-    expect(screen.queryByText("Não conseguimos falar com o servidor.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Não foi possível falar com o servidor")).not.toBeInTheDocument()
     expect(screen.queryByText(/Olá/)).not.toBeInTheDocument()
     expect(enviadas).toEqual([])
   })
@@ -185,7 +185,7 @@ describe("início da sessão no AuthProvider", () => {
 
     expect(await screen.findByText("pronto: visitante")).toBeInTheDocument()
     expect(push).not.toHaveBeenCalled()
-    expect(screen.queryByText("Não conseguimos falar com o servidor.")).not.toBeInTheDocument()
+    expect(screen.queryByText("Não foi possível falar com o servidor")).not.toBeInTheDocument()
   })
 
   it("renovação recusada durante o uso encerra a sessão uma vez só: token, layout e ida ao login", async () => {

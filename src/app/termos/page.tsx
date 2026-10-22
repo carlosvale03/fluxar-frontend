@@ -14,7 +14,7 @@ import { termosService, type TermosVigentes } from "@/services/termos"
 
 // LGPD-31: as finalidades do uso dos dados
 const FINALIDADES = [
-  "Prestar o serviço: guardar e mostrar as suas contas, cartões, transações, metas e orçamentos.",
+  "Prestar o serviço: guardar e mostrar as suas contas, cartões, lançamentos, destinos e rotas.",
   "Criar e proteger a sua conta: identificar você no login e enviar e-mails de verificação, de recuperação de senha e de avisos sobre a conta.",
   "Liberar os recursos do seu plano.",
   "Dar suporte quando você pedir.",
@@ -83,9 +83,9 @@ export default function TermsPage() {
               <h3 className="label mb-2 text-muted-foreground">O que armazenamos</h3>
               <ul className="list-inside list-disc space-y-2 text-sm text-fg-secondary">
                 <li>Informações de conta: Nome e e-mail.</li>
-                <li>Dados Financeiros: Transações, saldos, categorias e metas.</li>
+                <li>Dados Financeiros: Lançamentos, saldos, categorias e destinos.</li>
                 <li>Arquivos Importados: Conteúdo de planilhas (XLS/CSV) e extratos (OFX).</li>
-                <li>Imagens: Fotos de perfil e imagens anexadas às suas metas.</li>
+                <li>Imagens: Fotos de perfil e imagens anexadas aos seus destinos.</li>
               </ul>
             </Quadro>
             <p className="text-sm leading-relaxed text-fg-secondary">

@@ -64,7 +64,7 @@ describe("Assistente de planilha: linhas", { timeout: 20_000 }, () => {
 
     expect(chavesNaTabela()).toEqual([VALIDA, REJEITADA, "Receitas e Despesas:4", "Transferências:2"])
     const valida = within(screen.getByTestId(`linha-${VALIDA}`))
-    for (const texto of ["Receitas e Despesas", "01/02/2026", "Lançamento 2", "Nubank", "Despesa", "Mercado", "Efetivada", "Válida"]) {
+    for (const texto of ["Receitas e Despesas", "01/02/2026", "Lançamento 2", "Nubank", "Saída", "Mercado", "Efetivada", "Válida"]) {
       expect(valida.getByText(texto)).toBeInTheDocument()
     }
     expect(valida.getByText(/R\$\s45,00/)).toBeInTheDocument()
@@ -120,7 +120,7 @@ describe("Assistente de planilha: linhas", { timeout: 20_000 }, () => {
     await usuario.click(screen.getByRole("button", { name: "Salvar correção" }))
 
     await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
-    expect(ultimoPlanoEnviado().linhas).toEqual({ [VALIDA]: { valor: "50,00", tipo: "Despesa" } })
+    expect(ultimoPlanoEnviado().linhas).toEqual({ [VALIDA]: { valor: "50,00", tipo: "Saída" } })
   })
 
   it("excluir manda excluir: true e restaurar tira a chave do plano", async () => {

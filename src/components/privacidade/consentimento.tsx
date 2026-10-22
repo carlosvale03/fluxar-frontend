@@ -42,7 +42,7 @@ export function ConsentimentoDeMelhoria() {
       await refreshUser()
     } catch (error) {
       setConsentiu(anterior)
-      tratarErro(error, { mensagemPadrao: "Não foi possível salvar a sua decisão." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível salvar a sua decisão. Tente de novo." })
     } finally {
       setSalvando(false)
     }
@@ -54,7 +54,7 @@ export function ConsentimentoDeMelhoria() {
         <div className="flex items-center gap-3">
           <Sparkles className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
           <div>
-            <CardTitle>Melhoria do produto</CardTitle>
+            <CardTitle role="heading" aria-level={2}>Melhoria do produto</CardTitle>
             <CardDescription>Opcional. Você pode mudar de ideia a qualquer momento.</CardDescription>
           </div>
         </div>

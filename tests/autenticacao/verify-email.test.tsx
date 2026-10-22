@@ -43,7 +43,7 @@ describe("Tela de verificação de e-mail", () => {
     })
     render(<VerifyEmailPage />)
 
-    await userEvent.click(await screen.findByRole("button", { name: /acessar minha conta/i }))
+    await userEvent.click(await screen.findByRole("button", { name: /entrar na conta/i }))
 
     expect(get).toHaveBeenCalledWith("/auth/verify-email/?token=link-do-email")
     expect(login).toHaveBeenCalledWith("acesso-novo")
@@ -76,7 +76,7 @@ describe("Tela de verificação de e-mail", () => {
       </StrictMode>,
     )
 
-    expect(await screen.findByRole("button", { name: /acessar minha conta/i })).toBeInTheDocument()
+    expect(await screen.findByRole("button", { name: /entrar na conta/i })).toBeInTheDocument()
     expect(get).toHaveBeenCalledTimes(1)
   })
 })

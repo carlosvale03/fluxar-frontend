@@ -27,9 +27,9 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 const post = vi.mocked(api.post)
 
 async function redefinir(senha = "cofre-forte-2026", confirmacao = senha) {
-  await userEvent.type(await screen.findByLabelText("Nova Senha de Acesso"), senha)
-  await userEvent.type(screen.getByLabelText("Confirmar Nova Senha"), confirmacao)
-  await userEvent.click(screen.getByRole("button", { name: /atualizar senha/i }))
+  await userEvent.type(await screen.findByLabelText("Nova senha"), senha)
+  await userEvent.type(screen.getByLabelText("Confirmar nova senha"), confirmacao)
+  await userEvent.click(screen.getByRole("button", { name: /salvar nova senha/i }))
 }
 
 describe("Tela de redefinição de senha", () => {
@@ -75,7 +75,7 @@ describe("Tela de redefinição de senha", () => {
     await redefinir()
 
     expect(await screen.findByText("Link inválido ou expirado.")).toBeInTheDocument()
-    expect(screen.getByRole("link", { name: /solicitar novo link/i })).toHaveAttribute("href", "/auth/forgot-password")
+    expect(screen.getByRole("link", { name: /pedir novo link/i })).toHaveAttribute("href", "/auth/forgot-password")
   })
 
   it("mostra a mensagem do 429", async () => {

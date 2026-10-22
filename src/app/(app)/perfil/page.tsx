@@ -23,7 +23,7 @@ import { Camera, CircleCheck } from "lucide-react"
 
 // Perfil Form Schema
 const profileSchema = z.object({
-  name: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
+  name: z.string().min(3, "Use pelo menos 3 caracteres no nome."),
   cpf: z.string().optional().or(z.literal('')),
   phone_number: z.string().optional().or(z.literal('')),
   date_of_birth: z.string().optional().or(z.literal('')),
@@ -143,7 +143,7 @@ export default function ProfilePage() {
                   }
                } catch (uploadError) {
                    console.error("Avatar upload failed", uploadError)
-                   toast.error("Não foi possível enviar a imagem.")
+                   toast.error("Não foi possível enviar a imagem. Use um arquivo JPG ou PNG e tente de novo.")
                    setIsLoading(false)
                    return
                }
@@ -167,7 +167,7 @@ export default function ProfilePage() {
          setAvatarFile(null)
      } catch (error: any) {
          console.error("Profile update error:", error.response?.data)
-         const msg = error.response?.data?.detail || "Não foi possível atualizar o perfil."
+         const msg = error.response?.data?.detail || "Não foi possível atualizar o perfil. Tente de novo."
          toast.error(msg)
      } finally {
          setIsLoading(false)
@@ -200,7 +200,7 @@ export default function ProfilePage() {
                       aria-hidden="true"
                       className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border border-border-strong bg-elevated text-foreground transition-colors duration-fast ease-az-out group-hover:bg-border-strong"
                     >
-                      <Camera className="h-4 w-4" />
+                      <Camera className="h-4 w-4" aria-hidden="true" />
                     </span>
                   </button>
                 </DialogTrigger>
@@ -244,12 +244,13 @@ export default function ProfilePage() {
                       {avatarPreview && (
                         <div className="absolute right-3 top-3 z-10">
                           <Button asChild variant="outline" size="sm" className="bg-elevated">
-                            <label className="cursor-pointer">
+                            <label className="cursor-pointer focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
                               <Input
                                 type="file"
                                 accept="image/*"
+                                aria-label="Trocar a foto"
                                 onChange={handleFileChange}
-                                className="hidden"
+                                className="sr-only"
                               />
                               <Camera aria-hidden="true" />
                               Trocar
@@ -284,12 +285,13 @@ export default function ProfilePage() {
 
                     {!avatarPreview && (
                       <Button asChild variant="outline" className="w-full">
-                        <label className="cursor-pointer">
+                        <label className="cursor-pointer focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background">
                           <Input
                             type="file"
                             accept="image/*"
+                            aria-label="Escolher a foto"
                             onChange={handleFileChange}
-                            className="hidden"
+                            className="sr-only"
                           />
                           Escolher arquivo
                         </label>
@@ -343,7 +345,7 @@ export default function ProfilePage() {
         {/* Formulário */}
         <Card className="lg:col-span-2">
           <CardHeader className="p-5 pb-4">
-            <CardTitle>Informações pessoais</CardTitle>
+            <CardTitle role="heading" aria-level={2}>Informações pessoais</CardTitle>
             <CardDescription>Mantenha seus dados atualizados.</CardDescription>
           </CardHeader>
           <form onSubmit={handleProfileSubmit(onProfileSubmit)}>
@@ -352,13 +354,14 @@ export default function ProfilePage() {
                 <Label htmlFor="perfil-nome">Nome completo</Label>
                 <Input
                   id="perfil-nome"
+                  autoComplete="name"
                   {...registerProfile("name")}
                   aria-invalid={profileErrors.name ? true : undefined}
                   aria-describedby={profileErrors.name ? "perfil-nome-erro" : undefined}
                   className={cn(profileErrors.name && "border-outflow")}
                 />
                 {profileErrors.name && (
-                  <p id="perfil-nome-erro" className="text-xs text-outflow">{profileErrors.name.message}</p>
+                  <p id="perfil-nome-erro" role="alert" className="text-xs text-outflow">{profileErrors.name.message}</p>
                 )}
               </div>
 
@@ -381,6 +384,7 @@ export default function ProfilePage() {
                     {...registerProfile("phone_number")}
                     placeholder="(00) 00000-0000"
                     inputMode="tel"
+                    autoComplete="tel-national"
                     onChange={(e) => setValue("phone_number", formatPhone(e.target.value))}
                     className="font-mono tabular-nums"
                   />
@@ -392,6 +396,7 @@ export default function ProfilePage() {
                 <Input
                   id="perfil-nascimento"
                   type="date"
+                  autoComplete="bday"
                   {...registerProfile("date_of_birth")}
                   className="font-mono tabular-nums"
                 />

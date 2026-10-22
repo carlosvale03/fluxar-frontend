@@ -28,7 +28,7 @@ export function ResendVerification({ email, className }: ResendVerificationProps
       setRetorno({ tipo: "sucesso", texto: response.data.message })
       toast.success(response.data.message)
     } catch (error) {
-      const texto = mensagemDeErro(error, "Não foi possível reenviar o e-mail. Tente novamente.")
+      const texto = mensagemDeErro(error, "Não foi possível reenviar o e-mail. Tente de novo em alguns minutos.")
       setRetorno({ tipo: "erro", texto })
       toast.error(texto)
     } finally {
@@ -46,7 +46,7 @@ export function ResendVerification({ email, className }: ResendVerificationProps
         disabled={isLoading || !email}
         className="w-full"
       >
-        <MailCheck className="h-4 w-4" />
+        <MailCheck className="h-4 w-4" aria-hidden="true" />
         Reenviar e-mail
       </Button>
       {retorno && (

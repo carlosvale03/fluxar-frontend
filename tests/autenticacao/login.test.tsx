@@ -28,9 +28,9 @@ vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 const post = vi.mocked(api.post)
 
 async function entrar(email = "ana@x.com") {
-  await userEvent.type(screen.getByLabelText("Endereço de E-mail"), email)
-  await userEvent.type(screen.getByLabelText("Senha de Acesso"), "cofre-forte-2026")
-  await userEvent.click(screen.getByRole("button", { name: /entrar no sistema/i }))
+  await userEvent.type(screen.getByLabelText("E-mail"), email)
+  await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
+  await userEvent.click(screen.getByRole("button", { name: /^entrar$/i }))
 }
 
 describe("Tela de login", () => {

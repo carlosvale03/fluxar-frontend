@@ -84,11 +84,44 @@ function IconeDaCategoria({ cor, icone, pequeno = false }: { cor: string; icone:
   )
 }
 
-function SemCategorias() {
+// AZ-34: estado vazio com título, uma linha e uma ação; com busca, a ação limpa a busca
+function SemCategorias({
+  buscando,
+  saidas,
+  onLimparBusca,
+  onCriar,
+  criacaoBloqueada,
+}: {
+  buscando: boolean
+  saidas: boolean
+  onLimparBusca: () => void
+  onCriar: () => void
+  criacaoBloqueada: boolean
+}) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 py-16 text-center">
-      <Tag className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
-      <p className="text-sm text-muted-foreground">Nenhuma categoria encontrada.</p>
+    <div className="flex flex-col items-center justify-center gap-3 px-4 py-16 text-center">
+      {buscando ? (
+        <Search className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+      ) : (
+        <Tag className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+      )}
+      <h2 className="display-s text-foreground">
+        {buscando ? "Nenhuma categoria com este nome" : `Nenhuma categoria de ${saidas ? "saída" : "entrada"}`}
+      </h2>
+      <p className="max-w-xs text-sm text-muted-foreground">
+        {buscando
+          ? "Confira a grafia ou limpe a busca para ver todas as categorias."
+          : `Crie uma categoria para organizar as ${saidas ? "saídas" : "entradas"}.`}
+      </p>
+      {buscando ? (
+        <Button variant="outline" onClick={onLimparBusca}>
+          Limpar busca
+        </Button>
+      ) : (
+        <Button variant="outline" disabled={criacaoBloqueada} onClick={onCriar}>
+          Criar categoria
+        </Button>
+      )}
     </div>
   )
 }
@@ -148,7 +181,7 @@ export default function CategoriesPage() {
       const data = await getExpenseClasses()
       setClasses(Array.isArray(data) ? data : [])
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar as classes.", tentarDeNovo: fetchClasses })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as classes.", tentarDeNovo: fetchClasses })
     }
   }
 
@@ -164,7 +197,7 @@ export default function CategoriesPage() {
       setCategories(data)
     } catch (error) {
       console.error(error)
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias", tentarDeNovo: fetchCategories })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as categorias.", tentarDeNovo: fetchCategories })
     } finally {
       setIsLoading(false)
     }
@@ -175,7 +208,7 @@ export default function CategoriesPage() {
       const data = await getCategories()
       setCategories(data)
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias", tentarDeNovo: refreshCategories })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar as categorias.", tentarDeNovo: refreshCategories })
     }
   }
 
@@ -191,7 +224,7 @@ export default function CategoriesPage() {
       refreshCategories()
     } catch (error) {
       console.error(error)
-      tratarErro(error, { mensagemPadrao: "Não foi possível excluir a categoria. Verifique se há transações vinculadas a ela." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível excluir a categoria. Confira se há lançamentos ligados a ela e tente de novo." })
       throw error
     }
   }
@@ -210,11 +243,21 @@ export default function CategoriesPage() {
   const expenseCategories = filteredCategories.filter((cat) => cat.type === "EXPENSE")
 
   // Celular: lista de dois níveis, com as subcategorias recuadas sob a mãe
+  const semCategorias = (
+    <SemCategorias
+      buscando={searchQuery.trim() !== ""}
+      saidas={activeTab === "expenses"}
+      onLimparBusca={() => setSearchQuery("")}
+      onCriar={() => setIsCreateOpen(true)}
+      criacaoBloqueada={limiteAtingido("limite_categorias")}
+    />
+  )
+
   const CategoryMobileList = ({ data, mostrarClasse = false }: { data: Category[]; mostrarClasse?: boolean }) => {
     if (data.length === 0) {
         return (
             <div className="rounded-lg border border-border bg-card sm:hidden">
-                <SemCategorias />
+                {semCategorias}
             </div>
         )
     }
@@ -227,7 +270,7 @@ export default function CategoriesPage() {
                         <IconeDaCategoria cor={category.color} icone={category.icon || "Tag"} />
 
                         <div className="min-w-0 flex-1">
-                            <h3 className="truncate text-sm font-semibold text-foreground">{category.name}</h3>
+                            <p className="truncate text-sm font-semibold text-foreground">{category.name}</p>
                             {mostrarClasse && (
                                 <div className="mt-1">
                                     <ClasseDaCategoria categoria={category} />
@@ -260,11 +303,11 @@ export default function CategoriesPage() {
                                 <DropdownMenuContent align="end" className="min-w-[180px]">
                                     <DropdownMenuItem onClick={() => setEditingCategory(category)} className="gap-2">
                                         <Pencil className="h-4 w-4" aria-hidden="true" />
-                                        <span>Editar Categoria</span>
+                                        <span>Editar categoria</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuItem onClick={() => setDeletingCategory(category)} className="gap-2 text-outflow focus:text-outflow">
                                         <Trash2 className="h-4 w-4" aria-hidden="true" />
-                                        <span>Excluir Categoria</span>
+                                        <span>Excluir categoria</span>
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
@@ -333,7 +376,7 @@ export default function CategoriesPage() {
           {data.length === 0 ? (
             <TableRow className="hover:bg-transparent">
               <TableCell colSpan={mostrarClasse ? 4 : 3}>
-                <SemCategorias />
+                {semCategorias}
               </TableCell>
             </TableRow>
           ) : (
@@ -366,7 +409,8 @@ export default function CategoriesPage() {
                                 className="h-8 w-8"
                                 onClick={() => setCreatingSubcategoryFor(parent)}
                                 disabled={subcategoriasNoLimite(parent)}
-                                title="Nova Subcategoria"
+                                aria-label={`Nova subcategoria em ${parent.name}`}
+                                title="Nova subcategoria"
                             >
                                 <PlusCircle aria-hidden="true" />
                             </Button>
@@ -460,7 +504,7 @@ export default function CategoriesPage() {
         className="pb-0"
         acoes={
           <>
-            {/* CLASSE-03 a CLASSE-09: classes de despesa, ao lado de Nova Categoria */}
+            {/* CLASSE-03 a CLASSE-09: classes de saída, ao lado de Criar categoria */}
             <GerenciarClasses
               onAlterar={() => {
                 refreshCategories()
@@ -472,14 +516,14 @@ export default function CategoriesPage() {
               <DialogTrigger asChild>
                 <Button disabled={limiteAtingido("limite_categorias")}>
                   <PlusCircle aria-hidden="true" />
-                  Nova Categoria
+                  Criar categoria
                 </Button>
               </DialogTrigger>
               <DialogContent className="overflow-hidden p-0 sm:max-w-[480px]">
                 <ScrollArea className="max-h-[85vh]">
                   <div className="p-6">
                     <DialogHeader className="mb-6">
-                      <DialogTitle>Nova Categoria</DialogTitle>
+                      <DialogTitle>Nova categoria</DialogTitle>
                       <DialogDescription>
                         Crie uma categoria para organizar entradas ou saídas.
                       </DialogDescription>
@@ -506,8 +550,8 @@ export default function CategoriesPage() {
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
           <TabsList className="grid w-full grid-cols-2 sm:w-[280px]">
-            <TabsTrigger value="expenses">Despesas</TabsTrigger>
-            <TabsTrigger value="incomes">Receitas</TabsTrigger>
+            <TabsTrigger value="expenses">Saídas</TabsTrigger>
+            <TabsTrigger value="incomes">Entradas</TabsTrigger>
           </TabsList>
         </Tabs>
 
@@ -515,7 +559,7 @@ export default function CategoriesPage() {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             aria-label="Buscar categoria"
-            placeholder="Buscar categoria..."
+            placeholder="Ex.: Mercado"
             className="pl-9"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -547,7 +591,7 @@ export default function CategoriesPage() {
           <ScrollArea className="max-h-[85vh]">
             <div className="p-6">
               <DialogHeader className="mb-6">
-                <DialogTitle>Nova Subcategoria</DialogTitle>
+                <DialogTitle>Nova subcategoria</DialogTitle>
                 <DialogDescription>
                   Subcategoria de <strong className="font-semibold text-foreground">{creatingSubcategoryFor?.name}</strong>.
                 </DialogDescription>
@@ -575,7 +619,7 @@ export default function CategoriesPage() {
           <ScrollArea className="max-h-[85vh]">
             <div className="p-6">
               <DialogHeader className="mb-6">
-                <DialogTitle>Editar Categoria</DialogTitle>
+                <DialogTitle>Editar categoria</DialogTitle>
                 <DialogDescription>
                   Altere o nome, a classe ou a identidade visual da categoria.
                 </DialogDescription>

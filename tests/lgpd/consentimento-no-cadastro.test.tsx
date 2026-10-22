@@ -27,14 +27,14 @@ const post = vi.mocked(api.post)
 const caixaDoConsentimento = () => screen.getByRole("checkbox", { name: /melhorar o produto/i })
 
 async function preencher() {
-  await userEvent.type(screen.getByLabelText("Nome Completo"), "Ana Souza")
-  await userEvent.type(screen.getByLabelText("Melhor E-mail"), "ana@x.com")
+  await userEvent.type(screen.getByLabelText("Nome completo"), "Ana Souza")
+  await userEvent.type(screen.getByLabelText("E-mail"), "ana@x.com")
   await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
-  await userEvent.type(screen.getByLabelText("Confirmar"), "cofre-forte-2026")
+  await userEvent.type(screen.getByLabelText("Confirmar senha"), "cofre-forte-2026")
   await userEvent.click(screen.getByRole("checkbox", { name: /termos de uso/i }))
 }
 
-const enviar = () => userEvent.click(screen.getByRole("button", { name: /criar minha conta/i }))
+const enviar = () => userEvent.click(screen.getByRole("button", { name: /criar conta/i }))
 
 describe("Consentimento no cadastro", () => {
   beforeEach(() => {
@@ -74,14 +74,14 @@ describe("Consentimento no cadastro", () => {
   it("o consentimento não substitui o aceite dos termos", async () => {
     render(<RegisterPage />)
 
-    await userEvent.type(screen.getByLabelText("Nome Completo"), "Ana Souza")
-    await userEvent.type(screen.getByLabelText("Melhor E-mail"), "ana@x.com")
+    await userEvent.type(screen.getByLabelText("Nome completo"), "Ana Souza")
+    await userEvent.type(screen.getByLabelText("E-mail"), "ana@x.com")
     await userEvent.type(screen.getByLabelText("Senha"), "cofre-forte-2026")
-    await userEvent.type(screen.getByLabelText("Confirmar"), "cofre-forte-2026")
+    await userEvent.type(screen.getByLabelText("Confirmar senha"), "cofre-forte-2026")
     await userEvent.click(caixaDoConsentimento())
     await enviar()
 
-    expect(await screen.findByText("Você deve aceitar os termos para continuar")).toBeInTheDocument()
+    expect(await screen.findByText("Aceite os termos para criar a conta.")).toBeInTheDocument()
     expect(post).not.toHaveBeenCalled()
   })
 

@@ -50,7 +50,7 @@ export default function AceiteDosTermosPage() {
       sessionStorage.removeItem(CHAVE_DA_VOLTA_DOS_TERMOS)
       router.replace(volta && volta !== "/termos/aceite" ? volta : "/dashboard")
     } catch (error) {
-      tratarErro(error, { mensagemPadrao: "Não foi possível registrar o aceite." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível registrar o aceite. Tente de novo." })
       // Outra versão passou a valer enquanto a tela estava aberta
       carregar()
     } finally {
@@ -77,7 +77,7 @@ export default function AceiteDosTermosPage() {
               <CardDescription>
                 {termos
                   ? `Versão ${termos.version}, em vigor desde ${format(lerData(termos.effective_date), "d 'de' MMMM 'de' yyyy", { locale: ptBR })}.`
-                  : "Carregando a versão nova..."}
+                  : "Carregando a versão nova"}
               </CardDescription>
             </div>
           </div>

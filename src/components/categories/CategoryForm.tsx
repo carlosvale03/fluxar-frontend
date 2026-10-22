@@ -55,7 +55,7 @@ const PRESET_COLORS = [
 ]
 
 const formSchema = z.object({
-  name: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
+  name: z.string().min(2, "Use pelo menos 2 caracteres no nome."),
   type: z.enum(["INCOME", "EXPENSE"]),
   icon: z.string().optional(),
   color: z.string().optional(),
@@ -154,7 +154,7 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
       tratarErro(error, {
         form,
         campos: ["name", "type", "icon", "color", "parent", "expense_class"],
-        mensagemPadrao: "Erro ao salvar categoria",
+        mensagemPadrao: "Não foi possível salvar a categoria. Tente de novo.",
       })
     } finally {
       setIsLoading(false)
@@ -199,7 +199,7 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
 
         {/* Seção 1: Dados gerais */}
         <section className="space-y-4">
-            <TituloDaSecao>Dados Gerais</TituloDaSecao>
+            <TituloDaSecao>Dados gerais</TituloDaSecao>
 
             <div className={cn("grid grid-cols-1 gap-4", !parentCategory && "md:grid-cols-2")}>
                 <FormField
@@ -207,9 +207,9 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
                 name="name"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Nome da Categoria</FormLabel>
+                    <FormLabel>Nome da categoria</FormLabel>
                     <FormControl>
-                        <Input placeholder="Ex: Alimentação" {...field} />
+                        <Input placeholder="Ex.: Alimentação" {...field} />
                     </FormControl>
                     <FormMessage />
                     </FormItem>
@@ -222,7 +222,7 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
                     name="type"
                     render={({ field }) => (
                         <FormItem>
-                        <FormLabel>Tipo de Fluxo</FormLabel>
+                        <FormLabel>Tipo</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                             <SelectTrigger>
@@ -230,8 +230,8 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
                             </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                                <SelectItem value="INCOME">Receita</SelectItem>
-                                <SelectItem value="EXPENSE">Despesa</SelectItem>
+                                <SelectItem value="INCOME">Entrada</SelectItem>
+                                <SelectItem value="EXPENSE">Saída</SelectItem>
                             </SelectContent>
                         </Select>
                         <FormMessage />
@@ -241,14 +241,14 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
                 )}
             </div>
 
-            {/* CLASSE-17 e CLASSE-20: classe da despesa; a subcategoria começa herdando a da mãe */}
+            {/* CLASSE-17 e CLASSE-20: classe da saída; a subcategoria começa herdando a da mãe */}
             {tipo === "EXPENSE" && (
                 <FormField
                 control={form.control}
                 name="expense_class"
                 render={({ field }) => (
                     <FormItem>
-                    <FormLabel>Classe da Despesa</FormLabel>
+                    <FormLabel>Classe da saída</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                         <SelectTrigger>
@@ -286,7 +286,7 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
         {/* Seção 2: Identidade visual */}
         {!parentCategory && (
           <section className="space-y-4">
-            <TituloDaSecao>Identidade Visual</TituloDaSecao>
+            <TituloDaSecao>Identidade visual</TituloDaSecao>
 
             <FormField
               control={form.control}
@@ -309,7 +309,7 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
                 <FormItem>
                   <FormLabel>Cor</FormLabel>
                   <FormControl>
-                    <div className="space-y-4 rounded-lg border border-border bg-card p-4">
+                    <div role="group" aria-label="Cor da categoria" className="space-y-4 rounded-lg border border-border bg-card p-4">
                       <div className="grid grid-cols-8 gap-2">
                         {PRESET_COLORS.map((color) => {
                           const isSelected = field.value === color
@@ -363,7 +363,7 @@ export function CategoryForm({ category, parentCategory, categoriaMae, classes =
             Cancelar
           </Button>
           <Button type="submit" loading={isLoading} disabled={subcategoriasNoLimite}>
-            {category ? "Gravar Alterações" : "Ativar Categoria"}
+            {category ? "Salvar alterações" : "Criar categoria"}
           </Button>
         </div>
       </form>

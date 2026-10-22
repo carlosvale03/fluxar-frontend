@@ -226,14 +226,14 @@ describe("Tags", () => {
     comAcesso(["analise_por_tag"])
     const { unmount } = render(<TagsPage />)
     expect(await screen.findByText("Viagem")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "Análise da tag Viagem" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Ver a análise do marcador Viagem" })).not.toBeInTheDocument()
     unmount()
 
     comAcesso()
     // A análise fica carregando: o teste só confere a chamada
     vi.mocked(tags.getTagInsights).mockReturnValue(new Promise(() => undefined) as never)
     render(<TagsPage />)
-    await userEvent.click(await screen.findByRole("button", { name: "Análise da tag Viagem" }))
+    await userEvent.click(await screen.findByRole("button", { name: "Ver a análise do marcador Viagem" }))
     expect(tags.getTagInsights).toHaveBeenCalledWith("t1", 6)
   })
 })
