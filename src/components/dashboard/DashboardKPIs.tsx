@@ -44,18 +44,18 @@ interface DashboardKPIsProps {
 export function DashboardKPIs({ data }: DashboardKPIsProps) {
     return (
         <div className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
-            <Indicador titulo="Receitas do Mês">
+            <Indicador titulo="Entradas do mês">
                 <Valor valor={data?.monthly_income ?? "0.00"} direcao="entrada" tamanho="l" />
             </Indicador>
-            <Indicador titulo="Despesas do Mês">
+            <Indicador titulo="Saídas do mês">
                 <Valor valor={data?.monthly_expense ?? "0.00"} direcao="saida" tamanho="l" />
             </Indicador>
-            {/* REL-04: despesas pendentes, à parte das despesas do mês */}
-            <Indicador titulo="A pagar" apoio="Despesas pendentes do período">
+            {/* REL-04: saídas pendentes, à parte das saídas do mês */}
+            <Indicador titulo="A pagar" apoio="Saídas pendentes do período">
                 {formatarMoeda(data?.payable ?? "0.00")}
             </Indicador>
             {/* REL-18: valor em aberto das faturas que vencem no mês */}
-            <Indicador titulo="Faturas do Mês" apoio="Em aberto, com vencimento no mês">
+            <Indicador titulo="Faturas do mês" apoio="Em aberto, com vencimento no mês">
                 {formatarMoeda(data?.total_current_invoices ?? "0.00")}
             </Indicador>
         </div>

@@ -105,6 +105,11 @@ export function DailyCashFlowChart({
         }
     }, [data, isLoading, selectedMonth, selectedYear, activeMonthStr]);
 
+    // AZ-36: resumo do gráfico em texto, com os totais do mês
+    const somaEmCentavos = (chave: "income" | "expense") =>
+        completeDailyData.reduce((soma, d) => soma + paraCentavos(d[chave]), 0)
+    const resumo = `Gráfico de barras das entradas e saídas por dia. Entradas no mês: ${formatarMoeda(somaEmCentavos("income") / 100)}. Saídas no mês: ${formatarMoeda(somaEmCentavos("expense") / 100)}.`
+
     const isEmpty = !isLoading && (!completeDailyData || completeDailyData.length === 0 || completeDailyData.every(d => d.income === 0 && d.expense === 0));
 
     return (
@@ -112,10 +117,10 @@ export function DailyCashFlowChart({
             <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 pb-2">
                 <div className="min-w-0 space-y-1">
                     <CardTitle className="flex items-center gap-2">
-                        <span className="truncate">Fluxo de Caixa Diário</span>
+                        <h3 className="truncate">Fluxo de caixa diário</h3>
                         <Granularidade>por dia</Granularidade>
                     </CardTitle>
-                    <CardDescription>Movimentação detalhada dia por dia</CardDescription>
+                    <CardDescription>Entradas e saídas de cada dia</CardDescription>
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-3">
@@ -157,8 +162,8 @@ export function DailyCashFlowChart({
                     )}
 
                     <div className="flex items-center gap-3">
-                        <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Receita" />
-                        <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Despesa" />
+                        <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Entradas" />
+                        <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Saídas" />
                     </div>
                 </div>
             </CardHeader>
@@ -169,12 +174,12 @@ export function DailyCashFlowChart({
                         <ChartEmptyState
                             type="bar"
                             height="100%"
-                            title="Fluxo de Caixa Diário"
-                            description="As movimentações diárias aparecerão aqui."
+                            title="Nada registrado neste mês."
+                            description="As entradas e saídas de cada dia aparecem aqui."
                             icon={BarChart3}
                         />
                     ) : (
-                        <div className="custom-scrollbar h-full w-full overflow-x-auto overflow-y-hidden pb-2">
+                        <div role="img" aria-label={resumo} className="custom-scrollbar h-full w-full overflow-x-auto overflow-y-hidden pb-2">
                             <div className="h-full min-w-[700px] pr-2">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart
@@ -205,7 +210,7 @@ export function DailyCashFlowChart({
                                                                 <LinhaDoTooltip
                                                                     key={index}
                                                                     cor={entry.dataKey === "income" ? COR_DE_ENTRADA : COR_DE_SAIDA}
-                                                                    nome={entry.dataKey === "income" ? "Receita" : "Despesa"}
+                                                                    nome={entry.dataKey === "income" ? "Entrada" : "Saída"}
                                                                     valor={formatarMoeda(entry.value as number)}
                                                                 />
                                                             ))}
@@ -215,8 +220,8 @@ export function DailyCashFlowChart({
                                                 return null
                                             }}
                                         />
-                                        <Bar dataKey="income" name="Receitas" fill={COR_DE_ENTRADA} radius={[2, 2, 0, 0]} />
-                                        <Bar dataKey="expense" name="Despesas" fill={COR_DE_SAIDA} radius={[2, 2, 0, 0]} />
+                                        <Bar dataKey="income" name="Entradas" fill={COR_DE_ENTRADA} radius={[2, 2, 0, 0]} />
+                                        <Bar dataKey="expense" name="Saídas" fill={COR_DE_SAIDA} radius={[2, 2, 0, 0]} />
                                     </BarChart>
                                 </ResponsiveContainer>
                             </div>

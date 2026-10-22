@@ -12,7 +12,9 @@ import {
   AreaChart,
   Area
 } from "recharts"
-import { LucideIcon, Sparkles } from "lucide-react"
+import type { ReactNode } from "react"
+import Link from "next/link"
+import { ArrowRight, LucideIcon, Sparkles } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface ChartEmptyStateProps {
@@ -22,15 +24,31 @@ interface ChartEmptyStateProps {
   icon?: LucideIcon
   className?: string
   height?: number | string
+  // AZ-34: todo estado vazio tem uma ação. Sem ela, o link leva ao Diário de
+  // Bordo, onde os lançamentos são registrados
+  acao?: ReactNode
+}
+
+// Ação padrão dos gráficos vazios
+export function AcaoDoDiario() {
+  return (
+    <Link
+      href="/transacoes"
+      className="inline-flex items-center gap-1 text-sm font-medium text-fg-secondary transition-colors duration-fast hover:text-foreground"
+    >
+      Abrir o Diário de Bordo <ArrowRight className="h-4 w-4" aria-hidden="true" />
+    </Link>
+  )
 }
 
 export function ChartEmptyState({ 
   type, 
-  title = "Sem dados", 
-  description = "Aguardando seus primeiros registros para este período.",
+  title = "Nada registrado neste período.",
+  description = "Os lançamentos do período aparecem aqui.",
   icon: Icon = Sparkles,
   className,
-  height = 250
+  height = 250,
+  acao = <AcaoDoDiario />,
 }: ChartEmptyStateProps) {
   
   // Dados neutros fixos e intencionalmente mais baixos para não tomarem o palco
@@ -122,6 +140,8 @@ export function ChartEmptyState({
             {description}
           </p>
         </div>
+
+        {acao && <div className="pointer-events-auto">{acao}</div>}
       </div>
     </div>
   )

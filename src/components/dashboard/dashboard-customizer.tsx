@@ -57,20 +57,20 @@ const COLORS = {
     amber: "var(--az-serie-1)",
 }
 
-// Exportado para o dashboard usar o layout padrão com personalizar_dashboard fechado (PERM-19)
+// Exportado para a Ponte de Comando usar o layout padrão com personalizar_dashboard fechado (PERM-19)
 export const DEFAULT_CONFIG: DashboardModuleConfig[] = [
-    { id: "DAILY_CASH_FLOW", label: "Fluxo de Caixa Diário", visible: true, icon: TrendingUp, color: COLORS.green },
-    { id: "MONTHLY_BALANCE", label: "Balanço Mensal", visible: true, icon: BarChart3, color: COLORS.blue },
-    { id: "BALANCE_EVOLUTION", label: "Evolução de Saldo", visible: true, icon: BarChart3, color: COLORS.indigo },
-    { id: "BUDGET_SUMMARY", label: "Orçamentos Ativos", visible: true, icon: Wallet, color: COLORS.purple },
-    { id: "EXPENSE_DISTRIBUTION", label: "Distribuição de Despesas", visible: true, icon: PieChart, color: COLORS.rose },
-    // CLASSE-28: ao lado do gráfico de despesas por categoria
-    { id: "CLASS_DISTRIBUTION", label: "Despesas por Classe", visible: true, icon: PieChart, color: COLORS.purple },
-    { id: "INCOME_SOURCE", label: "Origem dos Ganhos", visible: true, icon: PieChart, color: COLORS.green },
-    { id: "TAG_EXPENSE_DISTRIBUTION", label: "Despesas por Tag", visible: false, icon: PieChart, color: COLORS.rose },
-    { id: "TAG_INCOME_SOURCE", label: "Ganhos por Tag", visible: false, icon: PieChart, color: COLORS.green },
-    { id: "CREDIT_MANAGEMENT", label: "Gestão de Créditos", visible: true, icon: CreditCard, color: COLORS.amber },
-    { id: "GOALS_JOURNEY", label: "Jornada de Metas", visible: true, icon: Target, color: COLORS.purple },
+    { id: "DAILY_CASH_FLOW", label: "Fluxo de caixa diário", visible: true, icon: TrendingUp, color: COLORS.green },
+    { id: "MONTHLY_BALANCE", label: "Balanço do mês", visible: true, icon: BarChart3, color: COLORS.blue },
+    { id: "BALANCE_EVOLUTION", label: "Evolução do saldo", visible: true, icon: BarChart3, color: COLORS.indigo },
+    { id: "BUDGET_SUMMARY", label: "Rotas", visible: true, icon: Wallet, color: COLORS.purple },
+    { id: "EXPENSE_DISTRIBUTION", label: "Saídas por categoria", visible: true, icon: PieChart, color: COLORS.rose },
+    // CLASSE-28: ao lado do gráfico de saídas por categoria
+    { id: "CLASS_DISTRIBUTION", label: "Saídas por classe", visible: true, icon: PieChart, color: COLORS.purple },
+    { id: "INCOME_SOURCE", label: "Entradas por categoria", visible: true, icon: PieChart, color: COLORS.green },
+    { id: "TAG_EXPENSE_DISTRIBUTION", label: "Saídas por marcador", visible: false, icon: PieChart, color: COLORS.rose },
+    { id: "TAG_INCOME_SOURCE", label: "Entradas por marcador", visible: false, icon: PieChart, color: COLORS.green },
+    { id: "CREDIT_MANAGEMENT", label: "Gestão de crédito", visible: true, icon: CreditCard, color: COLORS.amber },
+    { id: "GOALS_JOURNEY", label: "Destinos", visible: true, icon: Target, color: COLORS.purple },
 ]
 
 interface DashboardCustomizerProps {
@@ -162,7 +162,7 @@ export function DashboardCustomizer({ open, onOpenChange, config, onConfigChange
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="mx-auto w-[95vw] gap-0 p-0 sm:w-full sm:max-w-[520px]">
                 <DialogHeader className="p-6 pb-4">
-                    <DialogTitle>Personalizar Painel</DialogTitle>
+                    <DialogTitle>Personalizar a Ponte de Comando</DialogTitle>
                     <DialogDescription>
                         Escolha os blocos visíveis e a ordem. Arraste ou use os botões de subir e descer.
                     </DialogDescription>
@@ -241,7 +241,7 @@ export function DashboardCustomizer({ open, onOpenChange, config, onConfigChange
                             Cancelar
                         </Button>
                         <Button onClick={handleSave} className="w-full sm:w-auto">
-                            Salvar layout
+                            Salvar blocos
                         </Button>
                     </div>
                 </div>
@@ -264,6 +264,9 @@ export const getInitialConfig = (): DashboardModuleConfig[] => {
         const config: DashboardModuleConfig[] = DEFAULT_CONFIG.filter(def => salvo(def.id)).map(def => ({
             ...def,
             ...salvo(def.id),
+            // O nome vem sempre do padrão: um layout salvo antes do glossário
+            // não traz o nome antigo de volta
+            label: def.label,
             icon: def.icon,
             color: def.color,
         })).sort((a, b) => ordem(a.id) - ordem(b.id))
