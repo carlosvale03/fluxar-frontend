@@ -14,7 +14,8 @@ import { Budget } from "@/types/budgets"
 import { getBudgets, bulkImportBudgets } from "@/services/budgets"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
-import { Loader2, Calendar, Search, Filter, ChevronRight } from "lucide-react"
+import { Calendar, Search, Filter, ChevronRight } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Badge } from "@/components/ui/badge"
 import { MonthRangePicker } from "@/components/ui/month-range-picker"
 import { Input } from "@/components/ui/input"
@@ -77,7 +78,7 @@ export function ImportBudgetsDialog({
     } catch (error) {
       console.error(error)
       tratarErro(error, {
-        mensagemPadrao: "Não foi possível carregar os orçamentos do período selecionado.",
+        mensagemPadrao: "Não foi possível carregar as rotas do período escolhido.",
         tentarDeNovo: fetchSourceBudgets,
       })
     } finally {
@@ -112,12 +113,12 @@ export function ImportBudgetsDialog({
     setIsImporting(true)
     try {
       const response = await bulkImportBudgets(selectedIds, targetMonth, targetYear)
-      toast.success("Importação concluída.", { description: response.message })
+      toast.success("Rotas copiadas.", { description: response.message })
       onSuccess()
       onClose()
     } catch (error: any) {
       console.error(error)
-      tratarErro(error, { mensagemPadrao: "Erro na importação. Ocorreu um erro inesperado." })
+      tratarErro(error, { mensagemPadrao: "Não foi possível copiar as rotas. Tente de novo." })
     } finally {
       setIsImporting(false)
     }
@@ -153,14 +154,14 @@ export function ImportBudgetsDialog({
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
                 <div className="flex flex-col gap-1">
                     <DialogTitle>
-                        Importar Orçamentos
+                        Copiar rotas
                     </DialogTitle>
                     <DialogDescription>
-                        Copie orçamentos de meses anteriores para o período atual.
+                        Copie rotas de meses anteriores para o mês aberto na tela.
                     </DialogDescription>
                 </div>
                 <Badge variant="info" className="w-fit">
-                    Destino: {months[targetMonth - 1]} {targetYear}
+                    Para {months[targetMonth - 1]} {targetYear}
                 </Badge>
             </div>
             </DialogHeader>
@@ -183,7 +184,7 @@ export function ImportBudgetsDialog({
             </div>
 
             <p className="hidden text-xs text-muted-foreground sm:block">
-                Clique no mês de início e depois no fim para selecionar um intervalo.
+                Escolha o mês de início e depois o de fim para marcar um intervalo.
             </p>
           </div>
 
@@ -201,23 +202,46 @@ export function ImportBudgetsDialog({
                     />
                 </div>
                 <span className="whitespace-nowrap text-sm text-fg-secondary">
-                    <span className="value-m">{selectedIds.length}</span> selecionados
+                    <span className="value-m">{selectedIds.length}</span> {selectedIds.length === 1 ? "marcada" : "marcadas"}
                 </span>
             </div>
 
             <div className="flex-1 overflow-y-auto">
                 {isLoading ? (
-                    <div className="flex flex-col items-center justify-center gap-3 py-10 sm:py-20" role="status">
-                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
-                        <span className="text-sm text-muted-foreground">Buscando...</span>
+                    // AZ-34: o esqueleto tem a forma da lista (mês e linhas de rota)
+                    <div className="space-y-2 p-3 sm:p-4" role="status" aria-label="Carregando rotas">
+                        <Skeleton className="h-9 w-full rounded-md" />
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="flex items-center justify-between gap-3 rounded-md border border-border p-3">
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="h-4 w-4 rounded-sm" />
+                                    <div className="space-y-2">
+                                        <Skeleton className="h-4 w-32" />
+                                        <Skeleton className="h-1.5 w-24 rounded-full" />
+                                    </div>
+                                </div>
+                                <Skeleton className="h-4 w-20" />
+                            </div>
+                        ))}
                     </div>
                 ) : budgets.length === 0 ? (
                     <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:py-20">
                         <Filter className="mb-3 h-6 w-6 text-muted-foreground" aria-hidden="true" />
-                        <h4 className="text-sm font-semibold">Sem resultados</h4>
+                        <h3 className="text-sm font-semibold">Nenhuma rota neste período</h3>
                         <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
-                            Selecione outro período ou verifique se há orçamentos salvos.
+                            Escolha outro período de origem.
                         </p>
+                    </div>
+                ) : groupedBudgets.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center px-6 py-10 text-center sm:py-20">
+                        <Search className="mb-3 h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                        <h3 className="text-sm font-semibold">Nenhuma rota com esta busca</h3>
+                        <p className="mt-1 max-w-[240px] text-xs text-muted-foreground">
+                            Limpe a busca para ver todas as rotas do período.
+                        </p>
+                        <Button variant="outline" size="sm" className="mt-4" onClick={() => setSearchTerm("")}>
+                            Limpar busca
+                        </Button>
                     </div>
                 ) : (
                     <div className="space-y-6 p-3 pb-10 sm:p-4">
@@ -233,7 +257,7 @@ export function ImportBudgetsDialog({
                                             Marcar tudo
                                             <Checkbox
                                                 checked={allMonthSelected}
-                                                aria-label={`Marcar todos de ${group.label}`}
+                                                aria-label={`Marcar todas as rotas de ${group.label}`}
                                                 className={cn(someMonthSelected && "border-gold-line")}
                                                 onCheckedChange={(checked) => handleSelectMonth(group.budgets, !!checked)}
                                             />
@@ -299,7 +323,7 @@ export function ImportBudgetsDialog({
 
         <div className="flex flex-col items-center justify-between gap-3 border-t border-border p-4 sm:flex-row">
             <p className="self-start text-sm text-fg-secondary sm:self-auto">
-                <span className="value-m text-foreground">{selectedIds.length}</span> {selectedIds.length === 1 ? "orçamento pronto" : "orçamentos prontos"} para importar
+                <span className="value-m text-foreground">{selectedIds.length}</span> {selectedIds.length === 1 ? "rota pronta" : "rotas prontas"} para copiar
             </p>
 
             <div className="flex w-full items-center gap-2 sm:w-auto">
@@ -312,7 +336,7 @@ export function ImportBudgetsDialog({
                     loading={isImporting}
                     className="flex-1 sm:flex-none"
                 >
-                    Finalizar Importação
+                    Copiar rotas
                 </Button>
             </div>
         </div>
