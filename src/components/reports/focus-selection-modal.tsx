@@ -2,8 +2,11 @@
 
 import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Search, PieChart as PieIcon, Plus, Loader2, Tag as TagIcon } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Search, PieChart as PieIcon, Plus, Tag as TagIcon } from "lucide-react"
 import { getCategories } from "@/services/categories"
 import { getTags } from "@/services/tags"
 import { Category, Tag } from "@/types/categories"
@@ -39,7 +42,7 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
             setCategories(cats)
             setTags(tgs)
         } catch (error) {
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar categorias e tags.", tentarDeNovo: loadData })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar as categorias e os marcadores.", tentarDeNovo: loadData })
         } finally {
             setIsLoading(false)
         }
@@ -89,16 +92,16 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[450px]">
                 <DialogHeader className="p-6 pb-3">
-                    <DialogTitle>Adicionar ao Monitor</DialogTitle>
-                    <DialogDescription>Selecione uma categoria ou tag para monitorar</DialogDescription>
+                    <DialogTitle>Adicionar ao monitor</DialogTitle>
+                    <DialogDescription>Escolha uma categoria ou um marcador para monitorar.</DialogDescription>
                 </DialogHeader>
 
                 <div className="px-6 pb-4">
                     <div className="relative">
                         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                         <Input
-                            aria-label="Buscar categoria ou tag"
-                            placeholder="Buscar categoria ou tag..."
+                            aria-label="Buscar categoria ou marcador"
+                            placeholder="Buscar categoria ou marcador"
                             className="pl-10"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
@@ -108,17 +111,23 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
 
                 <div className="max-h-[350px] space-y-6 overflow-y-auto px-2 pb-6">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground" aria-busy="true">
-                            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                            <span className="text-sm">Carregando itens...</span>
+                        // AZ-34: skeleton com a forma das linhas da lista
+                        <div className="space-y-2 px-6" aria-busy="true">
+                            <span className="sr-only" role="status">Carregando categorias e marcadores.</span>
+                            {[1, 2, 3, 4, 5].map((i) => (
+                                <div key={i} className="flex items-center gap-3 p-2.5">
+                                    <Skeleton className="h-8 w-8 shrink-0" />
+                                    <Skeleton className="h-4 w-40" />
+                                </div>
+                            ))}
                         </div>
                     ) : (
                         <>
                             {filteredCategories.length > 0 && (
                                 <div className="space-y-2 px-4">
-                                    <h4 className="label flex items-center gap-2 px-2 text-muted-foreground">
+                                    <h3 className="label flex items-center gap-2 px-2 text-muted-foreground">
                                         <PieIcon className="h-3.5 w-3.5" aria-hidden="true" /> Categorias
-                                    </h4>
+                                    </h3>
                                     <div className="grid grid-cols-1 gap-1">
                                         {filteredCategories.map(cat => (
                                             <button
@@ -156,9 +165,9 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
 
                             {filteredTags.length > 0 && (
                                 <div className="space-y-2 px-4">
-                                    <h4 className="label flex items-center gap-2 px-2 text-muted-foreground">
-                                        <TagIcon className="h-3.5 w-3.5" aria-hidden="true" /> Tags
-                                    </h4>
+                                    <h3 className="label flex items-center gap-2 px-2 text-muted-foreground">
+                                        <TagIcon className="h-3.5 w-3.5" aria-hidden="true" /> Marcadores
+                                    </h3>
                                     <div className="grid grid-cols-1 gap-1">
                                         {filteredTags.map(tag => (
                                             <button
@@ -186,9 +195,29 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
                             )}
 
                             {filteredCategories.length === 0 && filteredTags.length === 0 && (
-                                <div className="space-y-1 py-12 text-center">
-                                    <p className="text-sm font-medium">Nenhum item encontrado.</p>
-                                    <p className="text-sm text-muted-foreground">Tente uma busca diferente.</p>
+                                // AZ-34: título, uma linha e uma ação
+                                <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
+                                    {search ? (
+                                        <>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium">Nenhum item com esta busca.</p>
+                                                <p className="text-sm text-muted-foreground">Confira a grafia ou busque outro nome.</p>
+                                            </div>
+                                            <Button variant="outline" size="sm" onClick={() => setSearch("")}>
+                                                Limpar busca
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-1">
+                                                <p className="text-sm font-medium">Nenhuma categoria de saída ou marcador.</p>
+                                                <p className="text-sm text-muted-foreground">Crie uma categoria de saída para monitorar o gasto dela.</p>
+                                            </div>
+                                            <Button variant="outline" size="sm" asChild>
+                                                <Link href="/categorias">Ver categorias</Link>
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </>

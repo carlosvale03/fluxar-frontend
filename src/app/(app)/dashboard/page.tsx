@@ -455,7 +455,7 @@ export default function DashboardPage() {
                                 <MonthlyComparisonChart
                                     data={monthlyComparison}
                                     title="Evolução do saldo"
-                                    description={`Resultado de cada um dos últimos ${monthlyComparison.length} meses`}
+                                    description={`Saldo dos últimos ${monthlyComparison.length} meses`}
                                     variant="line"
                                     height="100%"
                                     className={cn(spanClass, "h-full")}

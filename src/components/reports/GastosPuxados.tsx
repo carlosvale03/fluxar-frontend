@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Link2 } from "lucide-react"
+import Link from "next/link"
+import { ArrowRight, Link2 } from "lucide-react"
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -15,7 +16,7 @@ export const TITULO_GASTOS_PUXADOS = "Gastos puxados"
 export const SEM_GASTOS_PUXADOS = "Nenhum gasto vinculado no período."
 
 interface GastosPuxadosProps {
-  // Período dos gráficos simples da tela Relatórios
+  // Período dos gráficos simples da tela Cartas
   period: string
   className?: string
 }
@@ -42,7 +43,7 @@ export function GastosPuxados({ period, className }: GastosPuxadosProps) {
       (error) => {
         if (!valida) return
         setErro(true)
-        tratarErro(error, { mensagemPadrao: "Erro ao carregar os gastos puxados." })
+        tratarErro(error, { mensagemPadrao: "Não foi possível carregar os gastos puxados." })
       },
     )
     // A resposta de um período antigo é descartada
@@ -65,15 +66,31 @@ export function GastosPuxados({ period, className }: GastosPuxadosProps) {
         <CardHeader className="pb-0">
           <CardTitle className="flex items-center gap-2">
             <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-            <span>{TITULO_GASTOS_PUXADOS}</span>
+            <h3>{TITULO_GASTOS_PUXADOS}</h3>
           </CardTitle>
           <CardDescription>Quanto cada categoria puxou de gastos em outras</CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {grupos === null ? (
-            <Skeleton className="h-[160px] w-full" />
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2" aria-busy="true">
+              <Skeleton className="h-[140px] w-full" />
+              <Skeleton className="h-[140px] w-full" />
+            </div>
           ) : grupos.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">{SEM_GASTOS_PUXADOS}</p>
+            <div className="flex flex-col items-center gap-3 py-10 text-center">
+              <div className="space-y-1">
+                <h4 className="text-sm font-semibold">{SEM_GASTOS_PUXADOS}</h4>
+                <p className="max-w-sm text-sm text-muted-foreground">
+                  Vincule um lançamento a outro para ver quanto cada categoria puxou de outras.
+                </p>
+              </div>
+              <Link
+                href="/transacoes"
+                className="inline-flex items-center gap-1 text-sm font-medium text-fg-secondary transition-colors duration-fast hover:text-foreground"
+              >
+                Abrir o Diário de Bordo <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           ) : (
             <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {grupos.map((grupo) => (

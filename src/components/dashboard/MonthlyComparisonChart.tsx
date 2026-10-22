@@ -85,7 +85,7 @@ export function MonthlyComparisonChart({
                         height="100%"
                         icon={variant === 'bars' ? BarChart3 : TrendingUp}
                         title="Nada registrado neste período."
-                        description={variant === 'bars' ? "As entradas e saídas de cada mês aparecem aqui." : "O resultado de cada mês aparece aqui."}
+                        description={variant === 'bars' ? "As entradas e saídas de cada mês aparecem aqui." : "O saldo de cada mês aparece aqui."}
                         {...(acaoVazia !== undefined && { acao: acaoVazia })}
                     />
                 </CardContent>
@@ -98,7 +98,7 @@ export function MonthlyComparisonChart({
     // AZ-36: resumo do gráfico em texto, com o mês mais recente
     const resumo = variant === "bars"
         ? `Gráfico de barras das entradas e saídas ${granularidade}. ${currentEntry.month}: entradas de ${formatarMoeda(currentEntry.income)}, saídas de ${formatarMoeda(currentEntry.expense)}.`
-        : `Gráfico de linha do resultado ${granularidade}, em ${data.length} ${data.length === 1 ? "mês" : "meses"}. ${currentEntry.month}: ${formatarMoeda(currentEntry.balance)}.`
+        : `Gráfico de linha do saldo ${granularidade}, em ${data.length} ${data.length === 1 ? "mês" : "meses"}. ${currentEntry.month}: ${formatarMoeda(currentEntry.balance)}.`
 
     // CONTRATO-16: os valores chegam como texto; o Recharts precisa de número,
     // e a conversão é só para plotar

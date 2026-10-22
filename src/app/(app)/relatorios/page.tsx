@@ -156,7 +156,7 @@ export default function ReportsPage() {
             setAdvancedData(data)
         } catch (error) {
             setErroAdvanced(true)
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar os relatórios avançados.", tentarDeNovo: fetchAdvanced })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar as cartas avançadas.", tentarDeNovo: fetchAdvanced })
         } finally {
             setIsLoadingAdvanced(false)
         }
@@ -170,7 +170,7 @@ export default function ReportsPage() {
             setSimpleData(data)
         } catch (error) {
             setErroSimple(true)
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar os gráficos.", tentarDeNovo: fetchSimple })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar os gráficos.", tentarDeNovo: fetchSimple })
         } finally {
             setIsLoadingSimple(false)
         }
@@ -191,7 +191,7 @@ export default function ReportsPage() {
             setSummaryData(data)
         } catch (error) {
             setErroSummary(true)
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar o resumo.", tentarDeNovo: fetchSummary })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar o resumo.", tentarDeNovo: fetchSummary })
         } finally {
             setIsLoadingSummary(false)
         }
@@ -216,7 +216,7 @@ export default function ReportsPage() {
             setMonthlyComparison(data)
         } catch (error) {
             setErroComparison(true)
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar a comparação mensal.", tentarDeNovo: fetchComparison })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar a comparação mensal.", tentarDeNovo: fetchComparison })
         } finally {
             setIsLoadingComparison(false)
         }
@@ -227,12 +227,12 @@ export default function ReportsPage() {
         setIsLoadingTags(true)
         setErroTags(false)
         try {
-            // Para relatórios, usamos o mapeamento de períodos para o backend
+            // Nas Cartas, usamos o mapeamento de períodos para o backend
             const data = await getTagDistribution(undefined, undefined, period)
             setTagData(data)
         } catch (error) {
             setErroTags(true)
-            tratarErro(error, { mensagemPadrao: "Erro ao carregar a distribuição por tags.", tentarDeNovo: fetchTagDistribution })
+            tratarErro(error, { mensagemPadrao: "Não foi possível carregar a análise por marcador.", tentarDeNovo: fetchTagDistribution })
         } finally {
             setIsLoadingTags(false)
         }
@@ -324,6 +324,8 @@ export default function ReportsPage() {
                 </TabsList>
 
                 <TabsContent value="simple" className="mt-6 space-y-6">
+                    {/* AZ-36: título da aba para leitor de tela; cada card tem título h3 */}
+                    <h2 className="sr-only">Fundamentais</h2>
                     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
                         {erroSimple ? (
                             <ErroDoBloco titulo="Fluxo e categorias" onTentarDeNovo={fetchSimple} />
@@ -350,16 +352,16 @@ export default function ReportsPage() {
                         <>
                         <MonthlyComparisonChart
                             data={monthlyComparison}
-                            title="Balanço por Mês"
-                            description="Ganhos vs Gastos Histórico"
+                            title="Balanço por mês"
+                            description="Entradas e saídas de cada mês"
                             variant="bars"
                             height={350}
                         />
 
                         <MonthlyComparisonChart
                             data={monthlyComparison}
-                            title="Evolução de Saldo"
-                            description="Receita - Despesa acumulada"
+                            title="Evolução do saldo"
+                            description="Entradas menos saídas, acumulado"
                             variant="line"
                             height={350}
                             className="lg:col-span-2"
@@ -371,8 +373,8 @@ export default function ReportsPage() {
                         {!erroSimple && (
                         <>
                         <CategoryDistributionChart
-                            title="Distribuição de Gastos"
-                            description="Percentual por categoria"
+                            title="Saídas por categoria"
+                            description="Quanto saiu em cada categoria"
                             data={simpleData?.expense_by_category || []}
                             isLoading={isLoadingSimple}
                             icon={Wallet}
@@ -391,8 +393,8 @@ export default function ReportsPage() {
                         />
 
                         <CategoryDistributionChart
-                            title="Distribuição de Ganhos"
-                            description="Origem das receitas por categoria"
+                            title="Entradas por categoria"
+                            description="De onde veio o dinheiro, por categoria"
                             data={simpleData?.income_by_category || []}
                             isLoading={isLoadingSimple}
                             icon={Sparkles}
@@ -403,14 +405,14 @@ export default function ReportsPage() {
                         </>
                         )}
 
-                        <RecursoBloqueado chave="analise_por_tag" titulo="Análise por tag" className="lg:col-span-2">
+                        <RecursoBloqueado chave="analise_por_tag" titulo="Análise por marcador" className="lg:col-span-2">
                         {erroTags ? (
-                            <ErroDoBloco titulo="Análise por tag" onTentarDeNovo={fetchTagDistribution} className="lg:col-span-2" />
+                            <ErroDoBloco titulo="Análise por marcador" onTentarDeNovo={fetchTagDistribution} className="lg:col-span-2" />
                         ) : (
                         <>
                         <TagDistributionChart
-                            title="Despesas por Tag"
-                            description="Distribuição de gastos por etiqueta"
+                            title="Saídas por marcador"
+                            description="Quanto saiu em cada marcador"
                             data={tagData?.expense_by_tag || []}
                             isLoading={isLoadingTags}
                             icon={TagIcon}
@@ -419,8 +421,8 @@ export default function ReportsPage() {
                         />
 
                         <TagDistributionChart
-                            title="Ganhos por Tag"
-                            description="Origem das receitas por etiqueta"
+                            title="Entradas por marcador"
+                            description="Quanto entrou em cada marcador"
                             data={tagData?.income_by_tag || []}
                             isLoading={isLoadingTags}
                             icon={TagIcon}
@@ -439,7 +441,8 @@ export default function ReportsPage() {
                 </TabsContent>
 
                 <TabsContent value="advanced" className="mt-6 space-y-6">
-                    <RecursoBloqueado chave="relatorios_avancados" titulo="Relatórios avançados">
+                    <h2 className="sr-only">Avançados</h2>
+                    <RecursoBloqueado chave="relatorios_avancados" titulo="Cartas avançadas">
                         <div className="space-y-6">
                             {/* Indicadores dos avançados */}
                             <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -447,15 +450,15 @@ export default function ReportsPage() {
                                     <ErroDoBloco titulo="Saúde financeira" onTentarDeNovo={fetchSummary} className="lg:col-span-3" />
                                 ) : (
                                 <>
-                                <Indicador titulo="Poder de Aporte" ajuda="SAVINGS_RATE" rodape="vs média anual">
-                                    <span className="value-l">
-                                        {isLoadingSummary ? "..." : formatarTaxa(summaryData?.summary.savings_rate)}
-                                    </span>
+                                <Indicador titulo="Poder de aporte" ajuda="SAVINGS_RATE" rodape="vs média anual">
+                                    {isLoadingSummary ? <Skeleton className="h-8 w-20" /> : (
+                                        <span className="value-l">{formatarTaxa(summaryData?.summary.savings_rate)}</span>
+                                    )}
                                     <Badge variant="success">Saudável</Badge>
                                 </Indicador>
 
                                 <Indicador
-                                    titulo="Liquidez Imediata"
+                                    titulo="Liquidez imediata"
                                     ajuda="LIQUIDITY_RATIO"
                                     rodape={
                                         <div className="h-1.5 w-full overflow-hidden rounded-full bg-elevated">
@@ -466,26 +469,26 @@ export default function ReportsPage() {
                                         </div>
                                     }
                                 >
-                                    <span className="value-l">
-                                        {isLoadingSummary ? "..." : formatarMoeda(summaryData?.summary.total_liquid_balance)}
-                                    </span>
+                                    {isLoadingSummary ? <Skeleton className="h-8 w-28" /> : (
+                                        <span className="value-l">{formatarMoeda(summaryData?.summary.total_liquid_balance)}</span>
+                                    )}
                                     <Badge variant="info">Reserva OK</Badge>
                                 </Indicador>
 
                                 <Indicador
-                                    titulo="Score de Saúde"
+                                    titulo="Score de saúde"
                                     ajuda="FINANCIAL_SCORE"
-                                    rodape={(summaryData?.summary.financial_score ?? 0) > 80 ? "Perfil Investidor Alpha" : "Em Evolução"}
+                                    rodape={(summaryData?.summary.financial_score ?? 0) > 80 ? "Perfil investidor" : "Em evolução"}
                                 >
-                                    <span className="value-l">
-                                        {isLoadingSummary ? "..." : `${summaryData?.summary.financial_score ?? 0}/100`}
-                                    </span>
+                                    {isLoadingSummary ? <Skeleton className="h-8 w-20" /> : (
+                                        <span className="value-l">{`${summaryData?.summary.financial_score ?? 0}/100`}</span>
+                                    )}
                                 </Indicador>
                                 </>
                                 )}
 
                                 <Indicador
-                                    titulo="Próximo Grande Gasto"
+                                    titulo="Próximo grande gasto"
                                     ajuda="NEXT_BIG_EXPENSE"
                                     rodape={advancedData?.next_big_expense
                                         ? `Previsão: ${format(lerData(advancedData.next_big_expense.date), 'dd/MM/yyyy')}`
@@ -498,7 +501,17 @@ export default function ReportsPage() {
                             </div>
 
                             {erroAdvanced ? (
-                                <ErroDoBloco titulo="Relatórios avançados" onTentarDeNovo={fetchAdvanced} />
+                                <ErroDoBloco titulo="Cartas avançadas" onTentarDeNovo={fetchAdvanced} />
+                            ) : isLoadingAdvanced && !advancedData ? (
+                                // AZ-34: skeleton com a forma dos blocos avançados
+                                <div className="space-y-6" aria-busy="true">
+                                    <p className="sr-only" role="status">Carregando as cartas avançadas.</p>
+                                    <Skeleton className="h-[420px] w-full" />
+                                    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+                                        <Skeleton className="h-[360px] w-full" />
+                                        <Skeleton className="h-[360px] w-full" />
+                                    </div>
+                                </div>
                             ) : (
                             <>
                             {/* Análise Patrimonial */}
@@ -507,7 +520,7 @@ export default function ReportsPage() {
                                     <div className="space-y-1">
                                         <div className="flex items-center gap-2">
                                             <Target className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                            <CardTitle><h2>Análise Patrimonial</h2></CardTitle>
+                                            <CardTitle><h3>Análise patrimonial</h3></CardTitle>
                                             <HelpInfo topic="INVESTMENT_ANALYSIS" />
                                         </div>
                                         <CardDescription className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -520,33 +533,24 @@ export default function ReportsPage() {
                                             )}
                                         </CardDescription>
                                     </div>
-                                    {!advancedData?.investment_analysis?.has_investments_account && (
-                                        <AccountFormDialog
-                                            defaultType={AccountType.INVESTMENT}
-                                            onSuccess={recarregarInvestimentos}
-                                            trigger={
-                                                <Button size="sm">
-                                                    <Plus aria-hidden="true" /> Criar Conta de Investimento
-                                                </Button>
-                                            }
-                                        />
-                                    )}
                                 </CardHeader>
                                 <CardContent>
                                     {!advancedData?.investment_analysis?.has_investments_account ? (
                                         <div className="flex flex-col items-center justify-center gap-3 rounded-md border border-dashed border-border-strong px-6 py-12 text-center">
                                             <Search className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                                             <div className="max-w-md space-y-1">
-                                                <h3 className="display-s">Nenhuma conta de investimento ativa</h3>
+                                                <h4 className="display-s">Nenhuma conta de investimento ativa.</h4>
                                                 <p className="text-sm text-muted-foreground">
-                                                    Cadastre suas contas da corretora ou banco (tipo Investimento) para separar seus aportes patrimoniais do seu fluxo de caixa mensal.
+                                                    Crie uma conta do tipo Investimento para separar os aportes do fluxo de caixa do mês.
                                                 </p>
                                             </div>
                                             <AccountFormDialog
                                                 defaultType={AccountType.INVESTMENT}
                                                 onSuccess={recarregarInvestimentos}
                                                 trigger={
-                                                    <Button variant="outline">Configurar contas</Button>
+                                                    <Button>
+                                                        <Plus aria-hidden="true" /> Criar conta de investimento
+                                                    </Button>
                                                 }
                                             />
                                         </div>
@@ -559,12 +563,17 @@ export default function ReportsPage() {
                                                         <ChartEmptyState
                                                             type="pie"
                                                             height="100%"
-                                                            title="Alocação"
-                                                            description="Dados de ativos."
+                                                            title="Nenhum valor nas contas de investimento."
+                                                            description="A divisão entre as contas aparece aqui."
                                                             icon={PieIcon}
                                                         />
                                                     ) : (
                                                         <>
+                                                            <div
+                                                                role="img"
+                                                                aria-label={`Gráfico de rosca da alocação por conta. Total investido: ${formatarMoeda(advancedData.investment_analysis.total_invested)}, em ${advancedData.investment_analysis.asset_allocation.length} ${advancedData.investment_analysis.asset_allocation.length === 1 ? "conta" : "contas"}.`}
+                                                                className="h-full w-full"
+                                                            >
                                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                                 <PieChart>
                                                                     <Pie
@@ -589,11 +598,12 @@ export default function ReportsPage() {
                                                                     <Tooltip content={() => null} />
                                                                 </PieChart>
                                                             </ResponsiveContainer>
+                                                            </div>
                                                             <div className="pointer-events-none absolute left-1/2 top-1/2 w-[120px] -translate-x-1/2 -translate-y-1/2 text-center">
                                                                 <span className="label block truncate text-muted-foreground">
                                                                     {activePieIndex !== null
                                                                         ? advancedData.investment_analysis.asset_allocation[activePieIndex].name
-                                                                        : "Total Investido"
+                                                                        : "Total investido"
                                                                     }
                                                                 </span>
                                                                 <span className="value-m block">
@@ -623,10 +633,10 @@ export default function ReportsPage() {
                                             {/* Aportes e resgates por mês */}
                                             <div className="space-y-3 lg:col-span-2">
                                                 <div className="flex flex-wrap items-center justify-between gap-3">
-                                                    <h3 className="flex items-center gap-2 display-s">
-                                                        Aportes vs Performance
+                                                    <h4 className="flex items-center gap-2 display-s">
+                                                        Aportes e resgates
                                                         <Granularidade>por mês</Granularidade>
-                                                    </h3>
+                                                    </h4>
                                                     <div className="flex items-center gap-3">
                                                         <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Aportes" />
                                                         <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Resgates" />
@@ -637,11 +647,12 @@ export default function ReportsPage() {
                                                         <ChartEmptyState
                                                             type="bar"
                                                             height="100%"
-                                                            title="Histórico de Patrimônio"
-                                                            description="Seus aportes e resgates aparecerão aqui."
+                                                            title="Nenhum aporte neste período."
+                                                            description="Os aportes e resgates de cada mês aparecem aqui."
                                                             icon={TrendingUp}
                                                         />
                                                     ) : (
+                                                        <div role="img" aria-label={`Gráfico de barras dos aportes e resgates por mês, em ${advancedData.investment_analysis.monthly_history.length} ${advancedData.investment_analysis.monthly_history.length === 1 ? "mês" : "meses"}.`} className="h-full w-full">
                                                         <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                                         <BarChart data={advancedData.investment_analysis.monthly_history.map(m => ({ ...m, contribution: numero(m.contribution), returns: numero(m.returns) }))} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
                                                             <CartesianGrid {...PROPS_DA_GRADE} />
@@ -665,6 +676,7 @@ export default function ReportsPage() {
                                                             <Bar dataKey="returns" name="Resgates" fill={COR_DE_SAIDA} radius={[2, 2, 0, 0]} barSize={12} />
                                                         </BarChart>
                                                     </ResponsiveContainer>
+                                                    </div>
                                                     )}
                                                 </div>
                                             </div>
@@ -681,12 +693,20 @@ export default function ReportsPage() {
                                         <CardHeader>
                                             <div className="flex items-center gap-2">
                                                 <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                <CardTitle><h2>Monitor de Foco</h2></CardTitle>
+                                                <CardTitle><h3>Monitor de foco</h3></CardTitle>
                                                 <HelpInfo topic="FOCUSED_MONITOR" />
                                             </div>
-                                            <CardDescription>Rastreamento técnico de itens selecionados</CardDescription>
+                                            <CardDescription>O gasto do mês contra a média, por categoria ou marcador</CardDescription>
                                         </CardHeader>
                                         <CardContent className="space-y-4">
+                                            {(advancedData?.custom_monitoring?.length ?? 0) === 0 && (
+                                                <div className="space-y-1 py-6 text-center">
+                                                    <h4 className="text-sm font-semibold">Nenhum item monitorado.</h4>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Escolha uma categoria ou um marcador para comparar o mês com a média.
+                                                    </p>
+                                                </div>
+                                            )}
                                             {advancedData?.custom_monitoring?.map((monitor, i) => {
                                                 // REL-23: média zero não vira porcentagem
                                                 const percentual = percentualDaMedia(monitor.current_month, monitor.average_month)
@@ -708,14 +728,14 @@ export default function ReportsPage() {
                                                                 )}
                                                             </span>
                                                             <div className="min-w-0">
-                                                                <h3 className="truncate text-sm font-semibold">{monitor.name}</h3>
-                                                                <p className="text-xs text-muted-foreground">{monitor.type === 'category' ? 'Categoria' : 'Tag'}</p>
+                                                                <h4 className="truncate text-sm font-semibold">{monitor.name}</h4>
+                                                                <p className="text-xs text-muted-foreground">{monitor.type === 'category' ? 'Categoria' : 'Marcador'}</p>
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-2">
                                                             <div className="text-right">
                                                                 <span className={cn("text-sm font-semibold", situacao.cor)}>{situacao.texto}</span>
-                                                                <p className="text-xs text-muted-foreground">Status Mensal</p>
+                                                                <p className="text-xs text-muted-foreground">Situação no mês</p>
                                                             </div>
                                                             <Button
                                                                 variant="ghost"
@@ -726,7 +746,7 @@ export default function ReportsPage() {
                                                                 onClick={async () => {
                                                                     try {
                                                                         await deleteFocusedMonitor(monitor.id)
-                                                                        toast.success("Item removido do monitor")
+                                                                        toast.success("Item removido do monitor.")
                                                                         fetchAdvanced()
                                                                     } catch {
                                                                         toast.error("Não foi possível remover o item. Tente de novo.")
@@ -740,11 +760,11 @@ export default function ReportsPage() {
 
                                                     <dl className="grid grid-cols-2 gap-3">
                                                         <div className="rounded-md bg-elevated p-3">
-                                                            <dt className="label text-muted-foreground">Mês Atual</dt>
+                                                            <dt className="label text-muted-foreground">Mês atual</dt>
                                                             <dd className="value-m mt-1">{formatarMoeda(monitor.current_month)}</dd>
                                                         </div>
                                                         <div className="rounded-md bg-elevated p-3">
-                                                            <dt className="label text-muted-foreground">Média Histórica</dt>
+                                                            <dt className="label text-muted-foreground">Média histórica</dt>
                                                             <dd className="value-m mt-1">{formatarMoeda(monitor.average_month)}</dd>
                                                         </div>
                                                     </dl>
@@ -769,7 +789,7 @@ export default function ReportsPage() {
                                                 className="h-11 w-full border-dashed"
                                                 onClick={() => setIsSelectionModalOpen(true)}
                                             >
-                                                <Plus aria-hidden="true" /> Monitorar Nova Categoria/Tag
+                                                <Plus aria-hidden="true" /> Monitorar categoria ou marcador
                                             </Button>
                                         </CardContent>
                                     </Card>
@@ -782,7 +802,7 @@ export default function ReportsPage() {
                                         <CardHeader>
                                             <div className="flex items-center gap-2">
                                                 <Activity className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                <CardTitle><h2>Insights de Saúde Financeira</h2></CardTitle>
+                                                <CardTitle><h3>Saúde financeira</h3></CardTitle>
                                             </div>
                                         </CardHeader>
                                         <CardContent className="space-y-6">
@@ -792,7 +812,7 @@ export default function ReportsPage() {
                                                 <div className="flex items-center justify-between gap-4 rounded-md border border-border p-4">
                                                     <div>
                                                         <div className="mb-1 flex items-center gap-1.5">
-                                                            <p className="label text-muted-foreground">Gasto Diário Seguro</p>
+                                                            <p className="label text-muted-foreground">Gasto diário seguro</p>
                                                             <HelpInfo topic="SAFE_DAILY_SPEND" />
                                                         </div>
                                                         <p className="value-l">
@@ -807,11 +827,11 @@ export default function ReportsPage() {
 
                                                 <dl className="grid grid-cols-2 gap-3">
                                                     <div className="rounded-md bg-elevated p-3">
-                                                        <dt className="label text-muted-foreground">Score de Saúde</dt>
+                                                        <dt className="label text-muted-foreground">Score de saúde</dt>
                                                         <dd className="value-m mt-1">{summaryData?.summary?.financial_score || 0}<span className="text-muted-foreground">/100</span></dd>
                                                     </div>
                                                     <div className="rounded-md bg-elevated p-3">
-                                                        <dt className="label text-muted-foreground">Poder de Aporte</dt>
+                                                        <dt className="label text-muted-foreground">Poder de aporte</dt>
                                                         <dd className="value-m mt-1">{formatarTaxa(summaryData?.summary?.savings_rate)}</dd>
                                                     </div>
                                                 </dl>
@@ -820,12 +840,16 @@ export default function ReportsPage() {
                                             <div className="space-y-2">
                                                 <div className="flex items-center justify-between gap-3">
                                                     <div className="flex items-center gap-1.5">
-                                                        <h3 className="label text-muted-foreground">Análise de Compromissamento</h3>
+                                                        <h4 className="label text-muted-foreground">Gastos fixos e variáveis</h4>
                                                         <HelpInfo topic="FIXED_VS_VARIABLE" />
                                                     </div>
-                                                    <span className="text-xs text-muted-foreground">Fixo vs Variável</span>
+                                                    <span className="text-xs text-muted-foreground">Fixo e variável</span>
                                                 </div>
-                                                <div className="flex h-2 w-full overflow-hidden rounded-full bg-elevated">
+                                                <div
+                                                    role="img"
+                                                    aria-label={`Fixos: ${formatarMoeda(advancedData?.fixed_vs_variable?.fixed)}. Variáveis: ${formatarMoeda(advancedData?.fixed_vs_variable?.variable)}.`}
+                                                    className="flex h-2 w-full overflow-hidden rounded-full bg-elevated"
+                                                >
                                                     <div
                                                         className="h-full"
                                                         style={{ backgroundColor: COR_DOS_FIXOS, width: `${paraCentavos(advancedData?.fixed_vs_variable?.fixed) / (paraCentavos(advancedData?.fixed_vs_variable?.total) || 1) * 100}%` }}
@@ -844,11 +868,11 @@ export default function ReportsPage() {
                                             <div className="space-y-3 rounded-md border border-border p-4">
                                                 <div className="flex items-center gap-2">
                                                     <ShieldCheck className="h-4 w-4 text-inflow" aria-hidden="true" />
-                                                    <h3 className="label text-muted-foreground">Reserva de Emergência</h3>
+                                                    <h4 className="label text-muted-foreground">Reserva de emergência</h4>
                                                 </div>
                                                 <div className="flex items-end justify-between gap-3">
                                                     <div>
-                                                        <p className="text-sm text-fg-secondary">Você possui capital para manter seu padrão por:</p>
+                                                        <p className="text-sm text-fg-secondary">O saldo das contas mantém o seu padrão de gastos por</p>
                                                         <p className="value-l mt-1">{(summaryData?.summary?.liquidity_ratio || 0).toFixed(1)} meses</p>
                                                     </div>
                                                     <Badge variant="success">Seguro</Badge>
@@ -856,7 +880,7 @@ export default function ReportsPage() {
                                             </div>
 
                                             <div className="space-y-2">
-                                                <h3 className="label text-muted-foreground">Recomendações Proativas</h3>
+                                                <h4 className="label text-muted-foreground">Recomendações</h4>
                                                 <p className="flex gap-3 rounded-md border border-border p-4 text-sm text-fg-secondary">
                                                     <Sparkles className="h-4 w-4 shrink-0 text-gold-line" aria-hidden="true" />
                                                     {summaryData?.summary?.financial_score && summaryData.summary.financial_score > 80
@@ -872,7 +896,7 @@ export default function ReportsPage() {
                                         <CardHeader>
                                             <div className="flex items-center gap-2">
                                                 <Clock className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                <CardTitle><h2>Hábitos Semanais</h2></CardTitle>
+                                                <CardTitle><h3>Hábitos semanais</h3></CardTitle>
                                                 <Granularidade>por dia da semana</Granularidade>
                                                 <HelpInfo topic="WEEKDAY_HABITS" />
                                             </div>
@@ -895,11 +919,12 @@ export default function ReportsPage() {
                                                     <ChartEmptyState
                                                         type="bar"
                                                         height="100%"
-                                                        title="Hábitos Semanais"
-                                                        description="Seu comportamento semanal aparecerá aqui."
+                                                        title="Nenhuma saída neste período."
+                                                        description="A média de saídas de cada dia da semana aparece aqui."
                                                         icon={Clock}
                                                     />
                                                 ) : (
+                                                    <div role="img" aria-label="Gráfico de barras da média de gastos por dia da semana." className="h-full w-full">
                                                     <ResponsiveContainer width="100%" height="100%">
                                                     <BarChart
                                                         data={(advancedData?.spend_by_weekday || []).map(d => ({ ...d, amount: numero(d.amount) }))}
@@ -924,6 +949,7 @@ export default function ReportsPage() {
                                                         <Bar dataKey="amount" name="Média diária" fill={COR_DOS_HABITOS} radius={[2, 2, 0, 0]} barSize={32} />
                                                     </BarChart>
                                                 </ResponsiveContainer>
+                                                </div>
                                                 )
                                             )}
                                         </CardContent>
@@ -936,14 +962,14 @@ export default function ReportsPage() {
                                         <div className="flex flex-wrap items-center justify-between gap-3">
                                             <div className="flex items-center gap-2">
                                                 <TrendingUp className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
-                                                <CardTitle><h2>Simulador de Liberdade</h2></CardTitle>
+                                                <CardTitle><h3>Simulador de liberdade</h3></CardTitle>
                                                 <Granularidade>por ano</Granularidade>
                                                 <HelpInfo topic="PROJECTION" />
                                             </div>
                                             <ItemDaLegenda cor={COR_DO_PREVISTO} rotulo="Estimado" tracejado />
                                         </div>
                                         <CardDescription>
-                                            Projeção baseada em seu aporte médio mensal e retorno estimado de 8% a.a.
+                                            Projeção pelo aporte médio do mês e retorno estimado de 8% ao ano.
                                         </CardDescription>
                                     </CardHeader>
                                     <CardContent className="h-[250px]" style={{ minWidth: 0 }}>
@@ -951,11 +977,12 @@ export default function ReportsPage() {
                                             <ChartEmptyState
                                                 type="area"
                                                 height="100%"
-                                                title="Simulador de Liberdade"
-                                                description="Sua projeção de longo prazo aparecerá aqui."
+                                                title="Nenhum aporte para projetar."
+                                                description="Com aportes registrados, a projeção de longo prazo aparece aqui."
                                                 icon={TrendingUp}
                                             />
                                         ) : (
+                                            <div role="img" aria-label={`Gráfico de linha da projeção de patrimônio por ano, estimada. Último ponto: ${advancedData.financial_freedom_projection[advancedData.financial_freedom_projection.length - 1].label}, ${formatarMoeda(advancedData.financial_freedom_projection[advancedData.financial_freedom_projection.length - 1].value)}.`} className="h-full w-full">
                                             <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                                             <LineChart data={(advancedData?.financial_freedom_projection || []).map(p => ({ ...p, value: numero(p.value) }))} margin={{ top: 10, right: 10, bottom: 0, left: 10 }}>
                                                 <CartesianGrid {...PROPS_DA_GRADE} />
@@ -985,6 +1012,7 @@ export default function ReportsPage() {
                                                 />
                                             </LineChart>
                                         </ResponsiveContainer>
+                                        </div>
                                         )}
                                     </CardContent>
                                 </Card>
@@ -994,13 +1022,13 @@ export default function ReportsPage() {
                                     <ShieldCheck className="h-4 w-4" aria-hidden="true" />
                                     <div className="space-y-2">
                                         <div className="flex flex-wrap items-center justify-between gap-3">
-                                            <h2 className="display-s">Análise de Risco</h2>
+                                            <h3 className="display-s">Análise de risco</h3>
                                             <Badge variant={advancedData?.risk_analysis?.level === 'Baixa' ? "info" : advancedData?.risk_analysis?.level === 'Média' ? "warning" : "destructive"}>
-                                                Nível {advancedData?.risk_analysis?.level || '...'}
+                                                {advancedData?.risk_analysis?.level ? `Nível ${advancedData.risk_analysis.level}` : "Nível em cálculo"}
                                             </Badge>
                                         </div>
                                         <AlertDescription className="max-w-2xl">
-                                            {advancedData?.risk_analysis?.recommendation || "Analisando seu padrão de volatilidade..."}
+                                            {advancedData?.risk_analysis?.recommendation || "A análise de risco aparece quando houver lançamentos suficientes no período."}
                                             {advancedData?.risk_analysis?.sensitive_category && (
                                                 <span className="label mt-2 block text-muted-foreground">
                                                     Fator de sensibilidade: {advancedData.risk_analysis.sensitive_category}

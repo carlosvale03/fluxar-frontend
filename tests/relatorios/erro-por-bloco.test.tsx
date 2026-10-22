@@ -109,13 +109,13 @@ describe("Erro por bloco nos relatórios", () => {
     const bloco = await screen.findByRole("region", { name: "Comparação mensal" })
     expect(within(bloco).getByRole("button", { name: "Tentar de novo" })).toBeInTheDocument()
     expect(botoesDeTentar()).toHaveLength(1)
-    expect(screen.queryByText("Balanço por Mês")).not.toBeInTheDocument()
+    expect(screen.queryByText("Balanço por mês")).not.toBeInTheDocument()
 
     // Os outros blocos seguem na tela, com os dados deles
     expect(await screen.findAllByText("Mercado")).not.toHaveLength(0)
     expect(await screen.findAllByText("Viagem")).not.toHaveLength(0)
-    expect(screen.getByText("Distribuição de Gastos")).toBeInTheDocument()
-    expect(screen.getByText("Despesas por Tag")).toBeInTheDocument()
+    expect(screen.getByText("Saídas por categoria")).toBeInTheDocument()
+    expect(screen.getByText("Saídas por marcador")).toBeInTheDocument()
   })
 
   it('"Tentar de novo" chama só a rota da comparação mensal e o gráfico volta', async () => {
@@ -126,7 +126,7 @@ describe("Erro por bloco nos relatórios", () => {
     await vi.waitFor(() => expect(r.getTagDistribution).toHaveBeenCalledTimes(1))
     await userEvent.click(within(bloco).getByRole("button", { name: "Tentar de novo" }))
 
-    expect(await screen.findByText("Balanço por Mês")).toBeInTheDocument()
+    expect(await screen.findByText("Balanço por mês")).toBeInTheDocument()
     expect(r.getMonthlyComparison).toHaveBeenCalledTimes(2)
     expect(r.getSimpleCharts).toHaveBeenCalledTimes(1)
     expect(r.getDashboardSummary).toHaveBeenCalledTimes(1)
@@ -141,8 +141,8 @@ describe("Erro por bloco nos relatórios", () => {
     const bloco = await screen.findByRole("region", { name: "Fluxo e categorias" })
     expect(botoesDeTentar()).toHaveLength(1)
     // Sem dados, as distribuições por categoria não aparecem como vazias
-    expect(screen.queryByText("Distribuição de Gastos")).not.toBeInTheDocument()
-    expect(await screen.findByText("Balanço por Mês")).toBeInTheDocument()
+    expect(screen.queryByText("Saídas por categoria")).not.toBeInTheDocument()
+    expect(await screen.findByText("Balanço por mês")).toBeInTheDocument()
     expect(await screen.findAllByText("Viagem")).not.toHaveLength(0)
 
     await userEvent.click(within(bloco).getByRole("button", { name: "Tentar de novo" }))
@@ -157,7 +157,7 @@ describe("Erro por bloco nos relatórios", () => {
     render(<ReportsPage />)
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
 
-    const bloco = await screen.findByRole("region", { name: "Relatórios avançados" })
+    const bloco = await screen.findByRole("region", { name: "Cartas avançadas" })
     expect(botoesDeTentar()).toHaveLength(1)
     expect(await screen.findByText("77/100")).toBeInTheDocument()
 

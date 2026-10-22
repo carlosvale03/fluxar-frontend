@@ -101,7 +101,7 @@ describe("Relatórios", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
 
-    expect(await screen.findByRole("heading", { name: "Relatórios avançados" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Cartas avançadas" })).toBeInTheDocument()
     expect(screen.getByText(AVISO)).toBeInTheDocument()
     expect(r.getAdvancedCharts).not.toHaveBeenCalled()
   })
@@ -111,7 +111,7 @@ describe("Relatórios", () => {
     render(<ReportsPage />)
 
     expect(await screen.findByRole("heading", { name: "Comparação mensal" })).toBeInTheDocument()
-    expect(screen.queryByText("Balanço por Mês")).not.toBeInTheDocument()
+    expect(screen.queryByText("Balanço por mês")).not.toBeInTheDocument()
     await vi.waitFor(() => expect(r.getSimpleCharts).toHaveBeenCalled())
     expect(r.getMonthlyComparison).not.toHaveBeenCalled()
     expect(r.getTagDistribution).toHaveBeenCalled()
@@ -121,8 +121,8 @@ describe("Relatórios", () => {
     comAcesso(["analise_por_tag"])
     render(<ReportsPage />)
 
-    expect(await screen.findByRole("heading", { name: "Análise por tag" })).toBeInTheDocument()
-    expect(screen.queryByText("Despesas por Tag")).not.toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Análise por marcador" })).toBeInTheDocument()
+    expect(screen.queryByText("Saídas por marcador")).not.toBeInTheDocument()
     await vi.waitFor(() => expect(r.getSimpleCharts).toHaveBeenCalled())
     expect(r.getTagDistribution).not.toHaveBeenCalled()
     expect(r.getMonthlyComparison).toHaveBeenCalled()
@@ -135,7 +135,7 @@ describe("Relatórios", () => {
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
 
     expect(await screen.findByRole("heading", { name: "Monitor de foco" })).toBeInTheDocument()
-    expect(screen.queryByText("Monitorar Nova Categoria/Tag")).not.toBeInTheDocument()
+    expect(screen.queryByText("Monitorar categoria ou marcador")).not.toBeInTheDocument()
     expect(r.getAdvancedCharts).toHaveBeenCalled()
   })
 
@@ -143,10 +143,10 @@ describe("Relatórios", () => {
     comAcesso()
     render(<ReportsPage />)
 
-    expect(await screen.findAllByText("Balanço por Mês")).not.toHaveLength(0)
-    expect(screen.getAllByText("Despesas por Tag")).not.toHaveLength(0)
+    expect(await screen.findAllByText("Balanço por mês")).not.toHaveLength(0)
+    expect(screen.getAllByText("Saídas por marcador")).not.toHaveLength(0)
     await userEvent.click(screen.getByRole("button", { name: /Avançados/ }))
-    expect(await screen.findByText("Monitorar Nova Categoria/Tag")).toBeInTheDocument()
+    expect(await screen.findByText("Monitorar categoria ou marcador")).toBeInTheDocument()
     expect(r.getMonthlyComparison).toHaveBeenCalled()
     expect(r.getTagDistribution).toHaveBeenCalled()
     expect(r.getAdvancedCharts).toHaveBeenCalled()
