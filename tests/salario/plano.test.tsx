@@ -93,7 +93,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     const etapas = screen.getByRole("list", { name: "Etapas do plano" })
     const itens = within(etapas).getAllByRole("listitem")
     expect(itens).toHaveLength(3)
-    expect(itens[0]).toHaveTextContent("Etapa 1: Receitas de salário")
+    expect(itens[0]).toHaveTextContent("Etapa 1: Entradas do salário")
     expect(itens[1]).toHaveTextContent("Etapa 2: Modelo")
     expect(itens[2]).toHaveTextContent("Etapa 3: Partes")
     expect(within(etapas).getAllByRole("listitem")[1]).toHaveAttribute("aria-current", "step")
@@ -110,10 +110,10 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     await usarModelo("Seis potes")
     expect(within(screen.getByRole("list", { name: "Etapas do plano" })).getAllByRole("listitem")[2]).toHaveAttribute("aria-current", "step")
 
-    // "Alterar" leva às receitas de salário, com o foco na primeira categoria
-    await userEvent.click(screen.getByRole("button", { name: "Alterar" }))
+    // "Alterar entradas" leva às entradas do salário, com o foco na primeira categoria
+    await userEvent.click(screen.getByRole("button", { name: "Alterar entradas" }))
     expect(document.activeElement).toBe(
-      within(screen.getByRole("region", { name: "Receitas de salário" })).getByRole("checkbox", { name: "Salário" }),
+      within(screen.getByRole("region", { name: "Entradas do salário" })).getByRole("checkbox", { name: "Salário" }),
     )
   })
 
@@ -171,14 +171,14 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
     render(<SalarioPage />)
 
     const noResumo = await vi.waitFor(() => parteNoEditor("Guardar"))
-    expect(noResumo).toHaveTextContent("A meta pede R$ 250,00 por mês até 30/06/2027")
-    expect(noResumo).toHaveTextContent("Meta: Viagem")
+    expect(noResumo).toHaveTextContent("O destino pede R$ 250,00 por mês até 30/06/2027")
+    expect(noResumo).toHaveTextContent("Destino: Viagem")
     expect(screen.queryByRole("list", { name: "Modelos" })).not.toBeInTheDocument()
 
     await userEvent.click(screen.getByRole("button", { name: "Editar plano" }))
     const guardar = parteNoEditor("Guardar")
-    expect(guardar).toHaveTextContent("A meta pede R$ 250,00 por mês até 30/06/2027")
-    expect(within(guardar).getByLabelText("Destino de Guardar")).toHaveTextContent("Meta: Viagem")
+    expect(guardar).toHaveTextContent("O destino pede R$ 250,00 por mês até 30/06/2027")
+    expect(within(guardar).getByLabelText("Destino de Guardar")).toHaveTextContent("Destino: Viagem")
   })
 
   it("simular R$ 3.000,00 mostra o valor de cada parte e o livre, sem salvar", async () => {
@@ -308,7 +308,7 @@ describe("Escolha do modelo e editor do plano", { timeout: 15000 }, () => {
   it("desmarcar e marcar categorias de salário muda as categorias enviadas", async () => {
     comPlano(PLANO_SALVO)
     render(<SalarioPage />)
-    const painel = await screen.findByRole("region", { name: "Receitas de salário" })
+    const painel = await screen.findByRole("region", { name: "Entradas do salário" })
 
     expect(await within(painel).findByRole("checkbox", { name: "Salário" })).toBeChecked()
     expect(within(painel).getByRole("checkbox", { name: "Freelance" })).not.toBeChecked()
@@ -360,7 +360,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
 
     const grupos = within(lista).getAllByRole("group").map((g) => g.getAttribute("aria-labelledby"))
     const rotulos = grupos.map((id) => document.getElementById(id ?? "")?.textContent)
-    expect(rotulos).toEqual(["Contas correntes", "Poupanças", "Carteiras", "Investimentos", "Cofrinhos", "Metas"])
+    expect(rotulos).toEqual(["Contas correntes", "Poupanças", "Carteiras", "Investimentos", "Lastros", "Destinos"])
     expect(within(lista).getAllByRole("option")[0]).toHaveTextContent("Fica na conta do salário")
   })
 
@@ -374,7 +374,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
     await abrirDestinos()
 
     // Os cofrinhos das metas Casa e Viagem ficam só no grupo Metas
-    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Livre"])
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Lastros" }))).toEqual(["Cofrinho Livre"])
     await userEvent.click(screen.getByRole("option", { name: "Cofrinho Livre" }))
     await userEvent.click(screen.getByRole("button", { name: "Salvar plano" }))
 
@@ -385,7 +385,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
   it("o cofrinho de uma meta inativa volta a aparecer como cofrinho", async () => {
     await abrirDestinos(CONTAS_DE_TODOS_OS_TIPOS, METAS_EM_COFRINHOS.filter((m) => m.id !== "m-casa"))
 
-    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Cofrinhos" }))).toEqual(["Cofrinho Casa", "Cofrinho Livre"])
+    expect(nomesDasOpcoes(screen.getByRole("group", { name: "Lastros" }))).toEqual(["Cofrinho Casa", "Cofrinho Livre"])
   })
 
   it("contas e metas inativas não aparecem, nem a meta com o cofrinho inativo ou fora das contas ativas", async () => {
@@ -402,7 +402,7 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
   it("as metas vêm no grupo Metas, por nome, com o cofrinho de cada uma", async () => {
     await abrirDestinos()
 
-    const metas = screen.getByRole("group", { name: "Metas" })
+    const metas = screen.getByRole("group", { name: "Destinos" })
     expect(nomesDasOpcoes(metas)).toEqual(["Casa no Cofrinho Casa", "Viagem no Cofrinho Viagem"])
     expect(within(metas).getByText("no Cofrinho Casa")).toHaveClass("text-muted-foreground")
   })
@@ -418,6 +418,6 @@ describe("Destinos das partes agrupados por tipo", { timeout: 15000 }, () => {
 
     expect(within(lista).getAllByRole("group")).toHaveLength(1)
     expect(screen.getByRole("group", { name: "Contas correntes" })).toBeInTheDocument()
-    expect(screen.queryByRole("group", { name: "Cofrinhos" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("group", { name: "Lastros" })).not.toBeInTheDocument()
   })
 })

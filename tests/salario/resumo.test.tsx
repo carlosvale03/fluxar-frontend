@@ -106,8 +106,8 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     await userEvent.tab()
     // Salvar as receitas de salário relê os salários a dividir, agora com outro mais recente
     pendentes = [recebimento({ id: "rec-2", amount: "5000.00", date: "2026-10-09" }), ...pendentes]
-    const receitas = screen.getByRole("region", { name: "Receitas de salário" })
-    await userEvent.click(await within(receitas).findByRole("button", { name: "Alterar receitas de salário" }))
+    const receitas = screen.getByRole("region", { name: "Entradas do salário" })
+    await userEvent.click(await within(receitas).findByRole("button", { name: "Alterar entradas do salário" }))
     await userEvent.click(within(receitas).getByRole("checkbox", { name: "Freelance" }))
     await userEvent.click(within(receitas).getByRole("button", { name: "Salvar" }))
     await vi.waitFor(() => expect(get.mock.calls.filter(([url]) => url === "/salary/pending/")).toHaveLength(2))
@@ -142,7 +142,7 @@ describe("Resumo e edição do plano", { timeout: 15000 }, () => {
     expect(legenda("Essenciais")).toHaveTextContent("Fica na conta do salário")
     expect(legenda("Essenciais")).toHaveTextContent("50%")
     expect(legenda("Essenciais")).toHaveTextContent("62,0% no seu histórico")
-    expect(legenda("Guardar")).toHaveTextContent("Meta: Viagem")
+    expect(legenda("Guardar")).toHaveTextContent("Destino: Viagem")
     expect(legenda("Guardar")).toHaveTextContent("20%")
     // Tudo dividido: não sobra livre
     expect(within(partes()).queryByRole("listitem", { name: "Livre" })).not.toBeInTheDocument()

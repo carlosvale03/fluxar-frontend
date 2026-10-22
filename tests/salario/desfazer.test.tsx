@@ -67,7 +67,7 @@ async function gerarEPedirParaDesfazer() {
   await screen.findByRole("region", { name: "Plano de divisão" })
   await userEvent.click(await screen.findByRole("button", { name: /Dividir/ }))
   const janela = await screen.findByRole("dialog")
-  await within(janela).findByRole("list", { name: "Transações que serão criadas" })
+  await within(janela).findByRole("list", { name: "Lançamentos que serão criados" })
   await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
   await userEvent.click(within(janela).getByRole("button", { name: /^Gerar/ }))
   await userEvent.click(await within(janela).findByRole("button", { name: "Desfazer divisão" }))
@@ -104,8 +104,8 @@ describe("Desfazer a divisão pela tela", { timeout: 15000 }, () => {
     const confirmacao = await gerarEPedirParaDesfazer()
 
     expect(within(confirmacao).getByRole("heading", { name: "Desfazer a divisão?" })).toBeInTheDocument()
-    expect(confirmacao).toHaveTextContent("Estas 2 transações serão removidas")
-    const itens = within(within(confirmacao).getByRole("list", { name: "Transações que serão removidas" })).getAllByRole("listitem")
+    expect(confirmacao).toHaveTextContent("Estes 2 lançamentos serão removidos")
+    const itens = within(within(confirmacao).getByRole("list", { name: "Lançamentos que serão removidos" })).getAllByRole("listitem")
     expect(itens).toHaveLength(2)
     expect(itens[0]).toHaveTextContent("Aporte: Guardar")
     expect(itens[0]).toHaveTextContent("Viagem")
@@ -236,7 +236,7 @@ describe("Divisões recentes", { timeout: 15000 }, () => {
 
     await userEvent.click(within(lista).getByRole("button", { name: /^Desfazer divisão/ }))
     const confirmacao = await screen.findByRole("alertdialog")
-    expect(within(within(confirmacao).getByRole("list", { name: "Transações que serão removidas" })).getAllByRole("listitem")).toHaveLength(2)
+    expect(within(within(confirmacao).getByRole("list", { name: "Lançamentos que serão removidos" })).getAllByRole("listitem")).toHaveLength(2)
     await userEvent.click(within(confirmacao).getByRole("button", { name: "Desfazer divisão" }))
 
     await vi.waitFor(() => expect(chamadasDoDesfazer()).toHaveLength(1))

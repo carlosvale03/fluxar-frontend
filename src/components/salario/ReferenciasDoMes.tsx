@@ -51,7 +51,7 @@ export function ComprometidoNoMes({ referencias }: ReferenciasProps) {
         <Carregando />
       ) : (
         <div className="divide-y divide-border">
-          <Linha rotulo="Despesas recorrentes pendentes" valor={referencias.committed.recurring_pending} />
+          <Linha rotulo="Saídas recorrentes pendentes" valor={referencias.committed.recurring_pending} />
           <Linha rotulo="Faturas que vencem no mês" valor={referencias.committed.invoices_due} />
           <Linha rotulo="Total comprometido" valor={referencias.committed.total} destaque />
         </div>
@@ -86,9 +86,9 @@ export function SeuHistorico({ referencias }: ReferenciasProps) {
             {history.by_class.map((classe) => (
               <Linha key={classe.class_id ?? "sem-classe"} rotulo={`Gastos: ${classe.class_name}`} valor={classe.average} />
             ))}
-            <Linha rotulo="Total de despesas" valor={history.expense_average} />
+            <Linha rotulo="Total de saídas" valor={history.expense_average} />
             <Linha
-              rotulo="Salário menos despesas"
+              rotulo="Salário menos saídas"
               valor={history.difference_average}
               destaque
               className={cn(diferencaNegativa && "text-outflow")}

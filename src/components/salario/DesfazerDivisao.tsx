@@ -43,7 +43,7 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
       toast.success("Divisão desfeita. O salário voltou para a lista de salários a dividir.")
       onDesfeita(desfeita)
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao desfazer a divisão." })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível desfazer a divisão. Tente de novo." })
     } finally {
       setDesfazendo(false)
     }
@@ -61,15 +61,15 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
           <AlertDialogDescription>
             {/* SALARIO-73: a divisão só com saídas descontadas não criou transação */}
             {transacoes.length === 0
-              ? "Esta divisão não criou transações."
+              ? "Esta divisão não criou lançamentos."
               : transacoes.length === 1
-                ? "Esta transação será removida, e o saldo da conta e o valor da meta voltam ao que eram antes da divisão."
-                : `Estas ${quantidadeDeTransacoes(transacoes.length)} serão removidas, e os saldos das contas e os valores das metas voltam ao que eram antes da divisão.`}
+                ? "Este lançamento será removido, e o saldo da conta e o valor do destino voltam ao que eram antes da divisão."
+                : `Estes ${quantidadeDeTransacoes(transacoes.length)} serão removidos, e os saldos das contas e os valores dos destinos voltam ao que eram antes da divisão.`}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
         {transacoes.length > 0 && (
-          <ul className="max-h-64 divide-y divide-border overflow-y-auto rounded-md border border-border" aria-label="Transações que serão removidas">
+          <ul className="max-h-64 divide-y divide-border overflow-y-auto rounded-md border border-border" aria-label="Lançamentos que serão removidos">
             {transacoes.map((transacao) => (
               <li
                 key={transacao.transfer_id ?? transacao.part_name}
