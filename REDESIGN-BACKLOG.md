@@ -4,7 +4,7 @@
 > Os IDs AZ-xx são os mesmos do PRODUCT.md; subtarefas usam AZ-xx.y. Tarefas novas descobertas no inventário começam em AZ-40.
 > Regras visuais e de texto: [DESIGN.md](DESIGN.md) e [PRODUCT.md](PRODUCT.md).
 >
-> **Estado em 22/10/2026:** Fases 1 a 4 implementadas (PRs #45 a #51 e o PR da Fase 4). Ficam abertos: o teste com 5 usuários (AZ-37, roteiro em [TESTE-DE-USABILIDADE.md](TESTE-DE-USABILIDADE.md)); o desfazer nas exclusões, que depende de um endpoint de restauração no backend; a Bússola do desvio geral (P-03) e a tolerância das rotas, que dependem de dados da API; a contagem animada dos indicadores (AZ-35); "Ver como tabela" e legenda clicável nos gráficos; e as decisões P-01 e P-12 a P-16 do PRODUCT.md.
+> **Estado em 22/10/2026:** Fases 1 a 4 implementadas (PRs #45 a #51 e o PR da Fase 4). Ficam abertos: o teste com 5 usuários (AZ-37, roteiro em [TESTE-DE-USABILIDADE.md](TESTE-DE-USABILIDADE.md)); o desfazer nas exclusões, que depende de um endpoint de restauração no backend; a Bússola do desvio geral (P-03) e a tolerância das rotas, que dependem de dados da API; a contagem animada dos indicadores (AZ-35); "Ver como tabela" e legenda clicável nos gráficos; e a decisão P-01 do PRODUCT.md (as P-12 a P-16 viraram as decisões D-13 a D-17).
 
 ---
 

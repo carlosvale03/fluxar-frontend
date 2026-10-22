@@ -110,7 +110,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
   // Auto-fill cofrinho name if empty
   useEffect(() => {
     if (goalName && !form.getValues("cofrinho_name")) {
-      form.setValue("cofrinho_name", `Lastro: ${goalName}`)
+      form.setValue("cofrinho_name", `Cofrinho: ${goalName}`)
     }
   }, [goalName, form])
 
@@ -167,7 +167,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       setPiggyBanks(filtered)
     } catch (error) {
       // CONTRATO-33: nenhuma falha silenciosa
-      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os lastros. Tente de novo.", tentarDeNovo: fetchPiggyBanks })
+      tratarErro(error, { mensagemPadrao: "Não foi possível carregar os cofrinhos. Tente de novo.", tentarDeNovo: fetchPiggyBanks })
     }
   }
 
@@ -230,7 +230,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
       <DialogContent className="gap-0 p-0 sm:max-w-[520px]">
         <DialogHeader className="space-y-1 border-b border-border p-6">
           <DialogTitle>{initialData ? "Editar destino" : "Novo destino"}</DialogTitle>
-          <DialogDescription>Defina o valor, o prazo e o lastro, a conta onde o dinheiro fica.</DialogDescription>
+          <DialogDescription>Defina o valor, o prazo e o cofrinho, a conta onde o dinheiro fica.</DialogDescription>
         </DialogHeader>
 
         <div className="custom-scrollbar max-h-[65vh] overflow-y-auto px-6 py-6">
@@ -316,14 +316,14 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                 </div>
               </section>
 
-              {/* Seção 2: o lastro */}
+              {/* Seção 2: o cofrinho */}
               <section className="space-y-4">
-                <h3 className="label text-muted-foreground">Lastro</h3>
+                <h3 className="label text-muted-foreground">Cofrinho</h3>
 
                 {!initialData ? (
                   <Tabs value={cofrinhoType} onValueChange={(val) => setCofrinhoType(val as "new" | "existing")} className="w-full">
                     <TabsList className="mb-4 grid w-full grid-cols-2">
-                      <TabsTrigger value="new">Novo lastro</TabsTrigger>
+                      <TabsTrigger value="new">Novo cofrinho</TabsTrigger>
                       <TabsTrigger value="existing">Usar existente</TabsTrigger>
                     </TabsList>
 
@@ -333,9 +333,9 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                         name="cofrinho_name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Nome do lastro</FormLabel>
+                            <FormLabel>Nome do cofrinho</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex.: Lastro viagem" {...field} />
+                              <Input placeholder="Ex.: Cofrinho viagem" {...field} />
                             </FormControl>
                           </FormItem>
                         )}
@@ -402,11 +402,11 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                         name="account"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Lastros disponíveis</FormLabel>
+                            <FormLabel>Cofrinhos disponíveis</FormLabel>
                             <Select onValueChange={field.onChange} value={field.value || ""}>
                               <FormControl>
                                 <SelectTrigger className="h-auto min-h-9 py-2">
-                                  <SelectValue placeholder="Selecione um lastro" />
+                                  <SelectValue placeholder="Selecione um cofrinho" />
                                 </SelectTrigger>
                               </FormControl>
                               <SelectContent>
@@ -428,7 +428,7 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                                     </SelectItem>
                                   ))
                                 ) : (
-                                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum lastro ativo. Crie um novo lastro.</div>
+                                  <div className="p-4 text-center text-sm text-muted-foreground">Nenhum cofrinho ativo. Crie um novo cofrinho.</div>
                                 )}
                               </SelectContent>
                             </Select>
@@ -442,8 +442,8 @@ export function GoalForm({ open, onOpenChange, onSuccess, initialData }: GoalFor
                   <div className="flex items-center gap-3 rounded-md border border-border bg-elevated p-4">
                     <PiggyBank className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                     <div>
-                      <p className="label text-muted-foreground">Lastro vinculado</p>
-                      <p className="text-sm font-medium">{piggyBanks.find(b => b.id === initialData.account)?.name || "Lastro do destino"}</p>
+                      <p className="label text-muted-foreground">Cofrinho vinculado</p>
+                      <p className="text-sm font-medium">{piggyBanks.find(b => b.id === initialData.account)?.name || "Cofrinho do destino"}</p>
                     </div>
                   </div>
                 )}

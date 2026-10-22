@@ -226,7 +226,7 @@ describe("Revisão e geração da divisão", { timeout: 15000 }, () => {
 
     await userEvent.click(within(janela).getByRole("checkbox", { name: "Confirmo que fiz essas transferências no banco" }))
 
-    expect(within(janela).getByText("Escolha o destino de todas as partes no plano antes de gerar.")).toBeInTheDocument()
+    expect(within(janela).getByText("Escolha para onde vai cada parte do plano antes de gerar.")).toBeInTheDocument()
     expect(botaoGerar()).toBeDisabled()
   })
 

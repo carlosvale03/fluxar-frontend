@@ -47,6 +47,7 @@ import {
 } from "@/lib/graficos"
 import { tratarErro } from "@/lib/erros"
 import { formatarTaxa, percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
+import { seloDaReserva, seloDoPoderDeAporte } from "@/lib/saude-financeira"
 import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
@@ -307,6 +308,10 @@ export default function ReportsPage() {
         </div>
     )
 
+    // P-16: os selos saem dos números do resumo; sem número, sem selo
+    const seloDeAporte = seloDoPoderDeAporte(summaryData?.summary.savings_rate)
+    const seloDeReserva = seloDaReserva(summaryData?.summary.liquidity_ratio)
+
     return (
         <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-6 md:px-6 md:py-8">
             <CabecalhoDePagina titulo={PAGINA.nome} apoio={PAGINA.apoio} periodo={seletorDePeriodo} />
@@ -454,7 +459,7 @@ export default function ReportsPage() {
                                     {isLoadingSummary ? <Skeleton className="h-8 w-20" /> : (
                                         <span className="value-l">{formatarTaxa(summaryData?.summary.savings_rate)}</span>
                                     )}
-                                    <Badge variant="success">Saudável</Badge>
+                                    {!isLoadingSummary && seloDeAporte && <Badge variant={seloDeAporte.variante}>{seloDeAporte.rotulo}</Badge>}
                                 </Indicador>
 
                                 <Indicador
@@ -472,7 +477,7 @@ export default function ReportsPage() {
                                     {isLoadingSummary ? <Skeleton className="h-8 w-28" /> : (
                                         <span className="value-l">{formatarMoeda(summaryData?.summary.total_liquid_balance)}</span>
                                     )}
-                                    <Badge variant="info">Reserva OK</Badge>
+                                    {!isLoadingSummary && seloDeReserva && <Badge variant={seloDeReserva.variante}>{seloDeReserva.rotulo}</Badge>}
                                 </Indicador>
 
                                 <Indicador

@@ -83,7 +83,7 @@ O Azimute aplica essa ideia ao dinheiro pessoal. Ele não é uma planilha colori
 - "Lançamento registrado."
 - "Rota atualizada."
 - "Lançamento excluído. Desfazer" (aviso de 5 segundos com o botão Desfazer).
-- "Partilha desfeita. Os valores voltaram para a conta de origem."
+- "Divisão desfeita. Os valores voltaram para a conta de origem."
 
 **Confirmações destrutivas (modal)**
 - Título: "Excluir o cartão Azul?"
@@ -121,7 +121,7 @@ Cada termo do glossário aparece com uma **linha de apoio permanente** em lingua
 
 ### Termos que não mudam
 
-Conta, cartão, fatura, categoria, calendário, importar, valor, data, limite, parcela, recorrência, saldo (de uma conta específica), perfil e configurações.
+Conta, cartão, fatura, categoria, calendário, importar, cofrinho (a conta onde ficam os destinos), divisão (o ato de dividir o salário na Partilha), valor, data, limite, parcela, recorrência, saldo (de uma conta específica), perfil e configurações.
 
 São termos que o usuário já entende e usa no banco. Trocá-los aumentaria o atrito sem ganho: a revisão de usabilidade mostrou que "Ancoradouros" (contas), "Rumos" (categorias) e "Almanaque" (calendário) exigiriam tradução mental a cada uso. "Rumos" ainda colidia com o sentido de "rumo" usado na microcopy ("rumo mantido"). Ver D-11.
 
@@ -178,6 +178,11 @@ Nove destinos de primeiro nível são demais para uma barra. A navegação se di
 | D-10 | Exclusões simples têm "Desfazer" por 5 segundos; exclusões em cascata ou irreversíveis pedem confirmação em modal com o impacto descrito. |
 | D-11 | Conta, cartão, categoria, calendário e importar mantêm o nome comum. |
 | D-12 | Navegação em dois níveis: 5 destinos principais e o menu "Mais" (seção 4). |
+| D-13 | A conta onde ficam os destinos se chama "cofrinho"; "Lastro" é só a reserva do troco, com a linha de apoio "Cofrinho do troco" (antiga P-12). Cofrinhos novos recebem o nome sugerido "Cofrinho: <destino>". |
+| D-14 | Na Partilha, o campo de cada parte se chama "Para onde vai" (antiga P-13). |
+| D-15 | "Partilha" é o nome do módulo; o ato continua "dividir" e "divisão" ("Desfazer a divisão?") (antiga P-14). |
+| D-16 | O tipo de conta PIGGY_BANK continua "Cofrinho" (antiga P-15, segue a D-13). |
+| D-17 | Os selos das Cartas avançadas saem dos dados: poder de aporte ≥ 20% "Saudável", ≥ 10% "Atenção", abaixo "Baixo"; reserva ≥ 6 meses "Reserva completa", ≥ 3 "Reserva parcial", abaixo "Reserva baixa"; sem dado, sem selo (antiga P-16). |
 
 ### Decisões em aberto
 
@@ -188,11 +193,6 @@ Nove destinos de primeiro nível são demais para uma barra. A navegação se di
 | P-03 | Como calcular o desvio geral da Ponte de Comando? | Média dos desvios das rotas ponderada pelo limite de cada uma; validar com o backend. |
 | P-04 | Logo definitivo | O ponteiro de bússola da prévia é provisório. |
 | P-05 | O glossário funciona para quem não participou do projeto? | Testar com 5 usuários pelo roteiro do [TESTE-DE-USABILIDADE.md](TESTE-DE-USABILIDADE.md) (AZ-37). |
-| P-12 | "Lastro" tem dois sentidos na interface: a reserva do troco (§3) e a conta-cofrinho onde ficam os destinos, que a Fase 4 também chamou de lastro ("Saldo do lastro", "Sem lastro"). | Decidir se a conta dos destinos volta a se chamar "cofrinho" ou ganha outro nome; a reserva do troco aparece hoje como "Lastro do troco". |
-| P-13 | Na Partilha, o "destino" de cada parte (para onde vai o dinheiro) colide com o termo Destinos ("Destino de X: Destino: Viagem"). | Trocar por "Para onde vai". |
-| P-14 | O ato de dividir o salário continua "divisão" ("Desfazer a divisão?", "Divisões recentes"). | Decidir se vira "partilha" também, como no exemplo da §2. |
-| P-15 | O tipo de conta PIGGY_BANK aparece como "Cofrinho" no filtro de contas (`src/types/accounts.ts`). | Alinhar com a decisão da P-12. |
-| P-16 | Os selos "Saudável", "Reserva OK" e "Seguro" das Cartas avançadas aparecem sempre, sem olhar os dados. | Calcular a partir dos dados ou remover. |
 
 ---
 

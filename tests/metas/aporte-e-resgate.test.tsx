@@ -56,7 +56,7 @@ describe("Aporte na meta", () => {
     vi.mocked(goalsService.deposit).mockResolvedValue({} as never)
     abrir()
 
-    await escolher(/^saldo livre do lastro \(R\$\s200,00\)$/i)
+    await escolher(/^saldo livre do cofrinho \(R\$\s200,00\)$/i)
     digitarValor("150,00")
     await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
 
@@ -99,7 +99,7 @@ describe("Aporte na meta", () => {
     const onSuccess = vi.fn()
     render(<GoalDepositForm goal={META} cofrinho={COFRINHO} open onOpenChange={vi.fn()} onSuccess={onSuccess} />)
 
-    await escolher(/saldo livre do lastro/i)
+    await escolher(/saldo livre do cofrinho/i)
     digitarValor("100,00")
     await userEvent.click(screen.getByRole("button", { name: /registrar aporte/i }))
 
@@ -117,7 +117,7 @@ describe("Resgate da meta", () => {
     vi.mocked(goalsService.withdraw).mockResolvedValue({} as never)
     abrir()
 
-    await escolher(/^saldo livre do lastro$/i)
+    await escolher(/^saldo livre do cofrinho$/i)
     digitarValor("100,00")
     await userEvent.click(screen.getByRole("button", { name: /registrar resgate/i }))
 
@@ -132,7 +132,7 @@ describe("Resgate da meta", () => {
     abrir()
 
     expect(await screen.findByText(/^No destino: R\$\s300,00$/)).toBeInTheDocument()
-    expect(screen.getByText(/^No lastro: R\$\s700,00$/)).toBeInTheDocument()
+    expect(screen.getByText(/^No cofrinho: R\$\s700,00$/)).toBeInTheDocument()
   })
 
   it.each([
