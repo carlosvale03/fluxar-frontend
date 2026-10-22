@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils"
 import { privacidadeService, salvarArquivo } from "@/services/privacidade"
 
 const confirmacaoSchema = z.object({
-  password: z.string().min(1, "Informe a sua senha atual"),
+  password: z.string().min(1, "Informe a sua senha atual."),
 })
 type Confirmacao = z.infer<typeof confirmacaoSchema>
 
@@ -75,7 +75,7 @@ export function ExcluirConta() {
       tratarErro(error, {
         form: { setError },
         campos: ["password"],
-        mensagemPadrao: "Não foi possível pedir a exclusão da conta.",
+        mensagemPadrao: "Não foi possível pedir a exclusão da conta. Tente de novo.",
       })
     } finally {
       setEnviando(false)
@@ -93,7 +93,7 @@ export function ExcluirConta() {
         <div className="flex items-center gap-3">
           <Trash2 className="h-5 w-5 shrink-0 text-outflow" aria-hidden="true" />
           <div>
-            <CardTitle>Excluir minha conta</CardTitle>
+            <CardTitle role="heading" aria-level={2}>Excluir minha conta</CardTitle>
             <CardDescription>
               A conta é desativada na hora e apagada de vez depois de 30 dias. Até lá, você pode desistir entrando de novo.
             </CardDescription>
@@ -102,7 +102,7 @@ export function ExcluirConta() {
       </CardHeader>
       <CardContent className="space-y-4 px-5 pb-5 pt-0">
         <p className="text-sm text-muted-foreground">
-          Antes de excluir, baixe os seus dados financeiros (transações, contas, cartões, metas e orçamentos) em uma planilha.
+          Antes de excluir, baixe os seus dados financeiros (lançamentos, contas, cartões, destinos e rotas) em uma planilha.
         </p>
         {/* A destrutiva fica separada da outra ação (DESIGN.md §5, Botões) */}
         <div className="flex flex-col gap-3 sm:flex-row sm:justify-between">
@@ -141,13 +141,12 @@ export function ExcluirConta() {
                 id="senha-da-exclusao"
                 autoComplete="current-password"
                 {...register("password")}
-                placeholder="Digite a sua senha"
-                aria-invalid={errors.password ? true : undefined}
+                                aria-invalid={errors.password ? true : undefined}
                 aria-describedby={errors.password ? "senha-da-exclusao-erro" : undefined}
                 className={cn(errors.password && "border-outflow")}
               />
               {errors.password && (
-                <p id="senha-da-exclusao-erro" className="text-xs text-outflow">{errors.password.message}</p>
+                <p id="senha-da-exclusao-erro" role="alert" className="text-xs text-outflow">{errors.password.message}</p>
               )}
             </div>
             <DialogFooter className="gap-2">

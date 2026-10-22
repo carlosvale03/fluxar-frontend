@@ -32,17 +32,17 @@ type SettingsForm = z.infer<typeof settingsSchema>
 
 // --- Password Form Schema ---
 const passwordSchema = z.object({
-  currentPassword: z.string().min(1, "Sua senha atual é obrigatória"),
+  currentPassword: z.string().min(1, "Informe a senha atual."),
   newPassword: z.string()
-    .min(1, "A nova senha é obrigatória")
-    .min(8, "A nova senha deve ter pelo menos 8 caracteres")
+    .min(1, "Informe a nova senha.")
+    .min(8, "Use pelo menos 8 caracteres na senha.")
     .refine((val) => !/^\d+$/.test(val), {
-      message: "A senha não pode ser puramente numérica",
+      message: "A senha não pode ter só números.",
     }),
-  confirmPassword: z.string().min(1, "A confirmação de senha é obrigatória"),
+  confirmPassword: z.string().min(1, "Repita a nova senha para confirmar."),
 }).refine(data => data.newPassword === data.confirmPassword, {
   path: ["confirmPassword"],
-  message: "As senhas não conferem",
+  message: "As senhas não conferem. Digite a mesma senha nos dois campos.",
 })
 type PasswordForm = z.infer<typeof passwordSchema>
 
@@ -125,7 +125,7 @@ export default function SettingsPage() {
                  "preferences.notifications.email": "notifications_email",
                  "preferences.notifications.push": "notifications_push",
              },
-             mensagemPadrao: "Não foi possível atualizar as configurações.",
+             mensagemPadrao: "Não foi possível salvar as configurações. Tente de novo.",
          })
      } finally {
          setIsSettingsLoading(false)
@@ -153,8 +153,8 @@ export default function SettingsPage() {
         toast.success("Senha alterada.")
     } catch (error: any) {
         const msg = error.response?.data?.current_password 
-             ? "Senha atual incorreta." 
-             : "Não foi possível alterar a senha. Verifique os requisitos."
+             ? "A senha atual está incorreta. Confira e tente de novo."
+             : "Não foi possível alterar a senha. Use pelo menos 8 caracteres, sem ser só números, e tente de novo."
         toast.error(msg)
     } finally {
         setIsPasswordLoading(false)
@@ -191,7 +191,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-3">
                           <Globe className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                           <div>
-                              <CardTitle>Preferências locais</CardTitle>
+                              <CardTitle role="heading" aria-level={2}>Preferências locais</CardTitle>
                               <CardDescription>Moeda e idioma do sistema.</CardDescription>
                           </div>
                       </div>
@@ -211,7 +211,7 @@ export default function SettingsPage() {
                                       <SelectItem value="EUR">Euro (EUR)</SelectItem>
                                   </SelectContent>
                               </Select>
-                              {settingsErrors.currency && <p className="text-xs text-outflow">{settingsErrors.currency.message}</p>}
+                              {settingsErrors.currency && <p role="alert" className="text-xs text-outflow">{settingsErrors.currency.message}</p>}
                           </div>
 
                           <div className="space-y-2">
@@ -242,7 +242,7 @@ export default function SettingsPage() {
                                               onCheckedChange={(ligado) => setValue(campo, ligado, { shouldDirty: true })}
                                           />
                                       </div>
-                                      {settingsErrors[campo] && <p className="text-xs text-outflow">{settingsErrors[campo]?.message}</p>}
+                                      {settingsErrors[campo] && <p role="alert" className="text-xs text-outflow">{settingsErrors[campo]?.message}</p>}
                                   </div>
                               ))}
                           </fieldset>
@@ -260,7 +260,7 @@ export default function SettingsPage() {
                       <div className="flex items-center gap-3">
                           <Settings className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                           <div>
-                              <CardTitle>Aparência</CardTitle>
+                              <CardTitle role="heading" aria-level={2}>Aparência</CardTitle>
                               <CardDescription>Tema da interface. Muda na hora.</CardDescription>
                           </div>
                       </div>
@@ -296,7 +296,7 @@ export default function SettingsPage() {
                           )
                         })}
                       </div>
-                      {settingsErrors.theme && <p className="text-xs text-outflow">{settingsErrors.theme.message}</p>}
+                      {settingsErrors.theme && <p role="alert" className="text-xs text-outflow">{settingsErrors.theme.message}</p>}
                   </CardContent>
               </Card>
           </div>
@@ -309,7 +309,7 @@ export default function SettingsPage() {
                   <div className="flex items-center gap-3">
                       <Lock className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
                       <div>
-                          <CardTitle>Segurança da conta</CardTitle>
+                          <CardTitle role="heading" aria-level={2}>Segurança da conta</CardTitle>
                           <CardDescription>Alteração de senha.</CardDescription>
                       </div>
                   </div>
@@ -322,10 +322,11 @@ export default function SettingsPage() {
                             id="senha-atual"
                             autoComplete="current-password"
                             {...registerPassword("currentPassword")}
-                            placeholder="Sua senha anterior"
+                                                        aria-invalid={passwordErrors.currentPassword ? true : undefined}
+                            aria-describedby={passwordErrors.currentPassword ? "senha-atual-erro" : undefined}
                             className={cn(passwordErrors.currentPassword && "border-outflow")}
                           />
-                          {passwordErrors.currentPassword && <p className="text-xs text-outflow">{passwordErrors.currentPassword.message}</p>}
+                          {passwordErrors.currentPassword && <p id="senha-atual-erro" role="alert" className="text-xs text-outflow">{passwordErrors.currentPassword.message}</p>}
                       </div>
                       <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                         <div className="space-y-2">
@@ -335,9 +336,11 @@ export default function SettingsPage() {
                               autoComplete="new-password"
                               {...registerPassword("newPassword")}
                               placeholder="Mínimo 8 caracteres"
+                              aria-invalid={passwordErrors.newPassword ? true : undefined}
+                              aria-describedby={passwordErrors.newPassword ? "nova-senha-erro" : undefined}
                               className={cn(passwordErrors.newPassword && "border-outflow")}
                             />
-                            {passwordErrors.newPassword && <p className="text-xs text-outflow">{passwordErrors.newPassword.message}</p>}
+                            {passwordErrors.newPassword && <p id="nova-senha-erro" role="alert" className="text-xs text-outflow">{passwordErrors.newPassword.message}</p>}
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="confirmar-senha">Confirmar nova senha</Label>
@@ -345,10 +348,11 @@ export default function SettingsPage() {
                               id="confirmar-senha"
                               autoComplete="new-password"
                               {...registerPassword("confirmPassword")}
-                              placeholder="Repita a nova senha"
+                                                            aria-invalid={passwordErrors.confirmPassword ? true : undefined}
+                              aria-describedby={passwordErrors.confirmPassword ? "confirmar-senha-erro" : undefined}
                               className={cn(passwordErrors.confirmPassword && "border-outflow")}
                             />
-                            {passwordErrors.confirmPassword && <p className="text-xs text-outflow">{passwordErrors.confirmPassword.message}</p>}
+                            {passwordErrors.confirmPassword && <p id="confirmar-senha-erro" role="alert" className="text-xs text-outflow">{passwordErrors.confirmPassword.message}</p>}
                         </div>
                       </div>
                   </CardContent>
