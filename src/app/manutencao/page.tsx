@@ -7,15 +7,13 @@ import { Badge } from "@/components/ui/badge"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 import { api, CHAVE_DA_VOLTA_DA_MANUTENCAO } from "@/services/apiClient"
 
 const INTERVALO_DA_CONSULTA_MS = 30_000
 
 export default function MaintenancePage() {
     const router = useRouter()
-    const reduzirMovimento = useReducedMotion()
-
     // Consulta o estado ao abrir e a cada 30 segundos; quando a manutenção
     // acaba, volta à página em que o usuário estava (SESSAO-22)
     useEffect(() => {
@@ -39,7 +37,7 @@ export default function MaintenancePage() {
     return (
         <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4">
             <motion.div
-                initial={reduzirMovimento ? false : { opacity: 0, y: 8 }}
+                initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
                 className="w-full max-w-xl text-center"

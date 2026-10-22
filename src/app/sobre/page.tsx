@@ -2,7 +2,7 @@
 
 import { ShieldCheck, Users, Target, Eye, ArrowRight } from "lucide-react"
 import Link from "next/link"
-import { motion, useReducedMotion } from "framer-motion"
+import { motion } from "framer-motion"
 
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -15,12 +15,10 @@ const VALORES = [
 ]
 
 export default function AboutPage() {
-  const reduzirMovimento = useReducedMotion()
-
   return (
     <div className="flex min-h-screen flex-col items-center bg-background px-4 py-12 sm:px-6 lg:px-8">
       <motion.div
-        initial={reduzirMovimento ? false : { opacity: 0, y: 8 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.24, ease: [0.2, 0, 0, 1] }}
         className="w-full max-w-4xl space-y-12"
