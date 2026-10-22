@@ -77,7 +77,7 @@ async function importar() {
   const saldo = screen.getByRole("textbox", { name: "Saldo atual da nova conta XC - Carteira" })
   await usuario.clear(saldo)
   await usuario.type(saldo, "-250,10")
-  await usuario.click(screen.getByRole("button", { name: "Importar" }))
+  await usuario.click(screen.getByRole("button", { name: "Importar planilha" }))
   return { usuario, onOpenChange }
 }
 

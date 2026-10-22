@@ -44,7 +44,7 @@ describe("Página de importação", { timeout: 20_000 }, () => {
     render(<ImportExportPage />)
 
     expect(screen.queryByRole("button", { name: "Mapear Colunas e Importar" })).not.toBeInTheDocument()
-    await usuario.click(screen.getByRole("button", { name: "Importar Planilha" }))
+    await usuario.click(screen.getByRole("button", { name: "Importar planilha" }))
 
     const dialogo = await screen.findByRole("dialog")
     expect(dialogo).toHaveTextContent("Importar planilha")
@@ -57,7 +57,7 @@ describe("Página de importação", { timeout: 20_000 }, () => {
     const usuario = userEvent.setup()
     render(<ImportExportPage />)
 
-    await usuario.click(screen.getByRole("button", { name: "Configurar Importação OFX" }))
+    await usuario.click(screen.getByRole("button", { name: "Importar extrato OFX" }))
 
     const dialogo = await screen.findByRole("dialog")
     expect(dialogo).toHaveTextContent("Importar OFX")
@@ -69,7 +69,7 @@ describe("Página de importação", { timeout: 20_000 }, () => {
     const usuario = userEvent.setup()
     render(<ImportExportPage />)
 
-    await usuario.click(screen.getByText("Guia de Formatos"))
+    await usuario.click(screen.getByText("Ver guia de formatos"))
     await usuario.click(await screen.findByRole("button", { name: "Planilhas (CSV/XLSX)" }))
 
     expect(screen.getByText(/as colunas e as contas são reconhecidas automaticamente/i)).toBeInTheDocument()

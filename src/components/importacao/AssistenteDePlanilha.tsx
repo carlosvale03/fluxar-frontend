@@ -49,8 +49,8 @@ function ResumoDaRevisao({ resumo }: { resumo: ResumoDaAnalise }) {
     { rotulo: "Contas novas", valor: resumo.contas_novas, cor: "text-foreground" },
   ]
   const totais = [
-    { rotulo: "Receitas", total: resumo.receitas, cor: "text-inflow" },
-    { rotulo: "Despesas", total: resumo.despesas, cor: "text-outflow" },
+    { rotulo: "Entradas", total: resumo.receitas, cor: "text-inflow" },
+    { rotulo: "Saídas", total: resumo.despesas, cor: "text-outflow" },
     { rotulo: "Transferências", total: resumo.transferencias, cor: "text-foreground" },
   ]
 
@@ -164,7 +164,7 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
       const resposta = await api.get<Account[]>("/accounts/")
       setContasAtivas(resposta.data.filter((conta) => conta.is_active !== false))
     } catch (erro) {
-      tratarErro(erro, { mensagemPadrao: "Erro ao carregar contas.", tentarDeNovo: carregarContas })
+      tratarErro(erro, { mensagemPadrao: "Não foi possível carregar as contas.", tentarDeNovo: carregarContas })
     }
   }
 
@@ -208,7 +208,7 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
       guardarPlano(enviado ? mesclarPlano(planoAtual.current, resposta.plano) : resposta.plano)
     } catch (erro) {
       if (pedido !== ultimoPedido.current) return
-      mostrarErro(erro, enviado, "Erro ao analisar a planilha.")
+      mostrarErro(erro, enviado, "Não foi possível analisar a planilha. Confira o arquivo e tente de novo.")
     } finally {
       if (pedido === ultimoPedido.current) setAnalisando(false)
     }
@@ -258,7 +258,7 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
       // PERM-20: as contas criadas contam no limite do plano
       if (resposta.accounts_created?.length) await atualizarUso()
     } catch (erro) {
-      mostrarErro(erro, enviado, "Erro ao importar a planilha.")
+      mostrarErro(erro, enviado, "Não foi possível importar a planilha. O que você revisou continua aqui; tente de novo.")
     } finally {
       setImportando(false)
     }
@@ -318,13 +318,13 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
             >
               {analisando && (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Analisando de novo...
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Analisando de novo
                 </>
               )}
             </p>
             <Button className="w-full sm:w-auto" onClick={importar} disabled={analisando || importando}>
               {importando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Upload aria-hidden="true" />}
-              {importando ? "Importando..." : "Importar"}
+              {importando ? "Importando" : "Importar planilha"}
             </Button>
           </div>
         </div>

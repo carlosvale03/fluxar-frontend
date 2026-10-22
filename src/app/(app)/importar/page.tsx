@@ -91,7 +91,7 @@ export default function ImportExportPage() {
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `export_transacoes_${new Date().getTime()}.${format.toLowerCase() === 'xls' ? 'xlsx' : 'pdf'}`)
+      link.setAttribute('download', `lancamentos_${new Date().getTime()}.${format.toLowerCase() === 'xls' ? 'xlsx' : 'pdf'}`)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -99,7 +99,7 @@ export default function ImportExportPage() {
       toast.success(`Exportação ${format} iniciada.`)
     } catch (error) {
       console.error(`Export ${format} failed`, error)
-      toast.error("Não foi possível exportar. Verifique se há transações no período selecionado.")
+      toast.error("Não foi possível exportar. Confira se há lançamentos no período escolhido e tente de novo.")
     } finally {
       setExportando(null)
     }
@@ -122,7 +122,7 @@ export default function ImportExportPage() {
           <SheetHeader>
             <SheetTitle className="flex items-center gap-2">
               <History className="h-5 w-5 text-fg-secondary" aria-hidden="true" />
-              Histórico de Importações
+              Histórico de importações
             </SheetTitle>
             <SheetDescription>
               Suas últimas importações de extratos e planilhas.
@@ -131,7 +131,7 @@ export default function ImportExportPage() {
           <div className="flex flex-col items-center justify-center space-y-3 py-20 text-center">
             <Info className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
             <div className="space-y-1">
-              <p className="text-sm font-semibold">Nenhuma importação recente.</p>
+              <h3 className="text-sm font-semibold">Nenhuma importação recente</h3>
               <p className="text-xs text-muted-foreground">O histórico detalhado ainda não está disponível.</p>
             </div>
           </div>
@@ -144,7 +144,7 @@ export default function ImportExportPage() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <HelpCircle className="h-5 w-5 text-fg-secondary" aria-hidden="true" />
-              Guia de Formatos Suportados
+              Guia de formatos suportados
             </DialogTitle>
           </DialogHeader>
 
@@ -155,7 +155,7 @@ export default function ImportExportPage() {
             </TabsList>
 
             <TabsContent value="ofx" className="space-y-4 pt-4">
-              <h4 className="display-s">O que é OFX?</h4>
+              <h3 className="display-s">O que é OFX?</h3>
               <p className="text-sm leading-relaxed text-fg-secondary">
                 O formato <strong>Open Financial Exchange (.ofx)</strong> é o padrão universal para extratos bancários.
                 Ao exportar o extrato do seu banco tradicional ou digital, procure pela opção &ldquo;Exportar para OFX&rdquo; ou &ldquo;Money&rdquo;.
@@ -164,14 +164,14 @@ export default function ImportExportPage() {
                 <p className="label text-muted-foreground">Vantagens</p>
                 <ul className="list-inside list-disc space-y-1 text-sm text-fg-secondary">
                   <li>Importação automática sem mapeamento manual</li>
-                  <li>Inclusão de IDs únicos (evita transações duplicadas)</li>
+                  <li>Inclusão de IDs únicos (evita lançamentos duplicados)</li>
                   <li>Compatível com 99% dos bancos brasileiros</li>
                 </ul>
               </div>
             </TabsContent>
 
             <TabsContent value="spreadsheet" className="space-y-4 pt-4">
-              <h4 className="display-s">Planilhas Personalizadas</h4>
+              <h3 className="display-s">Planilhas personalizadas</h3>
               <p className="text-sm leading-relaxed text-fg-secondary">
                 Se você usa controle manual em Excel ou Google Sheets, pode importar seus dados via <strong>CSV ou XLSX</strong>.
               </p>
@@ -209,11 +209,11 @@ export default function ImportExportPage() {
           <>
             <Button variant="ghost" onClick={() => setIsHistoryOpen(true)}>
               <History aria-hidden="true" />
-              Histórico de Importações
+              Ver histórico
             </Button>
             <Button variant="ghost" onClick={() => setIsGuideOpen(true)}>
               <HelpCircle aria-hidden="true" />
-              Guia de Formatos
+              Ver guia de formatos
             </Button>
           </>
         }
@@ -239,7 +239,7 @@ export default function ImportExportPage() {
                   </IconeDoCard>
                   <Badge variant="destino">Recomendado</Badge>
                 </div>
-                <CardTitle className="pt-3">Arquivos OFX</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="pt-3">Arquivos OFX</CardTitle>
                 <CardDescription>
                   Ideal para extratos bancários padronizados.
                 </CardDescription>
@@ -247,7 +247,7 @@ export default function ImportExportPage() {
               <CardContent className="p-5 pt-0">
                 <RecursoBloqueado chave="importacao_ofx" compacto>
                   <Button className="w-full" onClick={() => setIsImportDialogOpen(true)}>
-                    Configurar Importação OFX
+                    Importar extrato OFX
                   </Button>
                 </RecursoBloqueado>
               </CardContent>
@@ -259,7 +259,7 @@ export default function ImportExportPage() {
                 <IconeDoCard>
                   <TableIcon aria-hidden="true" />
                 </IconeDoCard>
-                <CardTitle className="pt-3">Planilhas (CSV/XLSX)</CardTitle>
+                <CardTitle role="heading" aria-level={2} className="pt-3">Planilhas (CSV/XLSX)</CardTitle>
                 <CardDescription>
                   Abas, colunas e contas reconhecidas automaticamente.
                 </CardDescription>
@@ -267,7 +267,7 @@ export default function ImportExportPage() {
               <CardContent className="p-5 pt-0">
                 <RecursoBloqueado chave="importacao_planilha" compacto>
                   <Button variant="outline" className="w-full" onClick={() => setIsAssistenteOpen(true)}>
-                    Importar Planilha
+                    Importar planilha
                   </Button>
                 </RecursoBloqueado>
               </CardContent>
@@ -277,7 +277,7 @@ export default function ImportExportPage() {
           <Alert variant="info">
             <Info className="h-4 w-4" aria-hidden="true" />
             <div>
-              <AlertTitle>Dica de Importação</AlertTitle>
+              <AlertTitle>Dica de importação</AlertTitle>
               <AlertDescription>
                 Arquivos OFX são processados automaticamente sem necessidade de mapeamento manual. Nas planilhas, as abas, as colunas e as contas são detectadas automaticamente, e você revisa tudo antes de importar.
               </AlertDescription>
@@ -290,8 +290,8 @@ export default function ImportExportPage() {
             <Card>
               <CardHeader className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
-                  <CardTitle>Exportar Dados</CardTitle>
-                  <CardDescription>Refine as transações que deseja extrair do sistema.</CardDescription>
+                  <CardTitle role="heading" aria-level={2}>Exportar dados</CardTitle>
+                  <CardDescription>Filtre os lançamentos que vão para o arquivo.</CardDescription>
                 </div>
                 <TransactionFilters
                   currentFilters={filters}
@@ -307,7 +307,7 @@ export default function ImportExportPage() {
                     <span className="label text-muted-foreground">Documento</span>
                   </div>
                   <div>
-                    <h4 className="display-s">Relatório em PDF</h4>
+                    <h3 className="display-s">Relatório em PDF</h3>
                     <p className="mt-1 text-sm text-muted-foreground">Ideal para impressão e conferência visual.</p>
                   </div>
                   <RecursoBloqueado chave="exportacao_pdf" compacto>
@@ -330,7 +330,7 @@ export default function ImportExportPage() {
                     <span className="label text-muted-foreground">Planilha</span>
                   </div>
                   <div>
-                    <h4 className="display-s">Dados em Excel (XLS)</h4>
+                    <h3 className="display-s">Dados em Excel (XLS)</h3>
                     <p className="mt-1 text-sm text-muted-foreground">Ideal para análise profunda e manipulação.</p>
                   </div>
                   <RecursoBloqueado chave="exportacao_xlsx" compacto>
@@ -351,9 +351,9 @@ export default function ImportExportPage() {
             <Alert variant="info">
               <Info className="h-4 w-4" aria-hidden="true" />
               <div>
-                <AlertTitle>Dica de Filtros</AlertTitle>
+                <AlertTitle>Dica de filtros</AlertTitle>
                 <AlertDescription>
-                  A exportação respeita exatamente os filtros aplicados. Você pode exportar apenas receitas de uma categoria específica ou gastos de um único cartão, por exemplo.
+                  A exportação respeita exatamente os filtros aplicados. Você pode exportar só as entradas de uma categoria ou só os gastos de um cartão, por exemplo.
                 </AlertDescription>
               </div>
             </Alert>

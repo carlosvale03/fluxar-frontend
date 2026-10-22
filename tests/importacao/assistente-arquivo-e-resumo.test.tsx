@@ -69,8 +69,8 @@ describe("Assistente de planilha: arquivo e resumo", () => {
     expect(screen.getByTestId("resumo-Repetidas")).toHaveTextContent(/^2Repetidas$/)
     expect(screen.getByTestId("resumo-Excluídas")).toHaveTextContent(/^0Excluídas$/)
     expect(screen.getByTestId("resumo-Contas novas")).toHaveTextContent(/^1Contas novas$/)
-    expect(screen.getByTestId("resumo-Receitas")).toHaveTextContent(/^Receitas \(20\)R\$\s8\.500,00$/)
-    expect(screen.getByTestId("resumo-Despesas")).toHaveTextContent(/^Despesas \(37\)R\$\s4\.321,09$/)
+    expect(screen.getByTestId("resumo-Entradas")).toHaveTextContent(/^Entradas \(20\)R\$\s8\.500,00$/)
+    expect(screen.getByTestId("resumo-Saídas")).toHaveTextContent(/^Saídas \(37\)R\$\s4\.321,09$/)
     expect(screen.getByTestId("resumo-Transferências")).toHaveTextContent(/^Transferências \(9\)R\$\s1\.500,50$/)
   })
 

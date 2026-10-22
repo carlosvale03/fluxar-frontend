@@ -10,7 +10,7 @@ import type { AbaDoPlano, CampoDeColuna, PapelDaAba, PlanoDeImportacao } from "@
 export const SELO_MOBILLS = "Modelo Mobills reconhecido"
 
 const PAPEIS: { valor: PapelDaAba; rotulo: string }[] = [
-  { valor: "RECEITAS_DESPESAS", rotulo: "Receitas e despesas" },
+  { valor: "RECEITAS_DESPESAS", rotulo: "Entradas e saídas" },
   { valor: "TRANSFERENCIAS", rotulo: "Transferências" },
   { valor: "IGNORAR", rotulo: "Ignorar" },
 ]
@@ -28,7 +28,7 @@ const ROTULOS_DOS_CAMPOS: Record<CampoDeColuna, string> = {
   status_column: "Situação",
   category_column: "Categoria",
   subcategory_column: "Subcategoria",
-  tags_column: "Tags",
+  tags_column: "Marcadores",
 }
 
 // Campos que cada papel lê (IMPCOMP-04 a IMPCOMP-06, IMPCOMP-18, IMPCOMP-20)
@@ -108,7 +108,7 @@ export function RevisaoDeAbas({ plano, onAlterar }: RevisaoDeAbasProps) {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <SheetIcon className="h-4 w-4 shrink-0 text-fg-secondary" aria-hidden="true" />
-                <h4 className="truncate text-sm font-semibold">{aba.nome}</h4>
+                <h3 className="truncate text-sm font-semibold">{aba.nome}</h3>
               </div>
               <Select value={aba.papel} onValueChange={(valor) => trocarPapel(indice, valor as PapelDaAba)}>
                 <SelectTrigger aria-label={`Papel da aba ${aba.nome}`} className="sm:w-56">

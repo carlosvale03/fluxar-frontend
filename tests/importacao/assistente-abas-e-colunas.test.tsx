@@ -61,7 +61,7 @@ describe("Assistente de planilha: abas e colunas", { timeout: 20_000 }, () => {
   it("os selects vêm preenchidos com o plano detectado e os cabeçalhos reais como opções", async () => {
     const usuario = await abrirRevisao()
 
-    expect(screen.getByRole("combobox", { name: "Papel da aba Receitas e Despesas" })).toHaveTextContent("Receitas e despesas")
+    expect(screen.getByRole("combobox", { name: "Papel da aba Receitas e Despesas" })).toHaveTextContent("Entradas e saídas")
     expect(screen.getByRole("combobox", { name: "Papel da aba Transferências" })).toHaveTextContent("Transferências")
     expect(screen.getByRole("combobox", { name: "Papel da aba Despesas" })).toHaveTextContent("Ignorar")
     expect(screen.getByRole("combobox", { name: "Data da aba Receitas e Despesas" })).toHaveTextContent("Data")
@@ -97,9 +97,9 @@ describe("Assistente de planilha: abas e colunas", { timeout: 20_000 }, () => {
   it("trocar o papel de uma aba pede nova análise com o plano editado", async () => {
     const usuario = await abrirRevisao()
 
-    await escolherOpcao(usuario, "Papel da aba Despesas", "Receitas e despesas")
+    await escolherOpcao(usuario, "Papel da aba Despesas", "Entradas e saídas")
 
-    expect(screen.getByRole("combobox", { name: "Papel da aba Despesas" })).toHaveTextContent("Receitas e despesas")
+    expect(screen.getByRole("combobox", { name: "Papel da aba Despesas" })).toHaveTextContent("Entradas e saídas")
     await waitFor(() => expect(post).toHaveBeenCalledTimes(2))
     expect(post.mock.calls[1][0]).toBe("/import/analise/")
     const plano = planoEnviado(1)

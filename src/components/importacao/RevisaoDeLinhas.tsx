@@ -33,7 +33,8 @@ const ESTADOS: Record<EstadoDaLinha, { rotulo: string; variante: BadgeProps["var
   EXCLUIDA: { rotulo: "Excluída", variante: "secondary" },
 }
 
-const TIPOS: Record<string, string> = { INCOME: "Receita", EXPENSE: "Despesa", TRANSFER: "Transferência" }
+// O backend aceita "Entrada" e "Saída" na correção do tipo (além de receita e despesa)
+const TIPOS: Record<string, string> = { INCOME: "Entrada", EXPENSE: "Saída", TRANSFER: "Transferência" }
 const SITUACOES: Record<string, string> = { COMPLETED: "Efetivada", PENDING: "Pendente" }
 
 const DATA_ISO = /^(\d{4})-(\d{2})-(\d{2})$/
@@ -74,7 +75,7 @@ const CAMPOS_EDITAVEIS: { campo: CampoEditavel; rotulo: string }[] = [
 type Rascunho = Record<CampoEditavel, string>
 
 // O que a tela mostra é o ponto de partida da edição, nos formatos que o
-// backend aceita na correção (dd/mm/aaaa, "45,00", "Despesa", "Pendente")
+// backend aceita na correção (dd/mm/aaaa, "45,00", "Saída", "Pendente")
 function rascunhoDaLinha(linha: LinhaAnalisada): Rascunho {
   return {
     data: dataDaLinha(linha.data),
@@ -89,7 +90,7 @@ function rascunhoDaLinha(linha: LinhaAnalisada): Rascunho {
 }
 
 // IMPCOMP-32: só os campos alterados vão na correção; um campo esvaziado vai
-// como null. O valor de uma receita ou despesa vai com o tipo, para o sinal
+// como null. O valor de uma entrada ou saída vai com o tipo, para o sinal
 // do valor corrigido não trocar o tipo da linha.
 export function correcaoDoRascunho(linha: LinhaAnalisada, inicial: Rascunho, rascunho: Rascunho): CorrecaoDeLinha {
   const correcao: CorrecaoDeLinha = {}
@@ -189,7 +190,7 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
           <Input
             aria-label="Buscar nas linhas"
-            placeholder="Buscar descrição, conta, categoria..."
+            placeholder="Descrição, conta ou categoria"
             value={busca}
             onChange={(e) => {
               setBusca(e.target.value)
@@ -215,7 +216,20 @@ export function RevisaoDeLinhas({ linhas, plano, onAlterar }: RevisaoDeLinhasPro
             {daPagina.length === 0 && (
               <TableRow>
                 <TableCell colSpan={11} className="py-8 text-center text-muted-foreground">
-                  Nenhuma linha neste filtro.
+                  <p>Nenhuma linha neste filtro.</p>
+                  {(filtro !== "TODAS" || busca) && (
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      onClick={() => {
+                        trocarFiltro("TODAS")
+                        setBusca("")
+                      }}
+                    >
+                      Limpar filtros
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             )}

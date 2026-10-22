@@ -71,7 +71,7 @@ export function PassoArquivo({ analisando, onEscolher }: PassoArquivoProps) {
         )}
         <div className="space-y-1">
           <p className="text-sm font-semibold text-foreground">
-            {analisando ? "Analisando a planilha..." : "Solte o arquivo aqui ou clique para escolher"}
+            {analisando ? "Analisando a planilha" : "Solte o arquivo aqui ou clique para escolher"}
           </p>
           <p className="label text-muted-foreground">Arquivo (.csv, .xlsx) até 5 MB</p>
         </div>
