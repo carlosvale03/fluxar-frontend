@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs"
 import path from "node:path"
 import { cloneElement, type ReactElement } from "react"
 
-import { render, screen } from "@testing-library/react"
+import { render, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import DashboardPage from "@/app/(app)/dashboard/page"
@@ -141,10 +141,13 @@ describe("Formatador único", () => {
   it("o dashboard com valores em texto mostra os valores em reais e soma sem concatenar", async () => {
     render(<DashboardPage />)
 
-    // KPIs no formato brasileiro, direto do texto da API
-    expect(await screen.findByText(/^R\$\s1\.234,56$/, { selector: "h3" })).toBeInTheDocument()
-    expect(screen.getByText(/^R\$\s2\.000,20$/, { selector: "h3" })).toBeInTheDocument()
-    expect(screen.getByText(/^R\$\s1\.200,15$/, { selector: "h3" })).toBeInTheDocument()
+    // Posição e indicadores no formato brasileiro, direto do texto da API;
+    // entradas e o resultado levam o sinal (AZ-23)
+    const posicao = await screen.findByRole("region", { name: "Posição" })
+    expect(within(posicao).getByText(/^R\$\s1\.234,56$/)).toBeInTheDocument()
+    expect(within(posicao).getByText(/^\+ R\$\s1\.200,15$/)).toBeInTheDocument()
+    const receitas = screen.getByRole("group", { name: "Receitas do Mês" })
+    expect(within(receitas).getByText(/^\+ R\$\s2\.000,20$/)).toBeInTheDocument()
 
     // Total da distribuição: "100.10" + "200.20" = R$ 300,30
     expect(screen.getByText(/^R\$\s300,30$/, { selector: "span" })).toBeInTheDocument()

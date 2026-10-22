@@ -5,6 +5,7 @@ import { Loader2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { ARQUIVO_GRANDE_DEMAIS, FORMATO_NAO_SUPORTADO } from "@/components/transactions/import-dialog"
+import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 const LIMITE_DE_BYTES = 5 * 1024 * 1024
@@ -42,7 +43,9 @@ export function PassoArquivo({ analisando, onEscolher }: PassoArquivoProps) {
   }
 
   return (
-    <div className="space-y-3 animate-in fade-in slide-in-from-right-4 duration-300">
+    <div className="space-y-3">
+      {/* AZ-30: soltar o arquivo ou escolher pelo botão; o campo fica dentro da
+          área, então o foco do teclado nele acende o contorno da área toda */}
       <label
         htmlFor="arquivo-da-planilha"
         onDragOver={(e) => {
@@ -56,34 +59,39 @@ export function PassoArquivo({ analisando, onEscolher }: PassoArquivoProps) {
           if (!analisando) escolher(e.dataTransfer.files?.[0])
         }}
         className={cn(
-          "flex flex-col items-center justify-center gap-3 p-10 rounded-[28px] border-2 border-dashed text-center cursor-pointer transition-all",
-          arrastando ? "border-primary bg-primary/5" : "border-border/60 bg-muted/5 hover:border-primary/40 hover:bg-muted/20",
+          "flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed p-10 text-center transition-colors duration-fast ease-az-out focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 focus-within:ring-offset-background",
+          arrastando ? "border-gold-line bg-elevated" : "border-border-input hover:bg-elevated",
           analisando && "pointer-events-none opacity-70",
         )}
       >
-        <div className="w-14 h-14 rounded-2xl bg-blue-500/10 text-blue-500 flex items-center justify-center">
-          {analisando ? <Loader2 className="h-7 w-7 animate-spin" /> : <Upload className="h-7 w-7" />}
-        </div>
+        {analisando ? (
+          <Loader2 className="h-6 w-6 animate-spin text-fg-secondary" aria-hidden="true" />
+        ) : (
+          <Upload className="h-6 w-6 text-fg-secondary" aria-hidden="true" />
+        )}
         <div className="space-y-1">
-          <p className="text-sm font-black uppercase tracking-tight">
+          <p className="text-sm font-semibold text-foreground">
             {analisando ? "Analisando a planilha..." : "Solte o arquivo aqui ou clique para escolher"}
           </p>
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
-            Arquivo (.csv, .xlsx) até 5 MB
-          </p>
+          <p className="label text-muted-foreground">Arquivo (.csv, .xlsx) até 5 MB</p>
         </div>
+        {!analisando && (
+          <span aria-hidden="true" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Escolher arquivo
+          </span>
+        )}
+        <input
+          ref={campo}
+          id="arquivo-da-planilha"
+          aria-label="Arquivo da planilha"
+          type="file"
+          accept=".csv,.xlsx"
+          className="sr-only"
+          disabled={analisando}
+          onChange={(e) => escolher(e.target.files?.[0])}
+        />
       </label>
-      <input
-        ref={campo}
-        id="arquivo-da-planilha"
-        aria-label="Arquivo da planilha"
-        type="file"
-        accept=".csv,.xlsx"
-        className="sr-only"
-        disabled={analisando}
-        onChange={(e) => escolher(e.target.files?.[0])}
-      />
-      <p className="text-[10px] text-muted-foreground/70 font-medium text-center">
+      <p className="text-center text-xs text-muted-foreground">
         As abas, as colunas e as contas são reconhecidas automaticamente. Você revisa tudo antes de importar.
       </p>
     </div>

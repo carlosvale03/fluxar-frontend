@@ -1,14 +1,25 @@
 "use client"
 
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import { BarChart3, TrendingUp } from "lucide-react"
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, AreaChart, Area } from 'recharts'
+import { Valor } from "@/components/ui/valor"
 import { MonthlyComparisonData } from "@/types/reports"
 import { cn } from "@/lib/utils"
+import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
+import {
+    COR_DE_ENTRADA,
+    COR_DE_SAIDA,
+    COR_DO_REAL,
+    CURSOR_DO_TOOLTIP,
+    PONTO_ATUAL,
+    PROPS_DA_GRADE,
+    PROPS_DO_EIXO,
+} from "@/lib/graficos"
 
 import { ChartEmptyState } from "./ChartEmptyState"
-import { BarChart3, TrendingUp } from "lucide-react"
-import { formatarMoeda, formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
-import { PROPS_DA_GRADE } from "@/lib/graficos"
+import { CaixaDoTooltip, Granularidade, ItemDaLegenda, LinhaDoTooltip } from "./partes-do-grafico"
 
 interface MonthlyComparisonChartProps {
     data: MonthlyComparisonData[]
@@ -17,31 +28,56 @@ interface MonthlyComparisonChartProps {
     variant?: "bars" | "line"
     showNumericalLabels?: boolean
     height?: number | string
+    // Granularidade sempre indicada no título (DESIGN.md §6)
+    granularidade?: string
     className?: string
 }
 
-export function MonthlyComparisonChart({ 
-    data, 
-    title, 
+export function MonthlyComparisonChart({
+    data,
+    title,
     description,
     variant = "bars",
     showNumericalLabels = false,
     height = 300,
+    granularidade = "por mês",
     className
 }: MonthlyComparisonChartProps) {
-    
-
     const isEmpty = !data || data.length === 0 || data.every(d => paraCentavos(d.income) === 0 && paraCentavos(d.expense) === 0)
+
+    const cabecalho = (
+        <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-3 pb-2">
+            <div className="min-w-0 space-y-1">
+                {title && (
+                    <CardTitle className="flex items-center gap-2">
+                        <span className="truncate">{title}</span>
+                        <Granularidade>{granularidade}</Granularidade>
+                    </CardTitle>
+                )}
+                {description && <CardDescription>{description}</CardDescription>}
+            </div>
+            {!isEmpty && (
+                <div className="flex items-center gap-3">
+                    {variant === "bars" ? (
+                        <>
+                            <ItemDaLegenda cor={COR_DE_ENTRADA} rotulo="Receitas" />
+                            <ItemDaLegenda cor={COR_DE_SAIDA} rotulo="Despesas" />
+                        </>
+                    ) : (
+                        <ItemDaLegenda cor={COR_DO_REAL} rotulo="Saldo" />
+                    )}
+                </div>
+            )}
+        </CardHeader>
+    )
 
     if (isEmpty) {
         return (
-            <Card className={cn("h-full border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-none sm:rounded-[32px] overflow-hidden flex flex-col", className)}>
-                <CardHeader>
-                    {title && <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70">{title}</CardTitle>}
-                </CardHeader>
-                <CardContent className="flex-1 p-6 sm:p-8">
-                    <ChartEmptyState 
-                        type={variant === 'bars' ? 'bar' : 'area'} 
+            <Card className={cn("flex h-full flex-col", className)}>
+                {cabecalho}
+                <CardContent className="flex-1">
+                    <ChartEmptyState
+                        type={variant === 'bars' ? 'bar' : 'area'}
                         height="100%"
                         icon={variant === 'bars' ? BarChart3 : TrendingUp}
                         title={title}
@@ -64,197 +100,122 @@ export function MonthlyComparisonChart({
     }))
 
     return (
-        <Card className={cn(
-            "h-full w-full border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 rounded-none sm:rounded-[32px] overflow-hidden transition-all duration-300 flex flex-col", 
-            className
-        )}>
-            <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4 sm:px-6">
-                <div>
-                    {title && (
-                        <CardTitle className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70">
-                            {title}
-                        </CardTitle>
-                    )}
-                    {description && (
-                        <CardDescription className="text-[10px] mt-1 uppercase font-bold tracking-widest opacity-50">
-                            {description}
-                        </CardDescription>
-                    )}
-                </div>
-            </CardHeader>
-            <CardContent className="flex-1 p-4 sm:p-5 flex flex-col">
-                <div className={cn("flex flex-col gap-4 flex-1", showNumericalLabels ? "lg:flex-row lg:items-center lg:gap-8" : "")}>
-                    
+        <Card className={cn("flex h-full w-full flex-col", className)}>
+            {cabecalho}
+            <CardContent className="flex flex-1 flex-col">
+                <div className={cn("flex flex-1 flex-col gap-4", showNumericalLabels ? "lg:flex-row lg:items-center lg:gap-8" : "")}>
+
                     {showNumericalLabels && (
-                        <div className="flex flex-row lg:flex-col justify-between lg:justify-start gap-4 lg:gap-6 min-w-full lg:min-w-[140px] shrink-0 border-b lg:border-b-0 lg:border-r border-border/10 pb-4 lg:pb-0 lg:pr-6 mb-2 lg:mb-0">
-                            <div className="space-y-0.5 group">
-                                <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--az-inflow)', opacity: 0.7 }}>Ganhos</span>
-                                <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatarMoeda(currentEntry.income)}</p>
+                        <dl className="flex shrink-0 flex-row justify-between gap-4 border-b border-border pb-4 lg:min-w-[160px] lg:flex-col lg:justify-start lg:border-b-0 lg:border-r lg:pb-0 lg:pr-6">
+                            <div className="space-y-1">
+                                <dt className="label text-muted-foreground">Ganhos</dt>
+                                <dd><Valor valor={currentEntry.income} direcao="entrada" tamanho="l" /></dd>
                             </div>
-                            <div className="space-y-0.5 group">
-                                <span className="text-[9px] font-black uppercase tracking-widest block" style={{ color: 'var(--az-outflow)', opacity: 0.7 }}>Gastos</span>
-                                <p className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter">{formatarMoeda(currentEntry.expense)}</p>
+                            <div className="space-y-1">
+                                <dt className="label text-muted-foreground">Gastos</dt>
+                                <dd><Valor valor={currentEntry.expense} direcao="saida" tamanho="l" /></dd>
                             </div>
-                            <div className="space-y-0.5 group hidden sm:block lg:block lg:pt-2 lg:border-t lg:border-border/10">
-                                <span className="text-[9px] font-black uppercase tracking-widest text-primary/70 block">Resultado</span>
-                                <p 
-                                    className="text-xl sm:text-2xl font-black tabular-nums tracking-tighter"
-                                    style={{ color: paraCentavos(currentEntry.balance) >= 0 ? 'var(--az-inflow)' : 'var(--az-outflow)' }}
-                                >
-                                    {formatarMoeda(currentEntry.balance)}
-                                </p>
+                            <div className="hidden space-y-1 sm:block lg:border-t lg:border-border lg:pt-3">
+                                <dt className="label text-muted-foreground">Resultado</dt>
+                                <dd><Valor valor={currentEntry.balance} tamanho="l" /></dd>
                             </div>
-                        </div>
+                        </dl>
                     )}
 
-                    <div className="flex-1 w-full transition-opacity duration-500" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
+                    <div className="w-full flex-1" style={{ height: typeof height === 'number' ? `${height}px` : height, minHeight: '250px', minWidth: 0 }}>
                         <ResponsiveContainer width="100%" height="100%">
                             {variant === "bars" ? (
                                 <BarChart data={dadosDoGrafico} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="incomeGradientBars" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="var(--az-inflow)" stopOpacity={0.8}/>
-                                            <stop offset="100%" stopColor="var(--az-inflow)" stopOpacity={0.1}/>
-                                        </linearGradient>
-                                        <linearGradient id="expenseGradientBars" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="var(--az-outflow)" stopOpacity={0.8}/>
-                                            <stop offset="100%" stopColor="var(--az-outflow)" stopOpacity={0.1}/>
-                                        </linearGradient>
-                                    </defs>
                                     <CartesianGrid {...PROPS_DA_GRADE} />
-                                    <XAxis 
-                                        dataKey="month" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        fontSize={10} 
-                                        fontWeight={800}
-                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                    <XAxis
+                                        dataKey="month"
+                                        {...PROPS_DO_EIXO}
                                         dy={10}
                                         interval={0}
                                         padding={{ left: 20, right: 20 }}
                                     />
-                                    <YAxis 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        fontSize={10}
-                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                    <YAxis
+                                        {...PROPS_DO_EIXO}
                                         tickFormatter={formatarMoedaDoEixo}
                                         width={45}
                                     />
-                                    <Tooltip 
-                                        cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
+                                    <Tooltip
+                                        cursor={{ fill: "var(--az-elevated)" }}
                                         content={({ active, payload, label }) => {
                                             if (active && payload && payload.length) {
                                                 return (
-                                                    <div className="z-50 bg-background/90 backdrop-blur-xl border border-border/50 p-4 rounded-2xl shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-3 border-b border-border/50 pb-2">
-                                                            {label}
-                                                        </p>
-                                                        <div className="space-y-2">
-                                                            {payload.map((entry: any, index: number) => (
-                                                                <div key={index} className="flex items-center justify-between gap-8">
-                                                                    <div className="flex items-center gap-2">
-                                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }} />
-                                                                        <span className="text-xs font-bold text-muted-foreground">{entry.name}</span>
-                                                                    </div>
-                                                                    <span className="text-xs font-black">
-                                                                        {formatarMoeda(entry.value)}
-                                                                    </span>
-                                                                </div>
-                                                            ))}
-                                                        </div>
-                                                    </div>
+                                                    <CaixaDoTooltip titulo={label}>
+                                                        {payload.map((entry, index) => (
+                                                            <LinhaDoTooltip
+                                                                key={index}
+                                                                cor={entry.color}
+                                                                nome={entry.name}
+                                                                valor={formatarMoeda(entry.value as number)}
+                                                            />
+                                                        ))}
+                                                    </CaixaDoTooltip>
                                                 )
                                             }
                                             return null
                                         }}
                                     />
-                                    {/* <Bar dataKey="income" name="Ganhos" fill="url(#incomeGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} />
-                                    <Bar dataKey="expense" name="Gastos" fill="url(#expenseGradientBars)" radius={[4, 4, 0, 0]} barSize={showNumericalLabels ? 30 : 20} /> */}
-                                    <Bar 
-                                        dataKey="expense" 
-                                        name="Despesas" 
-                                        fill="var(--az-outflow)" 
-                                        fillOpacity={0.8}
-                                        stroke="var(--az-outflow)"
-                                        strokeWidth={2}
-                                        radius={[4, 4, 0, 0]} 
-                                        barSize={showNumericalLabels ? 40 : 30}
+                                    <Bar
+                                        dataKey="income"
+                                        name="Receitas"
+                                        fill={COR_DE_ENTRADA}
+                                        radius={[2, 2, 0, 0]}
+                                        barSize={showNumericalLabels ? 32 : 24}
                                     />
-                                    <Bar 
-                                        dataKey="income" 
-                                        name="Receitas" 
-                                        fill="var(--az-inflow)" 
-                                        fillOpacity={0.8}
-                                        stroke="var(--az-inflow)"
-                                        strokeWidth={2}
-                                        radius={[4, 4, 0, 0]} 
-                                        barSize={showNumericalLabels ? 40 : 30}
+                                    <Bar
+                                        dataKey="expense"
+                                        name="Despesas"
+                                        fill={COR_DE_SAIDA}
+                                        radius={[2, 2, 0, 0]}
+                                        barSize={showNumericalLabels ? 32 : 24}
                                     />
                                 </BarChart>
                             ) : (
-                                <AreaChart data={dadosDoGrafico} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="balanceGradientPremium" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="var(--az-gold-line)" stopOpacity={0.2}/>
-                                            <stop offset="95%" stopColor="var(--az-gold-line)" stopOpacity={0}/>
-                                        </linearGradient>
-                                    </defs>
+                                <LineChart data={dadosDoGrafico} margin={{ top: 20, right: 10, left: 10, bottom: 0 }}>
                                     <CartesianGrid {...PROPS_DA_GRADE} />
-                                    <XAxis 
-                                        dataKey="month" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        fontSize={10} 
-                                        fontWeight={800}
-                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                    <XAxis
+                                        dataKey="month"
+                                        {...PROPS_DO_EIXO}
                                         dy={10}
                                         interval={0}
                                         padding={{ left: 30, right: 30 }}
                                     />
-                                    <YAxis 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        fontSize={10}
-                                        tick={{ fill: 'currentColor', opacity: 0.4 }}
+                                    <YAxis
+                                        {...PROPS_DO_EIXO}
                                         tickFormatter={formatarMoedaDoEixo}
                                         width={45}
                                     />
-                                    <Tooltip 
+                                    <Tooltip
+                                        cursor={CURSOR_DO_TOOLTIP}
                                         content={({ active, payload, label }) => {
                                             if (active && payload && payload.length) {
-                                                const val = payload[0].value as number
                                                 return (
-                                                    <div className="z-50 bg-background/95 backdrop-blur-xl border border-border/50 p-3 rounded-2xl shadow-2xl">
-                                                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-1">{label}</p>
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                                                            <p 
-                                                                className="text-sm font-black"
-                                                                style={{ color: val >= 0 ? 'var(--az-inflow)' : 'var(--az-outflow)' }}
-                                                            >
-                                                                {formatarMoeda(val)}
-                                                            </p>
-                                                        </div>
-                                                    </div>
+                                                    <CaixaDoTooltip titulo={label}>
+                                                        <LinhaDoTooltip
+                                                            cor={COR_DO_REAL}
+                                                            nome="Saldo"
+                                                            valor={<Valor valor={payload[0].value as number} />}
+                                                        />
+                                                    </CaixaDoTooltip>
                                                 )
                                             }
                                             return null
                                         }}
                                     />
-                                    <Area 
-                                        type="monotone" 
-                                        dataKey="balance" 
-                                        stroke="var(--az-gold-line)" 
-                                        strokeWidth={4} 
-                                        fillOpacity={1} 
-                                        fill="url(#balanceGradientPremium)"
+                                    <Line
+                                        type="monotone"
+                                        dataKey="balance"
+                                        stroke={COR_DO_REAL}
+                                        strokeWidth={2.5}
                                         connectNulls={true}
-                                        dot={{ fill: 'var(--az-surface)', strokeWidth: 2, r: 4, stroke: 'var(--az-gold-line)' }}
-                                        activeDot={{ r: 5, strokeWidth: 2, fill: 'var(--az-gold)', stroke: 'var(--az-surface)' }}
-                                        animationDuration={1500}
+                                        dot={false}
+                                        activeDot={PONTO_ATUAL}
                                     />
-                                </AreaChart>
+                                </LineChart>
                             )}
                         </ResponsiveContainer>
                     </div>

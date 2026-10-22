@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Loader2, Trash2, AlertTriangle } from "lucide-react"
+import { Trash2, AlertTriangle } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -11,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { Transaction } from "@/types/transactions"
 import { usePlan } from "@/hooks/use-plan"
@@ -50,10 +49,10 @@ export function TransactionDeleteDialog({
     try {
       if (isRecurring && deleteScope === "ALL") {
           await api.delete(`/transactions/bulk-delete/?recurring_source=${transaction.recurring_source}`)
-          toast.success("Série recorrente excluída com sucesso.")
+          toast.success("Série recorrente excluída.")
       } else {
           await api.delete(`/transactions/${transaction.id}/`)
-          toast.success("Transação excluída com sucesso.")
+          toast.success("Transação excluída.")
       }
       onSuccess()
       onOpenChange(false)
@@ -66,19 +65,25 @@ export function TransactionDeleteDialog({
     }
   }
 
+  const excluiASerie = isRecurring && deleteScope === "ALL"
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+    <Dialog open={open} onOpenChange={(valor) => !isLoading && onOpenChange(valor)}>
+      <DialogContent className="sm:max-w-[440px]">
         <DialogHeader>
-          <DialogTitle>Excluir Transação</DialogTitle>
+          <DialogTitle>
+            {transaction?.description ? `Excluir "${transaction.description}"?` : "Excluir transação?"}
+          </DialogTitle>
           <DialogDescription>
-            Tem certeza que deseja excluir esta transação?
+            {excluiASerie
+              ? "Todas as transações passadas e futuras desta recorrência serão excluídas. Isso não pode ser desfeito."
+              : "A transação sai do histórico e dos saldos. Isso não pode ser desfeito."}
           </DialogDescription>
         </DialogHeader>
 
         {isCardInstallment && (
-            <div className="flex items-start gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
-                <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
+            <div role="note" className="flex items-start gap-2 rounded-sm border border-l-[3px] border-border border-l-warn bg-card px-3 py-2 text-sm">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
                 <span>Todas as parcelas desta compra serão excluídas.</span>
             </div>
         )}
@@ -86,49 +91,42 @@ export function TransactionDeleteDialog({
         {!!transaction?.recurring_source && !serieLiberada && <AvisoCompacto />}
 
         {isRecurring && (
-             <div className="py-4 space-y-3">
-                 <Label>Opções de Exclusão</Label>
-                 <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                        <input 
-                            type="radio" 
-                            id="r1" 
-                            name="deleteScope" 
-                            value="SINGLE" 
-                            checked={deleteScope === "SINGLE"}
-                            onChange={() => setDeleteScope("SINGLE")}
-                            className="accent-primary h-4 w-4"
-                        />
-                        <Label htmlFor="r1" className="cursor-pointer font-normal">Apenas esta transação</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                         <input 
-                            type="radio" 
-                            id="r2" 
-                            name="deleteScope" 
-                            value="ALL" 
-                            checked={deleteScope === "ALL"}
-                            onChange={() => setDeleteScope("ALL")}
-                            className="accent-primary h-4 w-4"
-                        />
-                        <Label htmlFor="r2" className="cursor-pointer font-normal text-red-600">Todas as recorrentes (série completa)</Label>
-                    </div>
-                 </div>
-                 
-                 <div className="mt-3 flex items-start gap-2 text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
-                    <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" />
-                    <span>Ao apagar a série, todas as transações futuras e passadas vinculadas a esta recorrência serão removidas.</span>
-                 </div>
-             </div>
+             <fieldset className="space-y-2">
+                 <legend className="mb-2 text-sm font-medium">O que excluir</legend>
+                 <label htmlFor="r1" className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors duration-fast hover:bg-elevated has-[:checked]:border-border-strong has-[:checked]:bg-elevated">
+                    <input
+                        type="radio"
+                        id="r1"
+                        name="deleteScope"
+                        value="SINGLE"
+                        checked={deleteScope === "SINGLE"}
+                        onChange={() => setDeleteScope("SINGLE")}
+                        className="h-4 w-4 accent-gold"
+                    />
+                    Apenas esta transação
+                 </label>
+                 <label htmlFor="r2" className="flex cursor-pointer items-center gap-2 rounded-md border border-border px-3 py-2 text-sm transition-colors duration-fast hover:bg-elevated has-[:checked]:border-border-strong has-[:checked]:bg-elevated">
+                    <input
+                        type="radio"
+                        id="r2"
+                        name="deleteScope"
+                        value="ALL"
+                        checked={deleteScope === "ALL"}
+                        onChange={() => setDeleteScope("ALL")}
+                        className="h-4 w-4 accent-gold"
+                    />
+                    Todas as recorrentes (série completa)
+                 </label>
+             </fieldset>
         )}
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Excluir {deleteScope === "ALL" && isRecurring ? "Tudo" : ""}
+          <Button variant="destructive" onClick={handleDelete} loading={isLoading}>
+            <Trash2 aria-hidden="true" />
+            {excluiASerie ? "Excluir série" : "Excluir transação"}
           </Button>
         </DialogFooter>
       </DialogContent>

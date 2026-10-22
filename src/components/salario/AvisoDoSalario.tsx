@@ -35,33 +35,31 @@ const BENEFICIOS = [
 export function AvisoDoSalario({ recebimento, onOpenChange }: AvisoDoSalarioProps) {
   return (
     <Dialog open={recebimento !== null} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[460px] p-8 border-none shadow-2xl rounded-[32px] bg-background">
-        <DialogHeader>
-          <div className="w-14 h-14 rounded-[20px] flex items-center justify-center bg-emerald-500 text-white shadow-xl shadow-emerald-500/20 mb-2">
-            <Scissors className="h-7 w-7" />
-          </div>
-          <DialogTitle className="text-2xl font-black tracking-tight text-left">Seu salário chegou!</DialogTitle>
-          <DialogDescription className="font-medium text-left">
-            Você recebeu <span className="font-black text-emerald-600">{recebimento ? formatarMoeda(recebimento.amount) : ""}</span>.
-            Que tal dividir agora, antes de começar a gastar?
+      <DialogContent className="sm:max-w-[460px]">
+        <DialogHeader className="space-y-2 pr-8 text-left">
+          <Scissors className="h-5 w-5 text-gold-line" aria-hidden="true" />
+          <DialogTitle>Seu salário chegou.</DialogTitle>
+          <DialogDescription>
+            Você recebeu <span className="value-m text-inflow">{recebimento ? formatarMoeda(recebimento.amount) : ""}</span>.
+            Divida agora, antes de começar a gastar.
           </DialogDescription>
         </DialogHeader>
 
         <ul className="space-y-2" aria-label="Benefícios de dividir o salário">
           {BENEFICIOS.map(({ icone: Icone, texto }) => (
-            <li key={texto} className="flex items-center gap-3 p-3 rounded-2xl bg-muted/30 text-sm font-bold">
-              <Icone className="h-4 w-4 text-primary shrink-0" />
+            <li key={texto} className="flex items-center gap-3 rounded-md border border-border p-3 text-sm">
+              <Icone aria-hidden="true" className="h-4 w-4 shrink-0 text-muted-foreground" />
               {texto}
             </li>
           ))}
         </ul>
 
-        <div className="flex flex-col-reverse sm:flex-row gap-2 pt-2">
-          <Button variant="ghost" className="rounded-2xl font-bold text-xs h-11 flex-1" onClick={() => onOpenChange(false)}>
+        <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Agora não
           </Button>
           {recebimento && (
-            <Button asChild className="rounded-2xl font-black text-xs h-11 flex-1 shadow-lg shadow-primary/20">
+            <Button asChild>
               <Link href={`/salario?dividir=${recebimento.id}`} onClick={() => onOpenChange(false)}>
                 Dividir agora
               </Link>

@@ -13,9 +13,7 @@ import { useState } from "react"
 import { toast } from "sonner"
 import { api, mensagemDeErro } from "@/services/apiClient"
 import { ResendVerification } from "@/components/auth/resend-verification"
-import { AlertCircle, ArrowRight } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { motion } from "framer-motion"
+import { AlertCircle, ArrowRight, Clock } from "lucide-react"
 import { tratarErro } from "@/lib/erros"
 import { dataDaExclusao } from "@/lib/datas"
 
@@ -35,11 +33,6 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 }
-}
-
 export default function LoginPage() {
   const { login } = useAuth()
   const [isLoading, setIsLoading] = useState(false)
@@ -54,7 +47,7 @@ export default function LoginPage() {
       setCancelando(true)
       const response = await api.post("/auth/cancel-deletion/", { cancel_token: exclusaoPendente.cancel_token })
       await login(response.data.access)
-      toast.success("A exclusão foi cancelada. Bem-vindo de volta ao Azimute!")
+      toast.success("A exclusão foi cancelada. Bem-vindo de volta ao Azimute.")
     } catch (error) {
       setExclusaoPendente(null)
       tratarErro(error, { mensagemPadrao: "Não foi possível cancelar a exclusão. Entre de novo." })
@@ -74,7 +67,7 @@ export default function LoginPage() {
       setExclusaoPendente(null)
       const response = await api.post("/auth/login/", data)
       await login(response.data.access, response.data.user)
-      toast.success("Bem-vindo de volta ao Azimute!")
+      toast.success("Bem-vindo de volta ao Azimute.")
     } catch (error) {
       const msg = mensagemDeErro(error, "E-mail ou senha incorretos. Tente novamente.")
       setError("root", { message: msg })
@@ -96,133 +89,108 @@ export default function LoginPage() {
   }
 
   return (
-    <AuthShell 
-      title="Acesse sua conta" 
+    <AuthShell
+      title="Acesse sua conta"
       description="Entre com seus dados para continuar sua jornada financeira no Azimute."
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-        <motion.div 
-          variants={{
-            show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
-          }}
-          initial="hidden"
-          animate="show"
-          className="space-y-5"
-        >
-          {errors.root && (
-            <motion.div 
-              variants={itemVariants}
-              className="flex items-center gap-3 p-4 text-sm font-bold text-destructive bg-destructive/10 rounded-2xl border border-destructive/20"
-            >
-              <div className="w-8 h-8 rounded-xl bg-destructive/10 flex items-center justify-center shrink-0">
-                <AlertCircle className="h-4 w-4" />
-              </div>
-              <p>{errors.root.message}</p>
-            </motion.div>
-          )}
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+        {errors.root && (
+          <div className="flex items-start gap-3 rounded-r-md border border-border border-l-[3px] border-l-outflow bg-card p-3 text-sm text-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-outflow" aria-hidden="true" />
+            <p>{errors.root.message}</p>
+          </div>
+        )}
 
-          {emailNaoVerificado && (
-            <motion.div variants={itemVariants}>
-              <ResendVerification email={emailNaoVerificado} />
-            </motion.div>
-          )}
+        {emailNaoVerificado && <ResendVerification email={emailNaoVerificado} />}
 
-          {exclusaoPendente && (
-            <motion.div
-              variants={itemVariants}
-              className="space-y-3 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10"
-            >
-              <p className="text-sm font-medium">
+        {exclusaoPendente && (
+          <div className="space-y-3 rounded-r-md border border-border border-l-[3px] border-l-warn bg-card p-4">
+            <p className="flex items-start gap-2 text-sm text-foreground">
+              <Clock className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
+              <span>
                 A exclusão definitiva desta conta está marcada para{" "}
-                <strong>{dataDaExclusao(exclusaoPendente.deletion_scheduled_for)}</strong>. Cancele a exclusão para
+                <strong className="font-semibold">{dataDaExclusao(exclusaoPendente.deletion_scheduled_for)}</strong>. Cancele a exclusão para
                 voltar a usar o Azimute com todos os seus dados.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full rounded-full font-bold"
-                onClick={cancelarExclusao}
-                loading={cancelando}
-                disabled={cancelando}
-              >
-                Cancelar exclusão
-              </Button>
-            </motion.div>
-          )}
-
-          <motion.div variants={itemVariants} className="space-y-2">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="email">
-              Endereço de E-mail
-            </label>
-            <div className="relative group">
-              <Input 
-                id="email" 
-                type="email" 
-                placeholder="exemplo@email.com" 
-                {...register("email")}
-                className={cn(
-                  "h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10",
-                  errors.email ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-                )}
-              />
-            </div>
-            {errors.email && (
-              <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">
-                {errors.email.message}
-              </p>
-            )}
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="space-y-2">
-            <div className="flex items-center justify-between ml-1">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground" htmlFor="password">
-                Senha de Acesso
-              </label>
-              <Link href="/auth/forgot-password" title="Recuperar senha" className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors">
-                Esqueceu a senha?
-              </Link>
-            </div>
-            <PasswordInput 
-              id="password" 
-              placeholder="Digite sua senha" 
-              {...register("password")}
-              className={cn(
-                "h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10",
-                errors.password ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-              )}
-            />
-            {errors.password && (
-              <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">
-                {errors.password.message}
-              </p>
-            )}
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="pt-2">
-            <Button 
-              type="submit" 
-              className="w-full h-14 rounded-full text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group overflow-hidden relative" 
-              loading={isLoading} 
-              disabled={isLoading}
-            >
-              <span className="relative z-10 flex items-center gap-2">
-                Entrar no Sistema
-                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
               </span>
-            </Button>
-          </motion.div>
-
-          <motion.div variants={itemVariants} className="text-center pt-2">
-            <p className="text-sm text-muted-foreground font-medium">
-              Ainda não tem conta?{" "}
-              <Link href="/auth/register" className="text-primary font-black hover:underline underline-offset-4 decoration-2">
-                Crie uma agora
-              </Link>
             </p>
-          </motion.div>
-        </motion.div>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={cancelarExclusao}
+              loading={cancelando}
+              disabled={cancelando}
+            >
+              Cancelar exclusão
+            </Button>
+          </div>
+        )}
+
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium text-fg-secondary" htmlFor="email">
+            Endereço de E-mail
+          </label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="exemplo@email.com"
+            aria-invalid={errors.email ? true : undefined}
+            {...register("email")}
+          />
+          {errors.email && (
+            <p className="flex items-center gap-1.5 text-xs text-outflow">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {errors.email.message}
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-sm font-medium text-fg-secondary" htmlFor="password">
+              Senha de Acesso
+            </label>
+            <Link
+              href="/auth/forgot-password"
+              title="Recuperar senha"
+              className="rounded-sm text-xs text-gold-line underline-offset-4 hover:underline"
+            >
+              Esqueceu a senha?
+            </Link>
+          </div>
+          <PasswordInput
+            id="password"
+            autoComplete="current-password"
+            placeholder="Digite sua senha"
+            aria-invalid={errors.password ? true : undefined}
+            {...register("password")}
+          />
+          {errors.password && (
+            <p className="flex items-center gap-1.5 text-xs text-outflow">
+              <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              {errors.password.message}
+            </p>
+          )}
+        </div>
+
+        <Button
+          type="submit"
+          className="w-full max-md:h-11"
+          loading={isLoading}
+          disabled={isLoading}
+        >
+          Entrar no Sistema
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          Ainda não tem conta?{" "}
+          <Link href="/auth/register" className="rounded-sm font-medium text-gold-line underline-offset-4 hover:underline">
+            Crie uma agora
+          </Link>
+        </p>
       </form>
     </AuthShell>
   )
 }
-

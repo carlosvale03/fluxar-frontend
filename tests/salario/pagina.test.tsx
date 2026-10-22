@@ -55,8 +55,8 @@ describe("Página da gestão do salário", { timeout: 15000 }, () => {
   it("o menu de recursos leva à gestão do salário", async () => {
     render(<Header />)
 
-    await userEvent.click(screen.getByRole("button", { name: "Recursos adicionais" }))
-    expect(await screen.findByRole("menuitem", { name: /Gestão do salário/ })).toHaveAttribute("href", "/salario")
+    await userEvent.click(screen.getByRole("button", { name: "Mais" }))
+    expect(await screen.findByRole("menuitem", { name: /Partilha/ })).toHaveAttribute("href", "/salario")
   })
 
   it("com o recurso travado, mostra o aviso do plano e não chama as rotas", async () => {

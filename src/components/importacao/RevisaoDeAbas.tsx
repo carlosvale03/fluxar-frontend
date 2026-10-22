@@ -90,8 +90,8 @@ export function RevisaoDeAbas({ plano, onAlterar }: RevisaoDeAbasProps) {
   return (
     <div className="space-y-3">
       {plano.modelo === "MOBILLS" && (
-        <Badge className="rounded-full bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 font-black text-[10px] uppercase tracking-widest gap-1.5">
-          <BadgeCheck className="h-3.5 w-3.5" /> {SELO_MOBILLS}
+        <Badge variant="success">
+          <BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" /> {SELO_MOBILLS}
         </Badge>
       )}
 
@@ -103,20 +103,20 @@ export function RevisaoDeAbas({ plano, onAlterar }: RevisaoDeAbasProps) {
           <section
             key={aba.nome}
             aria-label={`Aba ${aba.nome}`}
-            className="p-4 rounded-3xl bg-muted/5 border border-border/40 space-y-3"
+            className="space-y-3 rounded-lg border border-border bg-card p-4"
           >
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
-                <SheetIcon className="h-4 w-4 text-blue-500 shrink-0" />
-                <h4 className="text-sm font-black truncate">{aba.nome}</h4>
+                <SheetIcon className="h-4 w-4 shrink-0 text-fg-secondary" aria-hidden="true" />
+                <h4 className="truncate text-sm font-semibold">{aba.nome}</h4>
               </div>
               <Select value={aba.papel} onValueChange={(valor) => trocarPapel(indice, valor as PapelDaAba)}>
-                <SelectTrigger aria-label={`Papel da aba ${aba.nome}`} className="h-10 sm:w-56 rounded-xl border-border/40 font-bold text-xs">
+                <SelectTrigger aria-label={`Papel da aba ${aba.nome}`} className="sm:w-56">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="rounded-xl">
+                <SelectContent>
                   {PAPEIS.map(({ valor, rotulo }) => (
-                    <SelectItem key={valor} value={valor} className="rounded-lg font-bold text-xs">
+                    <SelectItem key={valor} value={valor}>
                       {rotulo}
                     </SelectItem>
                   ))}
@@ -125,8 +125,8 @@ export function RevisaoDeAbas({ plano, onAlterar }: RevisaoDeAbasProps) {
             </div>
 
             {aba.papel === "IGNORAR" && aba.motivo && (
-              <p className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-                <Info className="h-3.5 w-3.5 shrink-0" /> {aba.motivo}
+              <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" /> {aba.motivo}
               </p>
             )}
 
@@ -139,17 +139,17 @@ export function RevisaoDeAbas({ plano, onAlterar }: RevisaoDeAbasProps) {
                   const opcoes = atual !== NENHUMA && !cabecalho.includes(atual) ? [...cabecalho, atual] : cabecalho
                   return (
                     <div key={campo} className="space-y-1">
-                      <Label className="text-[9px] font-bold uppercase text-muted-foreground/60 pl-1">{rotulo}</Label>
+                      <Label className="text-xs font-normal text-muted-foreground">{rotulo}</Label>
                       <Select value={atual} onValueChange={(valor) => trocarColuna(indice, campo, valor)}>
-                        <SelectTrigger aria-label={`${rotulo} da aba ${aba.nome}`} className="h-9 rounded-xl border-border/40 font-bold text-xs">
+                        <SelectTrigger aria-label={`${rotulo} da aba ${aba.nome}`} className="h-9">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent className="rounded-xl">
-                          <SelectItem value={NENHUMA} className="rounded-lg text-xs text-muted-foreground">
+                        <SelectContent>
+                          <SelectItem value={NENHUMA} className="text-muted-foreground">
                             Nenhuma
                           </SelectItem>
                           {opcoes.map((coluna) => (
-                            <SelectItem key={coluna} value={coluna} className="rounded-lg font-bold text-xs">
+                            <SelectItem key={coluna} value={coluna}>
                               {coluna}
                             </SelectItem>
                           ))}

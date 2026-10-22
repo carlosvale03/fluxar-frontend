@@ -1,8 +1,10 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Check, Loader2, Minus } from "lucide-react"
+import { Check, Info, Loader2, Minus } from "lucide-react"
 
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { nomeDoPlano, usePlan } from "@/hooks/use-plan"
@@ -39,31 +41,31 @@ export default function PlanosPage() {
   const limites = dados?.catalog.filter((trava) => trava.type === "limit") ?? []
 
   return (
-    <div className="container mx-auto py-8 px-4 max-w-7xl animate-in fade-in duration-500 space-y-8">
-      <div>
-        <h1 className="text-3xl font-black tracking-tight uppercase">Planos</h1>
-        <p className="text-sm text-muted-foreground mt-1">O que cada plano do Azimute libera.</p>
-        {liberacaoDeTestes && (
-          <p className="mt-3 text-xs font-medium text-amber-700 dark:text-amber-400">
-            Todos os recursos estão liberados durante a fase de testes.
-          </p>
-        )}
-      </div>
+    <div className="container mx-auto max-w-7xl px-4 py-8">
+      <CabecalhoDePagina titulo="Planos" apoio="O que cada plano do Azimute libera" />
+
+      {liberacaoDeTestes && (
+        <Alert variant="info" className="mb-6">
+          <Info className="h-4 w-4" aria-hidden="true" />
+          <AlertDescription>Todos os recursos estão liberados durante a fase de testes.</AlertDescription>
+        </Alert>
+      )}
 
       {!dados ? (
-        <div className="p-12 flex justify-center">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex justify-center p-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+          <span className="sr-only">Carregando os planos</span>
         </div>
       ) : (
-        <Card className="rounded-[32px] border-border/60 shadow-sm bg-card overflow-hidden">
-          <CardHeader className="p-8 pb-4">
-            <CardTitle className="text-2xl font-bold tracking-tight">Recursos e limites</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle>Recursos e limites</CardTitle>
             <CardDescription>Seu plano atual: {nomeDoPlano(dados.plan)}</CardDescription>
           </CardHeader>
-          <CardContent className="p-8 pt-0 overflow-x-auto">
+          <CardContent className="overflow-x-auto p-5 pt-0">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border/40 text-left">
+                <tr className="border-b border-border text-left">
                   <th className="py-3 pr-4" />
                   {PLANOS.map((plano) => {
                     const doUsuario = plano === dados.plan
@@ -72,20 +74,20 @@ export default function PlanosPage() {
                         key={plano}
                         aria-current={doUsuario ? "true" : undefined}
                         className={cn(
-                          "py-3 px-4 text-center font-black uppercase tracking-widest text-xs",
-                          doUsuario && "bg-primary/10 text-primary rounded-t-2xl",
+                          "label px-4 py-3 text-center text-muted-foreground",
+                          doUsuario && "border-b-2 border-gold-line text-foreground",
                         )}
                       >
                         {nomeDoPlano(plano)}
                         {doUsuario && (
-                          <Badge className="ml-2 rounded-full text-[9px] font-black uppercase">Seu plano</Badge>
+                          <Badge variant="destino" className="ml-2">Seu plano</Badge>
                         )}
                       </th>
                     )
                   })}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-border/40">
+              <tbody className="divide-y divide-border">
                 <Grupo titulo="Recursos" />
                 {recursos.map((trava) => (
                   <Linha key={trava.key} trava={trava} planoDoUsuario={dados.plan} />
@@ -106,7 +108,7 @@ export default function PlanosPage() {
 function Grupo({ titulo }: { titulo: string }) {
   return (
     <tr>
-      <td colSpan={PLANOS.length + 1} className="pt-6 pb-2 font-black uppercase tracking-widest text-xs text-primary">
+      <td colSpan={PLANOS.length + 1} className="label pb-2 pt-6 text-gold-line">
         {titulo}
       </td>
     </tr>
@@ -117,13 +119,13 @@ function Linha({ trava, planoDoUsuario }: { trava: TravaDoCatalogo; planoDoUsuar
   return (
     <tr>
       <td className="py-3 pr-4">
-        <p className="font-bold">{trava.name}</p>
+        <p className="font-medium text-foreground">{trava.name}</p>
         <p className="text-xs text-muted-foreground">{trava.description}</p>
       </td>
       {PLANOS.map((plano) => (
         <td
           key={plano}
-          className={cn("py-3 px-4 text-center", plano === planoDoUsuario && "bg-primary/5")}
+          className={cn("px-4 py-3 text-center", plano === planoDoUsuario && "bg-elevated")}
         >
           <Valor valor={trava.values[plano]} />
         </td>
@@ -135,7 +137,7 @@ function Linha({ trava, planoDoUsuario }: { trava: TravaDoCatalogo; planoDoUsuar
 function Valor({ valor }: { valor: ValorDaTrava }) {
   if (typeof valor === "boolean") {
     return valor ? (
-      <span className="inline-flex items-center gap-1 text-emerald-600">
+      <span className="inline-flex items-center gap-1 text-inflow">
         <Check className="h-4 w-4" aria-hidden />
         <span className="sr-only">Incluído</span>
       </span>
@@ -146,5 +148,5 @@ function Valor({ valor }: { valor: ValorDaTrava }) {
       </span>
     )
   }
-  return <span className="font-bold">{valor.limit === null ? "Sem limite" : `Até ${valor.limit}`}</span>
+  return <span className="font-mono tabular-nums text-foreground">{valor.limit === null ? "Sem limite" : `Até ${valor.limit}`}</span>
 }

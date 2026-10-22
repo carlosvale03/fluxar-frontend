@@ -163,7 +163,7 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
           placeholder="Buscar ícone (ex: casa, comida, lazer...)"
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="pl-10 h-11 rounded-xl bg-muted/20 border-border/10 focus-visible:ring-primary/20 focus-visible:border-primary/40 transition-all font-medium"
+          className="h-11 pl-10"
         />
       </div>
       
@@ -180,7 +180,7 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
               type="button"
               onClick={() => onChange(iconName)}
               className={cn(
-                "w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-300 cursor-pointer shrink-0",
+                "flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-md transition-colors duration-fast",
                 isSelected 
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-110 ring-2 ring-primary/20 z-10" 
                   : "bg-background border border-border/40 text-muted-foreground/60 hover:bg-primary/10 hover:text-primary hover:border-primary/30 hover:shadow-sm"
@@ -194,7 +194,7 @@ export function IconPicker({ value, onChange, className }: IconPickerProps) {
         {filteredIcons.length === 0 && (
           <div className="col-span-full py-10 flex flex-col items-center justify-center text-center space-y-2 opacity-40">
             <Search className="h-8 w-8 mb-2" />
-            <p className="text-[10px] font-black uppercase tracking-widest">Nenhum ícone encontrado</p>
+            <p className="label">Nenhum ícone encontrado</p>
           </div>
         )}
       </div>

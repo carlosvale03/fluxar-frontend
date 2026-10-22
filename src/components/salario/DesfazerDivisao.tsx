@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { format } from "date-fns"
-import { ArrowRight, Loader2, Undo2 } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 import { toast } from "sonner"
 
 import {
@@ -55,15 +55,10 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
 
   return (
     <AlertDialog open={divisao !== null} onOpenChange={(aberto) => !desfazendo && onOpenChange(aberto)}>
-      <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-8">
+      <AlertDialogContent>
         <AlertDialogHeader>
-          <div className="w-14 h-14 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mb-4 shadow-sm ring-1 ring-destructive/20">
-            <Undo2 className="h-7 w-7" />
-          </div>
-          <AlertDialogTitle className="text-2xl font-black tracking-tight text-foreground/90 leading-tight">
-            Desfazer a divisão?
-          </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm font-medium leading-relaxed pt-2">
+          <AlertDialogTitle>Desfazer a divisão?</AlertDialogTitle>
+          <AlertDialogDescription>
             {/* SALARIO-73: a divisão só com saídas descontadas não criou transação */}
             {transacoes.length === 0
               ? "Esta divisão não criou transações."
@@ -74,32 +69,32 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
         </AlertDialogHeader>
 
         {transacoes.length > 0 && (
-          <ul className="space-y-2 max-h-64 overflow-y-auto" aria-label="Transações que serão removidas">
+          <ul className="max-h-64 divide-y divide-border overflow-y-auto rounded-md border border-border" aria-label="Transações que serão removidas">
             {transacoes.map((transacao) => (
               <li
                 key={transacao.transfer_id ?? transacao.part_name}
-                className="flex items-start justify-between gap-3 p-3 rounded-2xl border border-border/40 bg-muted/20"
+                className="flex items-start justify-between gap-3 p-3"
               >
                 <div className="min-w-0">
-                  <p className="font-bold text-sm">
+                  <p className="text-sm font-medium">
                     {transacao.kind === "GOAL_DEPOSIT" ? "Aporte" : "Transferência"}: {transacao.part_name}
                   </p>
-                  <p className="text-xs text-muted-foreground font-medium flex flex-wrap items-center gap-1">
+                  <p className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
                     <span>{transacao.origin_account.name}</span>
-                    <ArrowRight className="h-3 w-3" />
+                    <ArrowRight aria-hidden="true" className="h-3 w-3" />
                     <span>{transacao.destination_name}</span>
-                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30 mx-1" />
-                    <span>{format(lerData(transacao.date), "dd/MM/yyyy")}</span>
+                    <span aria-hidden="true" className="mx-1">·</span>
+                    <span className="font-mono tabular-nums">{format(lerData(transacao.date), "dd/MM/yyyy")}</span>
                   </p>
                 </div>
-                <p className="font-black text-sm whitespace-nowrap tabular-nums">{formatarMoeda(transacao.amount)}</p>
+                <p className="value-m">{formatarMoeda(transacao.amount)}</p>
               </li>
             ))}
           </ul>
         )}
 
         {desconto && (
-          <p className="text-sm font-medium text-muted-foreground tabular-nums">
+          <p className="text-sm text-muted-foreground tabular-nums">
             {desconto}.{" "}
             {divisao?.outflows?.length === 1
               ? "Ela volta a ficar disponível para a próxima divisão."
@@ -107,16 +102,9 @@ export function DesfazerDivisao({ divisao, onOpenChange, onDesfeita }: DesfazerD
           </p>
         )}
 
-        <AlertDialogFooter className="pt-4">
-          <AlertDialogCancel className="rounded-full h-11 px-6 font-bold" disabled={desfazendo}>
-            Cancelar
-          </AlertDialogCancel>
-          <Button
-            onClick={confirmar}
-            disabled={desfazendo}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-full h-11 px-6 font-bold"
-          >
-            {desfazendo && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={desfazendo}>Cancelar</AlertDialogCancel>
+          <Button variant="destructive" onClick={confirmar} loading={desfazendo}>
             Desfazer divisão
           </Button>
         </AlertDialogFooter>

@@ -2,24 +2,24 @@
 
 import { useEffect, useRef, useState, Fragment } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { 
+import {
     Plus, Download, ArrowUpCircle, ArrowDownCircle, ArrowRightCircle, ArrowRightLeft,
-    CreditCard, AlertCircle, Edit, Trash, MoreHorizontal, Filter,
-    ChevronLeft, ChevronRight, Calendar, CheckCircle, Repeat, Wallet, Search, X
+    CreditCard, Receipt, Edit, Trash, ChevronLeft, ChevronRight, CheckCircle, Repeat, Search, X, Inbox
 } from "lucide-react"
-import { 
-    startOfDay, endOfDay, isAfter, isBefore, parseISO,
+import {
+    parseISO,
     startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfYear, endOfYear,
     addWeeks, subWeeks, addMonths, subMonths, addYears, subYears,
     format
 } from "date-fns"
 import { toast } from "sonner"
 import { ptBR } from "date-fns/locale"
+import type { LucideIcon as TipoDeIcone } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { LucideIcon } from "@/components/ui/icon-picker"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import {
   Table,
   TableBody,
@@ -30,7 +30,6 @@ import {
 } from "@/components/ui/table"
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
@@ -40,12 +39,15 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Valor } from "@/components/ui/valor"
+import { Paginacao } from "@/components/ui/paginacao"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
 import { TransactionFormDialog } from "@/components/transactions/transaction-form-dialog"
 import { TransferFormDialog } from "@/components/transactions/transfer-form-dialog"
 import { CardExpenseFormDialog } from "@/components/transactions/card-expense-form-dialog"
 import { InvoicePaymentDialog } from "@/components/transactions/invoice-payment-dialog"
 import { TransactionDeleteDialog } from "@/components/transactions/transaction-delete-dialog"
-import { TransactionFilters, FilterState } from "@/components/transactions/transaction-filters"
+import { TransactionFilters, FilterState, FiltrosAtivos, ChipDeFiltro } from "@/components/transactions/transaction-filters"
 import { SeloDeSugerida } from "@/components/transactions/selo-de-sugerida"
 import { useAvisoDoSalario } from "@/components/salario/AvisoDoSalario"
 import { MarcaDoVinculo } from "@/components/transactions/marca-do-vinculo"
@@ -55,15 +57,100 @@ import { urlDaPrincipal } from "@/services/vinculos"
 import Link from "next/link"
 
 import { api } from "@/services/apiClient"
-import { PrincipalDoVinculo, Transaction, TransactionType, TransactionStatus } from "@/types/transactions"
+import { PrincipalDoVinculo, Transaction, TransactionType } from "@/types/transactions"
 import { Account } from "@/types/accounts"
 import { Category } from "@/types/categories"
 import { cn } from "@/lib/utils"
 import { lerData } from "@/lib/datas"
 import { tratarErro } from "@/lib/erros"
-import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { ROTULO_SEM_CLASSE, VALOR_SEM_CLASSE } from "@/lib/classes"
 
 type ViewMode = 'WEEK' | 'MONTH' | 'YEAR'
+type Direcao = "entrada" | "saida" | "transferencia"
+
+// O intervalo de datas de cada aba do período
+const intervaloDoPeriodo = (viewMode: ViewMode, data: Date) => {
+    if (viewMode === 'WEEK') return { inicio: startOfWeek(data, { locale: ptBR }), fim: endOfWeek(data, { locale: ptBR }) }
+    if (viewMode === 'YEAR') return { inicio: startOfYear(data), fim: endOfYear(data) }
+    return { inicio: startOfMonth(data), fim: endOfMonth(data) }
+}
+
+// "2026-10-01" vira uma data local, sem o deslocamento do fuso
+const dataLocal = (dia: string) => {
+    const [ano, mes, d] = dia.split('-').map(Number)
+    return new Date(ano, mes - 1, d)
+}
+
+interface ConfiguracaoDoTipo {
+    icone: TipoDeIcone
+    // Cor do ícone quando a transação não tem categoria
+    cor: string
+    rotulo: string
+    variante: "success" | "destructive" | "info" | "secondary"
+}
+
+// Ícone, cor e pílula de cada tipo; a cor sempre vem com o nome do tipo
+const configuracaoDoTipo = (type: TransactionType): ConfiguracaoDoTipo => {
+    switch (type) {
+        case "INCOME":
+            return { icone: ArrowUpCircle, cor: "text-inflow", rotulo: "Receita", variante: "success" }
+        case "EXPENSE":
+            return { icone: ArrowDownCircle, cor: "text-outflow", rotulo: "Despesa", variante: "destructive" }
+        case "CREDIT_CARD":
+        case "CREDIT_CARD_EXPENSE":
+            return { icone: CreditCard, cor: "text-outflow", rotulo: "Despesa no cartão", variante: "destructive" }
+        case "TRANSFER":
+        case "TRANSFER_OUT":
+        case "TRANSFER_IN":
+            return { icone: ArrowRightLeft, cor: "text-info", rotulo: "Transferência", variante: "info" }
+        case "INVOICE_PAYMENT":
+            return { icone: Receipt, cor: "text-fg-secondary", rotulo: "Pagamento de fatura", variante: "secondary" }
+        default:
+            return { icone: ArrowRightCircle, cor: "text-muted-foreground", rotulo: "Outro", variante: "secondary" }
+    }
+}
+
+// Sinal do valor: saídas com "−", entradas com "+" e transferência com "→"
+const direcaoDe = (type: TransactionType): Direcao => {
+    if (type === 'EXPENSE' || type === 'CREDIT_CARD' || type === 'CREDIT_CARD_EXPENSE' || type === 'TRANSFER_OUT' || type === 'INVOICE_PAYMENT') return "saida"
+    if (type === 'TRANSFER') return "transferencia"
+    return "entrada"
+}
+
+// Ícone da categoria (cor do usuário) ou, sem categoria, o ícone do tipo
+function IconeDoLancamento({ transaction, tamanho }: { transaction: Transaction, tamanho: "sm" | "md" }) {
+    const categoria = transaction.category_detail
+    const caixa = tamanho === "md" ? "h-9 w-9" : "h-8 w-8"
+    if (categoria) {
+        return (
+            <span
+                aria-hidden="true"
+                className={cn("flex shrink-0 items-center justify-center rounded-md", caixa)}
+                style={{ backgroundColor: `${categoria.color}1f`, color: categoria.color }}
+            >
+                <LucideIcon name={categoria.icon || "Tag"} className="h-4 w-4" />
+            </span>
+        )
+    }
+    const tipo = configuracaoDoTipo(transaction.type)
+    const Icone = tipo.icone
+    return (
+        <span aria-hidden="true" className={cn("flex shrink-0 items-center justify-center rounded-md bg-elevated", caixa, tipo.cor)}>
+            <Icone className="h-4 w-4" />
+        </span>
+    )
+}
+
+// Ponto com a cor de uma conta, categoria ou tag (dado do usuário)
+function PontoDeCor({ cor }: { cor?: string }) {
+    return (
+        <span
+            aria-hidden="true"
+            className={cn("h-2 w-2 shrink-0 rounded-full", !cor && "bg-muted-foreground")}
+            style={cor ? { backgroundColor: cor } : undefined}
+        />
+    )
+}
 
 export default function TransactionsPage() {
   const [data, setData] = useState<Transaction[]>([])
@@ -102,7 +189,7 @@ export default function TransactionsPage() {
 
   const handleEdit = (transaction: Transaction) => {
       setTransactionToEdit(transaction)
-      
+
       if (transaction.type === "INCOME" || transaction.type === "EXPENSE") {
           setFormType(transaction.type)
           setIsFormOpen(true)
@@ -111,7 +198,7 @@ export default function TransactionsPage() {
       } else if (transaction.type === "CREDIT_CARD_EXPENSE" || transaction.type === "CREDIT_CARD") {
           setIsCardExpenseOpen(true)
       } else {
-          toast.info("Edição para este tipo de transação via tabela será implementada em breve.")
+          toast.info("Este tipo de transação ainda não pode ser editado pela lista.")
       }
   }
 
@@ -232,9 +319,9 @@ export default function TransactionsPage() {
   })
 
   // Period View State
-  const [viewMode, setViewMode] = useState<ViewMode>(monthParam && yearParam ? 'MONTH' : 'MONTH')
+  const [viewMode, setViewMode] = useState<ViewMode>('MONTH')
   const [currentDate, setCurrentDate] = useState(initialDate)
-  
+
   // Update dates when viewMode or currentDate changes
   useEffect(() => {
       // If we have custom start/end dates from URL, don't overwrite them on first load
@@ -242,24 +329,12 @@ export default function TransactionsPage() {
           return
       }
 
-      const newFilters = { ...filters }
-      const now = currentDate
+      const { inicio, fim } = intervaloDoPeriodo(viewMode, currentDate)
 
-      if (viewMode === 'WEEK') {
-          newFilters.startDate = startOfWeek(now, { locale: ptBR })
-          newFilters.endDate = endOfWeek(now, { locale: ptBR })
-      } else if (viewMode === 'MONTH') {
-          newFilters.startDate = startOfMonth(now)
-          newFilters.endDate = endOfMonth(now)
-      } else if (viewMode === 'YEAR') {
-          newFilters.startDate = startOfYear(now)
-          newFilters.endDate = endOfYear(now)
-      }
-
-      if (newFilters.startDate?.getTime() !== filters.startDate?.getTime() || 
-          newFilters.endDate?.getTime() !== filters.endDate?.getTime()) {
+      if (inicio.getTime() !== filters.startDate?.getTime() ||
+          fim.getTime() !== filters.endDate?.getTime()) {
           // CONTRATO-06: filtro novo volta para a página 1 na mesma renderização
-          setFilters(newFilters)
+          setFilters({ ...filters, startDate: inicio, endDate: fim })
           setPage(1)
       }
   }, [viewMode, currentDate])
@@ -279,9 +354,9 @@ export default function TransactionsPage() {
           const start = startOfWeek(currentDate, { locale: ptBR })
           const end = endOfWeek(currentDate, { locale: ptBR })
           if (start.getMonth() === end.getMonth()) {
-              return `${format(start, "dd")} - ${format(end, "dd 'de' MMMM", { locale: ptBR })}`
+              return `${format(start, "dd")} a ${format(end, "dd 'de' MMMM", { locale: ptBR })}`
           }
-          return `${format(start, "dd/MM")} - ${format(end, "dd/MM")}`
+          return `${format(start, "dd/MM")} a ${format(end, "dd/MM")}`
       } else if (viewMode === 'MONTH') {
           const str = format(currentDate, "MMMM yyyy", { locale: ptBR })
           return str.charAt(0).toUpperCase() + str.slice(1)
@@ -290,13 +365,14 @@ export default function TransactionsPage() {
       }
   }
 
-
+  const rotuloAnterior = viewMode === "WEEK" ? "Semana anterior" : viewMode === "YEAR" ? "Ano anterior" : "Mês anterior"
+  const rotuloSeguinte = viewMode === "WEEK" ? "Próxima semana" : viewMode === "YEAR" ? "Próximo ano" : "Próximo mês"
 
   // Handle URL parameter changes after initial mount
   useEffect(() => {
       const category = searchParams.get("category")
       const searchVal = searchParams.get("search")
-      
+
       if (category && categories.length > 0) {
           setFilters(prev => ({
               ...prev,
@@ -309,7 +385,7 @@ export default function TransactionsPage() {
       } else if (searchVal && categories.length > 0) {
           // Fallback: Se não temos ID mas temos busca, tentamos ver se a busca é o nome de uma categoria
           let categoryByName: Category | undefined = undefined
-          
+
           // Procurar em categorias principais e subcategorias
           for (const cat of categories) {
               if (cat.name.toLowerCase() === searchVal.toLowerCase()) {
@@ -343,7 +419,7 @@ export default function TransactionsPage() {
   const handleConfirm = async (transaction: Transaction) => {
       try {
           const resposta = await api.patch<Transaction>(`/transactions/${transaction.id}/`, { status: "COMPLETED" })
-          toast.success("Transação efetivada com sucesso!")
+          toast.success("Transação efetivada.")
           fetchTransactions()
           void conferirSalario(resposta.data)
       } catch (error) {
@@ -361,11 +437,11 @@ export default function TransactionsPage() {
     buscaAtual.current = controlador
     try {
       setIsLoading(true)
-      
+
       const params = new URLSearchParams()
       params.append('page', page.toString())
       params.append('page_size', pageSize.toString())
-      
+
       if (lote) {
           params.append('import_batch', lote)
       } else if (principalId) {
@@ -375,7 +451,7 @@ export default function TransactionsPage() {
           if (filters.endDate) params.append('endDate', format(filters.endDate, 'yyyy-MM-dd'))
       }
       if (soSugeridas) params.append('suggested_category', 'true')
-if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
+      if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
       // CONTRATO-10 a CONTRATO-12: as categorias escolhidas vão repetidas
       // (categoryId=a&categoryId=b); o backend inclui as subcategorias
       filters.categoryIds.forEach(id => params.append('categoryId', id))
@@ -384,7 +460,7 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
       if (filters.accountId && filters.accountId !== 'ALL') params.append('accountId', filters.accountId)
       // VINCULO-30: só as principais e as dependentes
       if (filters.linked) params.append('linked', 'true')
-      
+
       if (filters.tagIds && filters.tagIds.length > 0) {
         filters.tagIds.forEach(tagId => {
           params.append('tagIds', tagId)
@@ -440,101 +516,201 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
 
   useEffect(() => () => buscaAtual.current?.abort(), [])
 
+  // AZ-24: chips dos filtros ativos, cada um removível, e "Limpar filtros"
+  const aplicarFiltros = (novos: FilterState) => {
+      setFilters(novos)
+      setPage(1)
+  }
 
-  // Helper for type icons/colors
-  const getTypeConfig = (type: TransactionType) => {
-      switch (type) {
-          case "INCOME":
-              return { icon: ArrowUpCircle, color: "text-emerald-500", hex: "#10b981", label: "Receita" }
-          case "EXPENSE":
-              return { icon: ArrowDownCircle, color: "text-red-500", hex: "#ef4444", label: "Despesa" }
-          case "CREDIT_CARD":
-          case "CREDIT_CARD_EXPENSE":
-              return { icon: CreditCard, color: "text-blue-500", hex: "#3b82f6", label: "Despesa Cartão" }
-          case "TRANSFER":
-          case "TRANSFER_OUT":
-          case "TRANSFER_IN":
-              return { icon: ArrowRightLeft, color: "text-blue-500", hex: "#3b82f6", label: "Transferência" }
-          case "INVOICE_PAYMENT":
-              return { icon: AlertCircle, color: "text-purple-500", hex: "#a855f7", label: "Pagar Fatura" }
-          default:
-              return { icon: ArrowRightCircle, color: "text-gray-500", hex: "#6b7280", label: "Outro" }
+  const nomeDaCategoria = (id: string) => {
+      for (const cat of categories) {
+          if (String(cat.id) === id) return cat.name
+          const sub = cat.subcategories?.find(s => String(s.id) === id)
+          if (sub) return sub.name
+      }
+      return "Categoria"
+  }
+
+  const periodoDasAbas = intervaloDoPeriodo(viewMode, currentDate)
+  const periodoPersonalizado = !lote && !principalId && (
+      filters.startDate?.getTime() !== periodoDasAbas.inicio.getTime() ||
+      filters.endDate?.getTime() !== periodoDasAbas.fim.getTime()
+  )
+  const textoDoPeriodo = () => {
+      const inicio = filters.startDate ? format(filters.startDate, "dd/MM/yyyy") : null
+      const fim = filters.endDate ? format(filters.endDate, "dd/MM/yyyy") : null
+      if (inicio && fim) return `${inicio} a ${fim}`
+      if (inicio) return `Desde ${inicio}`
+      if (fim) return `Até ${fim}`
+      return "Todo o histórico"
+  }
+
+  const chips: ChipDeFiltro[] = []
+  if (periodoPersonalizado) {
+      chips.push({ chave: "periodo", rotulo: textoDoPeriodo(), remover: () => aplicarFiltros({ ...filters, startDate: periodoDasAbas.inicio, endDate: periodoDasAbas.fim }) })
+  }
+  if (filters.type !== "ALL") {
+      chips.push({ chave: "tipo", rotulo: filters.type === "INCOME" ? "Receitas" : filters.type === "EXPENSE" ? "Despesas" : configuracaoDoTipo(filters.type as TransactionType).rotulo, remover: () => aplicarFiltros({ ...filters, type: "ALL" }) })
+  }
+  for (const id of filters.categoryIds) {
+      chips.push({ chave: `categoria-${id}`, rotulo: nomeDaCategoria(id), remover: () => aplicarFiltros({ ...filters, categoryIds: filters.categoryIds.filter(c => c !== id) }) })
+  }
+  if (filters.accountId !== "ALL") {
+      const conta = accounts.find(a => a.id === filters.accountId)
+      chips.push({ chave: "conta", rotulo: `Conta: ${conta?.name ?? "selecionada"}`, remover: () => aplicarFiltros({ ...filters, accountId: "ALL" }) })
+  }
+  const classes = filters.classIds ?? []
+  if (classes.length > 0) {
+      const rotulo = classes.length === 1
+          ? (classes[0] === VALOR_SEM_CLASSE ? ROTULO_SEM_CLASSE : "1 classe")
+          : `${classes.length} classes`
+      chips.push({ chave: "classes", rotulo, remover: () => aplicarFiltros({ ...filters, classIds: [] }) })
+  }
+  const tags = filters.tagIds ?? []
+  if (tags.length > 0) {
+      chips.push({ chave: "tags", rotulo: tags.length === 1 ? "1 tag" : `${tags.length} tags`, remover: () => aplicarFiltros({ ...filters, tagIds: [] }) })
+  }
+  if (filters.linked) {
+      chips.push({ chave: "vinculo", rotulo: "Com vínculo", remover: () => aplicarFiltros({ ...filters, linked: false }) })
+  }
+
+  const limparFiltros = () => aplicarFiltros({
+      startDate: periodoDasAbas.inicio,
+      endDate: periodoDasAbas.fim,
+      type: "ALL",
+      categoryIds: [],
+      accountId: "ALL",
+      tagIds: [],
+      classIds: [],
+      linked: false,
+  })
+
+  // Lançamentos agrupados por dia, do mais recente para o mais antigo
+  const dias = (() => {
+      const grupos: Record<string, Transaction[]> = {}
+      for (const transacao of data) {
+          (grupos[transacao.date] ??= []).push(transacao)
+      }
+      return Object.keys(grupos)
+          .sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+          .map(dia => ({ dia, transacoes: grupos[dia] }))
+  })()
+
+  const contaDe = (transaction: Transaction) => {
+      const accountId = transaction.account || transaction.account_detail?.id
+      const account = accounts.find(a => a.id === accountId)
+      return {
+          // Cor da conta: dado do usuário
+          cor: account?.color || transaction.account_detail?.color,
+          nome: account?.name || transaction.account_detail?.name || (transaction.credit_card ? 'Cartão' : 'Conta'),
       }
   }
 
-  return (
-    <div className="container mx-auto py-6 sm:py-10 px-4 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-1000">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-10">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-foreground/90">Transações</h1>
-          <p className="text-sm font-medium text-muted-foreground/60 mt-1 max-w-md">
-            Histórico completo e detalhado de suas movimentações financeiras.
+  const totalDoDia = (dia: string) => (
+      // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
+      <span className="flex items-center gap-2 text-xs text-muted-foreground" data-testid="total-do-dia">
+          Saldo do dia
+          <Valor valor={totaisDoDia[dia] ?? 0} />
+      </span>
+  )
+
+  const filtrosAtivos = chips.length > 0 || !!buscaComEspera
+  const vazio = (
+      <div className="flex flex-col items-center justify-center gap-2 px-4 py-16 text-center">
+          <Inbox className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+          <p className="text-sm text-fg-secondary">
+              {filtrosAtivos
+                  ? "Nenhuma transação com estes filtros."
+                  : "Nenhuma transação neste período. Registre a primeira ou importe um extrato."}
           </p>
-        </div>
-        
-        <div className="flex items-center gap-3 w-full md:w-auto">
-            <Button variant="outline" size="sm" className="flex-1 md:flex-none h-11 rounded-full border-border/60 font-bold px-6 hover:bg-muted/50 transition-all cursor-pointer" asChild>
-                <Link href="/importar?tab=export">
-                    <Download className="mr-2 h-4 w-4 opacity-70" /> Exportar
-                </Link>
-            </Button>
-            <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                     <Button className="flex-1 md:flex-none h-11 rounded-full px-6 font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all cursor-pointer">
-                        <Plus className="mr-2 h-4 w-4" /> Nova Transação
-                     </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[220px] shadow-2xl border-border/40">
-                    <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-50 px-3 py-2">Selecione o tipo</DropdownMenuLabel>
-                    <DropdownMenuSeparator className="mx-2 opacity-50" />
-                    <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold transition-all focus:bg-emerald-500/10 focus:text-emerald-600" onClick={() => handleOpenForm("INCOME")}>
-                       <ArrowUpCircle className="mr-2 h-4 w-4 text-emerald-500" /> Nova Receita
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold transition-all focus:bg-red-500/10 focus:text-red-600" onClick={() => handleOpenForm("EXPENSE")}>
-                       <ArrowDownCircle className="mr-2 h-4 w-4 text-red-500" /> Nova Despesa
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold transition-all focus:bg-blue-500/10 focus:text-blue-600" onClick={() => setIsCardExpenseOpen(true)}>
-                       <CreditCard className="mr-2 h-4 w-4 text-blue-500" /> Despesa no Cartão
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold transition-all focus:bg-purple-500/10 focus:text-purple-600" onClick={() => setIsInvoicePaymentOpen(true)}>
-                       <ArrowRightCircle className="mr-2 h-4 w-4 text-purple-500" /> Pagar Fatura
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold transition-all focus:bg-blue-500/10 focus:text-blue-600" onClick={() => setIsTransferOpen(true)}>
-                        <ArrowRightLeft className="mr-2 h-4 w-4 text-blue-500" /> Transferência
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
       </div>
+  )
 
-      {/* Period Layout Controls */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 mb-8 p-1.5 bg-card/60 border border-border/40 rounded-[28px] md:rounded-full shadow-sm backdrop-blur-md">
-          <div className="flex items-center justify-between md:justify-start gap-1 bg-background/50 p-1 rounded-full border border-border/40 w-full md:w-auto max-w-[280px] md:max-w-none mx-auto md:mx-0">
-             <Button variant="ghost" size="icon" onClick={() => navigatePeriod('PREV')} className="h-9 w-9 rounded-full transition-all hover:bg-primary/10 hover:text-primary cursor-pointer shrink-0">
-                 <ChevronLeft className="h-4 w-4" />
-             </Button>
-             <div className="flex-1 text-center font-black uppercase tracking-widest text-[11px] text-foreground/70 px-4">
-                 {getPeriodLabel()}
-             </div>
-             <Button variant="ghost" size="icon" onClick={() => navigatePeriod('NEXT')} className="h-9 w-9 rounded-full transition-all hover:bg-primary/10 hover:text-primary cursor-pointer shrink-0">
-                 <ChevronRight className="h-4 w-4" />
-             </Button>
-          </div>
-
-          <Tabs value={viewMode} onValueChange={(v: string) => { setViewMode(v as ViewMode); setCurrentDate(new Date()) }} className="w-full md:w-auto">
-              <TabsList className="bg-muted/40 p-1 h-11 rounded-full w-full">
-                  <TabsTrigger value="WEEK" className="flex-1 md:flex-none h-9 rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg font-bold text-[11px] uppercase tracking-wider cursor-pointer">Semana</TabsTrigger>
-                  <TabsTrigger value="MONTH" className="flex-1 md:flex-none h-9 rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg font-bold text-[11px] uppercase tracking-wider cursor-pointer">Mês</TabsTrigger>
-                  <TabsTrigger value="YEAR" className="flex-1 md:flex-none h-9 rounded-full px-6 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-lg font-bold text-[11px] uppercase tracking-wider cursor-pointer">Ano</TabsTrigger>
+  const seletorDePeriodo = (
+      <div className="flex flex-wrap items-center gap-2">
+          <Tabs value={viewMode} onValueChange={(v: string) => { setViewMode(v as ViewMode); setCurrentDate(new Date()) }} className="w-auto">
+              <TabsList aria-label="Agrupar o período por">
+                  <TabsTrigger value="WEEK">Semana</TabsTrigger>
+                  <TabsTrigger value="MONTH">Mês</TabsTrigger>
+                  <TabsTrigger value="YEAR">Ano</TabsTrigger>
               </TabsList>
           </Tabs>
+          <div className="flex items-center rounded-md border border-border-strong">
+              <Button variant="ghost" size="icon" onClick={() => navigatePeriod('PREV')} aria-label={rotuloAnterior} className="h-8 w-8 rounded-r-none">
+                  <ChevronLeft aria-hidden="true" />
+              </Button>
+              <span className="min-w-[9.5rem] px-2 text-center font-mono text-sm" aria-live="polite">
+                  {getPeriodLabel()}
+              </span>
+              <Button variant="ghost" size="icon" onClick={() => navigatePeriod('NEXT')} aria-label={rotuloSeguinte} className="h-8 w-8 rounded-l-none">
+                  <ChevronRight aria-hidden="true" />
+              </Button>
+          </div>
       </div>
+  )
 
-      <div className="flex items-center gap-3 mb-8 w-full md:max-w-none">
-        <div className="relative flex-1 group">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50 group-focus-within:text-primary transition-colors" />
-            <Input 
-                placeholder="Busca..." 
+  const acoes = (
+      <>
+          <Button variant="outline" asChild>
+              <Link href="/importar?tab=export">
+                  <Download aria-hidden="true" /> Exportar
+              </Link>
+          </Button>
+          <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                  <Button>
+                      <Plus aria-hidden="true" /> Nova transação
+                  </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="min-w-[220px]">
+                  <DropdownMenuLabel className="label text-muted-foreground">Tipo de transação</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => handleOpenForm("INCOME")}>
+                     <ArrowUpCircle className="mr-2 h-4 w-4 text-inflow" aria-hidden="true" /> Nova Receita
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleOpenForm("EXPENSE")}>
+                     <ArrowDownCircle className="mr-2 h-4 w-4 text-outflow" aria-hidden="true" /> Nova Despesa
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsCardExpenseOpen(true)}>
+                     <CreditCard className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden="true" /> Despesa no Cartão
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsInvoicePaymentOpen(true)}>
+                     <Receipt className="mr-2 h-4 w-4 text-muted-foreground" aria-hidden="true" /> Pagar Fatura
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsTransferOpen(true)}>
+                      <ArrowRightLeft className="mr-2 h-4 w-4 text-info" aria-hidden="true" /> Transferência
+                  </DropdownMenuItem>
+              </DropdownMenuContent>
+          </DropdownMenu>
+      </>
+  )
+
+  // Filtro que vem de um atalho (importação ou principal), com a opção de limpar
+  const filtroDoAtalho = (texto: string, limpar: () => void) => (
+      <div role="status" className="flex items-center justify-between gap-3 rounded-md border border-l-[3px] border-border border-l-info bg-card px-4 py-2">
+          <span className="text-sm text-fg-secondary">{texto}</span>
+          <Button variant="ghost" size="sm" onClick={limpar}>
+              <X aria-hidden="true" /> Limpar filtro
+          </Button>
+      </div>
+  )
+
+  return (
+    <div className="mx-auto w-full max-w-[1240px] px-4 py-6 md:px-6 md:py-8">
+      <CabecalhoDePagina
+        titulo="Diário de Bordo"
+        apoio="Entradas e saídas"
+        periodo={seletorDePeriodo}
+        acoes={acoes}
+      />
+
+      <div className="mb-4 flex items-center gap-2">
+        <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <Input
+                type="search"
+                aria-label="Buscar transações"
+                placeholder="Buscar por descrição"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 onKeyDown={(e) => {
@@ -543,43 +719,33 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
                         setPage(1)
                     }
                 }}
-                className="h-12 pl-11 rounded-2xl border-border/60 bg-card shadow-sm focus:ring-primary/20 transition-all font-bold text-xs"
+                className="pl-9"
             />
         </div>
-        <div className="shrink-0">
-             <TransactionFilters 
-                currentFilters={filters}
-                onApplyFilters={(novos) => {
-                    setFilters(novos)
-                    setPage(1)
-                }}
-             />
-        </div>
+        <TransactionFilters
+           currentFilters={filters}
+           onApplyFilters={aplicarFiltros}
+        />
       </div>
+
+      <FiltrosAtivos chips={chips} onLimpar={limparFiltros} className="mb-4" />
 
       {/* IMPORT-45: o filtro do atalho da importação, com a opção de limpar */}
       {(lote || soSugeridas) && (
-        <div role="status" className="flex items-center justify-between gap-3 mb-6 px-5 py-3 rounded-2xl bg-primary/5 border border-primary/15">
-            <span className="text-xs font-bold text-primary">
-                {soSugeridas
-                    ? (lote ? "Categorias sugeridas nesta importação" : "Categorias sugeridas pelo seu histórico")
-                    : "Transações desta importação"}
-            </span>
-            <Button variant="ghost" size="sm" onClick={limparFiltroDoLote} className="h-8 rounded-full text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 cursor-pointer">
-                <X className="h-3.5 w-3.5 mr-1" /> Limpar filtro
-            </Button>
+        <div className="mb-4">
+          {filtroDoAtalho(
+              soSugeridas
+                  ? (lote ? "Categorias sugeridas nesta importação" : "Categorias sugeridas pelo seu histórico")
+                  : "Transações desta importação",
+              limparFiltroDoLote
+          )}
         </div>
       )}
 
       {/* VINCULO-31: a lista da principal, com a opção de limpar */}
       {principalId && !lote && (
-        <div role="status" className="flex items-center justify-between gap-3 mb-6 px-5 py-3 rounded-2xl bg-primary/5 border border-primary/15">
-            <span className="text-xs font-bold text-primary">
-                Gasto principal e os gastos relacionados
-            </span>
-            <Button variant="ghost" size="sm" onClick={limparFiltroDaPrincipal} className="h-8 rounded-full text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/10 cursor-pointer">
-                <X className="h-3.5 w-3.5 mr-1" /> Limpar filtro
-            </Button>
+        <div className="mb-4">
+          {filtroDoAtalho("Gasto principal e os gastos relacionados", limparFiltroDaPrincipal)}
         </div>
       )}
 
@@ -592,7 +758,7 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         onSuccess={handleFormSuccess}
         initialData={transactionToEdit}
       />
-      <CardExpenseFormDialog 
+      <CardExpenseFormDialog
         open={isCardExpenseOpen}
         onOpenChange={(open) => {
             setIsCardExpenseOpen(open)
@@ -605,7 +771,7 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         initialData={transactionToEdit}
         principal={principalDoNovo}
       />
-      <InvoicePaymentDialog 
+      <InvoicePaymentDialog
         open={isInvoicePaymentOpen}
         onOpenChange={setIsInvoicePaymentOpen}
         onSuccess={handleFormSuccess}
@@ -618,7 +784,7 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         transaction={transactionToDelete}
       />
 
-      <TransactionFormDialog 
+      <TransactionFormDialog
         open={isFormOpen}
         onOpenChange={(open) => {
             setIsFormOpen(open)
@@ -643,532 +809,320 @@ if (filters.type && filters.type !== 'ALL') params.append('type', filters.type)
         onVinculada={handleFormSuccess}
       />
 
-      {/* Mobile-Friendly Transaction List */}
-      <div className="md:hidden space-y-6">
+      {/* Celular: lista de dois níveis (DESIGN.md §5, Tabelas) */}
+      <div className="space-y-4 md:hidden">
         {isLoading ? (
-            Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="bg-card/40 p-5 rounded-[24px] border border-border/20 space-y-4">
-                    <div className="flex items-center gap-4">
-                        <Skeleton className="h-12 w-12 rounded-2xl" />
+            <Card className="divide-y divide-border">
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-3 px-4 py-3">
+                        <Skeleton className="h-9 w-9 rounded-md" />
                         <div className="flex-1 space-y-2">
                             <Skeleton className="h-4 w-32" />
                             <Skeleton className="h-3 w-20" />
                         </div>
-                        <Skeleton className="h-5 w-24" />
+                        <Skeleton className="h-4 w-20" />
                     </div>
-                </div>
-            ))
+                ))}
+            </Card>
         ) : data.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 opacity-30">
-                <AlertCircle className="h-12 w-12 mb-4" />
-                <p className="font-black uppercase tracking-widest text-[11px]">Nenhuma transação encontrada</p>
-            </div>
-        ) : (() => {
-            const grouped = data.reduce((groups, transaction) => {
-                const date = transaction.date
-                if (!groups[date]) {
-                    // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
-                    groups[date] = { transactions: [], total: paraCentavos(totaisDoDia[date]) / 100 }
-                }
-                groups[date].transactions.push(transaction)
-                return groups
-            }, {} as Record<string, { transactions: Transaction[], total: number }>)
+            <Card>{vazio}</Card>
+        ) : dias.map(({ dia, transacoes }) => (
+            <section key={dia} aria-label={format(dataLocal(dia), "dd 'de' MMMM", { locale: ptBR })} className="space-y-2">
+                <div className="flex items-center justify-between gap-2 px-1">
+                    <span className="label text-fg-secondary">
+                        {format(dataLocal(dia), "dd 'de' MMMM", { locale: ptBR })}
+                    </span>
+                    {totalDoDia(dia)}
+                </div>
 
-            const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+                <ul className="divide-y divide-border overflow-hidden rounded-lg border border-border bg-card">
+                    {transacoes.map((transaction) => {
+                        const isPending = transaction.status === 'PENDING'
+                        const conta = contaDe(transaction)
 
-            return sortedDates.map((date) => (
-                <div key={date} className="space-y-4">
-                    {/* Compact Date Header */}
-                    <div className="flex items-center justify-between px-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                            <span className="text-[11px] font-black uppercase tracking-widest text-foreground/80">
-                                {(() => {
-                                    const [year, month, day] = date.split('-').map(Number);
-                                    const localDate = new Date(year, month - 1, day);
-                                    return format(localDate, "dd 'de' MMMM", { locale: ptBR });
-                                })()}
-                            </span>
-                        </div>
-                        <div className={cn(
-                            "text-[9px] font-black uppercase tracking-[0.15em] px-2.5 py-1 rounded-full",
-                            grouped[date].total >= 0 ? "bg-emerald-500/10 text-emerald-600" : "bg-red-500/10 text-red-600"
-                        )}>
-                            {formatarMoeda(grouped[date].total)}
-                        </div>
-                    </div>
+                        return (
+                            <li
+                                key={transaction.id}
+                                data-testid="lancamento-no-celular"
+                                onClick={() => handleEdit(transaction)}
+                                className="flex cursor-pointer items-center gap-3 px-4 py-3 transition-colors duration-fast hover:bg-elevated"
+                            >
+                                <IconeDoLancamento transaction={transaction} tamanho="md" />
 
-                    {/* Transaction Cards */}
-                    <div className="space-y-3">
-                        {grouped[date].transactions.map((transaction) => {
-                            const { icon: TypeIcon, hex: typeHex, label } = getTypeConfig(transaction.type)
-                            const isNegative = 
-                                transaction.type === 'EXPENSE' || 
-                                transaction.type === 'CREDIT_CARD' || 
-                                transaction.type === 'CREDIT_CARD_EXPENSE' ||
-                                transaction.type === 'TRANSFER_OUT' ||
-                                transaction.type === 'INVOICE_PAYMENT'
-                            const isPending = transaction.status === 'PENDING'
+                                <div className="min-w-0 flex-1 space-y-1">
+                                    <p className={cn("truncate text-sm font-medium", isPending && "text-fg-secondary")}>
+                                        {transaction.description}
+                                    </p>
 
-                            // Determine main icon and color
-                            const hasCategory = !!transaction.category_detail
-                            const mainColor = hasCategory ? transaction.category_detail?.color : typeHex
+                                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                        <span className="inline-flex items-center gap-1.5">
+                                            <PontoDeCor cor={conta.cor} />
+                                            <span className="max-w-[120px] truncate">{conta.nome}</span>
+                                        </span>
 
-                            return (
-                                <div 
-                                    key={transaction.id}
-                                    onClick={() => handleEdit(transaction)}
-                                    className={cn(
-                                        "p-4 bg-card hover:bg-muted/10 active:scale-[0.98] transition-all border border-border/40 rounded-[28px] shadow-sm flex items-center gap-4",
-                                        isPending && "opacity-60 bg-muted/5 grayscale-[50%]"
-                                    )}
-                                >
-                                    <div className={cn(
-                                        "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-transform duration-500",
-                                        "ring-1 ring-black/5 dark:ring-white/10"
-                                    )}
-                                    style={{ 
-                                        backgroundColor: `${mainColor}15`,
-                                        color: mainColor
-                                    }}
-                                    >
-                                        {hasCategory ? (
-                                            <LucideIcon name={transaction.category_detail?.icon || "Tag"} className="h-6 w-6" />
-                                        ) : (
-                                            <TypeIcon className="h-6 w-6" />
+                                        {/* FATURA-16: a linha fica no vencimento; a data da compra aparece aqui */}
+                                        {transaction.type === 'CREDIT_CARD' && transaction.purchase_date && (
+                                            <span>
+                                                Compra em {format(lerData(transaction.purchase_date), "dd/MM")}
+                                            </span>
                                         )}
+
+                                        {/* Tags */}
+                                        {transaction.tags_detail && transaction.tags_detail.length > 0 && (
+                                            <span className="inline-flex items-center gap-1">
+                                                {transaction.tags_detail.slice(0, 1).map(tag => (
+                                                    <span key={tag.id} className="inline-flex items-center gap-1">
+                                                        <PontoDeCor cor={tag.color} />
+                                                        {tag.name}
+                                                    </span>
+                                                ))}
+                                                {transaction.tags_detail.length > 1 && (
+                                                    <span>+{transaction.tags_detail.length - 1}</span>
+                                                )}
+                                            </span>
+                                        )}
+
+                                        {isPending && <Badge variant="warning">Pendente</Badge>}
+
+                                        {/* IMPORT-46 */}
+                                        {transaction.category_suggested && <SeloDeSugerida />}
                                     </div>
 
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-0.5">
-                                            <h4 className="font-extrabold text-sm text-foreground/90 leading-tight truncate">
-                                                {transaction.description}
-                                            </h4>
-                                            {isPending && (
-                                                <div className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                                            )}
-                                        </div>
-                                        
-                                        <div className="flex flex-wrap items-center gap-3">
-                                            {/* Account Origin */}
-                                            {(() => {
-                                                const accountId = transaction.account || transaction.account_detail?.id
-                                                const account = accounts.find(a => a.id === accountId)
-                                                const aColor = account?.color || transaction.account_detail?.color || '#888888'
-                                                const aName = account?.name || transaction.account_detail?.name || 'Conta'
-
-                                                return (
-                                                    <div className="flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground/60">
-                                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: aColor }} />
-                                                        <span className="truncate max-w-[80px]">{aName}</span>
-                                                    </div>
-                                                )
-                                            })()}
-
-                                            {/* FATURA-16: a linha fica no vencimento; a data da compra aparece aqui */}
-                                            {transaction.type === 'CREDIT_CARD' && transaction.purchase_date && (
-                                                <span className="text-[10px] font-bold text-muted-foreground/60">
-                                                    Compra em {format(lerData(transaction.purchase_date), "dd/MM")}
-                                                </span>
-                                            )}
-
-                                            {/* Tags */}
-                                            {transaction.tags_detail && transaction.tags_detail.length > 0 && (
-                                                <div className="flex gap-1">
-                                                    {transaction.tags_detail.slice(0, 1).map(tag => (
-                                                        <span key={tag.id} className="text-[9px] font-black uppercase tracking-tight text-primary/60">
-                                                            #{tag.name}
-                                                        </span>
-                                                    ))}
-                                                    {transaction.tags_detail.length > 1 && (
-                                                        <span className="text-[9px] font-black opacity-30">+{transaction.tags_detail.length - 1}</span>
-                                                    )}
-                                                </div>
-                                            )}
-
-                                            {/* IMPORT-46 */}
-                                            {transaction.category_suggested && <SeloDeSugerida />}
-                                        </div>
-
-                                        {/* VINCULO-24 e VINCULO-25 */}
-                                        <MarcaDoVinculo
-                                            transacao={transaction}
-                                            onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
-                                            className="mt-1"
-                                        />
-                                    </div>
-
-                                    <div className={cn(
-                                        "text-sm font-black tabular-nums tracking-tighter shrink-0",
-                                        isNegative ? "text-red-500" : "text-emerald-500"
-                                    )}>
-                                        {isNegative ? "- " : "+ "}
-                                        {formatarMoeda(transaction.amount)}
-                                    </div>
-
-                                    {/* VINCULO-01 a VINCULO-04 */}
-                                    <AcoesDoVinculo
+                                    {/* VINCULO-24 e VINCULO-25 */}
+                                    <MarcaDoVinculo
                                         transacao={transaction}
-                                        liberado={vinculosLiberados}
-                                        onLancarRelacionado={lancarRelacionado}
-                                        onVincular={setTransacaoAVincular}
-                                        onAlterado={handleFormSuccess}
-                                        className="-mr-1 shrink-0"
+                                        onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
                                     />
                                 </div>
-                            )
-                        })}
-                    </div>
-                </div>
-            ))
-        })()}
+
+                                <Valor valor={transaction.amount} direcao={direcaoDe(transaction.type)} className="shrink-0" />
+
+                                {/* VINCULO-01 a VINCULO-04 */}
+                                <AcoesDoVinculo
+                                    transacao={transaction}
+                                    liberado={vinculosLiberados}
+                                    onLancarRelacionado={lancarRelacionado}
+                                    onVincular={setTransacaoAVincular}
+                                    onAlterado={handleFormSuccess}
+                                    className="-mr-2 shrink-0"
+                                />
+                            </li>
+                        )
+                    })}
+                </ul>
+            </section>
+        ))}
       </div>
 
-      <Card className="hidden md:block border border-border/60 bg-card shadow-xl shadow-black/5 rounded-[32px] overflow-hidden transition-all duration-500">
+      {/* Desktop: tabela densa (DESIGN.md §5, Tabelas) */}
+      <Card className="hidden overflow-hidden md:block">
           <Table>
-            <TableHeader className="bg-muted/60 dark:bg-zinc-800/50 backdrop-blur-sm">
-              <TableRow className="hover:bg-transparent border-b border-border/60">
-                <TableHead className="w-[120px] text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 pl-8">Data/Hora</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">Transação</TableHead>
-                <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 text-center">Tipo</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 text-center">Categoria</TableHead>
-                <TableHead className="hidden md:table-cell text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80">Origem</TableHead>
-                <TableHead className="text-right text-[10px] font-black uppercase tracking-[0.2em] text-foreground/80 pr-8">Valor</TableHead>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[88px]">Hora</TableHead>
+                <TableHead>Lançamento</TableHead>
+                <TableHead className="hidden lg:table-cell">Tipo</TableHead>
+                <TableHead>Categoria</TableHead>
+                <TableHead>Conta</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
+                <TableHead className="w-px"><span className="sr-only">Ações</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
                 {isLoading ? (
                     Array.from({ length: 5 }).map((_, i) => (
-                        <TableRow key={i}>
-                            <TableCell className="pl-8"><Skeleton className="h-4 w-12" /></TableCell>
+                        <TableRow key={i} className="hover:bg-transparent">
+                            <TableCell><Skeleton className="h-4 w-10" /></TableCell>
                             <TableCell>
-                                <div className="flex items-center gap-4">
-                                    <Skeleton className="h-11 w-11 rounded-xl" />
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-4 w-40" />
-                                        <Skeleton className="h-3 w-20" />
-                                    </div>
+                                <div className="flex items-center gap-3">
+                                    <Skeleton className="h-8 w-8 rounded-md" />
+                                    <Skeleton className="h-4 w-40" />
                                 </div>
                             </TableCell>
-                            <TableCell className="hidden md:table-cell"><Skeleton className="h-6 w-24 rounded-full mx-auto" /></TableCell>
-                            <TableCell><Skeleton className="h-6 w-24 rounded-full mx-auto" /></TableCell>
-                            <TableCell className="hidden md:table-cell"><Skeleton className="h-8 w-32 rounded-xl" /></TableCell>
-                            <TableCell className="pr-8 text-right"><Skeleton className="h-5 w-20 ml-auto" /></TableCell>
+                            <TableCell className="hidden lg:table-cell"><Skeleton className="h-5 w-20 rounded-full" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                            <TableCell><Skeleton className="ml-auto h-4 w-20" /></TableCell>
+                            <TableCell />
                         </TableRow>
                     ))
                 ) : data.length === 0 ? (
-                    <TableRow>
-                        <TableCell colSpan={6} className="h-40 text-center">
-                            <div className="flex flex-col items-center justify-center gap-2 opacity-40">
-                                <AlertCircle className="h-10 w-10" />
-                                <p className="font-black uppercase tracking-widest text-[10px]">Nenhuma transação encontrada</p>
-                            </div>
-                        </TableCell>
+                    <TableRow className="hover:bg-transparent">
+                        <TableCell colSpan={7} className="p-0">{vazio}</TableCell>
                     </TableRow>
-                ) : (
-                    (() => {
-                        // Group transactions by date
-                        const grouped = data.reduce((groups, transaction) => {
-                            const date = transaction.date
-                            if (!groups[date]) {
-                                // CONTRATO-09: o total do dia vem de day_totals, não da soma da página
-                                groups[date] = { transactions: [], total: paraCentavos(totaisDoDia[date]) / 100 }
-                            }
-                            groups[date].transactions.push(transaction)
-                            return groups
-                        }, {} as Record<string, { transactions: Transaction[], total: number }>)
+                ) : dias.map(({ dia, transacoes }) => (
+                    <Fragment key={dia}>
+                        {/* Cabeçalho do dia */}
+                        <TableRow className="bg-background hover:bg-background">
+                            <TableCell colSpan={7} className="py-2">
+                                <div className="flex items-center justify-between gap-4">
+                                    <span className="label text-fg-secondary">
+                                        {format(dataLocal(dia), "dd 'de' MMMM", { locale: ptBR })}
+                                        <span className="text-muted-foreground"> · {format(dataLocal(dia), "EEEE", { locale: ptBR })}</span>
+                                    </span>
+                                    {totalDoDia(dia)}
+                                </div>
+                            </TableCell>
+                        </TableRow>
 
-                        // Sort dates descending
-                        const sortedDates = Object.keys(grouped).sort((a, b) => new Date(b).getTime() - new Date(a).getTime())
+                        {transacoes.map((transaction) => {
+                            const tipo = configuracaoDoTipo(transaction.type)
+                            const isPending = transaction.status === 'PENDING'
+                            const conta = contaDe(transaction)
 
-                        return sortedDates.map((date) => (
-                            <Fragment key={date}>
-                                {/* Group Header */}
-                                <TableRow className="bg-transparent hover:bg-transparent border-t border-b-2 border-border/80">
-                                    <TableCell colSpan={6} className="py-2">
-                                        <div className="flex items-center justify-between px-6">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-primary ring-4 ring-primary/5" />
-                                                <div className="flex flex-col">
-                                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground">
-                                                        {(() => {
-                                                            const [year, month, day] = date.split('-').map(Number);
-                                                            const localDate = new Date(year, month - 1, day);
-                                                            return format(localDate, "dd 'de' MMMM", { locale: ptBR });
-                                                        })()}
+                            return (
+                                <TableRow key={transaction.id} className="group">
+                                    <TableCell className="align-top">
+                                        <div className="flex flex-col items-start gap-1">
+                                            <span className="font-mono text-xs text-muted-foreground">
+                                                {transaction.created_at ? format(new Date(transaction.created_at), "HH:mm") : "–"}
+                                            </span>
+                                            {isPending && <Badge variant="warning">Pendente</Badge>}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex items-center gap-3">
+                                            <IconeDoLancamento transaction={transaction} tamanho="sm" />
+                                            <div className="flex min-w-0 flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className={cn("text-sm font-medium", isPending && "text-fg-secondary")}>
+                                                        {transaction.description}
                                                     </span>
-                                                    <span className="text-[8px] font-bold text-muted-foreground/50 uppercase tracking-widest">
-                                                        {(() => {
-                                                            const [year, month, day] = date.split('-').map(Number);
-                                                            const localDate = new Date(year, month - 1, day);
-                                                            return format(localDate, "EEEE", { locale: ptBR });
-                                                        })()}
-                                                    </span>
+                                                    {(transaction.is_recurring || transaction.recurring_source) && (
+                                                        <Repeat className="h-3.5 w-3.5 shrink-0 text-muted-foreground" aria-label="Recorrente" />
+                                                    )}
                                                 </div>
-                                            </div>
-                                            <div className={cn(
-                                                "text-[10px] font-black uppercase tracking-widest py-1 px-3 rounded-full", 
-                                                grouped[date].total >= 0 
-                                                    ? "bg-emerald-500/10 text-emerald-600 border border-emerald-500/20" 
-                                                    : "bg-red-500/10 text-red-600 border border-red-500/20"
-                                            )}>
-                                                {grouped[date].total >= 0 ? "Saldo do Dia: +" : "Saldo do Dia: "} {formatarMoeda(grouped[date].total)}
+                                                {/* FATURA-16: a linha fica no vencimento; a data da compra aparece aqui */}
+                                                {transaction.type === 'CREDIT_CARD' && transaction.purchase_date && (
+                                                    <span className="text-xs text-muted-foreground">
+                                                        Compra em {format(lerData(transaction.purchase_date), "dd/MM")}
+                                                    </span>
+                                                )}
+                                                {transaction.tags_detail && transaction.tags_detail.length > 0 && (
+                                                    <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                                        {transaction.tags_detail.map(tag => (
+                                                            <span key={tag.id} className="inline-flex items-center gap-1">
+                                                                <PontoDeCor cor={tag.color} />
+                                                                {tag.name}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                                {/* VINCULO-24 e VINCULO-25 */}
+                                                <MarcaDoVinculo
+                                                    transacao={transaction}
+                                                    onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
+                                                />
                                             </div>
                                         </div>
                                     </TableCell>
-                                </TableRow>
-
-                                {/* Transactions for this date */}
-                                {grouped[date].transactions.map((transaction) => {
-                                    const { icon: TypeIcon, hex: typeHex, label } = getTypeConfig(transaction.type)
-                                    const isNegative = 
-                                        transaction.type === 'EXPENSE' || 
-                                        transaction.type === 'CREDIT_CARD' || 
-                                        transaction.type === 'CREDIT_CARD_EXPENSE' ||
-                                        transaction.type === 'TRANSFER_OUT' ||
-                                        transaction.type === 'INVOICE_PAYMENT'
-
-                                    const isPending = transaction.status === 'PENDING'
-
-                                    // Determine primary icon and color for desktop as well
-                                    const hasCategory = !!transaction.category_detail
-                                    const mainColor = hasCategory ? transaction.category_detail?.color : typeHex
-
-                                    return (
-                                        <TableRow 
-                                            key={transaction.id} 
-                                            className={cn(
-                                                "group relative h-20 border-b border-border/40 transition-all duration-300",
-                                                "hover:bg-muted/40 dark:hover:bg-zinc-900/40",
-                                                isPending && "opacity-60 bg-muted/20 italic"
+                                    <TableCell className="hidden lg:table-cell">
+                                        <Badge variant={tipo.variante}>{tipo.rotulo}</Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col items-start gap-1">
+                                            {transaction.category_detail ? (
+                                                <span className="inline-flex items-center gap-1.5 text-sm text-fg-secondary">
+                                                    <PontoDeCor cor={transaction.category_detail.color} />
+                                                    {transaction.category_detail.name}
+                                                </span>
+                                            ) : (
+                                                <span className="text-sm text-muted-foreground">Geral</span>
                                             )}
-                                        >
-                                            <TableCell className="pl-8">
-                                                <div className="flex flex-col gap-1">
-                                                     <span className="text-[10px] font-black tracking-tighter text-muted-foreground/60">
-                                                        {transaction.created_at ? format(new Date(transaction.created_at), "HH:mm") : "-"}
-                                                     </span>
-                                                     {isPending && (
-                                                        <div className="flex">
-                                                            <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-500/10 px-1.5 py-0.5 rounded-full border border-amber-500/20">
-                                                                Pendente
-                                                            </span>
-                                                        </div>
-                                                     )}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell>
-                                                <div className="flex items-center gap-4">
-                                                    <div className={cn(
-                                                        "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500",
-                                                        "shadow-sm ring-1 ring-black/5 dark:ring-white/10"
-                                                    )}
-                                                    style={{ 
-                                                        backgroundColor: `${mainColor}15`,
-                                                        color: mainColor
-                                                    }}
-                                                    >
-                                                        {hasCategory ? (
-                                                            <LucideIcon name={transaction.category_detail?.icon || "Tag"} className="h-5 w-5" />
-                                                        ) : (
-                                                            <TypeIcon className="h-5 w-5" />
-                                                        )}
-                                                    </div>
-                                                    <div className="flex flex-col gap-1">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-extrabold text-sm text-foreground/90 leading-tight">
-                                                                {transaction.description}
-                                                            </span>
-                                                            {(transaction.is_recurring || transaction.recurring_source) && (
-                                                                <Repeat className="h-3 w-3 text-primary/40 animate-pulse" />
-                                                            )}
-                                                        </div>
-                                                        {/* FATURA-16: a linha fica no vencimento; a data da compra aparece aqui */}
-                                                        {transaction.type === 'CREDIT_CARD' && transaction.purchase_date && (
-                                                            <span className="text-[10px] font-bold text-muted-foreground/60">
-                                                                Compra em {format(lerData(transaction.purchase_date), "dd/MM")}
-                                                            </span>
-                                                        )}
-                                                        {transaction.tags_detail && transaction.tags_detail.length > 0 && (
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {transaction.tags_detail.map(tag => (
-                                                                    <div 
-                                                                        key={tag.id}
-                                                                        className="px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest text-white shadow-sm"
-                                                                        style={{ backgroundColor: tag.color }}
-                                                                    >
-                                                                        {tag.name}
-                                                                    </div>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                        {/* VINCULO-24 e VINCULO-25 */}
-                                                        <MarcaDoVinculo
-                                                            transacao={transaction}
-                                                            onAbrirPrincipal={vinculosLiberados ? abrirPrincipal : undefined}
-                                                        />
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell text-center">
-                                                <div className={cn(
-                                                    "inline-flex items-center px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest",
-                                                    transaction.type === 'INCOME' ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" : 
-                                                    transaction.type === 'EXPENSE' ? "bg-red-500/10 text-red-600 border-red-500/20" :
-                                                    "bg-blue-500/10 text-blue-600 border-blue-500/20"
-                                                )}>
-                                                    {label}
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-center">
-                                                {transaction.category_detail ? (
-                                                    <div 
-                                                        className="inline-flex items-center px-3 py-1 rounded-full border text-[9px] font-black uppercase tracking-widest transition-transform hover:scale-105" 
-                                                        style={{ 
-                                                            backgroundColor: `${transaction.category_detail.color}15`,
-                                                            borderColor: `${transaction.category_detail.color}30`,
-                                                            color: transaction.category_detail.color 
-                                                        }}
-                                                    >
-                                                        {transaction.category_detail.name}
-                                                    </div>
-                                                ) : (
-                                                    <span className="text-muted-foreground/30 text-[10px] font-black uppercase tracking-widest">Geral</span>
-                                                )}
-                                                {/* IMPORT-46 */}
-                                                {transaction.category_suggested && (
-                                                    <div className="mt-1.5"><SeloDeSugerida /></div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="hidden md:table-cell">
-                                                {(() => {
-                                                    const accountId = transaction.account || transaction.account_detail?.id
-                                                    const account = accounts.find(a => a.id === accountId)
-                                                    const color = account?.color || transaction.account_detail?.color || '#888888'
-                                                    const name = account?.name || transaction.account_detail?.name || (transaction.credit_card ? 'Cartão' : 'Conta')
-
-                                                    return (
-                                                        <div 
-                                                            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border shadow-sm transition-all hover:scale-105"
-                                                            style={{ 
-                                                                backgroundColor: `${color}15`,
-                                                                borderColor: `${color}30`,
-                                                                color: color
-                                                            }}
-                                                        >
-                                                            <Wallet className="h-3 w-3 opacity-70" />
-                                                            <span className="text-[10px] font-black uppercase tracking-widest truncate max-w-[120px]">
-                                                                {name}
-                                                            </span>
-                                                        </div>
-                                                    )
-                                                })()}
-                                            </TableCell>
-                                            <TableCell className="pr-8 text-right relative">
-                                                <div className={cn(
-                                                    "text-base font-black tabular-nums tracking-tighter transition-all group-hover:pr-4",
-                                                    isNegative ? "text-red-500" : "text-emerald-500"
-                                                )}>
-                                                    {isNegative ? "- " : "+ "}
-                                                    {formatarMoeda(transaction.amount)}
-                                                </div>
-
-                                                {/* Floating Action Button (FAB) - Hover Only */}
-                                                <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 transition-all duration-300 pointer-events-none group-hover:pointer-events-auto">
-                                                    <div className="flex items-center gap-1.5 p-1.5 bg-background shadow-xl border border-border/40 rounded-2xl">
-                                                        {/* VINCULO-01 a VINCULO-04 */}
-                                                        <AcoesDoVinculo
-                                                            transacao={transaction}
-                                                            liberado={vinculosLiberados}
-                                                            onLancarRelacionado={lancarRelacionado}
-                                                            onVincular={setTransacaoAVincular}
-                                                            onAlterado={handleFormSuccess}
-                                                        />
-                                                        {isPending && transaction.recurring_source && (
-                                                            <Button 
-                                                                variant="ghost" 
-                                                                size="icon" 
-                                                                className="h-8 w-8 rounded-xl text-emerald-600 hover:bg-emerald-500/10 transition-all" 
-                                                                onClick={() => handleConfirm(transaction)}
-                                                                title="Efetivar Transação"
-                                                            >
-                                                                <CheckCircle className="h-4 w-4" />
-                                                            </Button>
-                                                        )}
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            className="h-8 w-8 rounded-xl text-primary hover:bg-primary/10 transition-all" 
-                                                            onClick={() => handleEdit(transaction)}
-                                                        >
-                                                            <Edit className="h-4 w-4" />
-                                                        </Button>
-                                                        <Button 
-                                                            variant="ghost" 
-                                                            size="icon" 
-                                                            className="h-8 w-8 rounded-xl text-red-600 hover:bg-red-500/10 transition-all" 
-                                                            onClick={() => handleDelete(transaction)}
-                                                        >
-                                                            <Trash className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            </TableCell>
-                                        </TableRow>
-                                    )
-                                })}
-                            </Fragment>
-                        ))
-                    })()
-                )}
+                                            {/* IMPORT-46 */}
+                                            {transaction.category_suggested && <SeloDeSugerida />}
+                                        </div>
+                                    </TableCell>
+                                    <TableCell>
+                                        <span className="inline-flex items-center gap-1.5 text-sm text-fg-secondary">
+                                            <PontoDeCor cor={conta.cor} />
+                                            <span className="max-w-[140px] truncate">{conta.nome}</span>
+                                        </span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Valor valor={transaction.amount} direcao={direcaoDe(transaction.type)} />
+                                    </TableCell>
+                                    <TableCell className="pr-2">
+                                        {/* Ações da linha: no hover e também no foco do teclado */}
+                                        <div className="flex items-center justify-end gap-0.5 opacity-0 transition-opacity duration-fast group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+                                            {/* VINCULO-01 a VINCULO-04 */}
+                                            <AcoesDoVinculo
+                                                transacao={transaction}
+                                                liberado={vinculosLiberados}
+                                                onLancarRelacionado={lancarRelacionado}
+                                                onVincular={setTransacaoAVincular}
+                                                onAlterado={handleFormSuccess}
+                                            />
+                                            {isPending && transaction.recurring_source && (
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-inflow"
+                                                    onClick={() => handleConfirm(transaction)}
+                                                    title="Efetivar Transação"
+                                                    aria-label="Efetivar Transação"
+                                                >
+                                                    <CheckCircle aria-hidden="true" />
+                                                </Button>
+                                            )}
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8"
+                                                onClick={() => handleEdit(transaction)}
+                                                aria-label={`Editar ${transaction.description}`}
+                                                title="Editar"
+                                            >
+                                                <Edit aria-hidden="true" />
+                                            </Button>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 hover:text-outflow"
+                                                onClick={() => handleDelete(transaction)}
+                                                aria-label={`Excluir ${transaction.description}`}
+                                                title="Excluir"
+                                            >
+                                                <Trash aria-hidden="true" />
+                                            </Button>
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            )
+                        })}
+                    </Fragment>
+                ))}
             </TableBody>
           </Table>
       </Card>
-      
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 py-8">
-        <div className="flex items-center gap-3">
-            <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/40">Exibir</span>
-            <select 
-                value={pageSize} 
+
+      <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <label htmlFor="itens-por-pagina">Itens por página</label>
+            <select
+                id="itens-por-pagina"
+                value={pageSize}
                 onChange={(e) => {
                     setPageSize(Number(e.target.value))
                     setPage(1)
                 }}
-                className="bg-card border border-border/40 rounded-xl px-3 py-1.5 text-xs font-bold focus:ring-2 focus:ring-primary/20 outline-none cursor-pointer"
+                className="h-8 cursor-pointer rounded-md border border-input bg-card px-2 font-mono text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
                 <option value={10}>10</option>
                 <option value={20}>20</option>
                 <option value={50}>50</option>
                 <option value={100}>100</option>
             </select>
-            <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">de {total} transações</span>
         </div>
-
-        <div className="flex items-center gap-2">
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1 || isLoading}
-                className="rounded-xl h-9 font-bold text-xs px-4"
-            >
-                Anterior
-            </Button>
-            <div className="flex items-center gap-1 px-4 h-9 bg-muted/30 rounded-xl border border-border/20">
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Página</span>
-                <span className="text-xs font-black tabular-nums">{page}</span>
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40 mx-1">de</span>
-                <span className="text-xs font-black tabular-nums">{Math.max(1, totalPages)}</span>
-            </div>
-            <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                disabled={page >= totalPages || isLoading}
-                className="rounded-xl h-9 font-bold text-xs px-4"
-            >
-                Próximo
-            </Button>
+        <div className="w-full sm:w-auto [&>div]:border-t-0 [&>div]:p-0">
+            <Paginacao
+                pagina={page}
+                totalDePaginas={totalPages}
+                total={total}
+                rotulo="transações"
+                carregando={isLoading}
+                onMudarPagina={setPage}
+            />
         </div>
       </div>
     </div>

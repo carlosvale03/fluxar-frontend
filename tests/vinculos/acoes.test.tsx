@@ -82,7 +82,7 @@ const buscas = () =>
 const esperar = (ms: number) => act(() => new Promise((r) => setTimeout(r, ms)))
 
 const cartao = (descricao: string) =>
-  screen.getAllByText(descricao).find((el) => !el.closest("tr"))!.closest(".rounded-\\[28px\\]") as HTMLElement
+  screen.getAllByText(descricao).find((el) => !el.closest("tr"))!.closest("[data-testid=lancamento-no-celular]") as HTMLElement
 
 async function abrirMenu(descricao: string) {
   await userEvent.click(within(cartao(descricao)).getByRole("button", { name: "Vínculo" }))

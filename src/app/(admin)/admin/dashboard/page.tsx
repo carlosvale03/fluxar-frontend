@@ -14,8 +14,8 @@ import Link from "next/link"
 // ADMIN-07: um card por plano, com o nome que o usuário vê
 const PLANOS_DO_DASHBOARD: { plano: Plano; rotulo: string; icone: typeof Users; cor: string }[] = [
   { plano: "COMMON", rotulo: `Plano ${nomeDoPlano("COMMON")}`, icone: UserIcon, cor: "text-muted-foreground" },
-  { plano: "PREMIUM", rotulo: `Plano ${nomeDoPlano("PREMIUM")}`, icone: ShieldCheck, cor: "text-primary" },
-  { plano: "PREMIUM_PLUS", rotulo: `Plano ${nomeDoPlano("PREMIUM_PLUS")}`, icone: Crown, cor: "text-amber-500" },
+  { plano: "PREMIUM", rotulo: `Plano ${nomeDoPlano("PREMIUM")}`, icone: ShieldCheck, cor: "text-foreground" },
+  { plano: "PREMIUM_PLUS", rotulo: `Plano ${nomeDoPlano("PREMIUM_PLUS")}`, icone: Crown, cor: "text-gold-line" },
 ]
 
 // "42.9" da API vira "42,9%"
@@ -39,18 +39,18 @@ function CardDeNumero({
   carregando: boolean
 }) {
   return (
-    <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[24px]">
+    <Card>
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-xs font-black uppercase tracking-widest text-muted-foreground/70">
+        <CardTitle className="label text-muted-foreground">
           {titulo}
         </CardTitle>
-        <Icone className={`h-4 w-4 ${cor}`} />
+        <Icone className={`h-4 w-4 ${cor}`} aria-hidden="true" />
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-black">
+        <div className="value-l">
           {carregando ? <Loader2 className="h-6 w-6 animate-spin" /> : valor}
         </div>
-        <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase">{legenda}</p>
+        <p className="mt-1 text-xs text-muted-foreground">{legenda}</p>
       </CardContent>
     </Card>
   )
@@ -79,13 +79,13 @@ export default function AdminDashboardPage() {
   const numero = (valor: number | undefined) => (valor === undefined ? "—" : valor)
 
   return (
-    <div className="container mx-auto py-10 px-4 space-y-8 max-w-7xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+    <div className="container mx-auto py-10 px-4 space-y-8 max-w-7xl">
       <div>
-        <h1 className="text-4xl font-black tracking-tighter bg-gradient-to-br from-foreground to-foreground/50 bg-clip-text text-transparent">
+        <h1 className="display-l">
           Painel Administrativo
         </h1>
-        <p className="text-sm font-bold text-muted-foreground/60 mt-1 uppercase tracking-widest">
-          Gestão Global • Visão Geral do Sistema
+        <p className="mt-1 text-sm text-muted-foreground">
+          Gestão global · visão geral do sistema
         </p>
       </div>
 
@@ -95,7 +95,7 @@ export default function AdminDashboardPage() {
           valor={numero(stats?.total_users)}
           legenda="Ativos e arquivados"
           icone={Users}
-          cor="text-primary"
+          cor="text-gold-line"
           carregando={isLoading}
         />
         {PLANOS_DO_DASHBOARD.map(({ plano, rotulo, icone, cor }) => (
@@ -114,7 +114,7 @@ export default function AdminDashboardPage() {
           valor={porcentagem(stats?.paid_users_percentage)}
           legenda="Premium e Premium Plus"
           icone={Percent}
-          cor="text-emerald-500"
+          cor="text-inflow"
           carregando={isLoading}
         />
       </div>
@@ -124,43 +124,43 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <Card className="lg:col-span-2 border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] p-8 flex items-center justify-center min-h-[400px]">
+          <Card className="lg:col-span-2 p-8 flex items-center justify-center min-h-[400px]">
               <div className="text-center space-y-4">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <Users className="h-8 w-8 text-primary" />
+                  <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full border border-border-strong bg-elevated">
+                      <Users className="h-8 w-8 text-gold-line" aria-hidden="true" />
                   </div>
-                  <h3 className="text-xl font-black uppercase tracking-tight">Gestão de Usuários</h3>
-                  <p className="text-muted-foreground max-w-sm mx-auto font-medium">
+                  <h2 className="display-m">Gestão de Usuários</h2>
+                  <p className="mx-auto max-w-sm text-sm text-muted-foreground">
                       Acesse agora para visualizar, filtrar e gerenciar todos os usuários da base em tempo real.
                   </p>
-                  <Button asChild variant="outline" className="rounded-xl font-black uppercase tracking-widest text-[10px] mt-4 border-primary/20 hover:bg-primary/10">
+                  <Button asChild variant="outline" className="mt-4">
                     <Link href="/admin/usuarios">Gerenciar Base</Link>
                   </Button>
               </div>
           </Card>
 
-          <Card className="border border-border/40 bg-card/50 backdrop-blur-sm shadow-xl rounded-[32px] p-8 space-y-6">
-              <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/70">Cadastros Recentes</h3>
+          <Card className="p-8 space-y-6">
+              <h2 className="label text-muted-foreground">Cadastros Recentes</h2>
               <div className="space-y-4">
                   {isLoading ? (
-                    <div className="flex flex-col items-center justify-center py-10 opacity-30">
+                    <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
                         <Loader2 className="h-6 w-6 animate-spin mb-2" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando...</span>
+                        <span className="label">Carregando</span>
                     </div>
                   ) : stats?.recent_users?.length ? (
                     stats.recent_users.map((u) => (
-                      <div key={u.id} className="flex gap-4 items-start pb-4 border-b border-border/40 last:border-0 last:pb-0 group">
-                          <div className="w-2 h-2 rounded-full bg-primary shrink-0 mt-1.5 group-hover:scale-150 transition-transform" />
+                      <div key={u.id} className="flex gap-4 items-start border-b border-border pb-4 last:border-0 last:pb-0">
+                          <div className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-border-strong" aria-hidden="true" />
                           <div>
-                              <p className="text-xs font-bold leading-none">{u.name}</p>
-                              <p className="text-[10px] text-muted-foreground mt-1 font-black opacity-50 uppercase tracking-widest">
+                              <p className="text-sm font-medium leading-none">{u.name}</p>
+                              <p className="mt-1 font-mono text-xs text-muted-foreground">
                                   {u.email} • {new Date(u.created_at).toLocaleDateString('pt-BR')}
                               </p>
                           </div>
                       </div>
                     ))
                   ) : (
-                    <p className="text-xs font-bold text-muted-foreground/50 text-center py-10">Nenhum registro recente.</p>
+                    <p className="py-10 text-center text-sm text-muted-foreground">Nenhum registro recente.</p>
                   )}
               </div>
           </Card>

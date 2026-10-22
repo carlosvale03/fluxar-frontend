@@ -488,7 +488,7 @@ export function EditorDoPlano({
         <p className="text-sm text-muted-foreground">
           As partes são atendidas na ordem da lista. O que sobrar fica livre na conta do salário.
         </p>
-        <Button variant="ghost" className="h-10 shrink-0 rounded-xl px-3 self-start" onClick={pedirTroca}>
+        <Button variant="ghost" className="h-10 shrink-0 rounded-md px-3 self-start" onClick={pedirTroca}>
           <Shuffle aria-hidden /> Trocar de modelo
         </Button>
       </div>
@@ -512,14 +512,14 @@ export function EditorDoPlano({
             aria-label="Valor do salário"
             value={valorSimulado}
             placeholder="R$ 0,00"
-            className="h-10 w-40 rounded-xl tabular-nums"
+            className="h-10 w-40 rounded-md tabular-nums"
             onValueChange={(valor) => onValorSimulado(valor ?? "")}
           />
         </div>
       </div>
 
       {partes.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+        <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
           Nenhuma parte ainda. Adicione a primeira parte do seu plano.
         </p>
       ) : (
@@ -538,7 +538,7 @@ export function EditorDoPlano({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-xl"
+                    className="h-10 w-10 rounded-md"
                     aria-label={`Subir ${rotulo}`}
                     disabled={indice === 0}
                     onClick={() => mover(indice, -1)}
@@ -548,7 +548,7 @@ export function EditorDoPlano({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-xl"
+                    className="h-10 w-10 rounded-md"
                     aria-label={`Descer ${rotulo}`}
                     disabled={indice === partes.length - 1}
                     onClick={() => mover(indice, 1)}
@@ -566,14 +566,14 @@ export function EditorDoPlano({
                       value={parte.name}
                       maxLength={60}
                       placeholder="Nome da parte"
-                      className="h-10 rounded-xl font-medium"
+                      className="h-10 rounded-md font-medium"
                       onChange={(e) => alterar(parte.chave, { name: e.target.value })}
                     />
                     <SobreAParte nome={parte.name} codigoDoModelo={codigoDoModelo} />
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 shrink-0 rounded-xl text-muted-foreground hover:text-destructive"
+                      className="h-10 w-10 shrink-0 rounded-md text-muted-foreground hover:text-destructive"
                       aria-label={`Remover ${rotulo}`}
                       onClick={() => remover(parte.chave)}
                     >
@@ -583,15 +583,15 @@ export function EditorDoPlano({
 
                   <div className="flex flex-col gap-2 pl-[18px] sm:flex-row pr-12">
                     <div className="flex shrink-0 gap-2">
-                      <div className="flex h-10 shrink-0 rounded-xl border border-border p-0.5" role="group" aria-label={`Regra de ${rotulo}`}>
+                      <div className="flex h-10 shrink-0 rounded-md border border-border p-0.5" role="group" aria-label={`Regra de ${rotulo}`}>
                         {(["PERCENT", "FIXED"] as const).map((regra) => (
                           <button
                             key={regra}
                             type="button"
                             aria-pressed={parte.rule_type === regra}
                             className={cn(
-                              "min-w-10 rounded-lg px-2.5 text-sm font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                              parte.rule_type === regra ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted",
+                              "min-w-10 rounded-sm px-2.5 text-sm font-medium transition-colors duration-fast focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                              parte.rule_type === regra ? "bg-elevated text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]" : "text-muted-foreground hover:bg-elevated hover:text-foreground",
                             )}
                             onClick={() => parte.rule_type !== regra && trocarRegra(parte.chave, regra)}
                           >
@@ -610,7 +610,7 @@ export function EditorDoPlano({
                               value={parte.valor}
                               placeholder="0"
                               readOnly={travada}
-                              className={cn("h-10 w-full rounded-xl pr-7 tabular-nums", travada && "bg-muted/50 text-muted-foreground")}
+                              className={cn("h-10 w-full rounded-md pr-7 tabular-nums", travada && "bg-elevated text-muted-foreground")}
                               onChange={(e) => mudarPercentual(parte.chave, e.target.value.replace(/[^\d,.]/g, ""))}
                               onBlur={() => (edicao.current = null)}
                             />
@@ -631,8 +631,8 @@ export function EditorDoPlano({
                             variant="ghost"
                             size="icon"
                             className={cn(
-                              "h-10 w-10 shrink-0 rounded-xl",
-                              travada ? "bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary" : "text-muted-foreground",
+                              "h-10 w-10 shrink-0 rounded-md",
+                              travada ? "bg-elevated text-gold-line hover:text-gold-line" : "text-muted-foreground",
                             )}
                             aria-pressed={travada}
                             aria-label={travada ? `Destravar ${rotulo}` : `Travar ${rotulo}`}
@@ -647,20 +647,20 @@ export function EditorDoPlano({
                           aria-label={`Valor de ${rotulo}`}
                           value={parte.valor}
                           placeholder="R$ 0,00"
-                          className="h-10 w-32 rounded-xl tabular-nums"
+                          className="h-10 w-32 rounded-md tabular-nums"
                           onValueChange={(valor) => alterar(parte.chave, { valor: valor ?? "" })}
                         />
                       )}
                     </div>
 
                     <Select value={parte.destino} onValueChange={(valor) => alterar(parte.chave, { destino: valor })}>
-                      <SelectTrigger data-destino={indice} aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-xl">
+                      <SelectTrigger data-destino={indice} aria-label={`Destino de ${rotulo}`} className="h-10 min-w-0 flex-1 rounded-md">
                         {/* O rótulo vai num span: texto solto no SelectValue conflita com o portal do item escolhido */}
                         <SelectValue placeholder="Escolha o destino">
                           <span className="truncate">{rotuloDoDestino(parte, destino.nome)}</span>
                         </SelectValue>
                       </SelectTrigger>
-                      <SelectContent className="max-h-80 rounded-xl">
+                      <SelectContent className="max-h-80 rounded-md">
                         <SelectItem value={CONTA_DO_SALARIO}>Fica na conta do salário</SelectItem>
                         {!destino.conhecido && (
                           <SelectItem value={parte.destino} disabled>
@@ -709,7 +709,7 @@ export function EditorDoPlano({
                   <div className="space-y-0.5 pl-[18px] text-xs empty:hidden">
                     {fatia?.centavos != null &&
                       (fatia.reduzida ? (
-                        <p className="font-medium text-amber-700 dark:text-amber-400 tabular-nums">
+                        <p className="font-medium text-warn tabular-nums">
                           Reduzida para {formatarMoeda(deCentavos(fatia.centavos))}
                         </p>
                       ) : parte.rule_type === "PERCENT" && valorEnviado(parte) !== null ? (
@@ -719,7 +719,7 @@ export function EditorDoPlano({
                     {errosDaParte.value && <p className="font-medium text-destructive">{errosDaParte.value}</p>}
                     {errosDaParte.destination && <p className="font-medium text-destructive">{errosDaParte.destination}</p>}
                     {!parte.destino && !errosDaParte.destination && (
-                      <p className="font-medium text-amber-700 dark:text-amber-400">Escolha o destino antes de dividir.</p>
+                      <p className="font-medium text-warn">Escolha o destino antes de dividir.</p>
                     )}
                     {historico && <p className="text-muted-foreground">{historico} no seu histórico</p>}
                     {pedido && (
@@ -736,7 +736,7 @@ export function EditorDoPlano({
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <Button variant="outline" className="h-10 rounded-xl px-4" onClick={adicionar}>
+        <Button variant="outline" className="h-10 rounded-md px-4" onClick={adicionar}>
           <Plus aria-hidden /> Adicionar parte
         </Button>
         <div className="space-y-1 text-right">
@@ -755,25 +755,25 @@ export function EditorDoPlano({
 
       <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">
         {onCancelar && (
-          <Button variant="ghost" className="h-10 rounded-xl px-4" onClick={onCancelar} disabled={salvando}>
+          <Button variant="ghost" className="h-10 rounded-md px-4" onClick={onCancelar} disabled={salvando}>
             Cancelar
           </Button>
         )}
-        <Button className="h-10 rounded-xl px-5 font-semibold" onClick={salvar} loading={salvando} disabled={acimaDe100}>
+        <Button className="h-10 px-5" onClick={salvar} loading={salvando} disabled={acimaDe100}>
           {!salvando && <Save aria-hidden />}
           Salvar plano
         </Button>
       </div>
 
       <AlertDialog open={confirmarTroca} onOpenChange={setConfirmarTroca}>
-        <AlertDialogContent className="rounded-2xl">
+        <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Trocar de modelo?</AlertDialogTitle>
             <AlertDialogDescription>As mudanças que você fez nas partes serão descartadas.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="h-10 rounded-xl">Continuar editando</AlertDialogCancel>
-            <AlertDialogAction className="h-10 rounded-xl" onClick={onTrocarModelo}>
+            <AlertDialogCancel>Continuar editando</AlertDialogCancel>
+            <AlertDialogAction onClick={onTrocarModelo}>
               Trocar de modelo
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -7,21 +7,28 @@ import { usePlan } from "@/hooks/use-plan"
 import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
 import { AvisoDeLimite } from "@/components/planos/aviso-de-limite"
 import { Button } from "@/components/ui/button"
-import { PlusCircle, Pencil, Trash2, Tag as TagIcon, Search, BarChart3, Sparkles, Filter, Info, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar } from "lucide-react"
+import { PlusCircle, Pencil, Trash2, Tag as TagIcon, Search, BarChart3, Info, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, Calendar, Loader2, BookOpen } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { TagForm } from "@/components/tags/TagForm"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Badge } from "@/components/ui/badge"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { ConfirmacaoDestrutiva } from "@/components/ui/confirmacao-destrutiva"
 import { cn, formatCurrency } from "@/lib/utils"
 import { formatarMoedaDoEixo, paraCentavos } from "@/lib/dinheiro"
-import { PROPS_DA_GRADE } from "@/lib/graficos"
+import {
+  COR_DE_ENTRADA,
+  COR_DE_SAIDA,
+  CURSOR_DO_TOOLTIP,
+  PROPS_DA_GRADE,
+  PROPS_DO_EIXO,
+} from "@/lib/graficos"
 import { percentualDaMedia, SEM_HISTORICO } from "@/lib/comparacoes"
-import { 
-  LineChart, 
-  Line, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
+import {
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
   ResponsiveContainer,
   AreaChart,
   Area
@@ -34,48 +41,86 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
 
-// Componente de Texto Expansível para os exemplos de Tags (Regra #4)
+// Texto expansível dos exemplos de tags
 function ExpandableText({ text }: { text: string }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const maxLength = 80;
     const shouldTruncate = text.length > maxLength;
 
     return (
-        <div className="space-y-1.5">
-            <p className="text-[11px] text-muted-foreground leading-relaxed transition-all duration-300">
+        <div className="space-y-1">
+            <p className="text-sm text-fg-secondary">
                 {isExpanded ? text : (shouldTruncate ? `${text.slice(0, maxLength)}...` : text)}
             </p>
             {shouldTruncate && (
-                <button 
+                <button
+                    type="button"
+                    aria-expanded={isExpanded}
                     onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-[9px] font-black uppercase tracking-widest text-primary hover:text-primary/70 transition-colors flex items-center gap-1 group"
+                    className="cursor-pointer text-xs font-semibold text-gold-line underline-offset-4 hover:underline"
                 >
                     {isExpanded ? "Mostrar menos" : "Mostrar mais"}
-                    <Sparkles className={cn("h-2.5 w-2.5 transition-transform", isExpanded ? "rotate-180" : "")} />
                 </button>
             )}
         </div>
     );
 }
 
+// Exemplos do guia: as cores são sugestões de cor de tag, como as pré-definidas do formulário
+const EXEMPLOS_DE_TAGS = [
+    {
+        name: "Renda Extra / Freelance",
+        desc: "Identifique ganhos além do salário fixo para medir quanto rendem os projetos paralelos.",
+        color: "#10b981",
+        tag: "Receita"
+    },
+    {
+        name: "Reembolsável",
+        desc: "Para gastos de trabalho ou compras para terceiros que serão devolvidos à sua conta. Ajuda a cobrar e conferir cada devolução.",
+        color: "#3b82f6",
+        tag: "Mista"
+    },
+    {
+        name: "Renda Passiva / Dividendos",
+        desc: "Marque juros, proventos e aluguéis recebidos para acompanhar quanto eles somam mês a mês.",
+        color: "#059669",
+        tag: "Receita"
+    },
+    {
+        name: "Assinaturas / SaaS",
+        desc: "Identifique pagamentos recorrentes de serviços e softwares para avaliar quais ainda valem a pena manter no orçamento mensal.",
+        color: "#a855f7",
+        tag: "Recorrente"
+    },
+    {
+        name: "Viagem / Férias",
+        desc: "Agrupe todos os custos de um evento sem misturar com as despesas recorrentes, para ver o total depois da viagem.",
+        color: "#f97316",
+        tag: "Sazonal"
+    },
+    {
+        name: "Emergência / Saúde",
+        desc: "Marque gastos inesperados para ver com que frequência eles acontecem e ajustar a sua reserva.",
+        color: "#ef4444",
+        tag: "Alerta"
+    }
+]
+
+// Situação do mês contra a média: cor, ícone e texto andam juntos
+const SITUACAO_DO_MONITOR = {
+    success: { texto: "text-inflow", barra: "bg-inflow", listra: "border-l-inflow", Icone: TrendingDown },
+    warning: { texto: "text-warn", barra: "bg-warn", listra: "border-l-warn", Icone: TrendingUp },
+    error: { texto: "text-outflow", barra: "bg-outflow", listra: "border-l-outflow", Icone: TrendingUp },
+} as const
+
 // PERM-19: com `tags` fechado, a tela mostra o aviso do plano e /tags/ não é chamado
 export default function TagsPage() {
   return (
-    <RecursoBloqueado chave="tags" titulo="Tags" className="container mx-auto my-10 max-w-3xl">
+    <RecursoBloqueado chave="tags" titulo="Marcadores" className="container mx-auto my-10 max-w-3xl">
       <TelaDeTags />
     </RecursoBloqueado>
   )
@@ -95,19 +140,19 @@ function TelaDeTags() {
   const [deletingTag, setDeletingTag] = useState<TagType | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
   const [isHelpOpen, setIsHelpOpen] = useState(false)
-  
+
   // Insights State
   const [selectedInsightsTag, setSelectedInsightsTag] = useState<TagType | null>(null)
   const [isInsightsModalOpen, setIsInsightsModalOpen] = useState(false)
   const [insightsData, setInsightsData] = useState<any>(null)
   const [isLoadingInsights, setIsLoadingInsights] = useState(false)
   const [insightsMonths, setInsightsMonths] = useState(6)
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1)
   const ITEMS_PER_PAGE = 12
 
-  const filteredTags = tags.filter(tag => 
+  const filteredTags = tags.filter(tag =>
     tag.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
@@ -147,20 +192,20 @@ function TelaDeTags() {
       }
   }
 
+  // A confirmação padrão fica aberta se a exclusão falhar
   const handleDelete = async () => {
     if (!deletingTag) return
 
     try {
       await deleteTag(deletingTag.id)
-      toast.success("Tag excluída com sucesso")
+      toast.success("Tag excluída.")
       // PERM-20: o item excluído sai do uso dos limites do /auth/me
       void atualizarUso()
       refreshTags()
     } catch (error) {
        console.error(error)
-       tratarErro(error, { mensagemPadrao: "Erro ao excluir tag. Tente novamente." })
-    } finally {
-      setDeletingTag(null)
+       tratarErro(error, { mensagemPadrao: "Não foi possível excluir a tag. Tente de novo." })
+       throw error
     }
   }
 
@@ -169,7 +214,7 @@ function TelaDeTags() {
     setIsInsightsModalOpen(true)
     setIsLoadingInsights(true)
     setInsightsMonths(months)
-    
+
     try {
       const data = await getTagInsights(tag.id, months)
       setInsightsData(data)
@@ -182,122 +227,100 @@ function TelaDeTags() {
     }
   }
 
-  return (
-    <div className="container mx-auto py-10 px-4 max-w-7xl animate-in fade-in duration-500">
-      {/* Premium Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10">
-        <div className="flex items-center gap-5">
-           <div className="w-16 h-16 rounded-[22px] bg-primary flex items-center justify-center shadow-2xl shadow-primary/20 ring-4 ring-primary/10">
-              <TagIcon className="h-8 w-8 text-white animate-pulse" />
-           </div>
-           <div>
-              <h1 className="text-4xl font-black tracking-tight text-foreground">Tags</h1>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary bg-primary/10 px-2 py-0.5 rounded-full">Organização Personalizada</span>
-                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">•</span>
-                <span className="text-[10px] font-medium text-muted-foreground">{tags.length} Itens cadatrados</span>
-              </div>
-           </div>
-        </div>
+  const situacao = insightsData
+    ? SITUACAO_DO_MONITOR[insightsData.focus_monitor.status as keyof typeof SITUACAO_DO_MONITOR] ?? null
+    : null
+  // REL-23: média zero não vira porcentagem
+  const percentualDoMes = insightsData
+    ? percentualDaMedia(insightsData.focus_monitor.current_month, insightsData.focus_monitor.average_month)
+    : null
 
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+  return (
+    <div className="mx-auto w-full max-w-[1240px] space-y-6 px-4 py-8 md:px-6">
+      <CabecalhoDePagina
+        titulo="Marcadores"
+        apoio="Tags"
+        className="pb-0"
+        acoes={
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-                <Button disabled={tagsNoLimite} className="h-14 px-8 rounded-full bg-primary text-primary-foreground shadow-xl shadow-primary/20 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all group overflow-hidden relative">
-                    <PlusCircle className="mr-2 h-5 w-5" />
-                    <span className="font-black uppercase tracking-widest text-sm">Nova Tag Premium</span>
-                </Button>
+              <Button disabled={tagsNoLimite}>
+                <PlusCircle aria-hidden="true" />
+                Nova Tag
+              </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
-                <ScrollArea className="max-h-[85vh]">
-                    <div className="p-8">
-                        <DialogHeader className="mb-6">
-                            <DialogTitle className="text-3xl font-black tracking-tight">Nova Tag</DialogTitle>
-                            <DialogDescription className="text-xs font-medium text-muted-foreground/70">
-                                Crie tags personalizadas para organizar suas transações com máxima precisão.
-                            </DialogDescription>
-                        </DialogHeader>
-                        <TagForm 
-                            onSuccess={() => {
-                                setIsCreateOpen(false)
-                                refreshTags()
-                            }}
-                            onCancel={() => setIsCreateOpen(false)}
-                        />
-                    </div>
-                </ScrollArea>
+            <DialogContent className="overflow-hidden p-0 sm:max-w-[500px]">
+              <ScrollArea className="max-h-[85vh]">
+                <div className="p-6">
+                  <DialogHeader className="mb-6">
+                    <DialogTitle>Nova Tag</DialogTitle>
+                    <DialogDescription>
+                      Crie uma tag para marcar lançamentos de qualquer categoria ou conta.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <TagForm
+                    onSuccess={() => {
+                      setIsCreateOpen(false)
+                      refreshTags()
+                    }}
+                    onCancel={() => setIsCreateOpen(false)}
+                  />
+                </div>
+              </ScrollArea>
             </DialogContent>
-        </Dialog>
-      </div>
+          </Dialog>
+        }
+      />
 
       {/* PERM-20: uso e limite de tags do plano */}
-      <div className="mb-8">
-        <AvisoDeLimite chave="limite_tags" rotulo="tags" />
+      <AvisoDeLimite chave="limite_tags" rotulo="tags" />
+
+      {/* Busca e guia de exemplos */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+          <Input
+            aria-label="Filtrar por nome da tag"
+            placeholder="Filtrar por nome da tag..."
+            className="pl-9"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <Button variant="outline" onClick={() => setIsHelpOpen(true)}>
+          <BookOpen aria-hidden="true" />
+          Exemplos de uso
+        </Button>
       </div>
 
-      {/* Filter/Search Premium Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-6 mb-12 bg-card/40 backdrop-blur-md p-4 rounded-[32px] border border-border/40 shadow-sm">
-           <div className="relative w-full sm:max-w-md group">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 group-focus-within:text-primary transition-colors" />
-                <Input
-                    placeholder="Filtrar por nome da tag..."
-                    className="pl-11 h-12 bg-muted/20 border-transparent rounded-2xl focus-visible:ring-primary/20 focus-visible:border-primary/30 transition-all font-medium"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
-           </div>
-      </div>
-
-      {/* Banner de Ajuda Premium (Regra #4) */}
-      <div className="mb-12 p-5 sm:p-6 rounded-[32px] bg-primary/5 border border-primary/10 flex flex-col sm:flex-row items-start gap-4 sm:gap-6 animate-in slide-in-from-bottom-4 duration-1000">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 hidden sm:flex">
-              <Info className="h-6 w-6 text-primary" />
-          </div>
-          <div className="space-y-4 flex-1 w-full">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20 sm:hidden">
-                          <Info className="h-5 w-5 text-primary" />
-                      </div>
-                      <h4 className="font-black text-sm text-primary tracking-tight uppercase">Dica de Organização</h4>
-                  </div>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => setIsHelpOpen(true)}
-                    className="h-11 sm:h-9 w-full sm:w-auto rounded-full bg-primary/10 hover:bg-primary/20 text-primary text-[10px] font-black uppercase tracking-widest px-6 sm:px-4 transition-all shadow-md sm:shadow-none border border-primary/5"
-                  >
-                    <Sparkles className="h-3 w-3 mr-2" />
-                    Exemplos de Uso
-                  </Button>
-              </div>
-              <div className="max-w-4xl">
-                  <ExpandableText text="As tags são ferramentas universais e poderosas que podem ser aplicadas em qualquer transação, independentemente da categoria ou conta. Elas permitem que você diferencie fluxos sazonais, projetos específicos ou gastos que requerem acompanhamento especial, proporcionando relatórios muito mais profundos e uma visão granular da sua saúde financeira real." />
-              </div>
-          </div>
+      {/* Explicação permanente do que é uma tag */}
+      <div className="flex items-start gap-3 rounded-r-lg border border-border border-l-[3px] border-l-info bg-card p-4">
+        <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+        <p className="text-sm text-fg-secondary">
+          Tags marcam lançamentos de qualquer categoria ou conta, como uma viagem, um projeto ou um gasto que você quer
+          acompanhar de perto. Um lançamento pode ter várias tags.
+        </p>
       </div>
 
       {isLoading ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-            <Skeleton key={i} className="h-28 w-full rounded-[32px] bg-muted/20" />
+            <Skeleton key={i} className="h-[72px] w-full rounded-lg" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 pb-12">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {filteredTags.length === 0 && (
-              <div className="col-span-full flex flex-col items-center justify-center py-24 text-center border-2 border-dashed border-border/40 rounded-[40px] bg-muted/5 group hover:border-primary/20 transition-colors">
-                  <div className="w-20 h-20 rounded-[28px] bg-muted/20 flex items-center justify-center mb-6 ring-8 ring-muted/5 group-hover:scale-110 transition-transform duration-500">
-                    <TagIcon className="h-10 w-10 opacity-20" />
-                  </div>
-                  <h3 className="text-xl font-black tracking-tight text-foreground/70">Nenhuma tag encontrada</h3>
-                  <p className="max-w-xs mx-auto mt-2 mb-8 text-sm text-muted-foreground/60 leading-relaxed">
-                    Personalize sua experincia criando marcadores exclusivos para seu controle financeiro.
+              <div className="col-span-full flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border-strong bg-card px-4 py-16 text-center">
+                  <TagIcon className="h-6 w-6 text-muted-foreground" aria-hidden="true" />
+                  <h2 className="display-s text-foreground">Nenhuma tag encontrada</h2>
+                  <p className="max-w-xs text-sm text-muted-foreground">
+                    Crie tags para marcar lançamentos que você quer ver juntos.
                   </p>
                   <Button
                     variant="outline"
                     disabled={tagsNoLimite}
                     onClick={() => setIsCreateOpen(true)}
-                    className="rounded-full h-12 px-8 border-primary/20 hover:bg-primary/5 hover:border-primary/40 font-bold transition-all"
                   >
                     Criar Minha Primeira Tag
                   </Button>
@@ -305,55 +328,59 @@ function TelaDeTags() {
           )}
 
           {paginatedTags.map((tag) => (
-            <div 
-                key={tag.id} 
-                className="group relative flex items-center gap-5 p-5 rounded-[32px] border border-border/40 bg-card shadow-sm hover:shadow-xl hover:border-primary/30 hover:-translate-y-1 transition-all duration-500 cursor-default overflow-hidden animate-in fade-in slide-in-from-bottom-2"
+            <div
+                key={tag.id}
+                className="group flex items-center gap-3 rounded-lg border border-border bg-card p-4"
             >
-                 {/* Bg Decorative Accent */}
-                 <div 
-                    className="absolute top-0 right-0 w-24 h-24 blur-[60px] opacity-10 -translate-y-1/2 translate-x-1/2 rounded-full"
-                    style={{ backgroundColor: tag.color }}
-                 />
-                 
-                 <div 
-                    className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-black/5 dark:ring-white/10 transition-transform group-hover:scale-110 duration-500"
-                    style={{ 
-                        backgroundColor: tag.color,
-                        boxShadow: `0 8px 16px -4px ${tag.color}60`
-                    }}
+                 <span
+                    aria-hidden="true"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border bg-elevated"
+                    style={{ color: tag.color }}
                  >
-                    <TagIcon className="h-6 w-6 text-white/90" />
+                    <TagIcon className="h-4 w-4" />
+                 </span>
+
+                 <div className="flex min-w-0 flex-1 flex-col justify-center">
+                    <span className="truncate text-sm font-semibold text-foreground">{tag.name}</span>
+                    <span className="font-mono text-xs uppercase text-muted-foreground">{tag.color}</span>
                  </div>
-                 
-                 <div className="flex flex-col justify-center min-w-0 flex-1">
-                    <span className="font-bold text-base text-foreground group-hover:text-primary transition-colors truncate">{tag.name}</span>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                        <div className="w-1 h-1 rounded-full opacity-40" style={{ backgroundColor: tag.color }} />
-                        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/40">{tag.color}</span>
-                    </div>
-                 </div>
-                 
-                 {/* FAB Interno (Regra #5) */}
-                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-all duration-300 absolute top-3 right-3 p-1.5 rounded-2xl bg-background/90 backdrop-blur-md shadow-2xl border border-border/60 translate-y-2 group-hover:translate-y-0">
+
+                 {/* Ações da tag: visíveis no foco do teclado, não só no hover */}
+                 <div className="flex shrink-0 gap-0.5 transition-opacity duration-fast ease-az-out sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
                     {analisePorTag && (
-                    <Button 
-                        variant="ghost" 
-                        size="icon" 
+                    <Button
+                        variant="ghost"
+                        size="icon"
                         aria-label={`Análise da tag ${tag.name}`}
-                        className="h-8 w-8 rounded-xl hover:bg-primary/10 text-primary transition-all"
+                        title="Análise"
+                        className="h-8 w-8"
                         onClick={(e) => {
                             e.stopPropagation();
                             handleOpenInsights(tag);
                         }}
                     >
-                        <BarChart3 className="h-4 w-4" />
+                        <BarChart3 aria-hidden="true" />
                     </Button>
                     )}
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10 text-primary transition-all" onClick={() => setEditingTag(tag)}>
-                        <Pencil className="h-4 w-4" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Editar a tag ${tag.name}`}
+                        title="Editar"
+                        className="h-8 w-8"
+                        onClick={() => setEditingTag(tag)}
+                    >
+                        <Pencil aria-hidden="true" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-destructive/10 text-destructive/40 hover:text-destructive transition-all" onClick={() => setDeletingTag(tag)}>
-                        <Trash2 className="h-4 w-4" />
+                    <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label={`Excluir a tag ${tag.name}`}
+                        title="Excluir"
+                        className="h-8 w-8 text-outflow hover:bg-outflow/10 hover:text-outflow"
+                        onClick={() => setDeletingTag(tag)}
+                    >
+                        <Trash2 aria-hidden="true" />
                     </Button>
                  </div>
             </div>
@@ -361,72 +388,70 @@ function TelaDeTags() {
         </div>
       )}
 
-      {/* Premium Pagination Controls */}
+      {/* Paginação */}
       {hasMultiplePages && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-6 py-10 border-t border-border/10">
-            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/40">
-                Mostrando <span className="text-foreground">{Math.min(filteredTags.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> a <span className="text-foreground">{Math.min(filteredTags.length, currentPage * ITEMS_PER_PAGE)}</span> de <span className="text-foreground">{filteredTags.length}</span> tags
+        <nav aria-label="Páginas de tags" className="flex flex-col items-center justify-between gap-4 border-t border-border pt-6 sm:flex-row">
+            <p className="text-xs text-muted-foreground">
+                Mostrando <span className="font-mono tabular-nums text-foreground">{Math.min(filteredTags.length, (currentPage - 1) * ITEMS_PER_PAGE + 1)}</span> a <span className="font-mono tabular-nums text-foreground">{Math.min(filteredTags.length, currentPage * ITEMS_PER_PAGE)}</span> de <span className="font-mono tabular-nums text-foreground">{filteredTags.length}</span> tags
             </p>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1">
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full border border-border/20 text-muted-foreground disabled:opacity-20 hover:bg-primary/5 hover:text-primary transition-all"
+                    aria-label="Página anterior"
                     onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                     disabled={currentPage === 1}
                 >
-                    <ChevronLeft className="h-5 w-5" />
+                    <ChevronLeft aria-hidden="true" />
                 </Button>
 
-                <div className="flex items-center gap-1.5 px-2">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
-                        // Logic for displaying limited page numbers could go here (ellipsis)
-                        // For now simple list as tags probably won't have 100s of pages
-                        const isActive = currentPage === page
-                        return (
-                            <button
-                                key={page}
-                                onClick={() => setCurrentPage(page)}
-                                className={cn(
-                                    "h-10 min-w-[40px] px-2 rounded-full text-[10px] font-black transition-all duration-300",
-                                    isActive 
-                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-110" 
-                                        : "text-muted-foreground/60 hover:bg-muted hover:text-foreground"
-                                )}
-                            >
-                                {page.toString().padStart(2, '0')}
-                            </button>
-                        )
-                    })}
-                </div>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                    const isActive = currentPage === page
+                    return (
+                        <button
+                            key={page}
+                            type="button"
+                            aria-current={isActive ? "page" : undefined}
+                            onClick={() => setCurrentPage(page)}
+                            className={cn(
+                                "h-9 min-w-9 cursor-pointer rounded-md px-2 font-mono text-xs tabular-nums transition-colors duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                                isActive
+                                    ? "border border-border-strong bg-elevated text-foreground"
+                                    : "text-muted-foreground hover:bg-elevated hover:text-foreground"
+                            )}
+                        >
+                            {page.toString().padStart(2, '0')}
+                        </button>
+                    )
+                })}
 
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full border border-border/20 text-muted-foreground disabled:opacity-20 hover:bg-primary/5 hover:text-primary transition-all"
+                    aria-label="Próxima página"
                     onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                     disabled={currentPage === totalPages}
                 >
-                    <ChevronRight className="h-5 w-5" />
+                    <ChevronRight aria-hidden="true" />
                 </Button>
             </div>
-        </div>
+        </nav>
       )}
 
-      {/* Edit Dialog */}
+      {/* Edição */}
       <Dialog open={!!editingTag} onOpenChange={(open) => !open && setEditingTag(undefined)}>
-          <DialogContent className="sm:max-w-[500px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden">
+          <DialogContent className="overflow-hidden p-0 sm:max-w-[500px]">
             <ScrollArea className="max-h-[85vh]">
-                <div className="p-8">
+                <div className="p-6">
                     <DialogHeader className="mb-6">
-                        <DialogTitle className="text-3xl font-black tracking-tight">Editar Tag</DialogTitle>
-                        <DialogDescription className="text-xs font-medium text-muted-foreground/70">
-                            Ajuste os detalhes visuais ou o nome para manter sua organização sempre impecável.
+                        <DialogTitle>Editar Tag</DialogTitle>
+                        <DialogDescription>
+                            Altere o nome ou a cor da tag. Os lançamentos marcados com ela mudam junto.
                         </DialogDescription>
                     </DialogHeader>
                     {editingTag && (
-                        <TagForm 
+                        <TagForm
                             tag={editingTag}
                             onSuccess={() => {
                                 setEditingTag(undefined)
@@ -440,363 +465,236 @@ function TelaDeTags() {
           </DialogContent>
       </Dialog>
 
-      {/* Delete Alert */}
-      <AlertDialog open={!!deletingTag} onOpenChange={(open) => !open && setDeletingTag(null)}>
-          <AlertDialogContent className="rounded-[32px] border-none shadow-2xl p-8 max-w-md">
-              <AlertDialogHeader className="space-y-4">
-                  <div className="w-16 h-16 rounded-[22px] bg-destructive/10 flex items-center justify-center mb-2">
-                      <Trash2 className="h-8 w-8 text-destructive" />
-                  </div>
-                  <AlertDialogTitle className="text-2xl font-black tracking-tight uppercase">Excluir Tag?</AlertDialogTitle>
-                  <AlertDialogDescription className="text-sm font-medium leading-relaxed">
-                      Esta ação é irreversível. Todas as transações marcadas com <strong className="text-foreground tracking-tight underline decoration-destructive/30 underline-offset-4">{deletingTag?.name}</strong> não perderão os dados, mas a etiqueta será removida de todo o histórico.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter className="mt-8 gap-3">
-                  <AlertDialogCancel className="h-12 px-6 rounded-full border-border font-bold hover:bg-muted mb-0">Cancelar Operação</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete} className="h-12 px-8 rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg shadow-destructive/20 font-black uppercase tracking-widest text-xs">
-                      Confirmar Exclusão
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
-      {/* Help Modal with Examples */}
+      {/* Exclusão: confirmação padrão (AZ-15) */}
+      <ConfirmacaoDestrutiva
+        aberta={!!deletingTag}
+        onAbertaChange={(aberta) => !aberta && setDeletingTag(null)}
+        titulo={`Excluir a tag ${deletingTag?.name ?? ""}?`}
+        descricao={
+          <>
+            A tag <strong className="font-semibold text-foreground">{deletingTag?.name}</strong> sai de todos os
+            lançamentos marcados com ela; os lançamentos continuam. Isso não pode ser desfeito.
+          </>
+        }
+        rotuloConfirmar="Excluir tag"
+        onConfirmar={handleDelete}
+      />
+
+      {/* Guia com exemplos de uso */}
       <Dialog open={isHelpOpen} onOpenChange={setIsHelpOpen}>
-          <DialogContent className="sm:max-w-[700px] rounded-[32px] border-none shadow-2xl p-0 overflow-hidden bg-background">
+          <DialogContent className="overflow-hidden p-0 sm:max-w-[700px]">
               <ScrollArea className="max-h-[90vh]">
-                  <div className="p-8">
-                      <DialogTitle className="sr-only">Guia de Tags Premium</DialogTitle>
-                      <DialogDescription className="sr-only">Exemplos e sugestões de uso de tags.</DialogDescription>
-                      <DialogHeader className="mb-8">
-                          <div className="flex items-center gap-4 mb-2">
-                              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                                  <Sparkles className="h-6 w-6 text-primary" />
-                              </div>
-                              <div>
-                                  <DialogTitle className="text-3xl font-black tracking-tight uppercase">Guia de Tags Premium</DialogTitle>
-                                  <DialogDescription className="text-xs font-medium text-muted-foreground/70">
-                                      Inspire-se com estas sugestões para elevar o nível da sua organização financeira.
-                                  </DialogDescription>
-                              </div>
-                          </div>
+                  <div className="space-y-6 p-6">
+                      <DialogHeader>
+                          <DialogTitle>Exemplos de tags</DialogTitle>
+                          <DialogDescription>
+                              Sugestões de tags para marcar lançamentos e ver esses gastos juntos.
+                          </DialogDescription>
                       </DialogHeader>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {[
-                              { 
-                                  name: "Renda Extra / Freelance", 
-                                  desc: "Identifique ganhos extras além do seu salário fixo para medir a produtividade real dos seus projetos paralelos e side hustles.",
-                                  color: "#10b981",
-                                  tag: "RECEITA"
-                              },
-                              { 
-                                  name: "Reembolsável", 
-                                  desc: "Para gastos de trabalho ou compras para terceiros que serão devolvidos à sua conta futuramente. Essencial para não perder dinheiro de vista.",
-                                  color: "#3b82f6",
-                                  tag: "MISTA"
-                              },
-                              { 
-                                  name: "Renda Passiva / Dividendos", 
-                                  desc: "Marque juros, proventos e aluguéis recebidos para visualizar sua liberdade financeira crescendo mês após mês de forma consistente.",
-                                  color: "#059669",
-                                  tag: "RECEITA"
-                              },
-                              { 
-                                  name: "Assinaturas / SaaS", 
-                                  desc: "Identifique pagamentos recorrentes de serviços e softwares para avaliar quais ainda valem a pena manter no seu orçamento mensal.",
-                                  color: "#a855f7",
-                                  tag: "RECORRENTE"
-                              },
-                              { 
-                                  name: "Viagem / Férias", 
-                                  desc: "Agrupe todos os custos de um evento específico sem misturar com as despesas recorrentes. Perfeito para análise pós-viagem.",
-                                  color: "#f97316",
-                                  tag: "SAZONAL"
-                              },
-                              { 
-                                  name: "Emergência / Saúde", 
-                                  desc: "Marque gastos inesperados e imprevistos críticos para analisar a frequência desses eventos e ajustar sua reserva de oportunidade.",
-                                  color: "#ef4444",
-                                  tag: "ALERTA"
-                              }
-                          ].map((example, idx) => (
-                              <div key={idx} className="p-5 rounded-3xl bg-muted/30 border border-border/40 hover:border-primary/20 hover:bg-muted/50 transition-all group">
-                                  <div className="flex items-center gap-4 mb-3">
-                                      <div 
-                                          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-lg ring-1 ring-black/5 dark:ring-white/10"
-                                          style={{ backgroundColor: example.color }}
-                                      >
-                                          <TagIcon className="h-5 w-5 text-white/90" />
-                                      </div>
-                                      <div className="min-w-0">
-                                          <div className="flex items-center gap-2 mb-0.5">
-                                              <span className="font-bold text-sm truncate">{example.name}</span>
-                                              <span 
-                                                className="text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full border"
-                                                style={{ 
-                                                    backgroundColor: `${example.color}15`, 
-                                                    color: example.color,
-                                                    borderColor: `${example.color}30`
-                                                }}
-                                              >
-                                                {example.tag}
-                                              </span>
-                                          </div>
-                                      </div>
+                      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                          {EXEMPLOS_DE_TAGS.map((example) => (
+                              <li key={example.name} className="space-y-2 rounded-lg border border-border bg-card p-4">
+                                  <div className="flex items-center gap-2">
+                                      <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: example.color }} />
+                                      <span className="truncate text-sm font-semibold">{example.name}</span>
+                                      <Badge variant="secondary" className="ml-auto">{example.tag}</Badge>
                                   </div>
                                   <ExpandableText text={example.desc} />
-                              </div>
+                              </li>
                           ))}
-                      </div>
+                      </ul>
 
-                      <div className="mt-8 p-4 rounded-2xl bg-primary/5 border border-primary/10 flex items-center gap-3">
-                          <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                          <p className="text-[10px] font-medium text-primary/80">
-                              <strong>Dica Pro:</strong> Você pode aplicar múltiplas tags em uma única transação para uma análise ainda mais granular.
-                          </p>
-                      </div>
+                      <p className="flex items-center gap-2 text-sm text-fg-secondary">
+                          <Info className="h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+                          Um lançamento pode ter várias tags ao mesmo tempo.
+                      </p>
 
-                      <Button 
-                        onClick={() => setIsHelpOpen(false)}
-                        className="w-full h-12 mt-8 rounded-full bg-foreground text-background font-bold hover:opacity-90 transition-all uppercase tracking-widest text-xs"
-                      >
-                        Entendi, vamos organizar!
-                      </Button>
+                      <div className="flex justify-end">
+                          <Button variant="outline" onClick={() => setIsHelpOpen(false)}>
+                            Fechar
+                          </Button>
+                      </div>
                   </div>
               </ScrollArea>
           </DialogContent>
       </Dialog>
 
-      {/* Tag Insights Modal */}
+      {/* Análise da tag */}
       <Dialog open={isInsightsModalOpen} onOpenChange={setIsInsightsModalOpen}>
-          <DialogContent className="sm:max-w-[650px] rounded-[40px] border-none shadow-3xl p-0 overflow-hidden bg-background/95 backdrop-blur-xl">
+          <DialogContent className="overflow-hidden p-0 sm:max-w-[650px]">
               <ScrollArea className="max-h-[90vh]">
-                  <div className="p-8">
-                               <DialogTitle className="sr-only">{insightsData?.tag_name || "Insights da Tag"}</DialogTitle>
-                               <DialogDescription className="sr-only">Análise detalhada de movimentação financeira por etiqueta nos últimos meses.</DialogDescription>
-                               <DialogHeader className="mb-10">
-                                  <div className="flex items-center gap-5">
-                                      <div 
-                                          className={cn(
-                                              "w-16 h-16 rounded-[24px] flex items-center justify-center shrink-0 shadow-2xl transition-transform duration-700",
-                                              insightsData?.color || "bg-primary"
-                                          )}
-                                          style={insightsData ? { 
-                                              backgroundColor: insightsData.color,
-                                              boxShadow: `0 20px 40px -12px ${insightsData.color}40`
-                                          } : {}}
-                                      >
-                                          {isLoadingInsights ? <div className="h-8 w-8 rounded-full border-2 border-white/20 border-t-white animate-spin" /> : <BarChart3 className="h-8 w-8 text-white" />}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                          <div className="flex items-center gap-3">
-                                              <DialogTitle className="text-3xl font-black tracking-tight truncate">
-                                                {isLoadingInsights ? "Carregando..." : insightsData?.tag_name || "Insights da Tag"}
-                                              </DialogTitle>
-                                              {insightsData && <span className="text-[10px] font-black uppercase tracking-widest text-primary bg-primary/10 px-3 py-1 rounded-full border border-primary/20">Insights Ativos</span>}
+                  <div className="space-y-6 p-6">
+                      <DialogHeader>
+                          <div className="flex items-center gap-3">
+                              {insightsData && !isLoadingInsights && (
+                                  <span aria-hidden="true" className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: insightsData.color }} />
+                              )}
+                              <DialogTitle className="truncate">
+                                {isLoadingInsights ? "Carregando..." : insightsData?.tag_name || "Análise da tag"}
+                              </DialogTitle>
+                          </div>
+                          <DialogDescription className="flex items-center gap-2">
+                              <Calendar className="h-4 w-4" aria-hidden="true" />
+                              {isLoadingInsights
+                                ? "Analisando os lançamentos da tag."
+                                : `Entradas e saídas dos últimos ${insightsMonths} meses.`}
+                          </DialogDescription>
+                      </DialogHeader>
+
+                      {isLoadingInsights ? (
+                          <div className="flex flex-col items-center justify-center gap-3 py-16">
+                              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" aria-hidden="true" />
+                              <p className="text-sm text-muted-foreground">Analisando dados da tag...</p>
+                          </div>
+                      ) : insightsData && (
+                          <div className="space-y-6">
+
+                              {/* Monitor de foco: o mês contra a média */}
+                              <section className="space-y-2">
+                                  <h3 className="label text-muted-foreground">Monitor de Foco da Tag</h3>
+                                  <div className={cn(
+                                      "space-y-4 rounded-r-lg border border-border border-l-[3px] bg-card p-4",
+                                      situacao?.listra ?? "border-l-border-strong"
+                                  )}>
+                                      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                                          <div className="space-y-1">
+                                              <p className="label text-muted-foreground">Gasto Líquido do Mês</p>
+                                              <p className="value-l text-foreground">{formatCurrency(insightsData.focus_monitor.current_month)}</p>
                                           </div>
-                                          <DialogDescription className="text-xs font-medium text-muted-foreground/70 mt-1 flex items-center gap-2">
-                                              <Calendar className="h-3 w-3" />
-                                              {isLoadingInsights ? "Aguarde enquanto analisamos os dados..." : "Visão consolidada dos últimos 6 meses de fluxo financeiro."}
-                                          </DialogDescription>
+
+                                          <div className="flex items-center gap-3">
+                                              <div className="text-right">
+                                                  <p className="label text-muted-foreground">Média ({insightsMonths} meses)</p>
+                                                  <p className="value-m text-fg-secondary">{formatCurrency(insightsData.focus_monitor.average_month)}</p>
+                                              </div>
+                                              {situacao && <situacao.Icone className={cn("h-5 w-5", situacao.texto)} aria-hidden="true" />}
+                                          </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-3">
+                                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-elevated">
+                                              <div
+                                                  className={cn(
+                                                      "h-full w-full origin-left rounded-full transition-transform duration-base ease-az-out",
+                                                      situacao?.barra ?? "bg-fg-secondary"
+                                                  )}
+                                                  style={{ transform: `scaleX(${Math.min(100, percentualDoMes ?? 0) / 100})` }}
+                                              />
+                                          </div>
+                                          <span className={cn("font-mono text-xs tabular-nums", situacao?.texto ?? "text-muted-foreground")}>
+                                              {percentualDoMes === null ? SEM_HISTORICO : `${Math.round(percentualDoMes)}%`}
+                                          </span>
                                       </div>
                                   </div>
-                               </DialogHeader>
+                              </section>
 
-                               {isLoadingInsights ? (
-                                   <div className="py-20 flex flex-col items-center justify-center space-y-6">
-                                       <div className="relative">
-                                         <div className="w-20 h-20 rounded-[28px] border-4 border-primary/10 border-t-primary animate-spin" />
-                                         <BarChart3 className="absolute inset-0 m-auto h-8 w-8 text-primary/40 animate-pulse" />
-                                       </div>
-                                       <p className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60">Analisando dados da tag...</p>
-                                   </div>
-                               ) : insightsData && (
-                                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+                              {/* Histórico */}
+                              <section className="space-y-4 rounded-lg border border-border bg-card p-4">
+                                  <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+                                      <h3 className="label text-muted-foreground">Histórico de Movimentação · por mês</h3>
+                                      <div className="flex flex-wrap items-center gap-3">
+                                          <div className="inline-flex items-center rounded-lg bg-muted p-1" role="group" aria-label="Período da análise">
+                                              {[3, 6, 12].map((m) => (
+                                                  <button
+                                                      key={m}
+                                                      type="button"
+                                                      aria-pressed={insightsMonths === m}
+                                                      aria-label={`${m} meses`}
+                                                      onClick={() => selectedInsightsTag && handleOpenInsights(selectedInsightsTag, m)}
+                                                      disabled={isLoadingInsights}
+                                                      className={cn(
+                                                          "cursor-pointer rounded-sm px-3 py-1 font-mono text-xs transition-colors duration-fast ease-az-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-45",
+                                                          insightsMonths === m
+                                                              ? "bg-card text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]"
+                                                              : "text-muted-foreground hover:text-foreground"
+                                                      )}
+                                                  >
+                                                      {m}m
+                                                  </button>
+                                              ))}
+                                          </div>
+                                          <div className="flex items-center gap-3">
+                                              <span className="flex items-center gap-1.5">
+                                                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-inflow" />
+                                                  <span className="label text-muted-foreground">Receitas</span>
+                                              </span>
+                                              <span className="flex items-center gap-1.5">
+                                                  <span aria-hidden="true" className="h-2 w-2 rounded-full bg-outflow" />
+                                                  <span className="label text-muted-foreground">Despesas</span>
+                                              </span>
+                                          </div>
+                                      </div>
+                                  </div>
 
-                               {/* Focused Monitor Replica */}
-                               <div className="mb-10">
-                                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mb-4 px-1">Monitor de Foco da Tag</h4>
-                                   <div className={cn(
-                                       "p-6 rounded-[32px] border relative overflow-hidden transition-all duration-500",
-                                       insightsData.focus_monitor.status === 'success' && "bg-emerald-500/5 border-emerald-500/20",
-                                       insightsData.focus_monitor.status === 'warning' && "bg-amber-500/5 border-amber-500/20",
-                                       insightsData.focus_monitor.status === 'error' && "bg-rose-500/5 border-rose-500/20"
-                                   )}>
-                                       {/* Background Glow */}
-                                       <div className={cn(
-                                           "absolute -top-24 -right-24 w-48 h-48 blur-[80px] opacity-20 rounded-full",
-                                           insightsData.focus_monitor.status === 'success' && "bg-emerald-500",
-                                           insightsData.focus_monitor.status === 'warning' && "bg-amber-500",
-                                           insightsData.focus_monitor.status === 'error' && "bg-rose-500"
-                                       )} />
+                                  <div
+                                      className="h-[240px] w-full"
+                                      role="img"
+                                      aria-label={`Receitas e despesas da tag ${insightsData.tag_name ?? ""} por mês, nos últimos ${insightsMonths} meses`}
+                                  >
+                                      {isInsightsModalOpen && insightsData && (
+                                          <ResponsiveContainer width="100%" height="100%">
+                                              <AreaChart data={insightsData.history_chart.map((h: { income: string; expense: string }) => ({ ...h, income: paraCentavos(h.income) / 100, expense: paraCentavos(h.expense) / 100 }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                                  <defs>
+                                                      <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                                                          <stop offset="5%" stopColor={COR_DE_ENTRADA} stopOpacity={0.15}/>
+                                                          <stop offset="95%" stopColor={COR_DE_ENTRADA} stopOpacity={0}/>
+                                                      </linearGradient>
+                                                      <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                                                          <stop offset="5%" stopColor={COR_DE_SAIDA} stopOpacity={0.15}/>
+                                                          <stop offset="95%" stopColor={COR_DE_SAIDA} stopOpacity={0}/>
+                                                      </linearGradient>
+                                                  </defs>
+                                                  <CartesianGrid {...PROPS_DA_GRADE} />
+                                                  <XAxis dataKey="month" {...PROPS_DO_EIXO} />
+                                                  <YAxis {...PROPS_DO_EIXO} tickFormatter={formatarMoedaDoEixo} />
+                                                  <Tooltip
+                                                      cursor={CURSOR_DO_TOOLTIP}
+                                                      contentStyle={{
+                                                          background: "var(--az-elevated)",
+                                                          border: "1px solid var(--az-border-strong)",
+                                                          borderRadius: "8px",
+                                                          fontFamily: "var(--font-plex-mono)",
+                                                          fontSize: "12px",
+                                                      }}
+                                                      labelStyle={{ color: "var(--az-text-secondary)" }}
+                                                      formatter={(value: any) => formatCurrency(value)}
+                                                  />
+                                                  <Area
+                                                      type="monotone"
+                                                      dataKey="income"
+                                                      name="Receitas"
+                                                      stroke={COR_DE_ENTRADA}
+                                                      strokeWidth={2}
+                                                      fillOpacity={1}
+                                                      fill="url(#colorIncome)"
+                                                  />
+                                                  <Area
+                                                      type="monotone"
+                                                      dataKey="expense"
+                                                      name="Despesas"
+                                                      stroke={COR_DE_SAIDA}
+                                                      strokeWidth={2}
+                                                      fillOpacity={1}
+                                                      fill="url(#colorExpense)"
+                                                  />
+                                              </AreaChart>
+                                          </ResponsiveContainer>
+                                      )}
+                                  </div>
+                              </section>
 
-                                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 relative z-10">
-                                           <div className="space-y-1">
-                                               <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Gasto Líquido do Mês</p>
-                                               <h3 className="text-3xl font-black tracking-tight">{formatCurrency(insightsData.focus_monitor.current_month)}</h3>
-                                           </div>
-                                           
-                                           <div className="flex items-center gap-4">
-                                               <div className="text-right">
-                                                   <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">Média ({insightsMonths} meses)</p>
-                                                   <p className="text-sm font-bold opacity-80">{formatCurrency(insightsData.focus_monitor.average_month)}</p>
-                                               </div>
-                                               
-                                               <div className={cn(
-                                                   "w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg",
-                                                   insightsData.focus_monitor.status === 'success' && "bg-emerald-500 text-white shadow-emerald-500/20",
-                                                   insightsData.focus_monitor.status === 'warning' && "bg-amber-500 text-white shadow-amber-500/20",
-                                                   insightsData.focus_monitor.status === 'error' && "bg-rose-500 text-white shadow-rose-500/20"
-                                               )}>
-                                                   {insightsData.focus_monitor.status === 'success' && <TrendingDown className="h-6 w-6" />}
-                                                   {insightsData.focus_monitor.status === 'warning' && <TrendingUp className="h-6 w-6" />}
-                                                   {insightsData.focus_monitor.status === 'error' && <TrendingUp className="h-6 w-6" />}
-                                               </div>
-                                           </div>
-                                       </div>
-
-                                       <div className="mt-6 flex items-center gap-2">
-                                           <div className="flex-1 h-1.5 bg-muted/20 rounded-full overflow-hidden">
-                                               <div 
-                                                   className={cn(
-                                                       "h-full rounded-full transition-all duration-1000",
-                                                       insightsData.focus_monitor.status === 'success' && "bg-emerald-500",
-                                                       insightsData.focus_monitor.status === 'warning' && "bg-amber-500",
-                                                       insightsData.focus_monitor.status === 'error' && "bg-rose-500"
-                                                   )} 
-                                                   style={{ 
-                                                       width: `${Math.min(100, percentualDaMedia(insightsData.focus_monitor.current_month, insightsData.focus_monitor.average_month) ?? 0)}%`
-                                                   }}
-                                               />
-                                           </div>
-                                           <span className={cn(
-                                               "text-[10px] font-black",
-                                               insightsData.focus_monitor.status === 'success' && "text-emerald-600",
-                                               insightsData.focus_monitor.status === 'warning' && "text-amber-600",
-                                               insightsData.focus_monitor.status === 'error' && "text-rose-600"
-                                           )}>
-                                               {/* REL-23: média zero não vira porcentagem */}
-                                               {(() => {
-                                                   const percentual = percentualDaMedia(insightsData.focus_monitor.current_month, insightsData.focus_monitor.average_month)
-                                                   return percentual === null ? SEM_HISTORICO : `${Math.round(percentual)}%`
-                                               })()}
-                                           </span>
-                                       </div>
-                                   </div>
-                               </div>
-
-                               {/* Historical Chart */}
-                               <div className="bg-card/30 rounded-[32px] p-6 border border-border/40">
-                                   <div className="flex flex-col sm:flex-row items-center justify-between mb-8 gap-4">
-                                       <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50">Histórico de Movimentação</h4>
-                                       <div className="flex flex-wrap items-center gap-4">
-                                           {/* Period Selector */}
-                                           <div className="flex bg-muted/20 p-1 rounded-xl border border-border/10 mr-2">
-                                               {[3, 6, 12].map((m) => (
-                                                   <button
-                                                       key={m}
-                                                       onClick={() => selectedInsightsTag && handleOpenInsights(selectedInsightsTag, m)}
-                                                       disabled={isLoadingInsights}
-                                                       className={cn(
-                                                           "px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
-                                                           insightsMonths === m 
-                                                               ? "bg-background text-primary shadow-sm" 
-                                                               : "text-muted-foreground hover:text-foreground"
-                                                       )}
-                                                   >
-                                                       {m}m
-                                                   </button>
-                                               ))}
-                                           </div>
-                                           <div className="flex items-center gap-4 border-l border-border/10 pl-4">
-                                               <div className="flex items-center gap-1.5">
-                                                   <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                                                   <span className="text-[9px] font-bold text-muted-foreground">RECEITAS</span>
-                                               </div>
-                                               <div className="flex items-center gap-1.5">
-                                                   <div className="w-2 h-2 rounded-full bg-rose-500" />
-                                                   <span className="text-[9px] font-bold text-muted-foreground">DESPESAS</span>
-                                               </div>
-                                           </div>
-                                       </div>
-                                   </div>
-                                   
-                                   <div className="h-[240px] w-full mt-4">
-                                       {isInsightsModalOpen && insightsData && (
-                                           <ResponsiveContainer width="100%" height="100%">
-                                               <AreaChart data={insightsData.history_chart.map((h: { income: string; expense: string }) => ({ ...h, income: paraCentavos(h.income) / 100, expense: paraCentavos(h.expense) / 100 }))} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                                   <defs>
-                                                       <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                                                           <stop offset="5%" stopColor="var(--az-inflow)" stopOpacity={0.15}/>
-                                                           <stop offset="95%" stopColor="var(--az-inflow)" stopOpacity={0}/>
-                                                       </linearGradient>
-                                                       <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                                                           <stop offset="5%" stopColor="var(--az-outflow)" stopOpacity={0.15}/>
-                                                           <stop offset="95%" stopColor="var(--az-outflow)" stopOpacity={0}/>
-                                                       </linearGradient>
-                                                   </defs>
-                                                   <CartesianGrid {...PROPS_DA_GRADE} />
-                                                   <XAxis 
-                                                       dataKey="month" 
-                                                       axisLine={false} 
-                                                       tickLine={false} 
-                                                       tick={{ fontSize: 12, fill: 'var(--az-text-muted)', fontFamily: 'var(--font-plex-mono)' }} 
-                                                   />
-                                                   <YAxis 
-                                                       axisLine={false} 
-                                                       tickLine={false} 
-                                                       tick={{ fontSize: 12, fill: 'var(--az-text-muted)', fontFamily: 'var(--font-plex-mono)' }}
-                                                       tickFormatter={formatarMoedaDoEixo}
-                                                   />
-                                                   <Tooltip 
-                                                       contentStyle={{ 
-                                                           borderRadius: '16px', 
-                                                           border: 'none', 
-                                                           boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
-                                                           fontSize: '11px',
-                                                           fontWeight: '700'
-                                                       }}
-                                                       formatter={(value: any) => formatCurrency(value)}
-                                                   />
-                                                   <Area 
-                                                       type="monotone" 
-                                                       dataKey="income" 
-                                                       stroke="var(--az-inflow)" 
-                                                       strokeWidth={3}
-                                                       fillOpacity={1} 
-                                                       fill="url(#colorIncome)" 
-                                                       animationDuration={1500}
-                                                   />
-                                                   <Area 
-                                                       type="monotone" 
-                                                       dataKey="expense" 
-                                                       stroke="var(--az-outflow)" 
-                                                       strokeWidth={3}
-                                                       fillOpacity={1} 
-                                                       fill="url(#colorExpense)" 
-                                                       animationDuration={1500}
-                                                   />
-                                               </AreaChart>
-                                           </ResponsiveContainer>
-                                       )}
-                                   </div>
-                               </div>
-
-                               <Button 
-                                 onClick={() => setIsInsightsModalOpen(false)}
-                                 className="w-full h-14 mt-10 rounded-full bg-foreground text-background font-black uppercase tracking-[0.2em] text-xs hover:opacity-90 active:scale-95 transition-all shadow-xl"
-                               >
-                                 Fechar Insights
-                               </Button>
-                           </div>
-                       )}
-                   </div>
-               </ScrollArea>
-           </DialogContent>
-       </Dialog>
-
-     </div>
-
-   )
+                              <div className="flex justify-end">
+                                  <Button variant="outline" onClick={() => setIsInsightsModalOpen(false)}>
+                                    Fechar análise
+                                  </Button>
+                              </div>
+                          </div>
+                      )}
+                  </div>
+              </ScrollArea>
+          </DialogContent>
+      </Dialog>
+    </div>
+  )
 }

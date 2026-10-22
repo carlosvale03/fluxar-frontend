@@ -154,11 +154,6 @@
   --az-serie-5: #0E7490;
   --az-serie-outros: #4A5568;
 
-  /* Nomes antigos ainda usados inline nos gráficos (troca na AZ-44) */
-  --finance-income:        var(--az-inflow);
-  --finance-income-light:  color-mix(in srgb, var(--az-inflow) 12%, transparent);
-  --finance-expense:       var(--az-outflow);
-  --finance-expense-light: color-mix(in srgb, var(--az-outflow) 12%, transparent);
 
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow-card: 0 8px 24px rgba(11, 18, 32, 0.08);

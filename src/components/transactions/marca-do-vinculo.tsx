@@ -26,12 +26,12 @@ export function MarcaDoVinculo({ transacao, onAbrirPrincipal, className }: Marca
       {principal && (() => {
         const conteudo = (
           <>
-            <Link2 className="h-3 w-3 shrink-0" />
+            <Link2 className="h-3 w-3 shrink-0" aria-hidden="true" />
             <span>{textoDoCustoTotal(transacao.total_cost!)}</span>
-            <span className="opacity-60">· {textoDosDependentes(transacao.dependents_count ?? 0)}</span>
+            <span className="text-muted-foreground">· {textoDosDependentes(transacao.dependents_count ?? 0)}</span>
           </>
         )
-        const classes = "inline-flex items-center gap-1.5 text-[10px] font-bold text-primary"
+        const classes = "inline-flex items-center gap-1.5 text-xs font-medium text-fg-secondary"
         return onAbrirPrincipal ? (
           <button
             type="button"
@@ -40,7 +40,7 @@ export function MarcaDoVinculo({ transacao, onAbrirPrincipal, className }: Marca
               e.stopPropagation()
               onAbrirPrincipal(transacao.id)
             }}
-            className={cn(classes, "rounded-full hover:underline underline-offset-2 cursor-pointer")}
+            className={cn(classes, "rounded-sm underline-offset-2 transition-colors duration-fast hover:text-foreground hover:underline cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring")}
             title="Ver a principal e os gastos relacionados"
           >
             {conteudo}
@@ -50,8 +50,8 @@ export function MarcaDoVinculo({ transacao, onAbrirPrincipal, className }: Marca
         )
       })()}
       {dependente && (
-        <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground/70">
-          <CornerDownRight className="h-3 w-3 shrink-0" />
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
+          <CornerDownRight className="h-3 w-3 shrink-0" aria-hidden="true" />
           {textoDaPrincipal(transacao.principal_detail!)}
         </span>
       )}

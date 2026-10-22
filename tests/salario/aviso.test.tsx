@@ -106,7 +106,7 @@ async function lancarReceita(categoria: string) {
   await vi.waitFor(() => expect(post).toHaveBeenCalledWith("/transactions/", expect.anything()))
 }
 
-const aviso = () => screen.findByRole("dialog", { name: "Seu salário chegou!" })
+const aviso = () => screen.findByRole("dialog", { name: "Seu salário chegou." })
 
 beforeEach(() => {
   vi.clearAllMocks()
@@ -137,7 +137,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
 
     expect(within(janela).getByRole("link", { name: "Dividir agora" })).toHaveAttribute("href", "/salario?dividir=rec-novo")
     await userEvent.click(within(janela).getByRole("button", { name: "Agora não" }))
-    await vi.waitFor(() => expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument())
+    await vi.waitFor(() => expect(screen.queryByRole("dialog", { name: "Seu salário chegou." })).not.toBeInTheDocument())
   })
 
   it("receita de outra categoria não abre o aviso", async () => {
@@ -145,7 +145,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
     await lancarReceita("Freelance")
 
     await vi.waitFor(() => expect(chamadasDoPlano()).toHaveLength(1))
-    expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Seu salário chegou." })).not.toBeInTheDocument()
   })
 
   it("receita pendente não abre o aviso nem lê o plano", async () => {
@@ -154,7 +154,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
 
     await new Promise((r) => setTimeout(r, 20))
     expect(chamadasDoPlano()).toHaveLength(0)
-    expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Seu salário chegou." })).not.toBeInTheDocument()
   })
 
   it("com o recurso travado, não abre o aviso nem lê o plano", async () => {
@@ -163,7 +163,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
 
     await new Promise((r) => setTimeout(r, 20))
     expect(chamadasDoPlano()).toHaveLength(0)
-    expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Seu salário chegou." })).not.toBeInTheDocument()
   })
 
   it("efetivar uma receita pendente de Salário na lista abre o aviso", async () => {
@@ -203,7 +203,7 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
     const primeira = await editar(receita({ id: "rec-ja" }), receita({ id: "rec-ja" }))
     await new Promise((r) => setTimeout(r, 20))
     expect(chamadasDoPlano()).toHaveLength(0)
-    expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Seu salário chegou." })).not.toBeInTheDocument()
     primeira.unmount()
 
     // Pendente que volta efetivada: abre com o valor e o id dela
@@ -225,6 +225,6 @@ describe("Aviso ao receber o salário", { timeout: 15000 }, () => {
     await vi.waitFor(() => expect(patch).toHaveBeenCalledTimes(1))
     await new Promise((r) => setTimeout(r, 20))
     expect(chamadasDoPlano()).toHaveLength(0)
-    expect(screen.queryByRole("dialog", { name: "Seu salário chegou!" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("dialog", { name: "Seu salário chegou." })).not.toBeInTheDocument()
   })
 })

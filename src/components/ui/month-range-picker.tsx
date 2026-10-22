@@ -98,9 +98,9 @@ export function MonthRangePicker({ onRangeChange, initialStart, initialEnd, excl
   }
 
   return (
-    <div className="p-3 sm:p-4 bg-background/50 backdrop-blur-md border border-border/40 rounded-2xl shadow-sm">
+    <div className="rounded-lg border border-border bg-card p-3 sm:p-4">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3 sm:mb-4">
-        <h4 className="text-xs sm:text-sm font-black text-foreground flex items-center gap-2">
+        <h4 className="value-m flex items-center gap-2 text-foreground">
           <ChevronLeft 
             className="h-4 w-4 cursor-pointer hover:text-primary transition-colors" 
             onClick={() => setCurrentYear(prev => prev - 1)}
@@ -140,7 +140,7 @@ export function MonthRangePicker({ onRangeChange, initialStart, initialEnd, excl
               onMouseEnter={() => setHoveredMonth({ month, year: currentYear })}
               onMouseLeave={() => setHoveredMonth(null)}
               className={cn(
-                "h-9 sm:h-10 rounded-xl text-[12px] sm:text-[13px] font-black transition-all duration-200",
+                "h-9 text-sm sm:h-10",
                 selected && !edge && "bg-primary/20 text-primary dark:text-primary-foreground hover:bg-primary/30",
                 edge === "start" && "bg-primary text-primary-foreground hover:bg-primary/90 rounded-r-none shadow-md",
                 edge === "end" && "bg-primary text-primary-foreground hover:bg-primary/90 rounded-l-none shadow-md",
@@ -158,8 +158,8 @@ export function MonthRangePicker({ onRangeChange, initialStart, initialEnd, excl
       {(selection.start || selection.end) && (
         <div className="mt-4 pt-3 sm:pt-4 border-t border-border/40 flex justify-between items-center">
             <div className="flex flex-col">
-                <span className="text-[9px] sm:text-[10px] text-foreground font-black uppercase tracking-tight">Período</span>
-                <span className="text-[10px] sm:text-xs font-black text-foreground/80">
+                <span className="label text-muted-foreground">Período</span>
+                <span className="value-m text-foreground">
                     {selection.start ? `${months[selection.start.month - 1]}/${selection.start.year}` : "..."} 
                     {selection.end ? ` - ${months[selection.end.month - 1]}/${selection.end.year}` : ""}
                 </span>
@@ -167,7 +167,7 @@ export function MonthRangePicker({ onRangeChange, initialStart, initialEnd, excl
             <Button 
                 variant="ghost" 
                 size="sm" 
-                className="text-[9px] sm:text-[10px] h-7 px-2 uppercase font-black hover:text-destructive text-foreground/60 border border-transparent hover:border-destructive/20"
+                className="h-7 px-2 text-xs text-fg-secondary hover:text-outflow"
                 onClick={() => setSelection({ start: null, end: null })}
             >
                 Limpar

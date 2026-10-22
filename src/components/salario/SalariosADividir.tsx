@@ -47,10 +47,10 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
   const ordenados = recebimentos ? [...recebimentos].sort((a, b) => b.date.localeCompare(a.date)) : null
 
   return (
-    <section aria-labelledby="salario-recebido-titulo" className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+    <section aria-labelledby="salario-recebido-titulo" className="rounded-lg border border-border bg-card p-5 sm:p-6">
       <div className="mb-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-        <h2 id="salario-recebido-titulo" className="flex items-center gap-2 text-base font-semibold">
-          <Banknote aria-hidden className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+        <h2 id="salario-recebido-titulo" className="display-s flex items-center gap-2">
+          <Banknote aria-hidden className="h-4 w-4 text-inflow" />
           Salário recebido
         </h2>
         <p className="text-xs text-muted-foreground">Neste mês e no anterior, ainda não dividido</p>
@@ -68,7 +68,7 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
             <p className="text-sm text-muted-foreground">Suas receitas estão em outra categoria?</p>
           </div>
           {onEscolherReceitas && (
-            <Button variant="outline" className="h-10 rounded-xl px-4 self-start sm:self-auto" onClick={onEscolherReceitas}>
+            <Button variant="outline" className="h-10 rounded-md px-4 self-start sm:self-auto" onClick={onEscolherReceitas}>
               Escolher receitas de salário
             </Button>
           )}
@@ -80,7 +80,7 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
               <li key={recebimento.id} className="flex flex-col gap-4 pb-5 sm:flex-row sm:items-end sm:justify-between">
                 <div className="min-w-0 space-y-1">
                   <p className="truncate text-sm font-medium">{recebimento.description}</p>
-                  <p className="text-3xl font-semibold tracking-tight tabular-nums text-emerald-600 dark:text-emerald-400">
+                  <p className="value-l text-inflow">
                     {formatarMoeda(recebimento.amount)}
                   </p>
                   <div className="text-sm text-muted-foreground">
@@ -88,7 +88,7 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
                   </div>
                 </div>
                 <Button
-                  className="h-11 w-full rounded-xl px-5 text-sm font-semibold sm:w-auto"
+                  className="h-11 w-full px-5 sm:w-auto"
                   onClick={() => onDividir(recebimento)}
                   aria-label={`Dividir ${recebimento.description} de ${formatarMoeda(recebimento.amount)}`}
                 >
@@ -103,10 +103,10 @@ export function SalariosADividir({ recebimentos, onDividir, onEscolherReceitas }
                     <Detalhes recebimento={recebimento} />
                   </div>
                 </div>
-                <span className="whitespace-nowrap text-sm font-semibold tabular-nums">{formatarMoeda(recebimento.amount)}</span>
+                <span className="value-m">{formatarMoeda(recebimento.amount)}</span>
                 <Button
                   variant="outline"
-                  className="h-10 rounded-xl px-4"
+                  className="h-10 rounded-md px-4"
                   onClick={() => onDividir(recebimento)}
                   aria-label={`Dividir ${recebimento.description} de ${formatarMoeda(recebimento.amount)}`}
                 >

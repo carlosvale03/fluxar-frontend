@@ -8,7 +8,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { ErroDoBloco } from "@/components/reports/erro-do-bloco"
 import { formatarMoeda } from "@/lib/dinheiro"
 import { tratarErro } from "@/lib/erros"
-import { cn } from "@/lib/utils"
 import { buscarGastosPuxados } from "@/services/vinculos"
 import type { GrupoDeGastosPuxados } from "@/types/reports"
 
@@ -62,34 +61,32 @@ export function GastosPuxados({ period, className }: GastosPuxadosProps) {
 
   return (
     <section aria-label={TITULO_GASTOS_PUXADOS} className={className}>
-      <Card className="h-full border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden">
-        <CardHeader className="pb-0 pt-6 px-6">
-          <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-            <Link2 className="h-4 w-4 text-primary" />
-            {TITULO_GASTOS_PUXADOS}
+      <Card className="h-full">
+        <CardHeader className="pb-0">
+          <CardTitle className="flex items-center gap-2">
+            <Link2 className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+            <span>{TITULO_GASTOS_PUXADOS}</span>
           </CardTitle>
-          <CardDescription className="text-[10px] font-bold uppercase tracking-wider opacity-60">
-            Quanto cada categoria puxou de gastos em outras
-          </CardDescription>
+          <CardDescription>Quanto cada categoria puxou de gastos em outras</CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6">
           {grupos === null ? (
-            <Skeleton className="w-full h-[160px] rounded-2xl" />
+            <Skeleton className="h-[160px] w-full" />
           ) : grupos.length === 0 ? (
-            <p className="py-10 text-center text-sm font-medium text-muted-foreground">{SEM_GASTOS_PUXADOS}</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">{SEM_GASTOS_PUXADOS}</p>
           ) : (
-            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <ul className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {grupos.map((grupo) => (
                 <li
                   key={grupo.category_id ?? "sem-categoria"}
-                  className="rounded-[24px] border border-border/40 bg-muted/10 p-4 space-y-3"
+                  className="space-y-3 rounded-md border border-border p-4"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: grupo.color }} />
-                      <h4 className="font-black text-sm truncate">{grupo.category_name}</h4>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: grupo.color }} />
+                      <h4 className="truncate text-sm font-semibold">{grupo.category_name}</h4>
                     </div>
-                    <span className="text-xs font-black tabular-nums text-muted-foreground">
+                    <span className="value-m shrink-0 text-muted-foreground">
                       {formatarMoeda(grupo.total)} puxados
                     </span>
                   </div>
@@ -97,11 +94,11 @@ export function GastosPuxados({ period, className }: GastosPuxadosProps) {
                     {grupo.pulled.map((puxado) => (
                       <li
                         key={puxado.category_id ?? "sem-categoria"}
-                        className={cn("flex items-center gap-2 text-xs font-medium text-foreground/80")}
+                        className="flex items-center gap-2 text-sm text-fg-secondary"
                       >
-                        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: puxado.color }} />
+                        <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: puxado.color }} />
                         <span>
-                          {grupo.category_name} puxou <strong className="font-black tabular-nums">{formatarMoeda(puxado.amount)}</strong> de {puxado.category_name}
+                          {grupo.category_name} puxou <strong className="value-m font-medium text-foreground">{formatarMoeda(puxado.amount)}</strong> de {puxado.category_name}
                         </span>
                       </li>
                     ))}

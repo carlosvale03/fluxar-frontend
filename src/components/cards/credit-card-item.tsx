@@ -1,13 +1,12 @@
+import Link from "next/link"
+import { Edit, Trash2 } from "lucide-react"
 
-import { CreditCard as CardIcon, MoreVertical, Edit, Trash2 } from "lucide-react"
 import { CreditCard } from "@/types/cards"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useRouter } from "next/navigation"
+import { Card } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { BANKS } from "@/data/banks"
-import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
+import { deCentavos, formatarMoeda, formatarPercentual, paraCentavos } from "@/lib/dinheiro"
 
 interface CreditCardItemProps {
   card: CreditCard
@@ -15,142 +14,117 @@ interface CreditCardItemProps {
   onDelete: (card: CreditCard) => void
 }
 
-export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) {
-  const router = useRouter()
+// Acima deste uso do limite, a barra e o percentual passam para o laranja de alerta
+const USO_EM_ALERTA = 90
 
+interface BarraDoLimiteProps {
+  // Valores em centavos
+  utilizado: number
+  limite: number
+  className?: string
+}
+
+// AZ-25: uso do limite no mesmo desenho da Barra de rota (trilha em elevated,
+// preenchimento em text-secondary, laranja perto do limite). O desvio da
+// BarraDeRota não se aplica ao limite do cartão, então o texto é o percentual usado.
+export function BarraDoLimite({ utilizado, limite, className }: BarraDoLimiteProps) {
+  const percentual = limite > 0 ? (utilizado / limite) * 100 : 0
+  const largura = Math.max(0, Math.min(100, percentual))
+  const alerta = percentual >= USO_EM_ALERTA
+
+  return (
+    <div className={cn("flex items-center gap-3", className)}>
+      <div
+        className="relative h-1.5 flex-1 rounded-full bg-elevated"
+        role="img"
+        aria-label={`Limite: ${formatarMoeda(deCentavos(utilizado))} utilizados de ${formatarMoeda(deCentavos(limite))}, ${formatarPercentual(percentual)}`}
+      >
+        <span
+          className={cn("absolute inset-y-0 left-0 rounded-full", alerta ? "bg-warn" : "bg-fg-secondary")}
+          style={{ width: `${largura}%` }}
+        />
+      </div>
+      <span aria-hidden="true" className={cn("value-m w-12 text-right", alerta ? "text-warn" : "text-muted-foreground")}>
+        {formatarPercentual(percentual)}
+      </span>
+    </div>
+  )
+}
+
+export function CreditCardItem({ card, onEdit, onDelete }: CreditCardItemProps) {
   // CONTRATO-16: os valores chegam como texto; a conta é feita em centavos
   const limit = paraCentavos(card.limit) || 0
   const currentTotal = card.current_invoice_total
   // FATURA-42: o limite disponível vem só do backend
   const available = paraCentavos(card.available_limit)
-  
+
   // O limite utilizado é a diferença entre o limite total e o disponível
   const usedAmount = limit - available
-  const usagePercentage = limit > 0 ? (usedAmount / limit) * 100 : 0
 
-  // Helper to darken color for gradient
-  function adjustBrightness(col: string, amt: number) {
-      if (!col) return "#000000"
-      let usePound = false;
-      if (col[0] == "#") {
-          col = col.slice(1);
-          usePound = true;
-      }
-      var num = parseInt(col,16);
-      var r = (num >> 16) + amt;
-      if (r > 255) r = 255;
-      else if  (r < 0) r = 0;
-      var b = ((num >> 8) & 0x00) + amt;
-      if (b > 255) b = 255;
-      else if  (b < 0) b = 0;
-      var g = (num & 0x0000ff) + amt;
-      if (g > 255) g = 255;
-      else if (g < 0) g = 0;
-      return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
-  }
-
-  const bankColor = BANKS.find(b => b.value === card.institution)?.color
-  const displayColor = card.color || bankColor || "#1a1a1a"
+  // A cor do cartão (ou a do banco) é dado do usuário (P-08): fica só na faixa lateral
+  const bank = BANKS.find(b => b.value === card.institution)
+  const displayColor = card.color || bank?.color || "var(--az-text-muted)"
 
   return (
-    <div 
-        onClick={() => router.push(`/cartoes/${card.id}`)}
-        className={cn(
-            "group relative w-full aspect-[1.586] rounded-[32px] overflow-hidden shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 p-7 flex flex-col justify-between text-white cursor-pointer select-none",
-            !displayColor && "bg-gradient-to-br from-[#1a1a1a] to-[#4a4a4a]"
-        )}
-        style={{ 
-            background: `linear-gradient(135deg, ${displayColor} 0%, ${displayColor}CC 100%)` 
-        }}
-    >
-      {/* Glass & Shine Effects */}
-      <div className="absolute inset-0 bg-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
-      <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/10 to-transparent rotate-45 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 pointer-events-none" />
+    <Card interativo className="relative flex h-full flex-col gap-5 overflow-hidden p-5 pl-6">
+      <span aria-hidden="true" className="absolute inset-y-0 left-0 w-1" style={{ backgroundColor: displayColor }} />
 
-      {/* Header: Chip & Bank */}
-      <div className="flex justify-between items-start z-10">
-        <div className="w-11 h-8 bg-gradient-to-br from-amber-200 via-amber-400 to-amber-600 rounded-md shadow-inner flex flex-col gap-1 p-1 opacity-90 group-hover:scale-110 transition-transform duration-500">
-            <div className="h-full border-r border-black/10" />
-            <div className="w-full h-px bg-black/5" />
+      <div className="min-w-0 pr-6">
+        <p className="label text-muted-foreground">{bank?.label || "Meu cartão"}</p>
+        <h3 className="display-s mt-1 truncate">
+          {/* O link cobre o card inteiro; os botões de ação ficam acima dele */}
+          <Link
+            href={`/cartoes/${card.id}`}
+            className="outline-none after:absolute after:inset-0 after:content-['']"
+          >
+            {card.name}
+          </Link>
+        </h3>
+      </div>
+
+      <div>
+        <p className="label mb-1 text-muted-foreground">Fatura atual</p>
+        {/* Mesmo desenho do <Valor> neutro; fica num <p> porque a Ponte de
+            Comando também mostra este card e procura os totais dela em <span> */}
+        <p className="value-l whitespace-nowrap text-foreground">{formatarMoeda(currentTotal)}</p>
+      </div>
+
+      <div className="mt-auto space-y-2">
+        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+          <span>Utilizado: {formatarMoeda(deCentavos(usedAmount))}</span>
+          <span>Limite: {formatarMoeda(card.limit)}</span>
         </div>
-        
-        <div className="flex flex-col items-end">
-            <div className="flex items-center gap-2">
-                <span className="text-[9px] font-black tracking-[0.2em] text-white/60 uppercase italic">
-                    {BANKS.find(b => b.value === card.institution)?.label || "Meu cartão"}
-                </span>
-                <CardIcon className="h-4 w-4 text-white/60" />
-            </div>
-
-            {/* Floating Action Buttons (FAB) - Hover Only */}
-            <div className="mt-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 flex items-center gap-1 p-1 bg-white/10 backdrop-blur-md shadow-xl border border-white/20 rounded-2xl pointer-events-none group-hover:pointer-events-auto">
-                <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-7 w-7 rounded-xl text-white hover:bg-white/20 transition-all" 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onEdit(card);
-                    }}
-                >
-                    <Edit className="h-3.5 w-3.5" />
-                </Button>
-                <Button 
-                    variant="ghost" 
-                    size="icon"
-                    className="h-7 w-7 rounded-xl text-white hover:bg-red-500/40 transition-all" 
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onDelete(card);
-                    }}
-                >
-                    <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-            </div>
-        </div>
-      </div>
-      
-      {/* Middle: Card Identity */}
-      <div className="z-10 mt-auto mb-4">
-          <div className="flex justify-between items-end gap-4">
-              <div className="space-y-1 overflow-hidden">
-                <h4 className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase">Nome no Cartão</h4>
-                <p className="text-sm font-black text-white tracking-[0.15em] uppercase truncate drop-shadow-md">
-                    {card.name}
-                </p>
-                <div className="flex items-center gap-1 opacity-30 group-hover:opacity-50 transition-opacity">
-                    <span className="text-[8px] tracking-[0.3em]">•••• •••• •••• ••••</span>
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                  <h4 className="text-[9px] font-black text-white/40 tracking-[0.2em] uppercase mb-1">Fatura Atual</h4>
-                  <p className="text-xl font-black text-white drop-shadow-lg leading-none">
-                    {formatarMoeda(currentTotal)}
-                  </p>
-              </div>
-          </div>
+        <BarraDoLimite utilizado={usedAmount} limite={limit} />
       </div>
 
-      {/* Footer: Limit & Progress */}
-      <div className="z-10 space-y-3">
-          <div className="space-y-1.5">
-             <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest text-white/50">
-                 <span>Utilizado: {formatarMoeda(deCentavos(usedAmount))}</span>
-                 <div className="flex items-center gap-3">
-                    <span>Limite: {formatarMoeda(card.limit)}</span>
-                    {/* Mastercard Circles Effect */}
-                    <div className="flex -space-x-2.5 opacity-40 group-hover:opacity-70 transition-opacity">
-                        <div className="h-6 w-6 rounded-full bg-white/40 border border-white/20" />
-                        <div className="h-6 w-6 rounded-full bg-white/20 border border-white/10" />
-                    </div>
-                 </div>
-             </div>
-             <Progress 
-                value={usagePercentage} 
-                className="h-1.5 bg-black/20 border border-white/5 overflow-hidden rounded-full [&>div]:bg-gradient-to-r [&>div]:from-white/90 [&>div]:to-white/60" 
-             />
-          </div>
+      <div className="relative z-10 -mb-2 -mr-2 flex justify-end gap-0.5 border-t border-border pt-2">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          title="Editar cartão"
+          aria-label={`Editar cartão ${card.name}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onEdit(card)
+          }}
+        >
+          <Edit aria-hidden="true" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8 hover:text-outflow"
+          title="Excluir cartão"
+          aria-label={`Excluir cartão ${card.name}`}
+          onClick={(e) => {
+            e.stopPropagation()
+            onDelete(card)
+          }}
+        >
+          <Trash2 aria-hidden="true" />
+        </Button>
       </div>
-    </div>
+    </Card>
   )
 }

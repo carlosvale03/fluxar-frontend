@@ -1,7 +1,6 @@
 "use client"
 
 import { useRouter } from "next/navigation"
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip } from "recharts"
 import { Layers } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -10,6 +9,8 @@ import { cn } from "@/lib/utils"
 import { deCentavos, formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 import { COR_SEM_CLASSE, VALOR_SEM_CLASSE } from "@/lib/classes"
 import { ExpenseByClass } from "@/types/reports"
+
+import { RoscaDeDistribuicao } from "./rosca-de-distribuicao"
 
 export const MENSAGEM_SEM_DESPESAS = "Nenhuma despesa no período."
 
@@ -44,8 +45,6 @@ export function ClassDistributionChart({ data, isLoading, startDate, endDate, cl
   })
   const totalEmCentavos = itens.reduce((soma, item) => soma + item.centavos, 0)
   const temDespesas = itens.some((item) => item.centavos > 0)
-  // O Recharts precisa de número: a conversão é só para plotar
-  const dadosDoGrafico = itens.map((item) => ({ ...item, valor: item.centavos / 100 }))
 
   // CLASSE-33: a lista filtrada pela classe e pelo mesmo período
   const abrirTransacoes = (item: ExpenseByClass) => {
@@ -57,22 +56,17 @@ export function ClassDistributionChart({ data, isLoading, startDate, endDate, cl
   }
 
   return (
-    <Card
-      className={cn(
-        "border border-border/60 bg-card shadow-md hover:shadow-lg hover:border-primary/20 transition-all rounded-[32px] overflow-hidden",
-        className,
-      )}
-    >
-      <CardHeader className="pb-0 pt-6">
-        <CardTitle className="text-sm font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
-          <Layers className="h-4 w-4 text-violet-500" />
-          Despesas por Classe
+    <Card className={cn(className)}>
+      <CardHeader className="pb-0">
+        <CardTitle className="flex items-center gap-2">
+          <Layers className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <span>Despesas por Classe</span>
         </CardTitle>
         <CardDescription>Quanto das despesas foi para cada classe</CardDescription>
       </CardHeader>
-      <CardContent className="h-auto min-h-[320px] flex flex-col sm:flex-row items-center justify-between p-4 sm:p-5 lg:p-6 gap-2 sm:gap-4 lg:gap-8">
+      <CardContent className="flex h-auto min-h-[320px] flex-col items-center justify-between gap-2 p-4 sm:flex-row sm:gap-4 sm:p-5 lg:gap-8 lg:p-6">
         {isLoading ? (
-          <Skeleton className="w-full h-[300px] rounded-2xl" />
+          <Skeleton className="h-[300px] w-full" />
         ) : !temDespesas ? (
           // CLASSE-32
           <ChartEmptyState
@@ -83,92 +77,20 @@ export function ClassDistributionChart({ data, isLoading, startDate, endDate, cl
             icon={Layers}
           />
         ) : (
-          <>
-            <div className="w-full h-[220px] sm:h-[250px] lg:h-[280px] relative sm:flex-1" style={{ minWidth: 0 }}>
-              <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                <PieChart>
-                  <Pie
-                    data={dadosDoGrafico}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius="65%"
-                    outerRadius="90%"
-                    paddingAngle={4}
-                    dataKey="valor"
-                    nameKey="class_name"
-                    stroke="none"
-                  >
-                    {itens.map((item, index) => (
-                      <Cell
-                        key={`classe-${index}`}
-                        fill={item.cor}
-                        className="hover:opacity-80 transition-opacity cursor-pointer outline-none"
-                        style={{ filter: `drop-shadow(0 4px 6px ${item.cor}22)` }}
-                        onClick={() => abrirTransacoes(item)}
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    wrapperStyle={{ zIndex: 100 }}
-                    content={({ active, payload }) => {
-                      if (active && payload && payload.length) {
-                        const item = payload[0].payload as (typeof dadosDoGrafico)[number]
-                        return (
-                          <div className="z-50 bg-background/95 backdrop-blur-2xl border border-border/50 p-3 rounded-2xl shadow-2xl ring-1 ring-black/5">
-                            <div className="flex items-center gap-2 mb-1">
-                              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.cor }} />
-                              <span className="text-sm font-black">{item.class_name}</span>
-                            </div>
-                            <p className="text-xs font-bold text-muted-foreground">
-                              {formatarMoeda(item.amount)} · {porcentagemDaClasse(item.centavos, totalEmCentavos)}
-                            </p>
-                          </div>
-                        )
-                      }
-                      return null
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none z-0">
-                <span className="block text-[8px] font-black uppercase tracking-tighter text-muted-foreground opacity-50">
-                  Total
-                </span>
-                <span className="block text-xs sm:text-base lg:text-lg font-black">
-                  {formatarMoeda(deCentavos(totalEmCentavos))}
-                </span>
-              </div>
-            </div>
-            <ul className="w-full sm:w-[170px] md:w-[160px] lg:w-[230px] xl:w-[250px] space-y-0.5 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar mt-4 sm:mt-0 shrink-0">
-              {itens.map((item) => (
-                <li key={item.class_id ?? VALOR_SEM_CLASSE}>
-                  <button
-                    type="button"
-                    onClick={() => abrirTransacoes(item)}
-                    aria-label={`Ver as transações de ${item.class_name}`}
-                    className="w-full flex items-center justify-between py-1 px-2 rounded-xl hover:bg-muted/30 transition-colors group text-left"
-                  >
-                    <span className="flex items-center gap-2 overflow-hidden">
-                      <span
-                        data-testid="cor-da-classe"
-                        className="w-2 h-2 rounded-full shrink-0 shadow-sm"
-                        style={{ backgroundColor: item.cor }}
-                      />
-                      <span className="text-[10px] sm:text-[11px] font-bold text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                        {item.class_name}
-                      </span>
-                    </span>
-                    <span className="flex flex-col items-end shrink-0 ml-2">
-                      <span className="text-[10px] sm:text-[11px] font-black">{formatarMoeda(item.amount)}</span>
-                      <span className="text-[9px] font-bold text-muted-foreground">
-                        {porcentagemDaClasse(item.centavos, totalEmCentavos)}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </>
+          <RoscaDeDistribuicao
+            total={formatarMoeda(deCentavos(totalEmCentavos))}
+            fatias={itens.map((item) => ({
+              chave: item.class_id ?? VALOR_SEM_CLASSE,
+              nome: item.class_name,
+              valor: item.amount,
+              centavos: item.centavos,
+              cor: item.cor,
+              extra: porcentagemDaClasse(item.centavos, totalEmCentavos),
+              rotulo: `Ver as transações de ${item.class_name}`,
+              testIdDaCor: "cor-da-classe",
+              aoClicar: () => abrirTransacoes(item),
+            }))}
+          />
         )}
       </CardContent>
     </Card>

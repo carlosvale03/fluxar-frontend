@@ -1,22 +1,22 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { 
-    format, 
-    startOfMonth, 
-    endOfMonth, 
-    startOfWeek, 
-    endOfWeek, 
-    eachDayOfInterval, 
-    isSameMonth, 
+import {
+    format,
+    startOfMonth,
+    endOfMonth,
+    startOfWeek,
+    endOfWeek,
+    eachDayOfInterval,
+    isSameMonth,
     isToday,
     isSameDay
 } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { CalendarDayReport } from "@/types/reports"
 import { cn } from "@/lib/utils"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { TrendingUp, TrendingDown, Calendar as CalendarIcon, ArrowUpCircle, ArrowDownCircle, Wallet, X, Sparkles } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Valor } from "@/components/ui/valor"
 import { formatarMoeda, paraCentavos } from "@/lib/dinheiro"
 
 interface FinancialCalendarProps {
@@ -26,15 +26,18 @@ interface FinancialCalendarProps {
     isLoading?: boolean
 }
 
-export function FinancialCalendar({ month, year, daysData, isLoading }: FinancialCalendarProps) {
+// AZ-29: grade do mês no estilo do Azimute. Cada dia é um botão; os valores
+// usam o <Valor> (sinal e cor de entrada e saída), e o resumo para leitor de
+// tela fica no rótulo do botão.
+export function FinancialCalendar({ month, year, daysData }: FinancialCalendarProps) {
     const viewDate = new Date(year, month - 1, 1)
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
     const [isDialogOpen, setIsDialogOpen] = useState(false)
-    
+
     const calendarDays = useMemo(() => {
         const start = startOfWeek(startOfMonth(viewDate), { weekStartsOn: 0 })
         const end = endOfWeek(endOfMonth(viewDate), { weekStartsOn: 0 })
-        
+
         return eachDayOfInterval({ start, end })
     }, [viewDate])
 
@@ -48,197 +51,131 @@ export function FinancialCalendar({ month, year, daysData, isLoading }: Financia
 
     const selectedDayData = selectedDate ? getDayData(selectedDate) : null
 
+    const rotuloDoDia = (date: Date, dayData?: CalendarDayReport) => {
+        const dia = format(date, "d 'de' MMMM", { locale: ptBR })
+        if (!dayData) return `${dia}: sem movimentações`
+        const partes: string[] = []
+        if (paraCentavos(dayData.total_incomes) > 0) partes.push(`receitas ${formatarMoeda(dayData.total_incomes)}`)
+        if (paraCentavos(dayData.total_expenses) > 0) partes.push(`despesas ${formatarMoeda(dayData.total_expenses)}`)
+        return partes.length ? `${dia}: ${partes.join(", ")}` : `${dia}: sem movimentações`
+    }
+
     return (
-        <div className="space-y-8 animate-in fade-in duration-700">
-        <div className="bg-card border border-border/60 rounded-[32px] shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-            {/* Weekdays Header - Premium Style */}
-            <div className="grid grid-cols-7 border-b border-border/40 bg-muted/20">
+        <div className="space-y-6">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
+            {/* Dias da semana */}
+            <div className="grid grid-cols-7 border-b border-border" aria-hidden="true">
                 {fullWeekDays.map((day, i) => (
-                    <div key={day} className="py-4 text-center">
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 hidden sm:inline">
+                    <div key={day} className="py-3 text-center">
+                        <span className="label hidden text-muted-foreground sm:inline">
                             {day}
                         </span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 sm:hidden">
+                        <span className="label text-muted-foreground sm:hidden">
                             {weekDays[i]}
                         </span>
                     </div>
                 ))}
             </div>
 
-            <div className="grid grid-cols-7 auto-rows-fr">
+            <div className="grid auto-rows-fr grid-cols-7">
                 {calendarDays.map((date, i) => {
                     const dayData = getDayData(date)
                     const isCurrentMonth = isSameMonth(date, viewDate)
                     const isTodayBtn = isToday(date)
                     const isSelected = selectedDate && isSameDay(date, selectedDate)
-                    
+                    const temEntrada = !!dayData && paraCentavos(dayData.total_incomes) > 0
+                    const temSaida = !!dayData && paraCentavos(dayData.total_expenses) > 0
+                    const classes = cn(
+                        "relative flex min-h-[72px] flex-col justify-between gap-1 border-b border-r border-border p-1.5 text-left sm:min-h-[120px] sm:p-3",
+                        i % 7 === 6 && "border-r-0"
+                    )
+
+                    // Dias de fora do mês só completam a grade
+                    if (!isCurrentMonth) {
+                        return (
+                            <div key={date.toString()} aria-hidden="true" className={cn(classes, "text-muted-foreground opacity-40")}>
+                                <span className="font-mono text-sm">{format(date, "d")}</span>
+                            </div>
+                        )
+                    }
+
                     return (
-                        <div 
+                        <button
+                            type="button"
                             key={date.toString()}
+                            aria-label={rotuloDoDia(date, dayData)}
+                            aria-current={isTodayBtn ? "date" : undefined}
                             onClick={() => {
-                                if (isCurrentMonth) {
-                                    setSelectedDate(date)
-                                    setIsDialogOpen(true)
-                                }
+                                setSelectedDate(date)
+                                setIsDialogOpen(true)
                             }}
                             className={cn(
-                                "min-h-[80px] sm:min-h-[140px] p-2 sm:p-4 border-r border-b border-border/10 transition-all duration-300 relative group flex flex-col justify-between cursor-pointer",
-                                isCurrentMonth ? "bg-card hover:bg-muted/30" : "bg-muted/5 opacity-20 grayscale-[0.5] cursor-default",
-                                isSelected && "bg-primary/[0.04] z-10",
-                                i % 7 === 6 && "border-r-0"
+                                classes,
+                                "cursor-pointer transition-colors duration-fast ease-az-out hover:bg-elevated focus-visible:z-sticky focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                                isSelected && "bg-elevated"
                             )}
                         >
-                            <div className="flex justify-between items-start">
-                                <span className={cn(
-                                    "text-sm sm:text-lg font-black w-8 h-8 sm:w-11 sm:h-11 flex items-center justify-center rounded-xl transition-all duration-500",
-                                    isTodayBtn 
-                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-105 ring-2 ring-primary/20" 
-                                        : isSelected
-                                            ? "bg-primary/10 text-primary border border-primary/20 ring-2 ring-primary/10"
-                                            : "text-muted-foreground/50 group-hover:text-foreground group-hover:bg-muted/50"
-                                )}>
-                                    {format(date, "d")}
-                                </span>
-                                
-                                {/* Desktop Indicator (Neon Glow) */}
-                                {dayData && (paraCentavos(dayData.total_incomes) > 0 || paraCentavos(dayData.total_expenses) > 0) && (
-                                     <div className={cn(
-                                         "w-2 h-2 rounded-full mt-1 hidden sm:block",
-                                         paraCentavos(dayData.net_amount) >= 0 
-                                            ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.8)]" 
-                                            : "bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.8)]"
-                                     )} />
-                                )}
-                            </div>
+                            <span className={cn(
+                                "flex h-7 w-7 items-center justify-center rounded-full font-mono text-sm sm:h-8 sm:w-8",
+                                isTodayBtn
+                                    ? "border border-gold-line text-gold-line"
+                                    : isSelected
+                                        ? "text-foreground"
+                                        : "text-fg-secondary"
+                            )}>
+                                {format(date, "d")}
+                            </span>
 
-                            {/* Mobile Indicators */}
-                            <div className="flex sm:hidden justify-center gap-1.5 mt-2">
-                                {dayData && paraCentavos(dayData.total_incomes) > 0 && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]" />
-                                )}
-                                {dayData && paraCentavos(dayData.total_expenses) > 0 && (
-                                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-[0_0_5px_rgba(244,63,94,0.5)]" />
-                                )}
-                            </div>
+                            {/* Celular: marcas de entrada e saída (o rótulo do botão diz os valores) */}
+                            <span aria-hidden="true" className="flex justify-center gap-1 sm:hidden">
+                                {temEntrada && <span className="h-1.5 w-1.5 rounded-full bg-inflow" />}
+                                {temSaida && <span className="h-1.5 w-1.5 rounded-full bg-outflow" />}
+                            </span>
 
-                            {/* Desktop Strategy: Premium Soft Pills */}
-                            <div className="hidden sm:flex flex-col gap-1.5 mt-auto">
-                                {dayData && paraCentavos(dayData.total_incomes) > 0 && (
-                                    <div className="flex items-center justify-between gap-1 text-[9px] font-black text-emerald-600 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1.5 rounded-full uppercase tracking-wider transition-all group-hover:bg-emerald-500/20">
-                                        <div className="flex items-center gap-1 min-w-0">
-                                            <TrendingUp className="h-3 w-3 shrink-0" />
-                                            <span className="truncate">Receitas</span>
-                                        </div>
-                                        <span className="tabular-nums">{formatarMoeda(dayData.total_incomes)}</span>
-                                    </div>
-                                )}
-                                {dayData && paraCentavos(dayData.total_expenses) > 0 && (
-                                    <div className="flex items-center justify-between gap-1 text-[9px] font-black text-rose-600 bg-rose-500/10 border border-rose-500/20 px-2 py-1.5 rounded-full uppercase tracking-wider transition-all group-hover:bg-rose-500/20">
-                                        <div className="flex items-center gap-1 min-w-0">
-                                            <TrendingDown className="h-3 w-3 shrink-0" />
-                                            <span className="truncate">Despesas</span>
-                                        </div>
-                                        <span className="tabular-nums">{formatarMoeda(dayData.total_expenses)}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Border Highlight Effect on Hover */}
-                            <div className={cn(
-                                "absolute inset-0 border-2 border-primary/40 rounded-sm opacity-0 transition-opacity duration-300 pointer-events-none",
-                                isSelected ? "opacity-100" : "group-hover:opacity-100"
-                            )} />
-                        </div>
+                            {/* Desktop: os valores do dia */}
+                            <span aria-hidden="true" className="mt-auto hidden flex-col items-end gap-0.5 sm:flex">
+                                {temEntrada && <Valor valor={dayData?.total_incomes} direcao="entrada" semMoeda className="max-w-full truncate" />}
+                                {temSaida && <Valor valor={dayData?.total_expenses} direcao="saida" semMoeda className="max-w-full truncate" />}
+                            </span>
+                        </button>
                     )
                 })}
             </div>
         </div>
 
-            {/* MODAL DE DETALHES (Dialog View) */}
+            {/* Diálogo do dia */}
             <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-2xl bg-card border-none p-0 overflow-hidden rounded-[32px] shadow-2xl ring-1 ring-white/10 animate-in zoom-in-95 duration-300">
+                <DialogContent className="max-w-2xl">
                     {selectedDate && (
-                        <div className="flex flex-col">
-                            {/* Modal Header - Premium Pattern */}
-                            <div className="bg-primary/5 border-b border-border/40 p-8 flex items-center justify-between">
-                                <div className="flex items-center gap-5">
-                                    <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20 shrink-0">
-                                        <CalendarIcon className="h-8 w-8" />
-                                    </div>
-                                    <div>
-                                        <DialogTitle className="text-2xl font-black tracking-tight text-foreground/90">
-                                            {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
-                                        </DialogTitle>
-                                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/50 mt-1.5 flex items-center gap-2">
-                                            <Sparkles className="h-3 w-3 text-primary/60" />
-                                            Detalhamento Diário
-                                        </p>
-                                    </div>
+                        <>
+                            <DialogHeader>
+                                <DialogTitle>
+                                    {format(selectedDate, "dd 'de' MMMM", { locale: ptBR })}
+                                </DialogTitle>
+                                <DialogDescription>Resumo do dia</DialogDescription>
+                            </DialogHeader>
+
+                            <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                                <div className="rounded-md border border-border p-4">
+                                    <dt className="label mb-2 text-muted-foreground">Receitas</dt>
+                                    <dd><Valor valor={selectedDayData?.total_incomes} direcao="entrada" tamanho="l" /></dd>
                                 </div>
-                            </div>
-
-                            {/* Modal Content - Premium Cards */}
-                            <div className="p-8 space-y-6">
-                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                                    {/* Incomes Card */}
-                                    <div className="bg-emerald-500/[0.03] border border-emerald-500/10 rounded-3xl p-6 flex flex-col justify-between group hover:bg-emerald-500/[0.06] transition-all duration-500">
-                                        <div className="flex items-center justify-between mb-5">
-                                            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-sm ring-1 ring-emerald-500/20">
-                                                <TrendingUp className="h-5 w-5" />
-                                            </div>
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-emerald-500/60">Receitas</span>
-                                        </div>
-                                        <p className="text-2xl font-black text-emerald-600 tabular-nums">
-                                            {formatarMoeda(selectedDayData?.total_incomes)}
-                                        </p>
-                                    </div>
-
-                                    {/* Expenses Card */}
-                                    <div className="bg-rose-500/[0.03] border border-rose-500/10 rounded-3xl p-6 flex flex-col justify-between group hover:bg-rose-500/[0.06] transition-all duration-500">
-                                        <div className="flex items-center justify-between mb-5">
-                                            <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 shadow-sm ring-1 ring-rose-500/20">
-                                                <TrendingDown className="h-5 w-5" />
-                                            </div>
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-rose-500/60">Despesas</span>
-                                        </div>
-                                        <p className="text-2xl font-black text-rose-600 tabular-nums">
-                                            {formatarMoeda(selectedDayData?.total_expenses)}
-                                        </p>
-                                    </div>
-
-                                    {/* Balance Card */}
-                                    <div className="bg-primary/[0.03] border border-primary/10 rounded-3xl p-6 flex flex-col justify-between group hover:bg-primary/[0.06] transition-all duration-500">
-                                        <div className="flex items-center justify-between mb-5">
-                                            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
-                                                <Wallet className="h-5 w-5" />
-                                            </div>
-                                            <span className="text-[9px] font-black uppercase tracking-widest text-primary/60">Saldo</span>
-                                        </div>
-                                        <p className={cn(
-                                            "text-2xl font-black tabular-nums",
-                                            paraCentavos(selectedDayData?.net_amount) >= 0 ? "text-emerald-600" : "text-rose-600"
-                                        )}>
-                                            {formatarMoeda(selectedDayData?.net_amount)}
-                                        </p>
-                                    </div>
+                                <div className="rounded-md border border-border p-4">
+                                    <dt className="label mb-2 text-muted-foreground">Despesas</dt>
+                                    <dd><Valor valor={selectedDayData?.total_expenses} direcao="saida" tamanho="l" /></dd>
                                 </div>
+                                <div className="rounded-md border border-border p-4">
+                                    <dt className="label mb-2 text-muted-foreground">Saldo</dt>
+                                    <dd><Valor valor={selectedDayData?.net_amount} tamanho="l" /></dd>
+                                </div>
+                            </dl>
 
-                                {!selectedDayData || (paraCentavos(selectedDayData.total_incomes) === 0 && paraCentavos(selectedDayData.total_expenses) === 0) ? (
-                                    <div className="py-14 text-center border-2 border-dashed border-border/20 rounded-[32px] bg-muted/5 group">
-                                        <div className="w-12 h-12 rounded-full bg-muted/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform duration-500">
-                                            <Sparkles className="h-6 w-6 text-muted-foreground/30" />
-                                        </div>
-                                        <p className="text-[10px] font-black text-muted-foreground/40 uppercase tracking-[0.2em]">Sem movimentações no período</p>
-                                    </div>
-                                ) : (
-                                    <div className="pt-6 border-t border-border/10">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] text-muted-foreground/30 text-center italic">
-                                            Dados consolidados do fluxo financeiro
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
+                            {(!selectedDayData || (paraCentavos(selectedDayData.total_incomes) === 0 && paraCentavos(selectedDayData.total_expenses) === 0)) && (
+                                <p className="rounded-md border border-dashed border-border-strong py-8 text-center text-sm text-muted-foreground">
+                                    Sem movimentações neste dia.
+                                </p>
+                            )}
+                        </>
                     )}
                 </DialogContent>
             </Dialog>

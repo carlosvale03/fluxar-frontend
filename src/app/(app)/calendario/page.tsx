@@ -5,20 +5,31 @@ import { getCalendarReport } from "@/services/reports"
 import { CalendarReport } from "@/types/reports"
 import { FinancialCalendar } from "@/components/calendar/FinancialCalendar"
 import { Button } from "@/components/ui/button"
-import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Loader2, Info } from "lucide-react"
+import { ChevronLeft, ChevronRight, Info } from "lucide-react"
 import { MonthPicker } from "@/components/ui/month-picker"
-import { toast } from "sonner"
 import { tratarErro } from "@/lib/erros"
 import { Skeleton } from "@/components/ui/skeleton"
-import { RecursoBloqueado } from "@/components/planos/recurso-bloqueado"
+import { AvisoDoPlano } from "@/components/planos/recurso-bloqueado"
+import { CabecalhoDePagina } from "@/components/layout/cabecalho-de-pagina"
+import { usePlan } from "@/hooks/use-plan"
+
+const TITULO = "Calendário"
+const APOIO = "Vencimentos e fechamentos"
 
 // PERM-19: com `calendario` fechado, a tela mostra o aviso do plano e o
 // calendário nem é montado, então /reports/calendar/ não é chamado
 export default function CalendarPage() {
+    const { podeUsar } = usePlan()
+    const liberado = podeUsar("calendario")
+
+    if (liberado === null) return null
+    if (liberado) return <CalendarioDoMes />
+
     return (
-        <RecursoBloqueado chave="calendario" titulo="Calendário" className="container mx-auto my-10 max-w-3xl">
-            <CalendarioDoMes />
-        </RecursoBloqueado>
+        <div className="container mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-6">
+            <CabecalhoDePagina titulo={TITULO} apoio={APOIO} className="pb-0" />
+            <AvisoDoPlano />
+        </div>
     )
 }
 
@@ -65,78 +76,52 @@ function CalendarioDoMes() {
     }
 
     return (
-        <div className="container mx-auto py-10 px-4 max-w-7xl space-y-8 animate-in fade-in duration-700">
-      {/* Premium Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-        <div className="flex items-center gap-5">
-            <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center shadow-sm ring-1 ring-black/5 dark:ring-white/10 shrink-0">
-                <CalendarIcon className="h-8 w-8 text-primary" />
-            </div>
-            <div>
-                 <h1 className="text-3xl font-black tracking-tight text-foreground/90">Calendário</h1>
-                 <p className="text-muted-foreground mt-1.5 font-medium flex items-center gap-2">
-                   Fluxo Financeiro Mensal
-                   <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
-                   <span className="text-primary font-bold">{selectedMonth}/{selectedYear}</span>
-                 </p>
-            </div>
-        </div>
+        <div className="container mx-auto max-w-7xl space-y-6 px-4 py-8 md:px-6">
+            <CabecalhoDePagina
+                titulo={TITULO}
+                apoio={APOIO}
+                className="pb-0"
+                periodo={
+                    <div className="flex items-center gap-1 rounded-md border border-border p-0.5">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handlePrevMonth} aria-label="Mês anterior" title="Mês anterior">
+                            <ChevronLeft aria-hidden="true" />
+                        </Button>
 
-        <div className="flex items-center gap-1 bg-background/40 backdrop-blur-md p-1 rounded-full border border-border/40 shadow-xl self-start md:self-auto ml-auto">
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
-                onClick={handlePrevMonth}
-            >
-                <ChevronLeft className="h-5 w-5" />
-            </Button>
-            
-            <div className="px-1">
-                <MonthPicker 
-                    currentMonth={selectedMonth}
-                    currentYear={selectedYear}
-                    onSelect={(month: number, year: number) => {
-                        setSelectedMonth(month)
-                        setSelectedYear(year)
-                    }}
-                />
+                        <MonthPicker
+                            currentMonth={selectedMonth}
+                            currentYear={selectedYear}
+                            onSelect={(month: number, year: number) => {
+                                setSelectedMonth(month)
+                                setSelectedYear(year)
+                            }}
+                        />
+
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleNextMonth} aria-label="Próximo mês" title="Próximo mês">
+                            <ChevronRight aria-hidden="true" />
+                        </Button>
+                    </div>
+                }
+            />
+
+            {/* Alerta informativo com a listra lateral (DESIGN.md §5, Alertas) */}
+            <div className="flex items-start gap-3 rounded-r-lg border border-border border-l-[3px] border-l-info bg-card p-4">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+                <div className="space-y-1">
+                    <h2 className="text-sm font-semibold">Como ler o calendário</h2>
+                    <p className="max-w-3xl text-sm text-fg-secondary">
+                        Cada dia mostra a soma das receitas (+) e das despesas (−), em reais.
+                        Escolha um dia para ver o resumo dele.
+                    </p>
+                </div>
             </div>
-
-            <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-10 w-10 rounded-full hover:bg-primary/10 hover:text-primary transition-all active:scale-90"
-                onClick={handleNextMonth}
-            >
-                <ChevronRight className="h-5 w-5" />
-            </Button>
-        </div>
-      </div>
-
-      {/* Information Banner (Premium Pattern) */}
-      <div className="mb-8 p-5 rounded-3xl bg-primary/5 border border-primary/10 text-primary/80 animate-in slide-in-from-bottom-2 duration-700 flex items-start gap-5">
-          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0 shadow-sm ring-1 ring-primary/20">
-              <Info className="h-5 w-5 text-primary" />
-          </div>
-          <div className="space-y-1">
-              <h4 className="font-bold text-sm text-foreground/80 tracking-tight">Dica de Navegação</h4>
-              <p className="text-xs leading-relaxed max-w-3xl text-muted-foreground font-medium">
-                  Os valores exibidos representam a soma de todas as receitas e despesas do dia. 
-                  Este calendário permite visualizar rapidamente os dias de maior movimentação e planejar seu fluxo de caixa mensal.
-              </p>
-          </div>
-      </div>
 
             {isLoading ? (
-                <div className="space-y-4">
-                    <Skeleton className="h-[600px] w-full rounded-[32px]" />
-                </div>
+                <Skeleton className="h-[600px] w-full rounded-lg" />
             ) : (
-                <FinancialCalendar 
-                    month={selectedMonth} 
-                    year={selectedYear} 
-                    daysData={report?.days || []} 
+                <FinancialCalendar
+                    month={selectedMonth}
+                    year={selectedYear}
+                    daysData={report?.days || []}
                 />
             )}
         </div>

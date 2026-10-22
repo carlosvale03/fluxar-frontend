@@ -26,7 +26,7 @@ import { Label } from "@/components/ui/label"
 import { MoneyInput } from "@/components/ui/money-input"
 import { MENSAGEM_RECURSO_BLOQUEADO } from "@/components/planos/recurso-bloqueado"
 import { lerData } from "@/lib/datas"
-import { formatarMoeda } from "@/lib/dinheiro"
+import { Valor } from "@/components/ui/valor"
 import { tratarErro } from "@/lib/erros"
 import { cn } from "@/lib/utils"
 import { buscarGastos, desvincular, ehPrincipal, podeTerVinculo, vincular } from "@/services/vinculos"
@@ -71,9 +71,9 @@ export function AcoesDoVinculo({ transacao, liberado, onLancarRelacionado, onVin
   }
 
   const itemTravado = (rotulo: string, Icone: typeof Plus) => (
-    <DropdownMenuItem disabled className="rounded-xl px-3 py-2.5 font-bold" title={MENSAGEM_RECURSO_BLOQUEADO}>
+    <DropdownMenuItem disabled title={MENSAGEM_RECURSO_BLOQUEADO}>
       <Icone className="mr-2 h-4 w-4" /> {rotulo}
-      <Lock className="ml-auto h-3.5 w-3.5 text-amber-600" aria-label="Travado pelo plano" />
+      <Lock className="ml-auto h-3.5 w-3.5 text-warn" aria-label="Travado pelo plano" />
     </DropdownMenuItem>
   )
 
@@ -86,32 +86,32 @@ export function AcoesDoVinculo({ transacao, liberado, onLancarRelacionado, onVin
           aria-label="Vínculo"
           title="Vínculo"
           onClick={(e) => e.stopPropagation()}
-          className={cn("h-8 w-8 rounded-xl text-primary hover:bg-primary/10 transition-all", className)}
+          className={cn("h-8 w-8", className)}
         >
-          {desfazendo ? <Loader2 className="h-4 w-4 animate-spin" /> : <Link2 className="h-4 w-4" />}
+          {desfazendo ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Link2 aria-hidden="true" />}
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="rounded-2xl p-2 min-w-[240px] shadow-2xl border-border/40" onClick={(e) => e.stopPropagation()}>
-        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-50 px-3 py-2">Gastos relacionados</DropdownMenuLabel>
-        <DropdownMenuSeparator className="mx-2 opacity-50" />
+      <DropdownMenuContent align="end" className="min-w-[240px]" onClick={(e) => e.stopPropagation()}>
+        <DropdownMenuLabel className="label text-muted-foreground">Gastos relacionados</DropdownMenuLabel>
+        <DropdownMenuSeparator />
         {podeSerPrincipal && (liberado ? (
           <>
-            <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold" onClick={() => onLancarRelacionado(transacao, "EXPENSE")}>
+            <DropdownMenuItem onClick={() => onLancarRelacionado(transacao, "EXPENSE")}>
               <Plus className="mr-2 h-4 w-4" /> Lançar gasto relacionado
             </DropdownMenuItem>
-            <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold" onClick={() => onLancarRelacionado(transacao, "CREDIT_CARD")}>
+            <DropdownMenuItem onClick={() => onLancarRelacionado(transacao, "CREDIT_CARD")}>
               <CreditCard className="mr-2 h-4 w-4" /> Lançar compra relacionada no cartão
             </DropdownMenuItem>
           </>
         ) : itemTravado("Lançar gasto relacionado", Plus))}
         {podeSerDependente && (liberado ? (
-          <DropdownMenuItem className="rounded-xl px-3 py-2.5 cursor-pointer font-bold" onClick={() => onVincular(transacao)}>
+          <DropdownMenuItem onClick={() => onVincular(transacao)}>
             <Link2 className="mr-2 h-4 w-4" /> Vincular a um gasto
           </DropdownMenuItem>
         ) : itemTravado("Vincular a um gasto", Link2))}
         {dependente && (
           <DropdownMenuItem
-            className="rounded-xl px-3 py-2.5 cursor-pointer font-bold text-red-600 focus:bg-red-500/10 focus:text-red-600"
+            className="text-outflow focus:text-outflow"
             disabled={desfazendo}
             onClick={desfazer}
           >
@@ -176,19 +176,12 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
   }
 
   return (
-      <DialogContent className="sm:max-w-[560px] rounded-[32px] border-none shadow-2xl p-8">
-        <DialogHeader className="mb-2">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm ring-1 ring-primary/20">
-              <Link2 className="h-6 w-6" />
-            </div>
-            <div className="flex flex-col">
-              <DialogTitle className="text-2xl font-black tracking-tight">Vincular a um gasto</DialogTitle>
-              <DialogDescription className="text-xs font-bold opacity-60 tracking-tight">
-                Escolha o gasto que puxou &ldquo;{transacao.description}&rdquo;.
-              </DialogDescription>
-            </div>
-          </div>
+      <DialogContent className="sm:max-w-[560px]">
+        <DialogHeader>
+          <DialogTitle>Vincular a um gasto</DialogTitle>
+          <DialogDescription>
+            Escolha o gasto que puxou &ldquo;{transacao.description}&rdquo;.
+          </DialogDescription>
         </DialogHeader>
 
         <form
@@ -200,20 +193,20 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
           }}
         >
           <div className="space-y-1.5 sm:col-span-3">
-            <Label htmlFor="busca-descricao" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Descrição</Label>
-            <Input id="busca-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Cinema" className="h-11 rounded-2xl font-bold" />
+            <Label htmlFor="busca-descricao">Descrição</Label>
+            <Input id="busca-descricao" value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Cinema" />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="busca-data" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Data</Label>
-            <Input id="busca-data" type="date" value={data} onChange={(e) => setData(e.target.value)} className="h-11 rounded-2xl font-bold" />
+            <Label htmlFor="busca-data">Data</Label>
+            <Input id="busca-data" type="date" value={data} onChange={(e) => setData(e.target.value)} />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="busca-valor" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 pl-1">Valor</Label>
-            <MoneyInput id="busca-valor" value={valor} onValueChange={(v) => setValor(v ?? "")} className="h-11 rounded-2xl font-bold" />
+            <Label htmlFor="busca-valor">Valor</Label>
+            <MoneyInput id="busca-valor" value={valor} onValueChange={(v) => setValor(v ?? "")} />
           </div>
           <div className="flex items-end">
-            <Button type="submit" disabled={buscando} className="w-full h-11 rounded-2xl font-black uppercase tracking-widest text-[10px]">
-              {buscando ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Search className="mr-2 h-4 w-4" />}
+            <Button type="submit" loading={buscando} className="w-full">
+              <Search aria-hidden="true" />
               Buscar
             </Button>
           </div>
@@ -221,28 +214,27 @@ function BuscaDoGasto({ transacao, onOpenChange, onVinculada }: VincularTransaca
 
         {resultados !== null && (
           resultados.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-6">Nenhum gasto encontrado.</p>
+            <p className="py-6 text-center text-sm text-fg-secondary">Nenhum gasto encontrado.</p>
           ) : (
-            <ul aria-label="Gastos encontrados" className="max-h-[320px] overflow-y-auto space-y-2 pr-1">
+            <ul aria-label="Gastos encontrados" className="max-h-[320px] divide-y divide-border overflow-y-auto rounded-md border border-border">
               {resultados.map((gasto) => (
-                <li key={gasto.id} className="flex items-center gap-3 p-3 rounded-2xl border border-border/40 bg-muted/10">
+                <li key={gasto.id} className="flex items-center gap-3 px-3 py-2">
                   <div className="flex-1 min-w-0">
-                    <p className="font-extrabold text-sm truncate">{gasto.description}</p>
-                    <p className="text-[10px] font-bold text-muted-foreground/70">
+                    <p className="truncate text-sm font-medium">{gasto.description}</p>
+                    <p className="text-xs text-muted-foreground">
                       {format(lerData(gasto.purchase_date || gasto.date), "dd/MM/yyyy")}
                       {gasto.category_detail ? ` · ${gasto.category_detail.name}` : ""}
                     </p>
                   </div>
-                  <span className="text-sm font-black tabular-nums text-red-500">{formatarMoeda(gasto.amount)}</span>
+                  <Valor valor={gasto.amount} direcao="saida" />
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={ligando !== null}
                     onClick={() => ligar(gasto)}
                     aria-label={`Vincular a ${gasto.description}`}
-                    className="rounded-xl font-bold text-xs"
                   >
-                    {ligando === gasto.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Vincular"}
+                    {ligando === gasto.id ? <Loader2 className="animate-spin" aria-hidden="true" /> : "Vincular"}
                   </Button>
                 </li>
               ))}

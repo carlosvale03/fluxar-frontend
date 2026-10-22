@@ -1,10 +1,9 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Search, PieChart as PieIcon, Hash, Plus, Loader2, Tag as TagIcon } from "lucide-react"
+import { Search, PieChart as PieIcon, Plus, Loader2, Tag as TagIcon } from "lucide-react"
 import { getCategories } from "@/services/categories"
 import { getTags } from "@/services/tags"
 import { Category, Tag } from "@/types/categories"
@@ -53,11 +52,11 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
                 category: type === 'category' ? id : undefined,
                 tag: type === 'tag' ? id : undefined
             })
-            toast.success("Item adicionado ao monitor!")
+            toast.success("Item adicionado ao monitor.")
             onOpenChange(false)
             onSuccess?.()
         } catch (error: any) {
-            const msg = error.response?.data?.detail || "Erro ao adicionar item."
+            const msg = error.response?.data?.detail || "Não foi possível adicionar o item. Tente de novo."
             toast.error(msg)
         } finally {
             setIsSaving(false)
@@ -88,63 +87,67 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-[32px] border-none shadow-2xl">
-                <DialogHeader className="p-6 pb-2">
-                    <DialogTitle className="text-xl font-black">Adicionar ao Monitor</DialogTitle>
+            <DialogContent className="gap-0 overflow-hidden p-0 sm:max-w-[450px]">
+                <DialogHeader className="p-6 pb-3">
+                    <DialogTitle>Adicionar ao Monitor</DialogTitle>
                     <DialogDescription>Selecione uma categoria ou tag para monitorar</DialogDescription>
                 </DialogHeader>
 
                 <div className="px-6 pb-4">
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                            placeholder="Buscar categoria ou tag..." 
-                            className="pl-10 h-11 rounded-xl bg-muted/30 border-none focus-visible:ring-1 focus-visible:ring-primary/30"
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                        <Input
+                            aria-label="Buscar categoria ou tag"
+                            placeholder="Buscar categoria ou tag..."
+                            className="pl-10"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
                         />
                     </div>
                 </div>
 
-                <div className="max-h-[350px] overflow-y-auto px-2 pb-6 space-y-6">
+                <div className="max-h-[350px] space-y-6 overflow-y-auto px-2 pb-6">
                     {isLoading ? (
-                        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
-                            <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary/40" />
-                            <span className="text-sm font-bold uppercase tracking-widest">Carregando itens...</span>
+                        <div className="flex flex-col items-center justify-center gap-3 py-12 text-muted-foreground" aria-busy="true">
+                            <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                            <span className="text-sm">Carregando itens...</span>
                         </div>
                     ) : (
                         <>
                             {filteredCategories.length > 0 && (
                                 <div className="space-y-2 px-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-2 flex items-center gap-2">
-                                        <PieIcon className="h-3 w-3" /> Categorias
+                                    <h4 className="label flex items-center gap-2 px-2 text-muted-foreground">
+                                        <PieIcon className="h-3.5 w-3.5" aria-hidden="true" /> Categorias
                                     </h4>
                                     <div className="grid grid-cols-1 gap-1">
                                         {filteredCategories.map(cat => (
                                             <button
                                                 key={cat.id}
+                                                type="button"
                                                 disabled={isSaving}
                                                 onClick={() => handleSelect('category', cat.id)}
                                                 className={cn(
-                                                    "flex items-center justify-between p-3 rounded-2xl hover:bg-primary/5 transition-all text-left group border border-transparent hover:border-primary/10",
-                                                    cat.parent && "ml-4 border-l-2 border-muted/20 rounded-l-none"
+                                                    "group flex items-center justify-between rounded-md p-2.5 text-left transition-colors duration-fast hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-45",
+                                                    cat.parent && "ml-4 rounded-l-none border-l-2 border-border"
                                                 )}
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div 
-                                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0"
-                                                        style={{ backgroundColor: cat.color || '#3b82f6' }}
+                                                    {/* A cor é da categoria (dado do usuário): fica no ícone */}
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-elevated"
+                                                        style={{ color: cat.color || 'var(--az-serie-2)' }}
                                                     >
                                                         <LucideIcon name={cat.icon || 'PieChart'} className="h-4 w-4" />
-                                                    </div>
+                                                    </span>
                                                     <div className="flex flex-col">
-                                                        <span className="text-sm font-bold">{cat.name}</span>
+                                                        <span className="text-sm font-medium">{cat.name}</span>
                                                         {cat.parent_name && (
-                                                            <span className="text-[10px] font-bold text-muted-foreground/60 uppercase">Em {cat.parent_name}</span>
+                                                            <span className="text-xs text-muted-foreground">Em {cat.parent_name}</span>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <Plus className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <Plus className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                             </button>
                                         ))}
                                     </div>
@@ -153,27 +156,29 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
 
                             {filteredTags.length > 0 && (
                                 <div className="space-y-2 px-4">
-                                    <h4 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60 px-2 flex items-center gap-2">
-                                        <TagIcon className="h-3 w-3" /> Tags
+                                    <h4 className="label flex items-center gap-2 px-2 text-muted-foreground">
+                                        <TagIcon className="h-3.5 w-3.5" aria-hidden="true" /> Tags
                                     </h4>
                                     <div className="grid grid-cols-1 gap-1">
                                         {filteredTags.map(tag => (
                                             <button
                                                 key={tag.id}
+                                                type="button"
                                                 disabled={isSaving}
                                                 onClick={() => handleSelect('tag', tag.id)}
-                                                className="flex items-center justify-between p-3 rounded-2xl hover:bg-purple-500/5 transition-all text-left group border border-transparent hover:border-purple-500/10"
+                                                className="group flex items-center justify-between rounded-md p-2.5 text-left transition-colors duration-fast hover:bg-elevated focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-45"
                                             >
                                                 <div className="flex items-center gap-3">
-                                                    <div 
-                                                        className="w-8 h-8 rounded-lg flex items-center justify-center"
-                                                        style={{ backgroundColor: `${tag.color}20` || '#8b5cf620', color: tag.color || '#8b5cf6' }}
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-elevated"
+                                                        style={{ color: tag.color || 'var(--az-serie-3)' }}
                                                     >
                                                         <TagIcon className="h-4 w-4" />
-                                                    </div>
-                                                    <span className="text-sm font-bold">{tag.name}</span>
+                                                    </span>
+                                                    <span className="text-sm font-medium">{tag.name}</span>
                                                 </div>
-                                                <Plus className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                <Plus className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
                                             </button>
                                         ))}
                                     </div>
@@ -181,9 +186,9 @@ export function FocusSelectionModal({ open, onOpenChange, onSuccess }: FocusSele
                             )}
 
                             {filteredCategories.length === 0 && filteredTags.length === 0 && (
-                                <div className="text-center py-12 space-y-2">
-                                    <p className="text-sm font-bold text-muted-foreground">Nenhum item encontrado.</p>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/40">Tente uma busca diferente</p>
+                                <div className="space-y-1 py-12 text-center">
+                                    <p className="text-sm font-medium">Nenhum item encontrado.</p>
+                                    <p className="text-sm text-muted-foreground">Tente uma busca diferente.</p>
                                 </div>
                             )}
                         </>

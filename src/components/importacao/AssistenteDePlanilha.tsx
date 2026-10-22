@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
-import { ArrowLeft, Loader2, Table as TableIcon, Upload } from "lucide-react"
+import { ArrowLeft, Check, Loader2, Upload } from "lucide-react"
 import { toast } from "sonner"
 
 import { PassoArquivo } from "@/components/importacao/PassoArquivo"
@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { usePlan } from "@/hooks/use-plan"
 import { formatarMoeda } from "@/lib/dinheiro"
+import { cn } from "@/lib/utils"
 import { tratarErro } from "@/lib/erros"
 import { api } from "@/services/apiClient"
 import { analisarArquivo, importarArquivo } from "@/services/import-export"
@@ -37,46 +38,93 @@ interface AssistenteDePlanilhaProps {
   onOpenChange: (open: boolean) => void
 }
 
-// IMPCOMP-37: o resumo fixo no topo da revisão
+// IMPCOMP-37: o resumo fixo no topo da revisão. A cor acompanha sempre o
+// rótulo em texto (DESIGN.md §2, princípio 3)
 function ResumoDaRevisao({ resumo }: { resumo: ResumoDaAnalise }) {
   const contagens = [
-    { rotulo: "Válidas", valor: resumo.validas, cor: "text-emerald-600" },
-    { rotulo: "Rejeitadas", valor: resumo.rejeitadas, cor: "text-rose-600" },
-    { rotulo: "Repetidas", valor: resumo.repetidas, cor: "text-blue-600" },
+    { rotulo: "Válidas", valor: resumo.validas, cor: "text-inflow" },
+    { rotulo: "Rejeitadas", valor: resumo.rejeitadas, cor: "text-outflow" },
+    { rotulo: "Repetidas", valor: resumo.repetidas, cor: "text-info" },
     { rotulo: "Excluídas", valor: resumo.excluidas, cor: "text-muted-foreground" },
-    { rotulo: "Contas novas", valor: resumo.contas_novas, cor: "text-primary" },
+    { rotulo: "Contas novas", valor: resumo.contas_novas, cor: "text-foreground" },
   ]
   const totais = [
-    { rotulo: "Receitas", total: resumo.receitas, cor: "text-emerald-600" },
-    { rotulo: "Despesas", total: resumo.despesas, cor: "text-rose-600" },
-    { rotulo: "Transferências", total: resumo.transferencias, cor: "text-blue-600" },
+    { rotulo: "Receitas", total: resumo.receitas, cor: "text-inflow" },
+    { rotulo: "Despesas", total: resumo.despesas, cor: "text-outflow" },
+    { rotulo: "Transferências", total: resumo.transferencias, cor: "text-foreground" },
   ]
 
   return (
     <section aria-label="Resumo da análise" className="space-y-2">
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
         {contagens.map(({ rotulo, valor, cor }) => (
-          <div key={rotulo} data-testid={`resumo-${rotulo}`} className="p-3 rounded-2xl bg-muted/20 border border-border/40 text-center">
-            <p className={`text-xl font-black leading-none ${cor}`}>{valor}</p>
-            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70 mt-1">{rotulo}</p>
+          <div key={rotulo} data-testid={`resumo-${rotulo}`} className="space-y-1 rounded-md border border-border bg-card p-3">
+            <p className={`value-l ${cor}`}>{valor}</p>
+            <p className="label text-muted-foreground">{rotulo}</p>
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
         {totais.map(({ rotulo, total, cor }) => (
           <div
             key={rotulo}
             data-testid={`resumo-${rotulo}`}
-            className="px-3 py-2 rounded-2xl bg-muted/10 border border-border/40 flex items-center justify-between gap-2"
+            className="flex items-center justify-between gap-2 rounded-md border border-border bg-card px-3 py-2"
           >
-            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/70">
+            <span className="label text-muted-foreground">
               {rotulo} ({total.quantidade})
             </span>
-            <span className={`text-xs font-black tabular-nums ${cor}`}>{formatarMoeda(total.valor)}</span>
+            <span className={`value-m ${cor}`}>{formatarMoeda(total.valor)}</span>
           </div>
         ))}
       </div>
     </section>
+  )
+}
+
+type Etapa = "arquivo" | "revisao" | "resultado"
+
+const ETAPAS: { valor: Etapa; rotulo: string }[] = [
+  { valor: "arquivo", rotulo: "Arquivo" },
+  { valor: "revisao", rotulo: "Revisão" },
+  { valor: "resultado", rotulo: "Resultado" },
+]
+
+// AZ-30: as três etapas do assistente sempre à vista; a atual tem a marca de
+// ouro e aria-current. Voltar para o arquivo é o botão "Trocar arquivo".
+function IndicadorDeEtapas({ atual }: { atual: Etapa }) {
+  const indiceAtual = ETAPAS.findIndex(({ valor }) => valor === atual)
+  return (
+    <ol aria-label="Etapas da importação" className="flex items-center gap-2">
+      {ETAPAS.map(({ valor, rotulo }, indice) => {
+        const ativa = indice === indiceAtual
+        const feita = indice < indiceAtual
+        return (
+          <li
+            key={valor}
+            aria-current={ativa ? "step" : undefined}
+            className="flex min-w-0 flex-1 items-center gap-2"
+          >
+            <span
+              aria-hidden="true"
+              className={cn(
+                "flex h-6 w-6 shrink-0 items-center justify-center rounded-full border font-mono text-xs",
+                ativa && "border-gold-line text-gold-line",
+                feita && "border-border-strong text-inflow",
+                !ativa && !feita && "border-border-strong text-muted-foreground",
+              )}
+            >
+              {feita ? <Check className="h-3.5 w-3.5" /> : indice + 1}
+            </span>
+            <span className={cn("label truncate", ativa ? "text-foreground" : "text-muted-foreground")}>
+              {rotulo}
+              {feita && <span className="sr-only"> (concluída)</span>}
+            </span>
+            {indice < ETAPAS.length - 1 && <span aria-hidden="true" className="h-px flex-1 bg-border" />}
+          </li>
+        )
+      })}
+    </ol>
   )
 }
 
@@ -85,7 +133,7 @@ function ResumoDaRevisao({ resumo }: { resumo: ResumoDaAnalise }) {
 export function AssistenteDePlanilha({ open, onOpenChange }: AssistenteDePlanilhaProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[960px] max-h-[95vh] rounded-[32px] border-border/60 bg-card shadow-2xl overflow-hidden p-0">
+      <DialogContent className="max-h-[95vh] overflow-hidden p-0 sm:max-w-[960px]">
         <ConteudoDoAssistente onFechar={() => onOpenChange(false)} />
       </DialogContent>
     </Dialog>
@@ -206,7 +254,7 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
     try {
       const resposta = await importarArquivo(arquivo, enviado)
       setResultado(resposta)
-      toast.success("Importação concluída!")
+      toast.success("Importação concluída.")
       // PERM-20: as contas criadas contam no limite do plano
       if (resposta.accounts_created?.length) await atualizarUso()
     } catch (erro) {
@@ -217,41 +265,37 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
   }
 
   const emRevisao = !!arquivo && !!analise && !resultado
+  const etapa: Etapa = resultado ? "resultado" : emRevisao ? "revisao" : "arquivo"
   return (
-    <div className="p-6 overflow-y-auto max-h-[95vh] custom-scrollbar">
-      <DialogHeader className="mb-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0 shadow-sm ring-1 ring-black/5 dark:ring-white/10 bg-blue-500/10 text-blue-500">
-            <TableIcon className="h-6 w-6" />
-          </div>
-          <div className="min-w-0">
-            <DialogTitle className="text-2xl font-black tracking-tight">
-              {resultado ? "Importação concluída" : "Importar planilha"}
-            </DialogTitle>
-            <DialogDescription className="text-xs font-medium text-muted-foreground mt-1 truncate">
-              {resultado
-                ? "Resumo do que foi gravado, por aba."
-                : emRevisao
-                  ? `Revise o que foi reconhecido em ${arquivo.name}.`
-                  : "Escolha o arquivo exportado do seu app ou banco."}
-            </DialogDescription>
-          </div>
-        </div>
+    <div className="custom-scrollbar max-h-[95vh] space-y-5 overflow-y-auto p-6">
+      <DialogHeader className="space-y-1 pr-8">
+        <DialogTitle>
+          {resultado ? "Importação concluída" : "Importar planilha"}
+        </DialogTitle>
+        <DialogDescription className="truncate">
+          {resultado
+            ? "Resumo do que foi gravado, por aba."
+            : emRevisao
+              ? `Revise o que foi reconhecido em ${arquivo.name}.`
+              : "Escolha o arquivo exportado do seu app ou banco."}
+        </DialogDescription>
       </DialogHeader>
+
+      <IndicadorDeEtapas atual={etapa} />
 
       {resultado && <ResultadoDaImportacao resultado={resultado} onFechar={onFechar} />}
 
       {!emRevisao && !resultado && <PassoArquivo analisando={analisando} onEscolher={escolherArquivo} />}
 
       {emRevisao && (
-        <div className="space-y-4 animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="space-y-4">
           <ResumoDaRevisao resumo={analise.resumo} />
 
           <Tabs value={abaAtiva} onValueChange={(valor) => setAbaAtiva(valor as AbaDaRevisao)}>
-            <TabsList className="grid grid-cols-3 h-11 w-full bg-muted/20 rounded-2xl p-1 border border-border/40">
-              <TabsTrigger value="abas" className="rounded-xl font-bold text-xs">Abas e colunas</TabsTrigger>
-              <TabsTrigger value="contas" className="rounded-xl font-bold text-xs">Contas</TabsTrigger>
-              <TabsTrigger value="linhas" className="rounded-xl font-bold text-xs">Linhas</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="abas">Abas e colunas</TabsTrigger>
+              <TabsTrigger value="contas">Contas</TabsTrigger>
+              <TabsTrigger value="linhas">Linhas</TabsTrigger>
             </TabsList>
             <TabsContent value="abas" className="pt-2">
               <RevisaoDeAbas plano={plano} onAlterar={alterarPlano} />
@@ -264,31 +308,22 @@ function ConteudoDoAssistente({ onFechar }: { onFechar: () => void }) {
             </TabsContent>
           </Tabs>
 
-          <div className="flex flex-col-reverse sm:flex-row items-center gap-3 pt-2">
-            <Button
-              variant="outline"
-              className="w-full sm:flex-1 rounded-full font-black uppercase text-[10px] h-12"
-              onClick={trocarArquivo}
-              disabled={importando}
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" /> Trocar arquivo
+          <div className="flex flex-col-reverse items-center gap-3 border-t border-border pt-4 sm:flex-row">
+            <Button variant="outline" className="w-full sm:w-auto" onClick={trocarArquivo} disabled={importando}>
+              <ArrowLeft aria-hidden="true" /> Trocar arquivo
             </Button>
             <p
               aria-live="polite"
-              className="w-full sm:flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground min-h-12"
+              className="flex min-h-9 w-full flex-1 items-center justify-center gap-2 text-sm text-muted-foreground"
             >
               {analisando && (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Analisando de novo...
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Analisando de novo...
                 </>
               )}
             </p>
-            <Button
-              className="w-full sm:flex-1 rounded-full font-black uppercase tracking-widest text-[10px] h-12 shadow-lg shadow-primary/20"
-              onClick={importar}
-              disabled={analisando || importando}
-            >
-              {importando ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Upload className="h-4 w-4 mr-2" />}
+            <Button className="w-full sm:w-auto" onClick={importar} disabled={analisando || importando}>
+              {importando ? <Loader2 className="animate-spin" aria-hidden="true" /> : <Upload aria-hidden="true" />}
               {importando ? "Importando..." : "Importar"}
             </Button>
           </div>

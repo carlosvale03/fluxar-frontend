@@ -1,17 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import * as React from "react"
 import Link from "next/link"
+import { usePathname } from "next/navigation"
+import { ChevronDown, Loader2, LogOut, MoreHorizontal, Settings, Sparkles, User, LayoutDashboard } from "lucide-react"
+
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Logo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
-import { 
-  User, Menu, LogOut, Loader2, MoreHorizontal, 
-  LayoutDashboard, Wallet, CreditCard, ArrowRightLeft, 
-  BarChart3, Calendar, Repeat, PieChart, ArrowUpDown, 
-  Layers, Tag, Target, Settings, ChevronDown, Users, Sparkles, Banknote
-} from "lucide-react"
-import { useAuth } from "@/hooks/use-auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -21,361 +17,276 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { Sheet, SheetClose, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-  SheetClose,
-} from "@/components/ui/sheet"
-
-import { usePathname } from "next/navigation"
+  NAVEGACAO_ADMIN,
+  NAVEGACAO_MAIS,
+  NAVEGACAO_PRINCIPAL,
+  itemAtivo,
+  semCasca,
+  type ItemDeNavegacao,
+} from "@/components/layout/navegacao"
+import { useAuth } from "@/hooks/use-auth"
 import { getAbsoluteUrl, cn } from "@/lib/utils"
 
+type Usuario = NonNullable<ReturnType<typeof useAuth>["user"]>
+
+function AvatarDoUsuario({ user, tamanho = "h-8 w-8" }: { user: Usuario; tamanho?: string }) {
+  return (
+    <Avatar className={cn(tamanho, "border border-border-strong")}>
+      <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} alt="" />
+      <AvatarFallback className="bg-elevated font-mono text-xs text-foreground">
+        {user.name.charAt(0).toUpperCase()}
+      </AvatarFallback>
+    </Avatar>
+  )
+}
+
+interface ItemDaListaProps extends Omit<React.ComponentPropsWithoutRef<typeof Link>, "href"> {
+  item: ItemDeNavegacao
+  ativo: boolean
+}
+
+// Item da lista do menu "Mais" e do painel do celular: ícone, nome e linha de apoio.
+// Repassa ref e props para o Link, porque é usado com asChild (menuitem do Radix, SheetClose).
+const ItemDaLista = React.forwardRef<HTMLAnchorElement, ItemDaListaProps>(({ item, ativo, className, ...props }, ref) => {
+  const Icone = item.icone
+  return (
+    <Link
+      ref={ref}
+      href={item.href}
+      aria-current={ativo ? "page" : undefined}
+      className={cn(
+        "flex items-center gap-3 rounded-md px-3 py-2 transition-colors duration-fast",
+        ativo ? "bg-elevated text-foreground" : "text-fg-secondary hover:bg-elevated hover:text-foreground",
+        className
+      )}
+      {...props}
+    >
+      <Icone className={cn("h-4 w-4 shrink-0", ativo ? "text-gold-line" : "text-muted-foreground")} aria-hidden="true" />
+      <span className="flex min-w-0 flex-col">
+        <span className="text-sm">{item.nome}</span>
+        <span className="truncate text-xs text-muted-foreground">{item.apoio}</span>
+      </span>
+    </Link>
+  )
+})
+ItemDaLista.displayName = "ItemDaLista"
+
+// AZ-21 (PRODUCT.md §4, D-12): cinco destinos na barra, o resto no menu "Mais",
+// conta e saída no avatar. No celular, menu inferior com quatro destinos e "Mais".
 export function Header() {
   const { user, logout, isLoading } = useAuth()
   const pathname = usePathname()
-  const [showScrollIndicator, setShowScrollIndicator] = useState(true)
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
-    const atBottom = scrollHeight - scrollTop <= clientHeight + 20
-    if (atBottom && showScrollIndicator) setShowScrollIndicator(false)
-    if (!atBottom && !showScrollIndicator) setShowScrollIndicator(true)
-  }
+  if (semCasca(pathname)) return null
 
-  const primaryNavItems = [
-    { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-    { name: "Contas", href: "/contas", icon: Wallet },
-    { name: "Cartões", href: "/cartoes", icon: CreditCard },
-    { name: "Transações", href: "/transacoes", icon: ArrowRightLeft },
-    { name: "Gráficos", href: "/relatorios", icon: BarChart3 },
-  ]
-
-  const secondaryNavItems = [
-    { name: "Metas", href: "/metas", icon: Target },
-    // SALARIO-15: a gestão do salário fica acessível pelo menu
-    { name: "Gestão do salário", href: "/salario", icon: Banknote },
-    { name: "Calendário", href: "/calendario", icon: Calendar },
-    { name: "Orçamentos", href: "/orcamentos", icon: PieChart },
-    { name: "Importar & Exportar", href: "/importar", icon: ArrowUpDown },
-    { name: "Categorias", href: "/categorias", icon: Layers },
-    { name: "Tags", href: "/tags", icon: Tag },
-  ]
-
-  const allNavItems = [...primaryNavItems, ...secondaryNavItems]
-
-  const adminNavItems = [
-    { name: "Painel Geral", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Usuários", href: "/admin/usuarios", icon: Users },
-    { name: "Configurações", href: "/admin/configuracoes", icon: Settings },
-  ]
-
-  const [navMode, setNavMode] = useState<'app' | 'admin'>('app')
-
-  useEffect(() => {
-    if (pathname.startsWith('/admin')) {
-      setNavMode('admin')
-    } else {
-      setNavMode('app')
-    }
-  }, [pathname])
+  const ativoPrincipal = itemAtivo(pathname, NAVEGACAO_PRINCIPAL)
+  const ativoMais = itemAtivo(pathname, NAVEGACAO_MAIS)
+  const ativoAdmin = itemAtivo(pathname, NAVEGACAO_ADMIN)
+  const ehAdmin = user?.role === "ADMIN"
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-border bg-background/80 backdrop-blur-md">
-      <div className="container mx-auto flex h-16 items-center px-4">
-        {/* Logo - Esquerda */}
-        <div className="flex-1 flex items-center">
-          <Link href="/" aria-label="Azimute, página inicial" className="flex items-center gap-2">
-            <Logo tamanho={26} />
-          </Link>
-        </div>
+    <>
+      <header className="sticky top-0 z-40 w-full border-b border-border bg-background">
+        <div className="container mx-auto flex h-16 items-center gap-4 px-4">
+          <div className="flex flex-1 items-center">
+            <Link href="/" aria-label="Azimute, página inicial" className="flex items-center gap-2">
+              <Logo tamanho={26} />
+            </Link>
+          </div>
 
-        {/* Links Centralizados - Desktop */}
-        <nav className="hidden md:flex items-center gap-1 text-sm font-medium">
-          {primaryNavItems.map((item) => {
-            const isActive = pathname === item.href
+          {user && (
+            <nav aria-label="Navegação principal" className="hidden items-center gap-1 md:flex">
+              {NAVEGACAO_PRINCIPAL.map((item) => {
+                const ativo = ativoPrincipal === item.href
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.apoio}
+                    aria-current={ativo ? "page" : undefined}
+                    className={cn(
+                      "whitespace-nowrap rounded-md px-3 py-2 text-sm transition-colors duration-fast",
+                      ativo
+                        ? "bg-elevated text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]"
+                        : "text-fg-secondary hover:bg-elevated hover:text-foreground"
+                    )}
+                  >
+                    {item.nome}
+                  </Link>
+                )
+              })}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn("h-9 gap-1", ativoMais && "bg-elevated text-foreground shadow-[inset_0_-2px_0_var(--az-gold)]")}
+                  >
+                    Mais
+                    <ChevronDown aria-hidden="true" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  {NAVEGACAO_MAIS.map((item) => (
+                    <DropdownMenuItem key={item.href} asChild className="p-0">
+                      <ItemDaLista item={item} ativo={ativoMais === item.href} />
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </nav>
+          )}
+
+          <div className="flex flex-1 items-center justify-end gap-2">
+            <ThemeToggle />
+
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Carregando" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="h-9 w-9 rounded-full p-0" aria-label="Menu da conta">
+                    <AvatarDoUsuario user={user} />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-64" align="end">
+                  <DropdownMenuLabel className="flex items-center gap-3 font-normal">
+                    <AvatarDoUsuario user={user} tamanho="h-9 w-9" />
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate text-sm font-semibold">{user.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{user.email}</span>
+                    </span>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {ehAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/admin/dashboard">
+                        <LayoutDashboard aria-hidden="true" /> Painel Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem asChild>
+                    <Link href="/perfil">
+                      <User aria-hidden="true" /> Meu Perfil
+                    </Link>
+                  </DropdownMenuItem>
+                  {/* PERM-27: a página de planos */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/planos">
+                      <Sparkles aria-hidden="true" /> Planos
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/configuracoes">
+                      <Settings aria-hidden="true" /> Configurações
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={logout} className="text-outflow focus:text-outflow">
+                    <LogOut aria-hidden="true" /> Sair da Conta
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <Button asChild size="sm">
+                <Link href="/auth/login">Entrar</Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {user && (
+        <nav
+          aria-label="Navegação principal"
+          className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-border bg-background pb-[env(safe-area-inset-bottom)] md:hidden"
+        >
+          {NAVEGACAO_PRINCIPAL.slice(0, 4).map((item) => {
+            const Icone = item.icone
+            const ativo = ativoPrincipal === item.href
             return (
-              <Link 
+              <Link
                 key={item.href}
-                href={item.href} 
+                href={item.href}
+                aria-current={ativo ? "page" : undefined}
                 className={cn(
-                  "relative px-3 py-2 transition-all duration-300 rounded-lg hover:bg-muted/50 whitespace-nowrap",
-                  isActive 
-                    ? "text-primary font-bold" 
-                    : "text-muted-foreground hover:text-foreground"
+                  "flex min-h-14 flex-col items-center justify-center gap-1 px-1 text-xs leading-tight transition-colors duration-fast",
+                  ativo ? "text-foreground shadow-[inset_0_2px_0_var(--az-gold)]" : "text-muted-foreground"
                 )}
               >
-                {item.name}
-                {isActive && (
-                  <span className="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded-full animate-in fade-in slide-in-from-bottom-1 duration-500" />
-                )}
+                <Icone className={cn("h-5 w-5", ativo && "text-gold-line")} aria-hidden="true" />
+                <span className="text-center">{item.nome}</span>
               </Link>
             )
           })}
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" aria-label="Recursos adicionais" className="h-9 w-9 p-0 rounded-lg hover:bg-muted/50 ml-1">
-                 <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-xl border-border/40">
-              <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest opacity-40 px-3 py-2">Recursos Adicionais</DropdownMenuLabel>
-              {secondaryNavItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-                return (
-                  <DropdownMenuItem key={item.href} asChild>
-                    <Link 
-                      href={item.href} 
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all",
-                        isActive ? "bg-primary/10 text-primary font-bold" : "hover:bg-muted"
-                      )}
-                    >
-                      <Icon className={cn("h-4 w-4", isActive ? "text-primary" : "text-muted-foreground")} />
-                      <span className="text-sm">{item.name}</span>
-                    </Link>
-                  </DropdownMenuItem>
-                )
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </nav>
-
-        {/* Ações - Direita */}
-        <div className="flex-1 flex items-center justify-end gap-4">
-          <ThemeToggle />
-          
-          <div className="hidden md:flex items-center gap-2">
-            {isLoading ? (
-               <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            ) : user ? (
-               <DropdownMenu>
-                 <DropdownMenuTrigger asChild>
-                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} alt={user.name} />
-                        <AvatarFallback className="bg-avatar-premium text-primary font-bold text-xs">
-                           {user.name.charAt(0).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                   </Button>
-                 </DropdownMenuTrigger>
-                 <DropdownMenuContent className="w-72 rounded-[24px] p-2 shadow-xl border-border/40 animate-in zoom-in-95 duration-200" align="end" forceMount>
-                   <DropdownMenuLabel className="p-3 font-normal">
-                     <div className="flex items-center gap-3">
-                        <Avatar className="h-10 w-10 border-2 border-primary/10">
-                          <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} alt={user.name} />
-                          <AvatarFallback className="bg-avatar-premium text-primary font-black text-xs">
-                             {user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col space-y-0.5 overflow-hidden">
-                          <p className="text-sm font-black tracking-tight leading-none truncate">{user.name}</p>
-                          <p className="text-[10px] leading-none text-muted-foreground truncate opacity-70">
-                            {user.email}
-                          </p>
-                        </div>
-                     </div>
-                   </DropdownMenuLabel>
-                   <DropdownMenuSeparator className="mx-2 opacity-50" />
-                   
-                   {user.role === "ADMIN" && (
-                     <DropdownMenuItem asChild>
-                       <Link href="/admin/dashboard" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-primary/5 group">
-                         <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                            <LayoutDashboard className="h-4 w-4 text-primary" />
-                         </div>
-                         <span className="text-sm font-bold text-primary">Painel Admin</span>
-                       </Link>
-                     </DropdownMenuItem>
-                   )}
-                   
-                   <DropdownMenuItem asChild>
-                     <Link href="/perfil" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-muted group">
-                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted-foreground/10 transition-colors">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                       </div>
-                       <span className="text-sm font-medium">Meu Perfil</span>
-                     </Link>
-                   </DropdownMenuItem>
-
-                   {/* PERM-27: a página de planos */}
-                   <DropdownMenuItem asChild>
-                     <Link href="/planos" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-muted group">
-                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted-foreground/10 transition-colors">
-                          <Sparkles className="h-4 w-4 text-muted-foreground" />
-                       </div>
-                       <span className="text-sm font-medium">Planos</span>
-                     </Link>
-                   </DropdownMenuItem>
-                   
-                   <DropdownMenuItem asChild>
-                     <Link href="/configuracoes" className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-muted group">
-                       <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center group-hover:bg-muted-foreground/10 transition-colors">
-                          <Settings className="h-4 w-4 text-muted-foreground" />
-                       </div>
-                       <span className="text-sm font-medium">Configurações</span>
-                     </Link>
-                   </DropdownMenuItem>
-                   
-                   <DropdownMenuSeparator className="mx-2 opacity-50" />
-                   
-                   <DropdownMenuItem onClick={logout} className="flex items-center gap-3 px-3 py-2.5 rounded-xl cursor-pointer transition-all hover:bg-destructive/5 group text-destructive focus:text-destructive focus:bg-destructive/5">
-                     <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center group-hover:bg-destructive/20 transition-colors">
-                        <LogOut className="h-4 w-4" />
-                     </div>
-                     <span className="text-sm font-bold">Sair da Conta</span>
-                   </DropdownMenuItem>
-                 </DropdownMenuContent>
-               </DropdownMenu>
-            ) : (
-               <Link href="/auth/login">
-                  <Button variant="default" size="sm">Entrar</Button>
-               </Link>
-            )}
-          </div>
-
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
-                <Menu className="h-5 w-5" />
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="w-[300px] border-r border-border/40 bg-background/95 backdrop-blur-xl p-0 flex flex-col">
-              <SheetHeader className="p-6 text-left border-b border-border/40 shrink-0">
-                <div className="flex items-center justify-between">
-                  <SheetTitle className="font-black uppercase tracking-tight flex items-center gap-2">
-                    {navMode === 'admin' ? 'Gestão Admin' : 'Navegação'}
-                  </SheetTitle>
-                  {user?.role === 'ADMIN' && (
-                    <div className="flex bg-muted/50 p-1 rounded-xl border border-border/40 scale-90 origin-right">
-                      <button 
-                        onClick={() => setNavMode('app')}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                          navMode === 'app' ? "bg-background text-primary shadow-sm" : "text-muted-foreground opacity-50"
-                        )}
-                      >
-                        App
-                      </button>
-                      <button 
-                        onClick={() => setNavMode('admin')}
-                        className={cn(
-                          "px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all cursor-pointer",
-                          navMode === 'admin' ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground opacity-50"
-                        )}
-                      >
-                        Admin
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </SheetHeader>
-              
-              <div 
-                className="flex-1 min-h-0 overflow-y-auto pl-4 pr-3 py-4 custom-scrollbar"
-                onScroll={handleScroll}
+              <button
+                type="button"
+                aria-label="Mais módulos e conta"
+                className={cn(
+                  "flex min-h-14 cursor-pointer flex-col items-center justify-center gap-1 text-xs text-muted-foreground",
+                  (ativoMais || ativoPrincipal === "/relatorios") && "text-foreground shadow-[inset_0_2px_0_var(--az-gold)]"
+                )}
               >
-                <div className="flex flex-col gap-1">
-                  {(navMode === 'app' ? allNavItems : adminNavItems).map((item) => {
-                      const Icon = item.icon
-                      const isActive = pathname === item.href
-                      return (
-                        <SheetClose key={item.href} asChild>
-                            <Link 
-                              href={item.href}
-                              className={cn(
-                                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-all",
-                                  isActive 
-                                    ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20" 
-                                    : "hover:bg-primary/10 text-muted-foreground hover:text-primary"
-                              )}
-                            >
-                                <Icon className="h-5 w-5" />
-                                <span className="text-sm font-medium">{item.name}</span>
-                            </Link>
-                        </SheetClose>
-                      )
-                  })}
+                <MoreHorizontal className="h-5 w-5" aria-hidden="true" />
+                Mais
+              </button>
+            </SheetTrigger>
+            <SheetContent side="bottom" className="max-h-[85dvh] overflow-y-auto rounded-t-lg p-0">
+              <SheetHeader className="border-b border-border p-4 text-left">
+                <SheetTitle>Mais</SheetTitle>
+                <SheetDescription>Os outros módulos, a sua conta e a saída.</SheetDescription>
+              </SheetHeader>
+              <div className="space-y-4 p-3">
+                <div className="grid gap-1">
+                  {[NAVEGACAO_PRINCIPAL[4], ...NAVEGACAO_MAIS].map((item) => (
+                    <SheetClose key={item.href} asChild>
+                      <ItemDaLista item={item} ativo={ativoMais === item.href || ativoPrincipal === item.href} />
+                    </SheetClose>
+                  ))}
+                </div>
+
+                {ehAdmin && (
+                  <div className="grid gap-1 border-t border-border pt-3">
+                    <p className="label px-3 text-muted-foreground">Administração</p>
+                    {NAVEGACAO_ADMIN.map((item) => (
+                      <SheetClose key={item.href} asChild>
+                        <ItemDaLista item={item} ativo={ativoAdmin === item.href} />
+                      </SheetClose>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid gap-1 border-t border-border pt-3">
+                  <SheetClose asChild>
+                    <ItemDaLista item={{ nome: "Meu Perfil", apoio: "Dados e foto", href: "/perfil", icone: User }} ativo={pathname === "/perfil"} />
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <ItemDaLista item={{ nome: "Planos", apoio: "O que cada plano libera", href: "/planos", icone: Sparkles }} ativo={pathname === "/planos"} />
+                  </SheetClose>
+                  <SheetClose asChild>
+                    <ItemDaLista
+                      item={{ nome: "Configurações", apoio: "Tema, segurança e privacidade", href: "/configuracoes", icone: Settings }}
+                      ativo={pathname === "/configuracoes"}
+                    />
+                  </SheetClose>
+                </div>
+
+                <div className="border-t border-border pt-3">
+                  <Button variant="destructive" className="w-full" onClick={logout}>
+                    <LogOut aria-hidden="true" /> Sair da Conta
+                  </Button>
                 </div>
               </div>
-
-              {/* Scroll Indicator */}
-              {showScrollIndicator && (
-                <div className="flex justify-center h-4 shrink-0 opacity-40 animate-bounce mb-1">
-                  <ChevronDown className="h-5 w-5 text-primary" />
-                </div>
-              )}
-
-              {user && (
-                <div className="mt-auto p-4 shrink-0 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                  <div className="bg-muted/5 backdrop-blur-sm rounded-[32px] border border-border/60 p-5 relative overflow-hidden group">
-                    {/* Linha de brilho superior sutil */}
-                    <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-primary/20 to-transparent" />
-                    
-                    {/* User Identity */}
-                    <div className="flex items-center gap-4 mb-5">
-                      <div className="relative">
-                        <Avatar className="h-12 w-12 border-2 border-primary/20 shadow-sm transition-transform group-hover:scale-105 duration-300">
-                          <AvatarImage src={getAbsoluteUrl(user.avatar_url) || ""} alt={user.name} />
-                          <AvatarFallback className="bg-avatar-premium text-primary font-black text-sm">
-                              {user.name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-background rounded-full" />
-                      </div>
-                      <div className="flex flex-col min-w-0">
-                        <p className="text-sm font-black tracking-tight leading-none truncate mb-1.5">{user.name}</p>
-                      </div>
-                    </div>
-
-                    {/* Quick Actions Grid */}
-                    <div className="grid grid-cols-2 gap-2.5 mb-4">
-                      <SheetClose asChild>
-                        <Link href="/perfil" className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-muted/10 border border-border/40 hover:bg-primary/5 hover:border-primary/30 transition-all group/item">
-                          <User className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
-                          <span className="text-[9px] font-black uppercase tracking-[0.15em] opacity-50 group-hover/item:opacity-100 transition-opacity">Perfil</span>
-                        </Link>
-                      </SheetClose>
-                      <SheetClose asChild>
-                        <Link href="/configuracoes" className="flex flex-col items-center justify-center gap-2 p-3 rounded-2xl bg-muted/10 border border-border/40 hover:bg-primary/5 hover:border-primary/30 transition-all group/item">
-                          <Settings className="h-4 w-4 text-muted-foreground group-hover/item:text-primary transition-colors" />
-                          <span className="text-[9px] font-black uppercase tracking-[0.15em] opacity-50 group-hover/item:opacity-100 transition-opacity">Ajustes</span>
-                        </Link>
-                      </SheetClose>
-                    </div>
-
-                    {/* Admin and Logout */}
-                    <div className="space-y-2">
-                      {user.role === "ADMIN" && (
-                        <SheetClose asChild>
-                          <Link href="/admin/dashboard" className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-all border border-primary/20 group/admin">
-                            <LayoutDashboard className="h-3.5 w-3.5 group-hover/admin:scale-110 transition-transform" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">Painel Admin</span>
-                          </Link>
-                        </SheetClose>
-                      )}
-                      
-                      <Button 
-                        variant="ghost" 
-                        onClick={logout}
-                        className="w-full h-10 rounded-xl text-destructive hover:bg-destructive/5 hover:text-destructive flex items-center justify-center gap-2 group/logout transition-all border border-transparent hover:border-destructive/20"
-                      >
-                        <LogOut className="h-3.5 w-3.5 group-hover/logout:-translate-x-1 transition-transform" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">Sair da Conta</span>
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
             </SheetContent>
           </Sheet>
-        </div>
-      </div>
-    </header>
+        </nav>
+      )}
+    </>
   )
 }

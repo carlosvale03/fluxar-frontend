@@ -1,28 +1,16 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogDescription,
-  DialogClose
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
-import { Input } from "@/components/ui/input"
-import { 
-  TrendingUp, 
-  Rocket, 
-  Target, 
-  X, 
-  Zap, 
-  Calendar as CalendarIcon,
-  ArrowRight,
-  Sparkles,
-  Info
-} from "lucide-react"
+import { Info } from "lucide-react"
 import { 
   AreaChart, 
   Area, 
@@ -32,12 +20,12 @@ import {
   Tooltip, 
   ResponsiveContainer,
   ReferenceLine,
-  Cell
 } from "recharts"
 import { Goal } from "@/types/goals"
-import { cn, formatCurrency } from "@/lib/utils"
+import { formatCurrency } from "@/lib/utils"
 import { paraCentavos } from "@/lib/dinheiro"
-import { differenceInMonths, addMonths, format, differenceInDays } from "date-fns"
+import { COR_DO_PREVISTO, COR_DO_REAL, CURSOR_DO_TOOLTIP, PROPS_DA_GRADE, PROPS_DO_EIXO } from "@/lib/graficos"
+import { addMonths, format, differenceInDays } from "date-fns"
 import { ptBR } from "date-fns/locale"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
@@ -142,184 +130,143 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
 
   if (!goal) return null
 
+  const alvo = paraCentavos(goal.target_amount) / 100
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl p-0 overflow-hidden bg-background/95 backdrop-blur-3xl border-border/40 rounded-[32px] md:rounded-[40px] shadow-2xl">
+      <DialogContent className="max-w-4xl gap-0 overflow-hidden p-0">
         <ScrollArea className="max-h-[90vh]">
-          <div className="flex flex-col md:flex-row h-full">
-            
-            {/* Lado Esquerdo: Ajustes e Sliders */}
-            <div className="w-full md:w-[45%] p-6 md:p-10 border-b md:border-b-0 md:border-r border-border/20 space-y-10">
-              <DialogHeader>
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 rounded-2xl bg-primary/10 text-primary flex items-center justify-center">
-                    <TrendingUp className="h-5 w-5" />
-                  </div>
-                  <Badge variant="outline" className="bg-primary/5 text-primary border-primary/20 font-black uppercase tracking-widest text-[10px]">
-                    Simulador Turbo
-                  </Badge>
-                </div>
-                <DialogTitle className="text-3xl font-black uppercase tracking-tight">
-                  Acelere seus <span className="text-primary italic">Sonhos</span>
-                </DialogTitle>
-                <DialogDescription className="text-sm font-medium opacity-60">
-                  Descubra como pequenos ajustes mudam tudo.
+          <div className="flex h-full flex-col md:flex-row">
+            {/* Ajustes */}
+            <div className="w-full space-y-8 border-b border-border p-6 md:w-[45%] md:border-b-0 md:border-r">
+              <DialogHeader className="space-y-1 pr-8">
+                <p className="label text-muted-foreground">Simulador</p>
+                <DialogTitle>Projeção de Trajetória</DialogTitle>
+                <DialogDescription>
+                  Veja quando a meta <span className="font-medium text-foreground">{goal.name}</span> é alcançada com aportes extras.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className="space-y-12">
-                {/* Slider 1: Mensal Extra */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Esforço Mensal Extra</label>
-                      <p className="text-xs font-medium text-muted-foreground/60 italic">"Economizar um pouco mais por mês"</p>
+              <div className="space-y-8">
+                {/* Esforço mensal extra */}
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">Esforço mensal extra</p>
+                      <p className="text-xs text-muted-foreground">Guardar um pouco mais por mês</p>
                     </div>
-                    <div className="bg-primary/10 px-4 py-2 rounded-2xl border border-primary/20">
-                      <span className="text-sm font-black text-primary">+{formatCurrency(extraMonthly)}</span>
-                    </div>
+                    <span className="value-m text-gold-line">+{formatCurrency(extraMonthly)}</span>
                   </div>
                   <Slider
+                    aria-label="Esforço mensal extra"
                     value={[extraMonthly]}
                     onValueChange={(vals) => setExtraMonthly(vals[0])}
-                    max={(paraCentavos(goal.target_amount) / 100) * 0.5}
-                    step={Math.max(1, Math.round((paraCentavos(goal.target_amount) / 100) * 0.01))}
-                    className="py-4"
+                    max={alvo * 0.5}
+                    step={Math.max(1, Math.round(alvo * 0.01))}
+                    className="py-3"
                   />
-                  <div className="flex justify-between px-1 text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                  <div className="value-m flex justify-between text-xs text-muted-foreground">
                     <span>R$ 0</span>
-                    <span>Modo Foguete</span>
-                    <span>Max {formatCurrency((paraCentavos(goal.target_amount) / 100) * 0.5)}</span>
+                    <span>Máx. {formatCurrency(alvo * 0.5)}</span>
                   </div>
                 </div>
 
-                {/* Slider 2: Aporte Único */}
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground">Aporte Inicial Extra</label>
-                      <p className="text-xs font-medium text-muted-foreground/60 italic">"Aproveitar um dinheiro que sobrou"</p>
+                {/* Aporte único */}
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-0.5">
+                      <p className="text-sm font-medium">Aporte inicial extra</p>
+                      <p className="text-xs text-muted-foreground">Usar um dinheiro que sobrou</p>
                     </div>
-                    <div className="bg-emerald-500/10 px-4 py-2 rounded-2xl border border-emerald-500/20">
-                      <span className="text-sm font-black text-emerald-600">+{formatCurrency(initialLumpSum)}</span>
-                    </div>
+                    <span className="value-m text-gold-line">+{formatCurrency(initialLumpSum)}</span>
                   </div>
                   <Slider
+                    aria-label="Aporte inicial extra"
                     value={[initialLumpSum]}
                     onValueChange={(vals) => setInitialLumpSum(vals[0])}
-                    max={(paraCentavos(goal.target_amount) / 100)}
-                    step={Math.max(1, Math.round((paraCentavos(goal.target_amount) / 100) * 0.02))}
-                    className="py-4"
+                    max={alvo}
+                    step={Math.max(1, Math.round(alvo * 0.02))}
+                    className="py-3"
                   />
-                  <div className="flex justify-between px-1 text-[9px] font-bold text-muted-foreground/40 uppercase tracking-widest">
+                  <div className="value-m flex justify-between text-xs text-muted-foreground">
                     <span>R$ 0</span>
-                    <span>Salto no Progresso</span>
-                    <span>Max {formatCurrency((paraCentavos(goal.target_amount) / 100))}</span>
+                    <span>Máx. {formatCurrency(alvo)}</span>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-4 flex flex-col gap-3">
-                 <div className="p-4 rounded-2xl bg-muted/20 border border-border/40 flex items-start gap-3">
-                    <Info className="h-4 w-4 text-primary mt-0.5" />
-                    <p className="text-[10px] font-medium leading-relaxed opacity-60">
-                      Baseamos os cálculos na sua velocidade média histórica de <strong>{formatCurrency(baseMetrics.monthlyAvg)}/mês</strong>. 
-                      Os lucros sobre investimentos não estão inclusos nesta simulação simples.
-                    </p>
-                 </div>
+              <div className="flex items-start gap-3 rounded-md border border-border bg-elevated p-4">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-info" aria-hidden="true" />
+                <p className="text-xs leading-relaxed text-fg-secondary">
+                  O cálculo usa o seu ritmo médio de <span className="value-m text-foreground">{formatCurrency(baseMetrics.monthlyAvg)}/mês</span>.
+                  Rendimentos de investimento não entram nesta simulação.
+                </p>
               </div>
             </div>
 
-            {/* Lado Direito: Dashboard de Impacto */}
-            <div className="flex-1 p-6 md:p-10 bg-primary/[0.02] space-y-8">
-              <div className="flex items-start justify-between">
-                <h3 className="text-xl font-black uppercase tracking-tight">O Impacto</h3>
-              </div>
+            {/* Impacto */}
+            <div className="flex-1 space-y-6 p-6">
+              <h3 className="display-s">Impacto</h3>
 
-              {/* Impact Badges */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-5 rounded-[28px] bg-emerald-500/10 border border-emerald-500/20 space-y-1 relative overflow-hidden group">
-                  <Rocket className="absolute -right-2 -top-2 h-12 w-12 text-emerald-500/10 group-hover:rotate-12 transition-transform" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600/60">Tempo Economizado</p>
-                  <p className="text-3xl font-black text-emerald-600 tracking-tighter">
-                    {simulation?.monthsSaved} <span className="text-sm uppercase tracking-normal">meses</span>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1 rounded-md border border-border p-4">
+                  <p className="label text-muted-foreground">Tempo economizado</p>
+                  <p className="value-l">
+                    {simulation?.monthsSaved} <span className="text-sm text-muted-foreground">meses</span>
                   </p>
                 </div>
-                <div className="p-5 rounded-[28px] bg-primary/10 border border-primary/20 space-y-1 relative overflow-hidden group">
-                  <Target className="absolute -right-2 -top-2 h-12 w-12 text-primary/10 group-hover:scale-110 transition-transform" />
-                  <p className="text-[10px] font-black uppercase tracking-widest text-primary/60">Nova Previsão</p>
-                  <p className="text-xl font-black text-primary uppercase tracking-tighter pt-1">
-                    {simulation ? format(simulation.simulatedTargetDate, "MMM yy", { locale: ptBR }) : '---'}
+                <div className="space-y-1 rounded-md border border-border p-4">
+                  <p className="label text-muted-foreground">Nova previsão</p>
+                  <p className="value-l">
+                    {simulation ? format(simulation.simulatedTargetDate, "MMM yy", { locale: ptBR }) : '—'}
                   </p>
                 </div>
               </div>
 
-              {/* Comparação Gráfica */}
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-[10px] font-black uppercase tracking-widest opacity-40">Projeção de Evolução</h4>
-                  <div className="flex gap-4">
-                    <div className="flex items-center gap-1.5 shadow-sm">
-                       <div className="w-2 h-2 rounded-full bg-muted-foreground/30" />
-                       <span className="text-[9px] font-bold uppercase tracking-tighter opacity-60">Atual</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                       <div className="w-2 h-2 rounded-full bg-primary" />
-                       <span className="text-[9px] font-bold uppercase tracking-tighter">Simulado</span>
-                    </div>
+              <section className="space-y-3" aria-labelledby="projecao-da-meta">
+                <div className="flex items-center justify-between gap-3">
+                  <h4 id="projecao-da-meta" className="text-sm font-medium">
+                    Projeção <span className="text-muted-foreground">· por mês</span>
+                  </h4>
+                  <div className="flex gap-4 text-xs text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span aria-hidden="true" className="h-0 w-4 border-t-2 border-dashed border-fg-muted" /> Atual
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <span aria-hidden="true" className="h-0.5 w-4 rounded-full bg-gold-line" /> Simulado
+                    </span>
                   </div>
                 </div>
 
-                <div className="h-[250px] w-full bg-card/40 rounded-[32px] p-6 border border-border/40 relative">
+                <div
+                  className="h-[250px] w-full rounded-lg border border-border p-4"
+                  role="img"
+                  aria-label={
+                    simulation
+                      ? `Projeção: no ritmo atual, a meta chega em ${format(simulation.currentTargetDate, "MMMM 'de' yyyy", { locale: ptBR })}; com os ajustes, em ${format(simulation.simulatedTargetDate, "MMMM 'de' yyyy", { locale: ptBR })}`
+                      : "Projeção da meta"
+                  }
+                >
                   {(open && isChartReady) ? (
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={chartData}>
-                        <defs>
-                          <linearGradient id="simulatedGradient" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="var(--az-gold-line)" stopOpacity={0.15}/>
-                            <stop offset="95%" stopColor="var(--az-gold-line)" stopOpacity={0}/>
-                          </linearGradient>
-                          <linearGradient id="strokeGradient" x1="0" y1="0" x2="1" y2="0">
-                            <stop offset="0%" stopColor="var(--az-gold-line)" />
-                            <stop offset="100%" stopColor="var(--az-gold)" />
-                          </linearGradient>
-                          <filter id="shadow" height="200%">
-                            <feGaussianBlur in="SourceAlpha" stdDeviation="4" result="blur" />
-                            <feOffset in="blur" dx="0" dy="4" result="offsetBlur" />
-                            <feFlood floodColor="var(--az-gold-line)" floodOpacity="0.3" result="offsetColor" />
-                            <feComposite in="offsetColor" in2="offsetBlur" operator="in" result="offsetBlur" />
-                            <feMerge>
-                              <feMergeNode />
-                              <feMergeNode in="SourceGraphic" />
-                            </feMerge>
-                          </filter>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--az-border-subtle)" />
-                        <XAxis 
-                          dataKey="name" 
-                          axisLine={false} 
-                          tickLine={false} 
-                          tick={{fontSize: 9, fontWeight: 700, fill: 'var(--az-text-muted)'}} 
-                          dy={10}
-                          interval="preserveStartEnd"
-                        />
-                        <YAxis hide domain={[0, paraCentavos(goal.target_amount) / 100]} />
-                        <Tooltip 
-                          cursor={{ stroke: 'var(--az-gold-line)', strokeWidth: 1, strokeDasharray: '4 4' }}
+                        <CartesianGrid {...PROPS_DA_GRADE} />
+                        <XAxis dataKey="name" {...PROPS_DO_EIXO} dy={8} interval="preserveStartEnd" />
+                        <YAxis hide domain={[0, alvo]} />
+                        <Tooltip
+                          cursor={CURSOR_DO_TOOLTIP}
                           content={({ active, payload, label }) => {
                             if (active && payload && payload.length) {
                               return (
-                                <div className="bg-background/90 backdrop-blur-md border border-border/40 p-3 rounded-2xl shadow-xl space-y-2 min-w-[120px]">
-                                  <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{label}</p>
-                                  <div className="space-y-1">
-                                    <div className="flex items-center justify-between gap-4">
-                                      <span className="text-[9px] font-bold text-muted-foreground/60 uppercase">Atual</span>
-                                      <span className="text-[11px] font-black text-muted-foreground/80">{formatCurrency(payload[0].value as number)}</span>
-                                    </div>
-                                    <div className="flex items-center justify-between gap-4">
-                                      <span className="text-[9px] font-black text-primary uppercase">Simulado</span>
-                                      <span className="text-[11px] font-black text-primary">{formatCurrency(payload[1].value as number)}</span>
-                                    </div>
+                                <div className="min-w-[140px] space-y-1 rounded-md border border-border-strong bg-elevated p-3">
+                                  <p className="label text-muted-foreground">{label}</p>
+                                  <div className="flex items-center justify-between gap-4 text-xs">
+                                    <span className="text-muted-foreground">Atual</span>
+                                    <span className="value-m">{formatCurrency(payload[0].value as number)}</span>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-4 text-xs">
+                                    <span className="text-gold-line">Simulado</span>
+                                    <span className="value-m">{formatCurrency(payload[1].value as number)}</span>
                                   </div>
                                 </div>
                               )
@@ -327,75 +274,52 @@ export function GoalSimulator({ goal, open, onOpenChange }: GoalSimulatorProps) 
                             return null
                           }}
                         />
-                        <ReferenceLine 
-                          y={paraCentavos(goal.target_amount) / 100} 
-                          stroke="var(--az-gold-line)" 
-                          strokeDasharray="5 5" 
-                          opacity={0.15}
-                          label={{ position: 'top', value: 'ALVO', fontSize: 9, fontWeight: 900, opacity: 0.3, fill: 'var(--az-gold-line)' }}
+                        <ReferenceLine
+                          y={alvo}
+                          stroke={COR_DO_PREVISTO}
+                          strokeDasharray="5 5"
+                          label={{ position: 'top', value: 'Alvo', fontSize: 12, fill: COR_DO_PREVISTO }}
                         />
-                        <Area 
-                          type="monotone" 
-                          dataKey="atual" 
-                          stroke="var(--az-text-muted)" 
-                          strokeWidth={1.5}
-                          strokeDasharray="4 4"
+                        <Area
+                          type="monotone"
+                          dataKey="atual"
+                          stroke={COR_DO_PREVISTO}
+                          strokeWidth={2}
+                          strokeDasharray="5 5"
                           fill="none"
-                          animationDuration={1000}
+                          animationDuration={400}
                         />
-                        <Area 
-                          type="monotone" 
-                          dataKey="simulado" 
-                          stroke="url(#strokeGradient)" 
-                          strokeWidth={3}
-                          fill="url(#simulatedGradient)" 
-                          animationDuration={1500}
-                          style={{ filter: 'url(#shadow)' }}
+                        <Area
+                          type="monotone"
+                          dataKey="simulado"
+                          stroke={COR_DO_REAL}
+                          strokeWidth={2.5}
+                          fill={COR_DO_REAL}
+                          fillOpacity={0.08}
+                          animationDuration={400}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
                   ) : (
-                    <div className="flex flex-col items-center justify-center h-full gap-3 opacity-20">
-                      <Sparkles className="h-10 w-10 animate-spin-slow text-primary" />
-                      <span className="text-[10px] font-black uppercase tracking-widest text-center">Cruzando dados...</span>
-                    </div>
+                    <div className="h-full w-full animate-pulse rounded-md bg-elevated" aria-busy="true" />
                   )}
                 </div>
-              </div>
+              </section>
 
-              {/* Call to Action */}
-              <div className="p-6 rounded-[28px] bg-primary text-primary-foreground space-y-4 shadow-xl shadow-primary/20 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-transform active:scale-100">
-                <Zap className="absolute -right-4 -bottom-4 h-24 w-24 text-white/10" />
-                <div className="space-y-1 relative z-10">
-                  <h4 className="text-lg font-black uppercase tracking-tighter leading-none">Você está pronto!</h4>
-                  <p className="text-[11px] font-medium opacity-80 max-w-[80%] leading-relaxed">
-                    Com esses ajustes, você alcança sua meta <strong>{simulation?.monthsSaved} meses</strong> antes. 
-                    Deseja transformar essa simulação em sua meta real?
-                  </p>
+              <div className="space-y-4 border-t border-border pt-4">
+                <p className="text-sm text-fg-secondary">
+                  Com esses ajustes, a meta é alcançada <span className="value-m text-foreground">{simulation?.monthsSaved} meses</span> antes.
+                </p>
+                <div className="flex justify-end">
+                  <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    Fechar
+                  </Button>
                 </div>
-                <Button 
-                  className="w-full bg-white text-primary hover:bg-white/90 rounded-2xl font-black uppercase tracking-widest text-[10px] h-11 relative z-10"
-                  onClick={() => onOpenChange(false)}
-                >
-                  Confirmar Novo Plano <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
               </div>
             </div>
           </div>
         </ScrollArea>
       </DialogContent>
     </Dialog>
-  )
-}
-
-function Badge({ children, className, variant = "default" }: any) {
-  return (
-    <div className={cn(
-      "px-2.5 py-0.5 rounded-full text-[10px] font-bold",
-      variant === "outline" ? "border" : "bg-primary text-primary-foreground",
-      className
-    )}>
-      {children}
-    </div>
   )
 }

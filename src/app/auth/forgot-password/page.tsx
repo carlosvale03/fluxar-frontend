@@ -10,9 +10,7 @@ import Link from "next/link"
 import { useState } from "react"
 import { toast } from "sonner"
 import { api, mensagemDeErro } from "@/services/apiClient"
-import { cn } from "@/lib/utils"
-import { ChevronLeft, Mail, CheckCircle2, ArrowRight } from "lucide-react"
-import { motion, AnimatePresence } from "framer-motion"
+import { AlertCircle, ChevronLeft, CheckCircle2, ArrowRight } from "lucide-react"
 
 const forgotSchema = z.object({
   email: z.string().email("Por favor, informe um e-mail válido"),
@@ -20,16 +18,11 @@ const forgotSchema = z.object({
 
 type ForgotForm = z.infer<typeof forgotSchema>
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 10 },
-  show: { opacity: 1, y: 0 }
-}
-
 export default function ForgotPasswordPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [success, setSuccess] = useState(false)
   const [mensagem, setMensagem] = useState("")
-  
+
   const { register, handleSubmit, formState: { errors } } = useForm<ForgotForm>({
     resolver: zodResolver(forgotSchema),
   })
@@ -51,104 +44,76 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <AuthShell 
-      title="Recuperar Senha" 
-      description={success 
+    <AuthShell
+      title="Recuperar Senha"
+      description={success
         ? "Pedido recebido. Confira a mensagem abaixo."
-        : "Não se preocupe, acontece. Informe seu e-mail e enviaremos um link para você criar uma nova senha."
+        : "Informe seu e-mail e enviaremos um link para você criar uma nova senha."
       }
     >
-      <AnimatePresence mode="wait">
-        {success ? (
-          <motion.div 
-            key="success"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="space-y-6 text-center py-4"
-          >
-            <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-[28px] bg-emerald-500/10 flex items-center justify-center text-emerald-500 shadow-inner relative overflow-hidden">
-                <CheckCircle2 className="h-10 w-10 relative z-10" />
-                <motion.div 
-                  initial={{ scale: 0, opacity: 0.5 }}
-                  animate={{ scale: 2, opacity: 0 }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="absolute inset-0 bg-emerald-500/20 rounded-full"
-                />
-              </div>
+      {success ? (
+        <div className="space-y-5 py-2 text-center">
+          <div className="flex justify-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong text-inflow">
+              <CheckCircle2 className="h-6 w-6" aria-hidden="true" />
             </div>
-            
-            <div className="space-y-3 px-4">
-              <h3 className="text-lg font-black tracking-tight">Verifique sua Caixa de Entrada</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{mensagem}</p>
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                O link vale por 1 hora. Se não encontrar, verifique sua pasta de **Spam**.
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="display-s">Verifique sua caixa de entrada</h2>
+            <p className="text-sm leading-relaxed text-muted-foreground">{mensagem}</p>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              O link vale por 1 hora. Se não encontrar, verifique sua pasta de <strong className="font-semibold text-foreground">spam</strong>.
+            </p>
+          </div>
+
+          <Button asChild variant="outline" className="w-full max-md:h-11">
+            <Link href="/auth/login">Voltar para o Login</Link>
+          </Button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-fg-secondary" htmlFor="email">
+              Seu E-mail Cadastrado
+            </label>
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              placeholder="exemplo@email.com"
+              aria-invalid={errors.email ? true : undefined}
+              {...register("email")}
+            />
+            {errors.email && (
+              <p className="flex items-center gap-1.5 text-xs text-outflow">
+                <AlertCircle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                {errors.email.message}
               </p>
-            </div>
+            )}
+          </div>
 
-            <Button asChild variant="outline" className="h-12 rounded-2xl w-full border-border/60 hover:bg-muted font-bold">
-              <Link href="/auth/login">Voltar para o Login</Link>
-            </Button>
-          </motion.div>
-        ) : (
-          <form key="form" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <motion.div
-              variants={{
-                show: { transition: { staggerChildren: 0.1, delayChildren: 0.2 } }
-              }}
-              initial="hidden"
-              animate="show"
-              className="space-y-5"
+          <Button
+            type="submit"
+            className="w-full max-md:h-11"
+            loading={isLoading}
+            disabled={isLoading}
+          >
+            Enviar Link de Recuperação
+            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+          </Button>
+
+          <div className="text-center">
+            <Link
+              href="/auth/login"
+              className="inline-flex items-center gap-1 rounded-sm text-sm text-muted-foreground transition-colors duration-fast ease-az-out hover:text-foreground"
             >
-              <motion.div variants={itemVariants} className="space-y-2">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground ml-1" htmlFor="email">
-                  Seu E-mail Cadastrado
-                </label>
-                <div className="relative group">
-                  <Input 
-                    id="email" 
-                    type="email" 
-                    placeholder="exemplo@email.com" 
-                    {...register("email")}
-                    className={cn(
-                      "h-12 rounded-2xl bg-muted/5 border-border/40 transition-all duration-300 focus:bg-background focus:ring-4 focus:ring-primary/10",
-                      errors.email ? "border-destructive ring-destructive/20 focus-visible:ring-destructive" : "hover:border-primary/30 focus-visible:ring-primary/20"
-                    )}
-                  />
-                  <Mail className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground opacity-40 group-focus-within:opacity-100 transition-opacity" />
-                </div>
-                {errors.email && (
-                  <p className="text-[10px] font-bold text-destructive uppercase ml-1 mt-1 tracking-wider">
-                    {errors.email.message}
-                  </p>
-                )}
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="pt-2">
-                <Button 
-                  type="submit" 
-                  className="w-full h-14 rounded-full text-base font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all hover:scale-[1.02] active:scale-[0.98] group" 
-                  loading={isLoading} 
-                  disabled={isLoading}
-                >
-                  <span className="flex items-center gap-2">
-                    Enviar Link de Recuperação
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-                  </span>
-                </Button>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="text-center">
-                <Link href="/auth/login" className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-all group">
-                  <ChevronLeft className="h-3 w-3 transition-transform group-hover:-translate-x-1" />
-                  Voltar para o Início
-                </Link>
-              </motion.div>
-            </motion.div>
-          </form>
-        )}
-      </AnimatePresence>
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+              Voltar para o Início
+            </Link>
+          </div>
+        </form>
+      )}
     </AuthShell>
   )
 }
-

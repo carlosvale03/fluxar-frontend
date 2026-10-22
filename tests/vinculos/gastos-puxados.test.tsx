@@ -142,7 +142,7 @@ describe("Relatório de gastos puxados", { timeout: 15000 }, () => {
     expect(await within(secao).findAllByText(/Lazer puxou/)).toHaveLength(2)
     expect(chamadasDoRelatorio()[0][1]).toEqual({ params: { period: "this_month" } })
 
-    await userEvent.click(screen.getByRole("button", { name: /90 Dias/ }))
+    await userEvent.click(screen.getByRole("button", { name: "90 dias" }))
     await vi.waitFor(() => expect(chamadasDoRelatorio().at(-1)![1]).toEqual({ params: { period: "last_90_days" } }))
   })
 
