@@ -183,6 +183,42 @@ Nove destinos de primeiro nível são demais para uma barra. A navegação se di
 | D-15 | "Partilha" é o nome do módulo; o ato continua "dividir" e "divisão" ("Desfazer a divisão?") (antiga P-14). |
 | D-16 | O tipo de conta PIGGY_BANK continua "Cofrinho" (antiga P-15, segue a D-13). |
 | D-17 | Os selos das Cartas avançadas saem dos dados: poder de aporte ≥ 20% "Saudável", ≥ 10% "Atenção", abaixo "Baixo"; reserva ≥ 6 meses "Reserva completa", ≥ 3 "Reserva parcial", abaixo "Reserva baixa"; sem dado, sem selo (antiga P-16). |
+| D-18 | Posicionamento: o Azimute é o app do plano do salário, não do registro de gastos. Ele vence no dia em que o salário cai (Partilha) e no acompanhamento do desvio do plano ao longo do mês (Rotas). Detalhes e consequências na seção abaixo. |
+
+### D-18 · Posicionamento: o plano do salário
+
+Registrada em 23/10/2026, a partir de uma análise de mercado.
+
+**O mercado.**
+
+- Os apps de registro manual (Mobills, Organizze, Minhas Economias) cobram de R$ 10 a R$ 45 por mês, têm apps nativos maduros e deixam o Open Finance nos planos pagos.
+- Os assistentes de IA com Open Finance (Pierre, da CloudWalk; Grana) dispensam a digitação: o usuário conversa e o agente analisa.
+- Os bancos, com o Nubank à frente, já agregam saldos e extratos de outras instituições pelo Open Finance, sem custo para o cliente.
+- Desde maio de 2026, o ChatGPT conecta contas bancárias nos Estados Unidos.
+- Lá fora, o YNAB cobra cerca de US$ 109 por ano mesmo com agregadores gratuitos por todo lado, porque vende um método, não dados.
+
+**O diagnóstico.**
+
+- Disputar o registro de gastos é perder: banco, IA e Open Finance zeram o esforço de registrar, e o Azimute depende de lançamento manual ou de arquivo.
+- Open Finance agora não diferencia. O mínimo de um provedor (cerca de R$ 2.500 por mês na Pluggy) pede perto de 126 assinantes antes de se pagar, a regra do Banco Central sobre parcerias só sai em dezembro de 2026, e o resultado seria só igualar os concorrentes (auditoria, PROP-05).
+- Um chat com IA é commodity: quem já tem capital e dados chega antes.
+- O que ninguém no Brasil vende é o dia do pagamento. Com 80% das famílias endividadas, inadimplência recorde e rotativo do cartão acima de 400% ao ano, falta um plano para o salário antes de ele virar fatura. Partilha, Rotas e Desvio já formam esse método.
+
+**A decisão.** O Azimute se posiciona como o app do plano do salário: dividir primeiro (Partilha) e depois medir o quanto o mês se afasta do plano (Rotas e Desvio). O registro de gastos continua existindo, mas serve ao plano, não é o produto.
+
+**Consequências práticas.** Cada item vira uma spec própria quando entrar no roadmap; nenhum faz parte do redesign descrito na seção 6.
+
+1. **O começo é o salário.** O onboarding pergunta quando o salário cai, quanto é e qual modelo de divisão usar. A primeira vitória do usuário é a primeira divisão, não o primeiro lançamento. A Ponte de Comando destaca o próximo recebimento e o plano do mês.
+2. **A Partilha fica no plano gratuito.** A trava `gestao_do_salario` não deve ser ligada em nenhum plano: travar o diferencial esconde o produto. O plano pago cobra por profundidade, como Cartas avançadas, importação, vínculos e mais de um plano de divisão.
+3. **Partilha com o calendário brasileiro.** Adiantamento quinzenal (dia 20 e dia 5), 13º salário, férias e PLR, que hoje se resolvem só no ajuste da revisão, com um plano por usuário.
+4. **Menos digitação.** O desvio pode ser medido pelo saldo de cada rota ou conta, sem exigir o lançamento de cada gasto pequeno. Isso ataca a principal causa de abandono dos apps de registro manual.
+5. **Avisos nos momentos do plano.** Notificação do PWA no dia do salário ("Divida agora") e uma checagem do desvio na terceira semana do mês. É barato e não depende do Open Finance.
+6. **Open Finance e Pix vêm depois, a serviço da mesma tese.** O crédito do salário no banco dispara a divisão, e o Pix executa as transferências do plano. Só depois da regra final do Banco Central e da cobrança dos planos (PROP-05).
+7. **Métrica principal.** Percentual de salários divididos em até 48 horas depois de caírem e desvio médio no fechamento do mês. O número de lançamentos deixa de ser medida de sucesso.
+
+**O que fica fora.** Chat com IA, gamificação e paridade de recursos com os apps de registro manual.
+
+**Ressalva.** Os preços dos concorrentes e as métricas de uso do Pierre divergem entre as fontes consultadas e precisam ser confirmados antes de qualquer decisão de preço.
 
 ### Decisões em aberto
 
